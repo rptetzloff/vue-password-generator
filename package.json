@@ -1,6 +1,6 @@
 {
   "name": "vue-password-generator",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "A password generator written in Vue with Vuetify",
   "author": "Ray Tetzloff <ray@raytetzloff.com>",
   "repository": {
