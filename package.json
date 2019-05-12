@@ -1,7 +1,20 @@
 {
   "name": "vue-password-generator",
-  "version": "0.1.0",
-  "private": true,
+  "version": "0.1.1",
+  "description": "A password generator written in Vue with Vuetify",
+  "author": "Ray Tetzloff <ray@raytetzloff.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rptetzloff/vue-password-generator.git"
+  },
+  "keywords": [
+    "password"
+  ],
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rptetzloff/vue-password-generator/issues"
+  },
+  "homepage": "https://github.com/rptetzloff/vue-password-generator",
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
