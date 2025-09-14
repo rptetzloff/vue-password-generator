@@ -19,5 +19,5 @@ services:
         value: geolocation=(), microphone=(), camera=()
     routes:
       - type: rewrite
-        source: "/*"
+        source: /*
         destination: /index.html
