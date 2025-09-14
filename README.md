@@ -35,7 +35,7 @@ A modern, secure password generator built with Vue 3 and Vite. Generate customiz
 
 ## 🚀 Live Demo
 
-**[Try it now →](https://your-username.github.io/vue-password-generator)**
+**[Try it now →](https://vue-password-generator.onrender.com)**
 
 ## 📸 Screenshots
 
@@ -81,32 +81,39 @@ npm run deploy       # Build and deploy to GitHub Pages
 
 ## 🚀 Deployment
 
-### Automatic Deployment (Recommended)
+### Deploy on Render.com (Recommended)
 
-This project includes GitHub Actions for automatic deployment:
+This project is optimized for Render.com deployment:
 
-1. **Fork or clone** this repository
-2. **Update configuration**:
-   - Edit `vite.config.js` - change the `base` path to your repository name
-   - Update `package.json` - change repository URLs to your GitHub username
-3. **Push to GitHub** - the site will automatically deploy to GitHub Pages
-4. **Enable GitHub Pages** in your repository settings (if not already enabled)
+1. **Connect your repository** to Render.com
+2. **Create a new Static Site** service
+3. **Configure the build**:
+   - Build Command: `npm ci && npm run build`
+   - Publish Directory: `dist`
+4. **Deploy** - Render will automatically build and deploy your site
+5. **Auto-deploy** - Future commits will trigger automatic deployments
 
-### Manual Deployment
+### Alternative: Manual Build
 
 ```bash
-# Build and deploy manually
+# Build for production
 npm run build
-npm run deploy
+
+# Preview locally (simulates production)
+npm run preview
 ```
+
+### Environment Variables
+
+No environment variables are required for this static site.
 
 ### Custom Domain
 
-To use a custom domain:
+To use a custom domain on Render:
 
-1. Add a `CNAME` file to the `public` directory with your domain
-2. Configure your domain's DNS to point to GitHub Pages
-3. Enable custom domain in GitHub Pages settings
+1. Go to your service settings on Render
+2. Add your custom domain in the "Custom Domains" section
+3. Configure your domain's DNS as instructed by Render
 
 ## 🏗️ Project Structure
 
