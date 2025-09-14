@@ -26,7 +26,8 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "start": "vite preview --host 0.0.0.0 --port $PORT"
+    "start": "vite preview --host 0.0.0.0 --port $PORT",
+    "postbuild": "ls -la dist/"
   },
   "dependencies": {
     "vue": "^3.4.0",

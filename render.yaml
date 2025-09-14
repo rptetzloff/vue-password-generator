@@ -17,7 +17,3 @@ services:
       - path: /*
         name: Permissions-Policy
         value: geolocation=(), microphone=(), camera=()
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
