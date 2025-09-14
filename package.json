@@ -1,69 +1,41 @@
 {
   "name": "vue-password-generator",
-  "version": "0.1.5",
-  "description": "A password generator written in Vue with Vuetify",
-  "author": "Ray Tetzloff <ray@raytetzloff.com>",
+  "version": "1.0.0",
+  "description": "A modern password generator built with Vue 3 and Vite",
+  "author": "Your Name <your.email@example.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rptetzloff/vue-password-generator.git"
+    "url": "https://github.com/USERNAME/REPOSITORY.git"
   },
   "keywords": [
-    "password"
+    "password",
+    "generator",
+    "vue",
+    "security",
+    "webapp",
+    "javascript",
+    "vite"
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/rptetzloff/vue-password-generator/issues"
+    "url": "https://github.com/USERNAME/REPOSITORY/issues"
   },
-  "homepage": "https://github.com/rptetzloff/vue-password-generator",
+  "homepage": "https://USERNAME.github.io/REPOSITORY",
+  "type": "module",
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
-    "lint": "vue-cli-service lint"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build && gh-pages -d dist",
+    "predeploy": "npm run build"
   },
   "dependencies": {
-    "@mdi/font": "^3.6.95",
-    "core-js": "^2.6.5",
-    "node-sass": "^4.12.0",
-    "raw-loader": "^2.0.0",
-    "sass-loader": "^7.1.0",
-    "vue": "^2.6.10",
-    "vue-clipboard2": "^0.3.0",
-    "vuetify": "^1.5.5"
+    "vue": "^3.4.0",
+    "@mdi/font": "^7.4.47"
   },
   "devDependencies": {
-    "@vue/cli-plugin-babel": "^3.7.0",
-    "@vue/cli-plugin-eslint": "^3.7.0",
-    "@vue/cli-service": "^3.7.0",
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.16.0",
-    "eslint-plugin-vue": "^5.0.0",
-    "stylus": "^0.54.5",
-    "stylus-loader": "^3.0.1",
-    "vue-cli-plugin-vuetify": "^0.5.0",
-    "vue-template-compiler": "^2.5.21",
-    "vuetify-loader": "^1.0.5"
-  },
-  "eslintConfig": {
-    "root": true,
-    "env": {
-      "node": true
-    },
-    "extends": [
-      "plugin:vue/essential",
-      "eslint:recommended"
-    ],
-    "rules": {},
-    "parserOptions": {
-      "parser": "babel-eslint"
-    }
-  },
-  "postcss": {
-    "plugins": {
-      "autoprefixer": {}
-    }
-  },
-  "browserslist": [
-    "> 1%",
-    "last 2 versions"
-  ]
+    "@vitejs/plugin-vue": "^5.0.0",
+    "vite": "^5.0.0",
+    "gh-pages": "^6.1.0"
+  }
 }
