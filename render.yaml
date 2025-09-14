@@ -1,7 +1,7 @@
 services:
   - type: web
     name: vue-password-generator
-    env: static
+    runtime: static
     buildCommand: npm ci && npm run build
     staticPublishPath: ./dist
     headers:
