@@ -12,15 +12,8 @@ export default defineConfig({
     minify: 'esbuild',
     sourcemap: false,
     rollupOptions: {
-      external: [],
       output: {
-        format: 'es',
-        manualChunks: {
-          vendor: ['vue']
-        },
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        manualChunks: undefined
       }
     }
   },
