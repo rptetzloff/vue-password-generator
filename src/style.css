@@ -6,10 +6,10 @@
 }
 
 :root {
-  --primary: #2563eb;
-  --primary-dark: #1d4ed8;
+  --primary: #0ea5e9;
+  --primary-dark: #0284c7;
   --secondary: #64748b;
-  --success: #10b981;
+  --success: #06b6d4;
   --warning: #f59e0b;
   --error: #ef4444;
   --background: #f8fafc;
@@ -17,7 +17,7 @@
   --text: #1e293b;
   --text-secondary: #64748b;
   --border: #e2e8f0;
-  --border-focus: #3b82f6;
+  --border-focus: #0ea5e9;
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
   --radius: 8px;
@@ -26,7 +26,7 @@
 
 body {
   font-family: var(--font-family);
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
   min-height: 100vh;
   color: var(--text);
   line-height: 1.6;
@@ -136,7 +136,7 @@ body {
 .form-input:focus {
   outline: none;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }
 
 .form-input:read-only {
