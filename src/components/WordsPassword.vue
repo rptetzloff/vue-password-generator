@@ -343,7 +343,7 @@
 
 <script>
     /*  Use raw-loader to load the word list as text from data folder.   */
-    import txt from 'raw-loader!../../data/wordlist.txt';
+    import txt from '../../data/wordlist.txt?raw';
 
     export default {
         name: 'WordsPassword.vue',
