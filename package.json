@@ -1,11 +1,11 @@
 {
   "name": "vue-password-generator",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "A modern password generator built with Vue 3 and Vite",
-  "author": "Your Name <your.email@example.com>",
+  "author": "Raymond Tetzloff <ray@raytetzloff.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/USERNAME/REPOSITORY.git"
+    "url": "https://github.com/rptetzloff/vue-password-generator.git"
   },
   "keywords": [
     "password",
@@ -18,9 +18,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/USERNAME/REPOSITORY/issues"
+    "url": "https://github.com/rptetzloff/vue-password-generator/issues"
   },
-  "homepage": "https://USERNAME.github.io/REPOSITORY",
+  "homepage": "https://github.com/rptetzloff/vue-password-generator",
   "type": "module",
   "scripts": {
     "dev": "vite",
