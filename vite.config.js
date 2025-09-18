@@ -10,10 +10,10 @@ export default defineConfig({
     emptyOutDir: true,
     target: 'es2015',
     minify: 'esbuild',
-    sourcemap: false,
     rollupOptions: {
+      external: [],
       output: {
-        manualChunks: undefined
+        format: 'es'
       }
     }
   },
