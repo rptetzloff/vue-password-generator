@@ -119,9 +119,10 @@ const WordsPassword = {
   
   async created() {
     try {
-      const response = await fetch('/data/nouns.txt')
+      const response = await fetch('./data/nouns.txt')
       const text = await response.text()
       this.wordList = text.split(',').map(word => word.trim()).filter(word => word.length > 0)
+      console.log('Loaded', this.wordList.length, 'words')
     } catch (err) {
       console.error('Failed to load word list:', err)
       // Fallback word list
@@ -431,9 +432,9 @@ const Passphrase = {
   async created() {
     try {
       const [nounsResponse, verbsResponse, adjectivesResponse] = await Promise.all([
-        fetch('/data/nouns.txt'),
-        fetch('/data/verbs.txt'),
-        fetch('/data/adjectives.txt')
+        fetch('./data/nouns.txt'),
+        fetch('./data/verbs.txt'),
+        fetch('./data/adjectives.txt')
       ])
       
       const nounsText = await nounsResponse.text()
@@ -443,6 +444,7 @@ const Passphrase = {
       this.wordLists.nouns = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
       this.wordLists.verbs = verbsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
       this.wordLists.adjectives = adjectivesText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+      console.log('Loaded word lists:', this.wordLists.nouns.length, 'nouns,', this.wordLists.verbs.length, 'verbs,', this.wordLists.adjectives.length, 'adjectives')
     } catch (err) {
       console.error('Failed to load word lists:', err)
       // Fallback
