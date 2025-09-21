@@ -3,14 +3,15 @@ import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
   plugins: [vue()],
-  base: './',
   build: {
-    target: 'es2015',
     rollupOptions: {
+      external: [],
       output: {
-        format: 'iife',
-        inlineDynamicImports: true,
-        manualChunks: undefined
+        format: 'umd',
+        name: 'VuePasswordGenerator',
+        globals: {
+          vue: 'Vue'
+        }
       }
     }
   }
