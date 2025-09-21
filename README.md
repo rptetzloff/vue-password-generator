@@ -34,7 +34,7 @@ A modern, secure password generator built with Vue 3. Generate customizable pass
 
 ## 🚀 Live Demo
 
-**[Try it now →](https://vue-password-generator.onrender.com)**
+**[Try it now →](https://getrandompassword.net)**
 
 ## 📸 Screenshots
 
