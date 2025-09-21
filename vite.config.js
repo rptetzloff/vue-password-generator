@@ -4,16 +4,18 @@ import vue from '@vitejs/plugin-vue'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [vue()],
-  base: '/',
+  base: './',
   build: {
     outDir: 'dist',
     emptyOutDir: true,
     target: 'es2015',
     minify: 'esbuild',
     rollupOptions: {
-      external: [],
       output: {
-        format: 'es'
+        format: 'iife',
+        entryFileNames: 'assets/[name]-[hash].js',
+        chunkFileNames: 'assets/[name]-[hash].js',
+        assetFileNames: 'assets/[name]-[hash].[ext]'
       }
     }
   },
