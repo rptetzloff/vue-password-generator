@@ -1,6 +1,4 @@
-import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
-
-const { ref, onMounted } = Vue
+import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js'
 
 // Simple Password Generator Component
 const SimplePassword = {
