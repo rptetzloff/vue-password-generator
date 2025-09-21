@@ -143,9 +143,18 @@ export default {
   
   methods: {
     loadWordLists() {
-      this.wordLists.nouns = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-      this.wordLists.verbs = verbsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-      this.wordLists.adjectives = adjectivesText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+      try {
+        this.wordLists.nouns = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        this.wordLists.verbs = verbsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        this.wordLists.adjectives = adjectivesText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        console.log('Loaded word lists:', this.wordLists.nouns.length, 'nouns,', this.wordLists.verbs.length, 'verbs,', this.wordLists.adjectives.length, 'adjectives')
+      } catch (err) {
+        console.error('Failed to load word lists:', err)
+        // Fallback word lists
+        this.wordLists.nouns = ['house', 'car', 'tree', 'book', 'phone', 'computer', 'table', 'chair']
+        this.wordLists.verbs = ['run', 'jump', 'walk', 'talk', 'think', 'write', 'read', 'play']
+        this.wordLists.adjectives = ['big', 'small', 'fast', 'slow', 'happy', 'sad', 'bright', 'dark']
+      }
     },
     
     generatePassword() {
