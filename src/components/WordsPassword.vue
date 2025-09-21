@@ -128,7 +128,14 @@ export default {
   
   methods: {
     loadWordList() {
-      this.wordList = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+      try {
+        this.wordList = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        console.log('Loaded', this.wordList.length, 'words')
+      } catch (err) {
+        console.error('Failed to load word list:', err)
+        // Fallback word list
+        this.wordList = ['ability', 'account', 'action', 'active', 'address', 'advance', 'agency', 'agent', 'agree', 'allow', 'amount', 'animal', 'answer', 'appear', 'approach', 'area', 'argue', 'around', 'arrive', 'article', 'artist', 'assume', 'attack', 'attempt', 'attend', 'author', 'avoid', 'balance', 'become', 'before', 'begin', 'believe', 'benefit', 'better', 'between', 'beyond', 'budget', 'build', 'business']
+      }
     },
     
     generatePassword() {
