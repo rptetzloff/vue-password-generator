@@ -305,4 +305,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 Made with ❤️ and ☕ by [Raymond Tetzloff](https://github.com/rptetzloff)
 
+*This project was developed with assistance from [Bolt AI](https://bolt.new) - an AI-powered development environment.*
+
 </div>
