@@ -11,11 +11,11 @@ export default defineConfig({
     target: 'es2015',
     minify: 'esbuild',
     rollupOptions: {
+      external: [],
       output: {
         format: 'iife',
-        entryFileNames: 'assets/[name]-[hash].js',
-        chunkFileNames: 'assets/[name]-[hash].js',
-        assetFileNames: 'assets/[name]-[hash].[ext]'
+        inlineDynamicImports: true,
+        manualChunks: undefined
       }
     }
   },
@@ -27,5 +27,10 @@ export default defineConfig({
   preview: {
     port: process.env.PORT || 4173,
     host: '0.0.0.0'
+  },
+  resolve: {
+    alias: {
+      'vue': 'vue/dist/vue.esm-bundler.js'
+    }
   }
 })
