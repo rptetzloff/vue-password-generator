@@ -1,5 +1,95 @@
 import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
 
+const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
+const DIGITS = '0123456789'
+
+const randChar = (str) => str.charAt(Math.floor(Math.random() * str.length))
+
+const resolveToken = (value, custom) => {
+  switch (value) {
+    case 'r1sym':  return randChar(SPECIAL_CHARS)
+    case 'r2sym':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
+    case 'r1num':  return randChar(DIGITS)
+    case 'r2num':  return randChar(DIGITS) + randChar(DIGITS)
+    case 'r2s2n':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS) + randChar(DIGITS) + randChar(DIGITS)
+    case 'r2n2s':  return randChar(DIGITS) + randChar(DIGITS) + randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
+    case 'r1s1n':  return randChar(SPECIAL_CHARS) + randChar(DIGITS)
+    case 'r1n1s':  return randChar(DIGITS) + randChar(SPECIAL_CHARS)
+    case 'custom': return custom
+    default:       return value  // literal: '', ' ', '-', '_', '.', '$', etc.
+  }
+}
+
+const SEPARATOR_OPTIONS = [
+  { value: '',       label: 'None' },
+  { value: ' ',      label: 'Space' },
+  { value: '-',      label: 'Hyphen  -' },
+  { value: '_',      label: 'Underscore  _' },
+  { value: '.',      label: 'Period  .' },
+  { value: '$',      label: 'Dollar  $' },
+  { value: 'r1sym',  label: '1 Random Symbol' },
+  { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1num',  label: '1 Random Number' },
+  { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',  label: '2 Numbers + 2 Symbols' },
+  { value: 'custom', label: 'Custom...' },
+]
+
+const AFFIX_OPTIONS = [
+  { value: '',       label: 'None' },
+  { value: 'r1sym',  label: '1 Random Symbol' },
+  { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1num',  label: '1 Random Number' },
+  { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',  label: '2 Numbers + 2 Symbols' },
+  { value: 'custom', label: 'Custom...' },
+]
+
+// Reusable affix chip-picker + optional literal text — rendered as a template string component
+const AffixPicker = {
+  name: 'AffixPicker',
+  props: ['label', 'modelValue', 'customValue'],
+  emits: ['update:modelValue', 'update:customValue'],
+  setup(props, { emit }) {
+    return {
+      affixOptions: AFFIX_OPTIONS,
+      onMode(v) { emit('update:modelValue', v) },
+      onCustom(e) { emit('update:customValue', e.target.value) },
+    }
+  },
+  template: `
+    <div class="affix-block">
+      <div class="affix-label">{{ label }}</div>
+      <div class="separator-grid">
+        <label
+          v-for="opt in affixOptions"
+          :key="opt.value"
+          class="sep-option"
+          :class="{ active: modelValue === opt.value }"
+        >
+          <input :value="opt.value" :checked="modelValue === opt.value" @change="onMode(opt.value)" type="radio" class="sr-only" />
+          <span>{{ opt.label }}</span>
+        </label>
+      </div>
+      <div v-if="modelValue === 'custom'" class="custom-sep-row">
+        <input
+          :value="customValue"
+          @input="onCustom"
+          type="text"
+          class="form-input"
+          placeholder="Type literal text"
+        />
+      </div>
+    </div>
+  `
+}
+
 // Simple Password Generator Component
 const SimplePassword = {
   name: 'SimplePassword',
@@ -429,9 +519,13 @@ const WordsPassword = {
   name: 'WordsPassword',
   setup() {
     const wordCount = ref(4)
-    const separator = ref('random')
+    const separator = ref('$')
     const customSeparator = ref('')
     const capitalization = ref('title')
+    const prefixMode = ref('')
+    const prefixCustom = ref('')
+    const suffixMode = ref('')
+    const suffixCustom = ref('')
     const password = ref('')
     const notification = ref({
       show: false,
@@ -440,18 +534,13 @@ const WordsPassword = {
     })
     const wordList = ref([])
 
-    const specialChars = '!#$%&*+-/:;=?@^_|~'
-    const numbers = '0123456789'
-
     const loadWordList = async () => {
       try {
         const response = await fetch('./data/nouns.txt')
         const text = await response.text()
         wordList.value = text.split(',').map(word => word.trim()).filter(word => word.length > 0)
-        console.log('Loaded', wordList.value.length, 'words')
       } catch (err) {
         console.error('Failed to load word list:', err)
-        // Fallback word list
         wordList.value = ['ability', 'account', 'action', 'active', 'address', 'advance', 'agency', 'agent', 'agree', 'allow', 'amount', 'animal', 'answer', 'appear', 'approach', 'area', 'argue', 'around', 'arrive', 'article', 'artist', 'assume', 'attack', 'attempt', 'attend', 'author', 'avoid', 'balance', 'become', 'before', 'begin', 'believe', 'benefit', 'better', 'between', 'beyond', 'budget', 'build', 'business']
       }
     }
@@ -463,12 +552,10 @@ const WordsPassword = {
       }
 
       const words = []
-      
-      // Generate random words
+
       for (let i = 0; i < wordCount.value; i++) {
         let word = wordList.value[Math.floor(Math.random() * wordList.value.length)]
-        
-        // Apply capitalization
+
         switch (capitalization.value) {
           case 'title':
             word = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -480,33 +567,18 @@ const WordsPassword = {
             word = word.toLowerCase()
             break
           case 'random':
-            word = word.split('').map(char => 
+            word = word.split('').map(char =>
               Math.random() > 0.5 ? char.toUpperCase() : char.toLowerCase()
             ).join('')
             break
         }
-        
+
         words.push(word)
       }
 
-      // Determine separator
-      let sep = ''
-      switch (separator.value) {
-        case 'random':
-          sep = specialChars.charAt(Math.floor(Math.random() * specialChars.length))
-          break
-        case 'random-number':
-          sep = numbers.charAt(Math.floor(Math.random() * numbers.length)) +
-                numbers.charAt(Math.floor(Math.random() * numbers.length))
-          break
-        case 'other':
-          sep = customSeparator.value
-          break
-        default:
-          sep = separator.value
-      }
-
-      password.value = words.join(sep)
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
     }
 
     const copyPassword = async () => {
@@ -540,12 +612,18 @@ const WordsPassword = {
       separator,
       customSeparator,
       capitalization,
+      prefixMode,
+      prefixCustom,
+      suffixMode,
+      suffixCustom,
       password,
       notification,
+      separatorOptions: SEPARATOR_OPTIONS,
       generatePassword,
       copyPassword
     }
   },
+  components: { AffixPicker },
   template: `
     <div class="password-generator">
       <div class="card">
@@ -564,38 +642,18 @@ const WordsPassword = {
 
       <div class="card">
         <div class="card-header">Word Separator</div>
-        <div class="radio-group">
-          <label class="radio-item">
-            <input v-model="separator" value="" type="radio" class="radio" />
-            <span>None</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random" type="radio" class="radio" />
-            <span>Random Symbol</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random-number" type="radio" class="radio" />
-            <span>2 Random Numbers</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value=" " type="radio" class="radio" />
-            <span>Space</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="-" type="radio" class="radio" />
-            <span>Hyphen</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="_" type="radio" class="radio" />
-            <span>Underscore</span>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
+            <span>{{ opt.label }}</span>
           </label>
         </div>
-        <div v-if="separator === 'other'" class="form-group">
+        <div v-if="separator === 'custom'" class="custom-sep-row">
           <input
             v-model="customSeparator"
             type="text"
             class="form-input"
-            placeholder="Custom separator"
+            placeholder="Type your separator"
           />
         </div>
       </div>
@@ -623,8 +681,29 @@ const WordsPassword = {
       </div>
 
       <div class="card">
+        <div class="card-header">Prefix &amp; Suffix</div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
+        </div>
+      </div>
+
+      <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
-          🎲 Generate Password
+          Generate Password
         </button>
       </div>
 
@@ -849,10 +928,13 @@ const Passphrase = {
     const includeAdjective = ref(true)
     const includeNoun = ref(true)
     const includeVerb = ref(true)
-    const separator = ref(' ')
-    const capitalization = ref('title')
-    const addNumbers = ref(true)
-    const addSymbols = ref(true)
+    const separator = ref('$')
+    const customSeparator = ref('')
+    const capitalization = ref('upper')
+    const prefixMode = ref('')
+    const prefixCustom = ref('')
+    const suffixMode = ref('')
+    const suffixCustom = ref('')
     const password = ref('')
     const notification = ref({
       show: false,
@@ -865,9 +947,6 @@ const Passphrase = {
       adjectives: []
     })
 
-    const specialChars = '!#$%&*+-/:;=?@^_|~'
-    const numbers = '0123456789'
-
     const loadWordLists = async () => {
       try {
         const [nounsResponse, verbsResponse, adjectivesResponse] = await Promise.all([
@@ -875,19 +954,16 @@ const Passphrase = {
           fetch('./data/verbs.txt'),
           fetch('./data/adjectives.txt')
         ])
-        
+
         const nounsText = await nounsResponse.text()
         const verbsText = await verbsResponse.text()
         const adjectivesText = await adjectivesResponse.text()
-        
+
         wordLists.value.nouns = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
         wordLists.value.verbs = verbsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
         wordLists.value.adjectives = adjectivesText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-        
-        console.log('Loaded word lists:', wordLists.value.nouns.length, 'nouns,', wordLists.value.verbs.length, 'verbs,', wordLists.value.adjectives.length, 'adjectives')
       } catch (err) {
         console.error('Failed to load word lists:', err)
-        // Fallback word lists
         wordLists.value.nouns = ['house', 'car', 'tree', 'book', 'phone', 'computer', 'table', 'chair']
         wordLists.value.verbs = ['run', 'jump', 'walk', 'talk', 'think', 'write', 'read', 'play']
         wordLists.value.adjectives = ['big', 'small', 'fast', 'slow', 'happy', 'sad', 'bright', 'dark']
@@ -903,7 +979,7 @@ const Passphrase = {
         case 'none':
           return word.toLowerCase()
         case 'random':
-          return word.split('').map(char => 
+          return word.split('').map(char =>
             Math.random() > 0.5 ? char.toUpperCase() : char.toLowerCase()
           ).join('')
         default:
@@ -918,52 +994,25 @@ const Passphrase = {
       }
 
       const words = []
-      
-      // Add words based on selection
+
       if (includeAdjective.value && wordLists.value.adjectives.length > 0) {
         const word = wordLists.value.adjectives[Math.floor(Math.random() * wordLists.value.adjectives.length)]
         words.push(applyCapitalization(word))
       }
-      
+
       if (includeNoun.value && wordLists.value.nouns.length > 0) {
         const word = wordLists.value.nouns[Math.floor(Math.random() * wordLists.value.nouns.length)]
         words.push(applyCapitalization(word))
       }
-      
+
       if (includeVerb.value && wordLists.value.verbs.length > 0) {
         const word = wordLists.value.verbs[Math.floor(Math.random() * wordLists.value.verbs.length)]
         words.push(applyCapitalization(word))
       }
 
-      // Determine separator
-      let sep = separator.value
-      if (separator.value === 'random') {
-        sep = specialChars.charAt(Math.floor(Math.random() * specialChars.length))
-      }
-
-      let passphrase = words.join(sep)
-
-      // Add prefix/suffix
-      let prefix = ''
-      let suffix = ''
-      
-      if (addNumbers.value) {
-        prefix += numbers.charAt(Math.floor(Math.random() * numbers.length)) +
-                  numbers.charAt(Math.floor(Math.random() * numbers.length))
-      }
-      
-      if (addSymbols.value) {
-        const symbol = specialChars.charAt(Math.floor(Math.random() * specialChars.length))
-        prefix += symbol + symbol
-        suffix = symbol + symbol + suffix
-      }
-      
-      if (addNumbers.value) {
-        suffix = numbers.charAt(Math.floor(Math.random() * numbers.length)) +
-                 numbers.charAt(Math.floor(Math.random() * numbers.length)) + suffix
-      }
-
-      password.value = prefix + passphrase + suffix
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
     }
 
     const copyPassword = async () => {
@@ -997,15 +1046,20 @@ const Passphrase = {
       includeNoun,
       includeVerb,
       separator,
+      customSeparator,
       capitalization,
-      addNumbers,
-      addSymbols,
+      prefixMode,
+      prefixCustom,
+      suffixMode,
+      suffixCustom,
       password,
       notification,
+      separatorOptions: SEPARATOR_OPTIONS,
       generatePassword,
       copyPassword
     }
   },
+  components: { AffixPicker },
   template: `
     <div class="password-generator">
       <div class="card">
@@ -1028,27 +1082,19 @@ const Passphrase = {
 
       <div class="card">
         <div class="card-header">Word Separator</div>
-        <div class="radio-group">
-          <label class="radio-item">
-            <input v-model="separator" value="" type="radio" class="radio" />
-            <span>None</span>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
+            <span>{{ opt.label }}</span>
           </label>
-          <label class="radio-item">
-            <input v-model="separator" value=" " type="radio" class="radio" />
-            <span>Space</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="-" type="radio" class="radio" />
-            <span>Hyphen</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="_" type="radio" class="radio" />
-            <span>Underscore</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random" type="radio" class="radio" />
-            <span>Random Symbol</span>
-          </label>
+        </div>
+        <div v-if="separator === 'custom'" class="custom-sep-row">
+          <input
+            v-model="customSeparator"
+            type="text"
+            class="form-input"
+            placeholder="Type your separator"
+          />
         </div>
       </div>
 
@@ -1075,22 +1121,29 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <div class="card-header">Prefix & Suffix</div>
-        <div class="checkbox-group">
-          <label class="checkbox-item">
-            <input v-model="addNumbers" type="checkbox" class="checkbox" />
-            <span>Add Numbers</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="addSymbols" type="checkbox" class="checkbox" />
-            <span>Add Symbols</span>
-          </label>
+        <div class="card-header">Prefix &amp; Suffix</div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
         </div>
       </div>
 
       <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
-          🎲 Generate Passphrase
+          Generate Passphrase
         </button>
       </div>
 
