@@ -51,6 +51,18 @@ const AFFIX_OPTIONS = [
   { value: 'custom', label: 'Custom...' },
 ]
 
+const applyCapitalization = (word, mode, index = 0) => {
+  switch (mode) {
+    case 'title':      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    case 'upper':      return word.toUpperCase()
+    case 'none':       return word.toLowerCase()
+    case 'random':     return word.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'word-alt':   return index % 2 === 0 ? word.toUpperCase() : word.toLowerCase()
+    case 'word-random': return Math.random() > 0.5 ? word.toUpperCase() : word.toLowerCase()
+    default:           return word
+  }
+}
+
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
 const AffixPicker = {
   name: 'AffixPicker',
@@ -554,26 +566,8 @@ const WordsPassword = {
       const words = []
 
       for (let i = 0; i < wordCount.value; i++) {
-        let word = wordList.value[Math.floor(Math.random() * wordList.value.length)]
-
-        switch (capitalization.value) {
-          case 'title':
-            word = word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-            break
-          case 'upper':
-            word = word.toUpperCase()
-            break
-          case 'none':
-            word = word.toLowerCase()
-            break
-          case 'random':
-            word = word.split('').map(char =>
-              Math.random() > 0.5 ? char.toUpperCase() : char.toLowerCase()
-            ).join('')
-            break
-        }
-
-        words.push(word)
+        const raw = wordList.value[Math.floor(Math.random() * wordList.value.length)]
+        words.push(applyCapitalization(raw, capitalization.value, i))
       }
 
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
@@ -660,22 +654,30 @@ const WordsPassword = {
 
       <div class="card">
         <div class="card-header">Capitalization</div>
-        <div class="radio-group">
-          <label class="radio-item">
-            <input v-model="capitalization" value="title" type="radio" class="radio" />
+        <div class="separator-grid">
+          <label class="sep-option" :class="{ active: capitalization === 'title' }">
+            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
             <span>Title Case</span>
           </label>
-          <label class="radio-item">
-            <input v-model="capitalization" value="none" type="radio" class="radio" />
+          <label class="sep-option" :class="{ active: capitalization === 'none' }">
+            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
             <span>lowercase</span>
           </label>
-          <label class="radio-item">
-            <input v-model="capitalization" value="upper" type="radio" class="radio" />
+          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
+            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
             <span>UPPERCASE</span>
           </label>
-          <label class="radio-item">
-            <input v-model="capitalization" value="random" type="radio" class="radio" />
-            <span>rAnDoM</span>
+          <label class="sep-option" :class="{ active: capitalization === 'random' }">
+            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
+            <span>rAnDoM letters</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
+            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
+            <span>WORD word WORD word</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
+            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
+            <span>WORD word IS random</span>
           </label>
         </div>
       </div>
@@ -970,23 +972,6 @@ const Passphrase = {
       }
     }
 
-    const applyCapitalization = (word) => {
-      switch (capitalization.value) {
-        case 'title':
-          return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-        case 'upper':
-          return word.toUpperCase()
-        case 'none':
-          return word.toLowerCase()
-        case 'random':
-          return word.split('').map(char =>
-            Math.random() > 0.5 ? char.toUpperCase() : char.toLowerCase()
-          ).join('')
-        default:
-          return word
-      }
-    }
-
     const generatePassword = () => {
       if (!includeAdjective.value && !includeNoun.value && !includeVerb.value) {
         showNotification('Please select at least one word type', 'error')
@@ -997,17 +982,17 @@ const Passphrase = {
 
       if (includeAdjective.value && wordLists.value.adjectives.length > 0) {
         const word = wordLists.value.adjectives[Math.floor(Math.random() * wordLists.value.adjectives.length)]
-        words.push(applyCapitalization(word))
+        words.push(applyCapitalization(word, capitalization.value, words.length))
       }
 
       if (includeNoun.value && wordLists.value.nouns.length > 0) {
         const word = wordLists.value.nouns[Math.floor(Math.random() * wordLists.value.nouns.length)]
-        words.push(applyCapitalization(word))
+        words.push(applyCapitalization(word, capitalization.value, words.length))
       }
 
       if (includeVerb.value && wordLists.value.verbs.length > 0) {
         const word = wordLists.value.verbs[Math.floor(Math.random() * wordLists.value.verbs.length)]
-        words.push(applyCapitalization(word))
+        words.push(applyCapitalization(word, capitalization.value, words.length))
       }
 
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
@@ -1100,22 +1085,30 @@ const Passphrase = {
 
       <div class="card">
         <div class="card-header">Capitalization</div>
-        <div class="radio-group">
-          <label class="radio-item">
-            <input v-model="capitalization" value="title" type="radio" class="radio" />
+        <div class="separator-grid">
+          <label class="sep-option" :class="{ active: capitalization === 'title' }">
+            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
             <span>Title Case</span>
           </label>
-          <label class="radio-item">
-            <input v-model="capitalization" value="none" type="radio" class="radio" />
+          <label class="sep-option" :class="{ active: capitalization === 'none' }">
+            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
             <span>lowercase</span>
           </label>
-          <label class="radio-item">
-            <input v-model="capitalization" value="upper" type="radio" class="radio" />
+          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
+            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
             <span>UPPERCASE</span>
           </label>
-          <label class="radio-item">
-            <input v-model="capitalization" value="random" type="radio" class="radio" />
-            <span>rAnDoM</span>
+          <label class="sep-option" :class="{ active: capitalization === 'random' }">
+            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
+            <span>rAnDoM letters</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
+            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
+            <span>WORD word WORD word</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
+            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
+            <span>WORD word IS random</span>
           </label>
         </div>
       </div>
