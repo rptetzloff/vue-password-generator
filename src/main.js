@@ -5,7 +5,7 @@ const DIGITS = '0123456789'
 
 const randChar = (str) => str.charAt(Math.floor(Math.random() * str.length))
 
-const resolveSeparator = (value, custom) => {
+const resolveToken = (value, custom) => {
   switch (value) {
     case 'r1sym':  return randChar(SPECIAL_CHARS)
     case 'r2sym':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
@@ -21,22 +21,74 @@ const resolveSeparator = (value, custom) => {
 }
 
 const SEPARATOR_OPTIONS = [
-  { value: '',      label: 'None' },
-  { value: ' ',     label: 'Space' },
-  { value: '-',     label: 'Hyphen  -' },
-  { value: '_',     label: 'Underscore  _' },
-  { value: '.',     label: 'Period  .' },
-  { value: '$',     label: 'Dollar  $' },
-  { value: 'r1sym', label: '1 Random Symbol' },
-  { value: 'r2sym', label: '2 Random Symbols' },
-  { value: 'r1num', label: '1 Random Number' },
-  { value: 'r2num', label: '2 Random Numbers' },
-  { value: 'r1s1n', label: '1 Symbol + 1 Number' },
-  { value: 'r1n1s', label: '1 Number + 1 Symbol' },
-  { value: 'r2s2n', label: '2 Symbols + 2 Numbers' },
-  { value: 'r2n2s', label: '2 Numbers + 2 Symbols' },
+  { value: '',       label: 'None' },
+  { value: ' ',      label: 'Space' },
+  { value: '-',      label: 'Hyphen  -' },
+  { value: '_',      label: 'Underscore  _' },
+  { value: '.',      label: 'Period  .' },
+  { value: '$',      label: 'Dollar  $' },
+  { value: 'r1sym',  label: '1 Random Symbol' },
+  { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1num',  label: '1 Random Number' },
+  { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',  label: '2 Numbers + 2 Symbols' },
   { value: 'custom', label: 'Custom...' },
 ]
+
+const AFFIX_OPTIONS = [
+  { value: '',       label: 'None' },
+  { value: 'r1sym',  label: '1 Random Symbol' },
+  { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1num',  label: '1 Random Number' },
+  { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',  label: '2 Numbers + 2 Symbols' },
+  { value: 'custom', label: 'Custom...' },
+]
+
+// Reusable affix chip-picker + optional literal text — rendered as a template string component
+const AffixPicker = {
+  name: 'AffixPicker',
+  props: ['label', 'modelValue', 'customValue'],
+  emits: ['update:modelValue', 'update:customValue'],
+  setup(props, { emit }) {
+    return {
+      affixOptions: AFFIX_OPTIONS,
+      onMode(v) { emit('update:modelValue', v) },
+      onCustom(e) { emit('update:customValue', e.target.value) },
+    }
+  },
+  template: `
+    <div class="affix-block">
+      <div class="affix-label">{{ label }}</div>
+      <div class="separator-grid">
+        <label
+          v-for="opt in affixOptions"
+          :key="opt.value"
+          class="sep-option"
+          :class="{ active: modelValue === opt.value }"
+        >
+          <input :value="opt.value" :checked="modelValue === opt.value" @change="onMode(opt.value)" type="radio" class="sr-only" />
+          <span>{{ opt.label }}</span>
+        </label>
+      </div>
+      <div v-if="modelValue === 'custom'" class="custom-sep-row">
+        <input
+          :value="customValue"
+          @input="onCustom"
+          type="text"
+          class="form-input"
+          placeholder="Type literal text"
+        />
+      </div>
+    </div>
+  `
+}
 
 // Simple Password Generator Component
 const SimplePassword = {
@@ -470,8 +522,10 @@ const WordsPassword = {
     const separator = ref('$')
     const customSeparator = ref('')
     const capitalization = ref('title')
-    const prefix = ref('')
-    const suffix = ref('')
+    const prefixMode = ref('')
+    const prefixCustom = ref('')
+    const suffixMode = ref('')
+    const suffixCustom = ref('')
     const password = ref('')
     const notification = ref({
       show: false,
@@ -522,7 +576,9 @@ const WordsPassword = {
         words.push(word)
       }
 
-      password.value = prefix.value + words.join(resolveSeparator(separator.value, customSeparator.value)) + suffix.value
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
     }
 
     const copyPassword = async () => {
@@ -556,8 +612,10 @@ const WordsPassword = {
       separator,
       customSeparator,
       capitalization,
-      prefix,
-      suffix,
+      prefixMode,
+      prefixCustom,
+      suffixMode,
+      suffixCustom,
       password,
       notification,
       separatorOptions: SEPARATOR_OPTIONS,
@@ -565,6 +623,7 @@ const WordsPassword = {
       copyPassword
     }
   },
+  components: { AffixPicker },
   template: `
     <div class="password-generator">
       <div class="card">
@@ -623,30 +682,22 @@ const WordsPassword = {
 
       <div class="card">
         <div class="card-header">Prefix &amp; Suffix</div>
-        <div class="prefix-suffix-row">
-          <div class="prefix-suffix-field">
-            <label class="form-label">Prefix</label>
-            <input
-              v-model="prefix"
-              type="text"
-              class="form-input"
-              placeholder="e.g. ^^12"
-            />
-          </div>
-          <div class="prefix-suffix-separator">
-            <span class="prefix-suffix-arrow">&#8594;</span>
-            <span class="prefix-suffix-preview">words</span>
-            <span class="prefix-suffix-arrow">&#8594;</span>
-          </div>
-          <div class="prefix-suffix-field">
-            <label class="form-label">Suffix</label>
-            <input
-              v-model="suffix"
-              type="text"
-              class="form-input"
-              placeholder="e.g. 34^^"
-            />
-          </div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
         </div>
       </div>
 
@@ -880,8 +931,10 @@ const Passphrase = {
     const separator = ref('$')
     const customSeparator = ref('')
     const capitalization = ref('upper')
-    const prefix = ref('')
-    const suffix = ref('')
+    const prefixMode = ref('')
+    const prefixCustom = ref('')
+    const suffixMode = ref('')
+    const suffixCustom = ref('')
     const password = ref('')
     const notification = ref({
       show: false,
@@ -957,7 +1010,9 @@ const Passphrase = {
         words.push(applyCapitalization(word))
       }
 
-      password.value = prefix.value + words.join(resolveSeparator(separator.value, customSeparator.value)) + suffix.value
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
     }
 
     const copyPassword = async () => {
@@ -993,8 +1048,10 @@ const Passphrase = {
       separator,
       customSeparator,
       capitalization,
-      prefix,
-      suffix,
+      prefixMode,
+      prefixCustom,
+      suffixMode,
+      suffixCustom,
       password,
       notification,
       separatorOptions: SEPARATOR_OPTIONS,
@@ -1002,6 +1059,7 @@ const Passphrase = {
       copyPassword
     }
   },
+  components: { AffixPicker },
   template: `
     <div class="password-generator">
       <div class="card">
@@ -1064,30 +1122,22 @@ const Passphrase = {
 
       <div class="card">
         <div class="card-header">Prefix &amp; Suffix</div>
-        <div class="prefix-suffix-row">
-          <div class="prefix-suffix-field">
-            <label class="form-label">Prefix</label>
-            <input
-              v-model="prefix"
-              type="text"
-              class="form-input"
-              placeholder="e.g. ^^12"
-            />
-          </div>
-          <div class="prefix-suffix-separator">
-            <span class="prefix-suffix-arrow">&#8594;</span>
-            <span class="prefix-suffix-preview">words</span>
-            <span class="prefix-suffix-arrow">&#8594;</span>
-          </div>
-          <div class="prefix-suffix-field">
-            <label class="form-label">Suffix</label>
-            <input
-              v-model="suffix"
-              type="text"
-              class="form-input"
-              placeholder="e.g. 34^^"
-            />
-          </div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
         </div>
       </div>
 
