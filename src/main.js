@@ -1,5 +1,43 @@
 import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
 
+const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
+const DIGITS = '0123456789'
+
+const randChar = (str) => str.charAt(Math.floor(Math.random() * str.length))
+
+const resolveSeparator = (value, custom) => {
+  switch (value) {
+    case 'r1sym':  return randChar(SPECIAL_CHARS)
+    case 'r2sym':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
+    case 'r1num':  return randChar(DIGITS)
+    case 'r2num':  return randChar(DIGITS) + randChar(DIGITS)
+    case 'r2s2n':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS) + randChar(DIGITS) + randChar(DIGITS)
+    case 'r2n2s':  return randChar(DIGITS) + randChar(DIGITS) + randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
+    case 'r1s1n':  return randChar(SPECIAL_CHARS) + randChar(DIGITS)
+    case 'r1n1s':  return randChar(DIGITS) + randChar(SPECIAL_CHARS)
+    case 'custom': return custom
+    default:       return value  // literal: '', ' ', '-', '_', '.', '$', etc.
+  }
+}
+
+const SEPARATOR_OPTIONS = [
+  { value: '',      label: 'None' },
+  { value: ' ',     label: 'Space' },
+  { value: '-',     label: 'Hyphen  -' },
+  { value: '_',     label: 'Underscore  _' },
+  { value: '.',     label: 'Period  .' },
+  { value: '$',     label: 'Dollar  $' },
+  { value: 'r1sym', label: '1 Random Symbol' },
+  { value: 'r2sym', label: '2 Random Symbols' },
+  { value: 'r1num', label: '1 Random Number' },
+  { value: 'r2num', label: '2 Random Numbers' },
+  { value: 'r1s1n', label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s', label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n', label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s', label: '2 Numbers + 2 Symbols' },
+  { value: 'custom', label: 'Custom...' },
+]
+
 // Simple Password Generator Component
 const SimplePassword = {
   name: 'SimplePassword',
@@ -442,9 +480,6 @@ const WordsPassword = {
     })
     const wordList = ref([])
 
-    const specialChars = '!#$%&*+-/:;=?@^_|~'
-    const numbers = '0123456789'
-
     const loadWordList = async () => {
       try {
         const response = await fetch('./data/nouns.txt')
@@ -487,23 +522,7 @@ const WordsPassword = {
         words.push(word)
       }
 
-      let sep = ''
-      switch (separator.value) {
-        case 'random':
-          sep = specialChars.charAt(Math.floor(Math.random() * specialChars.length))
-          break
-        case 'random-number':
-          sep = numbers.charAt(Math.floor(Math.random() * numbers.length)) +
-                numbers.charAt(Math.floor(Math.random() * numbers.length))
-          break
-        case 'custom':
-          sep = customSeparator.value
-          break
-        default:
-          sep = separator.value
-      }
-
-      password.value = prefix.value + words.join(sep) + suffix.value
+      password.value = prefix.value + words.join(resolveSeparator(separator.value, customSeparator.value)) + suffix.value
     }
 
     const copyPassword = async () => {
@@ -541,6 +560,7 @@ const WordsPassword = {
       suffix,
       password,
       notification,
+      separatorOptions: SEPARATOR_OPTIONS,
       generatePassword,
       copyPassword
     }
@@ -563,45 +583,13 @@ const WordsPassword = {
 
       <div class="card">
         <div class="card-header">Word Separator</div>
-        <div class="radio-group">
-          <label class="radio-item">
-            <input v-model="separator" value="" type="radio" class="radio" />
-            <span>None</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random" type="radio" class="radio" />
-            <span>Random Symbol</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random-number" type="radio" class="radio" />
-            <span>2 Random Numbers</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value=" " type="radio" class="radio" />
-            <span>Space</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="-" type="radio" class="radio" />
-            <span>Hyphen ( - )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="_" type="radio" class="radio" />
-            <span>Underscore ( _ )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="." type="radio" class="radio" />
-            <span>Period ( . )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="$" type="radio" class="radio" />
-            <span>Dollar ( $ )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="custom" type="radio" class="radio" />
-            <span>Custom...</span>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
+            <span>{{ opt.label }}</span>
           </label>
         </div>
-        <div v-if="separator === 'custom'" class="prefix-suffix-row" style="margin-top:0.75rem;">
+        <div v-if="separator === 'custom'" class="custom-sep-row">
           <input
             v-model="customSeparator"
             type="text"
@@ -906,8 +894,6 @@ const Passphrase = {
       adjectives: []
     })
 
-    const specialChars = '!#$%&*+-/:;=?@^_|~'
-
     const loadWordLists = async () => {
       try {
         const [nounsResponse, verbsResponse, adjectivesResponse] = await Promise.all([
@@ -971,25 +957,7 @@ const Passphrase = {
         words.push(applyCapitalization(word))
       }
 
-      let sep = ''
-      switch (separator.value) {
-        case 'random':
-          sep = specialChars.charAt(Math.floor(Math.random() * specialChars.length))
-          break
-        case 'random-number': {
-          const n = '0123456789'
-          sep = n.charAt(Math.floor(Math.random() * n.length)) +
-                n.charAt(Math.floor(Math.random() * n.length))
-          break
-        }
-        case 'custom':
-          sep = customSeparator.value
-          break
-        default:
-          sep = separator.value
-      }
-
-      password.value = prefix.value + words.join(sep) + suffix.value
+      password.value = prefix.value + words.join(resolveSeparator(separator.value, customSeparator.value)) + suffix.value
     }
 
     const copyPassword = async () => {
@@ -1029,6 +997,7 @@ const Passphrase = {
       suffix,
       password,
       notification,
+      separatorOptions: SEPARATOR_OPTIONS,
       generatePassword,
       copyPassword
     }
@@ -1055,45 +1024,13 @@ const Passphrase = {
 
       <div class="card">
         <div class="card-header">Word Separator</div>
-        <div class="radio-group">
-          <label class="radio-item">
-            <input v-model="separator" value="" type="radio" class="radio" />
-            <span>None</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random" type="radio" class="radio" />
-            <span>Random Symbol</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="random-number" type="radio" class="radio" />
-            <span>2 Random Numbers</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value=" " type="radio" class="radio" />
-            <span>Space</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="-" type="radio" class="radio" />
-            <span>Hyphen ( - )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="_" type="radio" class="radio" />
-            <span>Underscore ( _ )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="." type="radio" class="radio" />
-            <span>Period ( . )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="$" type="radio" class="radio" />
-            <span>Dollar ( $ )</span>
-          </label>
-          <label class="radio-item">
-            <input v-model="separator" value="custom" type="radio" class="radio" />
-            <span>Custom...</span>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
+            <span>{{ opt.label }}</span>
           </label>
         </div>
-        <div v-if="separator === 'custom'" class="prefix-suffix-row" style="margin-top:0.75rem;">
+        <div v-if="separator === 'custom'" class="custom-sep-row">
           <input
             v-model="customSeparator"
             type="text"
