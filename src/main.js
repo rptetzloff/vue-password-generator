@@ -885,7 +885,7 @@ const WordsPassword = {
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word IS random</span>
+            <span>WORD word is RANDOM</span>
           </label>
         </div>
       </div>
@@ -1430,7 +1430,7 @@ const Passphrase = {
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word IS random</span>
+            <span>WORD word is RANDOM</span>
           </label>
         </div>
       </div>
@@ -1782,7 +1782,7 @@ const MadLib = {
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word IS random</span>
+            <span>WORD word is RANDOM</span>
           </label>
         </div>
       </div>
