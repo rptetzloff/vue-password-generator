@@ -35,7 +35,7 @@ Template-based sentence passwords. Choose from 12 narrative templates (Hero, Vil
 All modes support:
 
 - **Word Separator** — hyphen, underscore, dot, space, number, none, or custom
-- **Capitalization** — Title Case, lowercase, UPPERCASE, rAnDoM, WORD word alternating, or random per-word
+- **Capitalization** — Title Case, lowercase, UPPERCASE, rAndOm LetTerS, AlTeRnAtInG, lasT letteR, FIRST word only, last word ONLY, WORD word alternating, or random per-word
 - **Prefix / Suffix** — add a number, symbol, or custom string before or after the password
 - **Copy to Clipboard** — one-click copy with confirmation
 

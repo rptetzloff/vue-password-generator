@@ -108,15 +108,19 @@ const resolveSuffixToken = (value, custom, resolvedPrefix) => {
   return resolveToken(value, custom)
 }
 
-const applyCapitalization = (word, mode, index = 0) => {
+const applyCapitalization = (word, mode, index = 0, total = 1) => {
   switch (mode) {
-    case 'title':      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-    case 'upper':      return word.toUpperCase()
-    case 'none':       return word.toLowerCase()
-    case 'random':     return word.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase()).join('')
-    case 'word-alt':   return index % 2 === 0 ? word.toUpperCase() : word.toLowerCase()
-    case 'word-random': return Math.random() > 0.5 ? word.toUpperCase() : word.toLowerCase()
-    default:           return word
+    case 'title':        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    case 'none':         return word.toLowerCase()
+    case 'upper':        return word.toUpperCase()
+    case 'random':       return word.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'char-alt':     return word.split('').map((c, i) => i % 2 === 0 ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'last-upper':   return word.slice(0, -1).toLowerCase() + word.slice(-1).toUpperCase()
+    case 'first-only':   return index === 0 ? word.toUpperCase() : word.toLowerCase()
+    case 'last-only':    return index === total - 1 ? word.toUpperCase() : word.toLowerCase()
+    case 'word-alt':     return index % 2 === 0 ? word.toUpperCase() : word.toLowerCase()
+    case 'word-random':  return Math.random() > 0.5 ? word.toUpperCase() : word.toLowerCase()
+    default:             return word
   }
 }
 
@@ -766,7 +770,7 @@ const WordsPassword = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i) => applyCapitalization(w, capitalization.value, i))
+      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -877,7 +881,23 @@ const WordsPassword = {
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAnDoM letters</span>
+            <span>rAndOm LetTerS</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>lasT letteR</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
+            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
+            <span>FIRST word only</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
+            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
+            <span>last word ONLY</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
@@ -1282,7 +1302,7 @@ const Passphrase = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i) => applyCapitalization(w, capitalization.value, i))
+      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -1422,7 +1442,23 @@ const Passphrase = {
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAnDoM letters</span>
+            <span>rAndOm LetTerS</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>lasT letteR</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
+            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
+            <span>FIRST word only</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
+            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
+            <span>last word ONLY</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
@@ -1625,10 +1661,11 @@ const MadLib = {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
       if (!tmpl) return
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
+      const totalWords = rawSegments.value.filter(s => s.isToken).length
       let wordIndex = 0
       const filledSegments = rawSegments.value.map(seg => {
         if (!seg.isToken) return seg.word
-        return applyCapitalization(seg.word, capitalization.value, wordIndex++)
+        return applyCapitalization(seg.word, capitalization.value, wordIndex++, totalWords)
       })
       preview.value = filledSegments.join('')
       const words = preview.value.split(/\s+/).filter(Boolean)
@@ -1774,7 +1811,23 @@ const MadLib = {
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAnDoM letters</span>
+            <span>rAndOm LetTerS</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>lasT letteR</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
+            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
+            <span>FIRST word only</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
+            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
+            <span>last word ONLY</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
