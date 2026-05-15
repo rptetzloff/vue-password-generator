@@ -1883,6 +1883,11 @@ const App = {
             <div class="privacy-notice">
               🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. Your settings and generation history are stored only in your browser's local storage — history is session-local and cleared when you clear your browser data.
             </div>
+            <div class="header-docs-link">
+              <a href="/docs.html" class="docs-link">
+                <span class="mdi mdi-book-open-outline"></span> Docs
+              </a>
+            </div>
             <div class="history-max-control">
               <label class="history-max-label">History</label>
               <div class="history-max-chips">

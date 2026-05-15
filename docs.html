@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Documentation — Random Password Generator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7/css/materialdesignicons.min.css" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      :root {
+        --primary: #0ea5e9;
+        --primary-dark: #0284c7;
+        --text: #1e293b;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --background: #f8fafc;
+        --surface: #ffffff;
+        --radius: 8px;
+        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        min-height: 100vh;
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      /* ── Header ──────────────────────────────────────────── */
+
+      .site-header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 1.5rem 0;
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-inner {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .header-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+      }
+
+      .header-text h1 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .header-text p {
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      .header-back {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: 1.5px solid rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+        white-space: nowrap;
+      }
+
+      .header-back:hover {
+        background: rgba(255, 255, 255, 0.22);
+        border-color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* ── Layout ──────────────────────────────────────────── */
+
+      .page {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 4rem;
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 2.5rem;
+        align-items: start;
+      }
+
+      /* ── Sidebar nav ──────────────────────────────────────── */
+
+      .sidebar {
+        position: sticky;
+        top: 88px;
+      }
+
+      .sidebar-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: rgba(255,255,255,0.6);
+        margin-bottom: 0.6rem;
+        padding: 0 0.5rem;
+      }
+
+      .sidebar-nav {
+        background: rgba(255,255,255,0.1);
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 10px;
+        padding: 0.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nav-item {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        color: rgba(255,255,255,0.8);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: background 0.12s, color 0.12s;
+      }
+
+      .nav-item:hover {
+        background: rgba(255,255,255,0.15);
+        color: white;
+      }
+
+      .nav-item .mdi {
+        font-size: 1rem;
+        opacity: 0.75;
+        flex-shrink: 0;
+      }
+
+      .nav-divider {
+        height: 1px;
+        background: rgba(255,255,255,0.15);
+        margin: 0.4rem 0.5rem;
+      }
+
+      .nav-sub {
+        font-size: 0.8rem;
+        padding: 0.35rem 0.75rem 0.35rem 2rem;
+        color: rgba(255,255,255,0.6);
+      }
+
+      .nav-sub:hover {
+        color: rgba(255,255,255,0.9);
+      }
+
+      /* ── Content ──────────────────────────────────────────── */
+
+      .content {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+      }
+
+      .intro-card {
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: var(--shadow-lg);
+      }
+
+      .intro-card h2 {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.75rem;
+        color: var(--text);
+      }
+
+      .intro-card p {
+        color: var(--text-secondary);
+        line-height: 1.7;
+      }
+
+      .intro-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+      }
+
+      .intro-tile {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 1rem;
+        text-align: center;
+        text-decoration: none;
+        color: var(--text);
+        transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+        cursor: pointer;
+      }
+
+      .intro-tile:hover {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+        transform: translateY(-2px);
+      }
+
+      .intro-tile .mdi {
+        font-size: 1.75rem;
+        color: var(--primary);
+        display: block;
+        margin-bottom: 0.4rem;
+      }
+
+      .intro-tile-name {
+        font-size: 0.875rem;
+        font-weight: 600;
+      }
+
+      .intro-tile-desc {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.2rem;
+      }
+
+      /* ── Section cards ───────────────────────────────────── */
+
+      .section-card {
+        background: var(--surface);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        scroll-margin-top: 100px;
+      }
+
+      .section-head {
+        padding: 1.5rem 2rem;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .section-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        font-size: 1.25rem;
+      }
+
+      .section-icon.blue   { background: #dbeafe; color: #1d4ed8; }
+      .section-icon.sky    { background: #e0f2fe; color: #0284c7; }
+      .section-icon.teal   { background: #ccfbf1; color: #0f766e; }
+      .section-icon.slate  { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
+      .section-icon.amber  { background: #fef3c7; color: #92400e; }
+      .section-icon.rose   { background: #ffe4e6; color: #be123c; }
+
+      .section-title h2 {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--text);
+        line-height: 1.2;
+      }
+
+      .section-title p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.2rem;
+      }
+
+      .section-body {
+        padding: 1.5rem 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+      }
+
+      /* ── Option rows ──────────────────────────────────────── */
+
+      .option-group {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .option-group-label {
+        background: var(--background);
+        padding: 0.6rem 1rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-secondary);
+        border-bottom: 1px solid var(--border);
+      }
+
+      .option-row {
+        padding: 1rem;
+        display: grid;
+        grid-template-columns: 180px 1fr;
+        gap: 0.75rem 1.25rem;
+        align-items: start;
+      }
+
+      .option-row + .option-row {
+        border-top: 1px solid var(--border);
+      }
+
+      .option-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: var(--text);
+        padding-top: 1px;
+      }
+
+      .option-range {
+        display: inline-block;
+        margin-left: 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 0.05rem 0.4rem;
+        font-family: monospace;
+      }
+
+      .option-desc {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      .option-desc strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      /* ── Value tables ─────────────────────────────────────── */
+
+      .value-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+        margin-top: 0.5rem;
+      }
+
+      .value-table th {
+        text-align: left;
+        padding: 0.5rem 0.75rem;
+        background: var(--background);
+        color: var(--text-secondary);
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .value-table td {
+        padding: 0.55rem 0.75rem;
+        vertical-align: top;
+        border-bottom: 1px solid var(--border);
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .value-table tr:last-child td { border-bottom: none; }
+
+      .value-table td:first-child {
+        font-family: monospace;
+        font-size: 0.82rem;
+        color: var(--primary-dark);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      .value-table td:first-child.plain {
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text);
+      }
+
+      /* ── Example output pill ──────────────────────────────── */
+
+      .example-block {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--primary);
+        border-radius: 8px;
+        padding: 0.85rem 1rem;
+      }
+
+      .example-label {
+        font-size: 0.68rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-secondary);
+        margin-bottom: 0.4rem;
+      }
+
+      .example-output {
+        font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+        font-size: 0.95rem;
+        color: var(--text);
+        word-break: break-all;
+        line-height: 1.5;
+      }
+
+      /* ── Tag chips ────────────────────────────────────────── */
+
+      .tag {
+        display: inline-block;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        line-height: 1.6;
+      }
+
+      .tag-blue   { background: #dbeafe; color: #1d4ed8; }
+      .tag-teal   { background: #ccfbf1; color: #0f766e; }
+      .tag-slate  { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
+      .tag-amber  { background: #fef3c7; color: #92400e; }
+
+      /* ── Shared options section ───────────────────────────── */
+
+      .shared-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1rem;
+      }
+
+      .shared-card {
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .shared-card-head {
+        background: var(--background);
+        padding: 0.6rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .shared-card-head .mdi { color: var(--primary); }
+
+      .shared-card-body {
+        padding: 0.85rem 1rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.6;
+      }
+
+      .shared-card-body strong { color: var(--text); }
+
+      /* ── Responsive ───────────────────────────────────────── */
+
+      @media (max-width: 820px) {
+        .page {
+          grid-template-columns: 1fr;
+        }
+        .sidebar {
+          position: static;
+          display: none;
+        }
+        .option-row {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 560px) {
+        .section-head { padding: 1.25rem; }
+        .section-body { padding: 1.25rem; }
+        .intro-card { padding: 1.25rem; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
+        <div class="header-text">
+          <h1>Random Password Generator</h1>
+          <p>Documentation &amp; Reference</p>
+        </div>
+        <a href="/" class="header-back">
+          <span class="mdi mdi-arrow-left"></span> Back to App
+        </a>
+      </div>
+    </header>
+
+    <div class="page">
+
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-label">On this page</div>
+        <nav class="sidebar-nav">
+          <a class="nav-item" href="#overview"><span class="mdi mdi-information-outline"></span> Overview</a>
+          <div class="nav-divider"></div>
+          <a class="nav-item" href="#simple"><span class="mdi mdi-key-outline"></span> Simple</a>
+          <a class="nav-item" href="#advanced"><span class="mdi mdi-tune"></span> Advanced</a>
+          <a class="nav-item" href="#words"><span class="mdi mdi-text"></span> Words</a>
+          <a class="nav-item" href="#passphrase"><span class="mdi mdi-format-list-bulleted"></span> Passphrase</a>
+          <a class="nav-item" href="#madlib"><span class="mdi mdi-theater"></span> Mad Lib</a>
+          <a class="nav-item" href="#numbers"><span class="mdi mdi-numeric"></span> Numbers</a>
+          <div class="nav-divider"></div>
+          <a class="nav-item" href="#shared"><span class="mdi mdi-share-variant-outline"></span> Shared Options</a>
+          <a class="nav-sub nav-item" href="#shared-separator">Separator</a>
+          <a class="nav-sub nav-item" href="#shared-affix">Prefix &amp; Suffix</a>
+          <a class="nav-sub nav-item" href="#shared-caps">Capitalization</a>
+          <a class="nav-sub nav-item" href="#shared-leet">Leet Speak</a>
+          <a class="nav-sub nav-item" href="#shared-history">History</a>
+        </nav>
+      </aside>
+
+      <!-- Main content -->
+      <main class="content">
+
+        <!-- Overview -->
+        <div id="overview" class="intro-card">
+          <h2>Password Generator — Reference</h2>
+          <p>
+            This app generates passwords entirely in your browser. Nothing leaves your device — no network
+            requests are made, no passwords are logged or stored on any server. Your settings and generation
+            history are saved only in your browser's local storage.
+          </p>
+          <p style="margin-top:0.75rem;">
+            Six generator types are available, each optimized for a different use case. Click any tile
+            to jump to its documentation.
+          </p>
+          <div class="intro-grid">
+            <a class="intro-tile" href="#simple">
+              <span class="mdi mdi-key-outline"></span>
+              <div class="intro-tile-name">Simple</div>
+              <div class="intro-tile-desc">Classic random characters</div>
+            </a>
+            <a class="intro-tile" href="#advanced">
+              <span class="mdi mdi-tune"></span>
+              <div class="intro-tile-name">Advanced</div>
+              <div class="intro-tile-desc">Per-type min/max control</div>
+            </a>
+            <a class="intro-tile" href="#words">
+              <span class="mdi mdi-text"></span>
+              <div class="intro-tile-name">Words</div>
+              <div class="intro-tile-desc">Random word strings</div>
+            </a>
+            <a class="intro-tile" href="#passphrase">
+              <span class="mdi mdi-format-list-bulleted"></span>
+              <div class="intro-tile-name">Passphrase</div>
+              <div class="intro-tile-desc">Grammar-aware phrases</div>
+            </a>
+            <a class="intro-tile" href="#madlib">
+              <span class="mdi mdi-theater"></span>
+              <div class="intro-tile-name">Mad Lib</div>
+              <div class="intro-tile-desc">Sentence-template phrases</div>
+            </a>
+            <a class="intro-tile" href="#numbers">
+              <span class="mdi mdi-numeric"></span>
+              <div class="intro-tile-name">Numbers</div>
+              <div class="intro-tile-desc">PIN &amp; numeric codes</div>
+            </a>
+          </div>
+        </div>
+
+        <!-- ── SIMPLE ──────────────────────────────────────────── -->
+        <section id="simple" class="section-card">
+          <div class="section-head">
+            <div class="section-icon sky"><span class="mdi mdi-key-outline"></span></div>
+            <div class="section-title">
+              <h2>Simple</h2>
+              <p>Generates a random string of characters from selected character sets.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example output</div>
+              <div class="example-output">mX7!vQ#nR2@kLpT9&amp;wZ</div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Options</div>
+
+              <div class="option-row">
+                <div class="option-name">Password Length <span class="option-range">6 – 128</span></div>
+                <div class="option-desc">Total number of characters in the generated password. The slider controls the exact count.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Lowercase letters</div>
+                <div class="option-desc">Includes <strong>a – z</strong> in the character pool when checked.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Uppercase letters</div>
+                <div class="option-desc">Includes <strong>A – Z</strong> in the character pool when checked.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Numbers</div>
+                <div class="option-desc">Includes <strong>0 – 9</strong> in the character pool when checked.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Symbols</div>
+                <div class="option-desc">Includes the full symbol set <strong>! # $ % &amp; ( ) * + , - . / : ; &lt; = &gt; ? @ [ ] ^ _ ` { | } ~</strong> when checked. At least one character type must remain selected.</div>
+              </div>
+            </div>
+
+            <p style="font-size:0.875rem;color:var(--text-secondary);">
+              Each character is drawn independently and uniformly at random from the combined pool.
+              No placement guarantees are made — to enforce minimums per type, use the <a href="#advanced" style="color:var(--primary);">Advanced</a> generator.
+            </p>
+
+          </div>
+        </section>
+
+        <!-- ── ADVANCED ─────────────────────────────────────────── -->
+        <section id="advanced" class="section-card">
+          <div class="section-head">
+            <div class="section-icon blue"><span class="mdi mdi-tune"></span></div>
+            <div class="section-title">
+              <h2>Advanced</h2>
+              <p>Like Simple, but with per-character-type minimum and maximum counts, plus a customizable symbol set.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example output (length 20, ≥2 of each type)</div>
+              <div class="example-output">Kp3!mW#8vL$2rN@5qX&amp;1</div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Options</div>
+
+              <div class="option-row">
+                <div class="option-name">Password Length <span class="option-range">6 – 128</span></div>
+                <div class="option-desc">Total number of characters. Must be reachable by the sum of all minimums and not exceed the sum of all maximums.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Lowercase Letters<br><span style="font-weight:400;font-size:0.82rem;color:var(--text-secondary);">Min / Max</span></div>
+                <div class="option-desc">
+                  <strong>Min</strong> — at least this many lowercase letters will appear.<br>
+                  <strong>Max</strong> — no more than this many lowercase letters will appear.<br>
+                  Set Min to 0 to make lowercase optional.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Uppercase Letters<br><span style="font-weight:400;font-size:0.82rem;color:var(--text-secondary);">Min / Max</span></div>
+                <div class="option-desc">Same min/max controls for <strong>A – Z</strong>.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Numbers<br><span style="font-weight:400;font-size:0.82rem;color:var(--text-secondary);">Min / Max</span></div>
+                <div class="option-desc">Same min/max controls for <strong>0 – 9</strong>.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Symbols<br><span style="font-weight:400;font-size:0.82rem;color:var(--text-secondary);">Min / Max + Symbol Set</span></div>
+                <div class="option-desc">
+                  Same min/max controls for symbols. Below the sliders, individual symbol chips let you choose exactly which symbols are included in the pool:
+                  <br><br>
+                  <strong>All</strong> — activate every symbol.<br>
+                  <strong>Common</strong> — activate a curated subset: <code style="font-size:0.82rem;">! @ # $ % &amp; * - _ + = ?</code><br>
+                  <strong>None</strong> — deactivate all but one (at least one must remain).<br><br>
+                  Toggle individual chips to fine-tune. At least one symbol must remain active when the Symbols count is non-zero.
+                </div>
+              </div>
+            </div>
+
+            <div class="example-block" style="border-left-color: #f59e0b;">
+              <div class="example-label">Validation rules</div>
+              <div class="option-desc" style="font-size:0.85rem;">
+                The generator validates before producing a password:
+                the <em>sum of all minimums</em> must not exceed the total length, and the
+                <em>sum of all maximums</em> must not be less than the total length.
+                An error notification is shown if either condition fails.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── WORDS ───────────────────────────────────────────── -->
+        <section id="words" class="section-card">
+          <div class="section-head">
+            <div class="section-icon teal"><span class="mdi mdi-text"></span></div>
+            <div class="section-title">
+              <h2>Words</h2>
+              <p>Combines random words from a built-in wordlist with separators, affixes, capitalization, and leet-speak substitutions.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example output (4 words, Title Case, $ separator)</div>
+              <div class="example-output">Flame$River$Anchor$Cloud</div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Options</div>
+
+              <div class="option-row">
+                <div class="option-name">Number of Words <span class="option-range">2 – 20</span></div>
+                <div class="option-desc">How many words are drawn from the wordlist and joined together.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Word Separator</div>
+                <div class="option-desc">
+                  The character or characters placed between each word. See the
+                  <a href="#shared-separator" style="color:var(--primary);">Shared Options — Separator</a> section for the full list of choices.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Capitalization</div>
+                <div class="option-desc">
+                  Controls how each word's letters are cased. See
+                  <a href="#shared-caps" style="color:var(--primary);">Shared Options — Capitalization</a>.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Prefix &amp; Suffix</div>
+                <div class="option-desc">
+                  Optional characters prepended (prefix) or appended (suffix) to the full password.
+                  See <a href="#shared-affix" style="color:var(--primary);">Shared Options — Prefix &amp; Suffix</a>.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Leet Speak</div>
+                <div class="option-desc">
+                  Substitutes selected letters with look-alike characters.
+                  See <a href="#shared-leet" style="color:var(--primary);">Shared Options — Leet Speak</a>.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Word pills &amp; lock</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  After generation, each word appears as a clickable <strong>pill</strong>. Clicking a pill swaps just that word
+                  while keeping all others and the current separator/affix values — useful for quickly replacing
+                  one word you don't like without regenerating the whole password.<br><br>
+                  The <strong>lock icon</strong> beside the pills freezes the current prefix, separator, and suffix so
+                  that clicking a word pill or the "Generate" button replaces only the words without re-rolling
+                  the affixes.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── PASSPHRASE ───────────────────────────────────────── -->
+        <section id="passphrase" class="section-card">
+          <div class="section-head">
+            <div class="section-icon slate"><span class="mdi mdi-format-list-bulleted"></span></div>
+            <div class="section-title">
+              <h2>Passphrase</h2>
+              <p>Builds a phrase from a configurable sequence of word slots, each with a grammar role (adjective, adverb, noun, verb) and an optional thematic category.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example output (adj + noun + verb, UPPERCASE, $ separator)</div>
+              <div class="example-output">SILENT$RIVER$FLOWS</div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Word Slots</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  The passphrase is assembled from an ordered sequence of word slots (up to 8).
+                  Each slot has a <strong>type</strong> and a <strong>category</strong>:
+                  <br><br>
+                  <table class="value-table" style="margin-top:0;">
+                    <thead>
+                      <tr><th>Type</th><th>Color</th><th>Available Categories</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td class="plain"><span class="tag tag-blue">Adj</span></td>
+                        <td>Blue</td>
+                        <td>Random, Colors, Size, Texture, Mood, Weather, Time</td>
+                      </tr>
+                      <tr>
+                        <td class="plain"><span class="tag tag-teal">Adv</span></td>
+                        <td>Teal</td>
+                        <td>Random, Manner, Intensity, Time, Place</td>
+                      </tr>
+                      <tr>
+                        <td class="plain"><span class="tag tag-slate">Noun</span></td>
+                        <td>Slate</td>
+                        <td>Random, Animals, Vehicles, Food, Places, Nature, Tech, Jobs</td>
+                      </tr>
+                      <tr>
+                        <td class="plain"><span class="tag tag-amber">Verb</span></td>
+                        <td>Amber</td>
+                        <td>Random, Movement, Action, Nature, Cognition</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <br>
+                  Slots can be added, removed, and reordered with the arrow buttons. The default structure is <strong>Adj + Noun + Verb</strong>.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Additional options</div>
+              <div class="option-row">
+                <div class="option-name">Word Separator</div>
+                <div class="option-desc">See <a href="#shared-separator" style="color:var(--primary);">Shared Options — Separator</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Capitalization</div>
+                <div class="option-desc">See <a href="#shared-caps" style="color:var(--primary);">Shared Options — Capitalization</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Prefix &amp; Suffix</div>
+                <div class="option-desc">See <a href="#shared-affix" style="color:var(--primary);">Shared Options — Prefix &amp; Suffix</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Leet Speak</div>
+                <div class="option-desc">See <a href="#shared-leet" style="color:var(--primary);">Shared Options — Leet Speak</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Word pills &amp; lock</div>
+                <div class="option-desc">Same as in <a href="#words" style="color:var(--primary);">Words</a>. Each word pill is color-coded to its slot type.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── MAD LIB ───────────────────────────────────────────── -->
+        <section id="madlib" class="section-card">
+          <div class="section-head">
+            <div class="section-icon amber"><span class="mdi mdi-theater"></span></div>
+            <div class="section-title">
+              <h2>Mad Lib</h2>
+              <p>Fills a pre-written sentence template with random words, then compresses it into a password.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example — "The Hero" template, Title Case, - separator</div>
+              <div class="example-output">The-Silent-River-Swiftly-Crosses-The-Ancient-Bridge</div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Template</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  Choose one of 12 pre-written story templates. Each template is a sentence structure
+                  containing typed placeholders (<span class="tag tag-blue">adj</span>, <span class="tag tag-teal">adv</span>, <span class="tag tag-slate">noun</span>, <span class="tag tag-amber">verb</span>)
+                  that get filled with random words at generation time.
+                  <br><br>
+                  <table class="value-table" style="margin-top:0;">
+                    <thead><tr><th>Name</th><th>Template structure</th></tr></thead>
+                    <tbody>
+                      <tr><td class="plain">The Hero</td><td>The {adj} {noun} {adv} {verb} the {adj} {noun}</td></tr>
+                      <tr><td class="plain">The Villain</td><td>A {adj} {noun} {adv} {verb} every {noun}</td></tr>
+                      <tr><td class="plain">The Quest</td><td>{noun} {adv} {verb} beyond the {adj} {noun}</td></tr>
+                      <tr><td class="plain">Science!</td><td>The {adj} {noun} {adv} {verb} any {noun}</td></tr>
+                      <tr><td class="plain">Wise Proverb</td><td>A {adj} {noun} {adv} {verb} alone</td></tr>
+                      <tr><td class="plain">Breaking News</td><td>{adj} {noun} {adv} {verb} the {noun}</td></tr>
+                      <tr><td class="plain">Haiku-ish</td><td>{adj} {noun} {adv} {verb}</td></tr>
+                      <tr><td class="plain">Epic Tale</td><td>{noun} and {noun} {adv} {verb} the {adj} world</td></tr>
+                      <tr><td class="plain">Mystery</td><td>A {noun} {adv} {verb} the {adj} {noun}</td></tr>
+                      <tr><td class="plain">Romance</td><td>The {adj} {noun} {adv} {verb} a {adj} {noun}</td></tr>
+                      <tr><td class="plain">Sci-Fi</td><td>{adj} {noun} {adv} {verb} every {noun}</td></tr>
+                      <tr><td class="plain">Fable</td><td>Once the {adj} {noun} {adv} {verb} alone</td></tr>
+                    </tbody>
+                  </table>
+                  <br>
+                  Literal words in the template (e.g. "the", "beyond", "alone") are included verbatim in the readable phrase preview but are <strong>not</strong> compressed into the password — only the filled placeholders are joined with the separator.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Word Categories</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  Each placeholder occurrence in the selected template gets its own category selector.
+                  When a template uses the same type more than once (e.g. two <span class="tag tag-blue">adj</span> slots),
+                  each is listed separately and can have a different category.
+                  Category choices are the same as in <a href="#passphrase" style="color:var(--primary);">Passphrase</a>.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Additional options</div>
+              <div class="option-row">
+                <div class="option-name">Word Separator</div>
+                <div class="option-desc">Joins the filled words (not the literal template words). See <a href="#shared-separator" style="color:var(--primary);">Shared Options — Separator</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Capitalization</div>
+                <div class="option-desc">Applied to each filled placeholder word. See <a href="#shared-caps" style="color:var(--primary);">Shared Options — Capitalization</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Prefix &amp; Suffix</div>
+                <div class="option-desc">See <a href="#shared-affix" style="color:var(--primary);">Shared Options — Prefix &amp; Suffix</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Leet Speak</div>
+                <div class="option-desc">See <a href="#shared-leet" style="color:var(--primary);">Shared Options — Leet Speak</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Readable phrase preview</div>
+                <div class="option-desc">Shown below the word pills — displays the full human-readable sentence so you can verify or remember the password structure.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Word pills &amp; lock</div>
+                <div class="option-desc">Same as in <a href="#words" style="color:var(--primary);">Words</a>. Only token words appear as pills; literal template words are not swappable.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── NUMBERS ───────────────────────────────────────────── -->
+        <section id="numbers" class="section-card">
+          <div class="section-head">
+            <div class="section-icon rose"><span class="mdi mdi-numeric"></span></div>
+            <div class="section-title">
+              <h2>Numbers</h2>
+              <p>Generates a numeric PIN or code with configurable limits on repeated and sequential digits.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example output (8 digits, max 2 repeated, max 2 sequential)</div>
+              <div class="example-output">47293816</div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Options</div>
+
+              <div class="option-row">
+                <div class="option-name">Number of Digits <span class="option-range">4 – 32</span></div>
+                <div class="option-desc">Total length of the generated numeric code.</div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Max Repeated Digits <span class="option-range">2 – 5</span></div>
+                <div class="option-desc">
+                  Limits how many times the <em>same digit</em> may appear consecutively.
+                  For example, with a limit of 2, <strong>33</strong> is allowed but <strong>333</strong> is not.
+                  A value of 5 is effectively unconstrained for most PIN lengths.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Max Sequential Digits <span class="option-range">2 – 5</span></div>
+                <div class="option-desc">
+                  Limits how long an ascending or descending run may be.
+                  For example, with a limit of 3, <strong>123</strong> or <strong>987</strong> is allowed but <strong>1234</strong> or <strong>9876</strong> is not.
+                  The direction must be consistent — a direction change resets the counter.
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── SHARED OPTIONS ──────────────────────────────────────── -->
+        <section id="shared" class="section-card">
+          <div class="section-head">
+            <div class="section-icon sky"><span class="mdi mdi-share-variant-outline"></span></div>
+            <div class="section-title">
+              <h2>Shared Options</h2>
+              <p>The following options appear across multiple generator types with identical behavior.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <!-- Separator -->
+            <div id="shared-separator">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Word Separator</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                Inserted between each word in word-based generators (Words, Passphrase, Mad Lib).
+              </p>
+              <table class="value-table">
+                <thead>
+                  <tr><th>Option</th><th>Description</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td>None</td><td>No separator — words are joined directly.</td></tr>
+                  <tr><td>Space</td><td>A single space character.</td></tr>
+                  <tr><td>Hyphen  -</td><td>A literal hyphen.</td></tr>
+                  <tr><td>Underscore  _</td><td>A literal underscore.</td></tr>
+                  <tr><td>Period  .</td><td>A literal period.</td></tr>
+                  <tr><td>Dollar  $</td><td>A literal dollar sign.</td></tr>
+                  <tr><td>1 Random Symbol</td><td>One symbol drawn randomly from <code>! # $ % &amp; * + - / : ; = ? @ ^ _ | ~</code> — the same symbol is used for every separator position in that generation.</td></tr>
+                  <tr><td>2 Random Symbols</td><td>Two random symbols from the same set, each drawn independently per generation.</td></tr>
+                  <tr><td>1 Random Number</td><td>One random digit (0–9).</td></tr>
+                  <tr><td>2 Random Numbers</td><td>Two random digits.</td></tr>
+                  <tr><td>1 Symbol + 1 Number</td><td>One random symbol followed by one random digit.</td></tr>
+                  <tr><td>1 Number + 1 Symbol</td><td>One random digit followed by one random symbol.</td></tr>
+                  <tr><td>2 Symbols + 2 Numbers</td><td>Two random symbols followed by two random digits.</td></tr>
+                  <tr><td>2 Numbers + 2 Symbols</td><td>Two random digits followed by two random symbols.</td></tr>
+                  <tr><td>Custom…</td><td>Type any literal text to use as the separator (revealed when selected).</td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- Prefix & Suffix -->
+            <div id="shared-affix">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Prefix &amp; Suffix</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                Optional characters added to the very beginning (prefix) or very end (suffix) of the assembled password.
+                Prefix and suffix are independent — either or both can be set.
+              </p>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                The prefix shares the same options as the separator (None through Custom). The suffix has two additional options:
+              </p>
+              <table class="value-table">
+                <thead><tr><th>Suffix-only option</th><th>Description</th></tr></thead>
+                <tbody>
+                  <tr><td>Mirror Prefix</td><td>Reverses the characters of the generated prefix and appends them. If the prefix is <code>@7</code>, the suffix becomes <code>7@</code>.</td></tr>
+                  <tr><td>Mirror Prefix (new digits)</td><td>Same reversal, but each digit in the mirrored string is replaced with a fresh random digit — symbols are kept. Useful for symmetric-looking passwords where digits differ.</td></tr>
+                </tbody>
+              </table>
+              <br>
+              <p style="font-size:0.875rem;color:var(--text-secondary);">
+                The <strong>lock icon</strong> in the output area freezes the current prefix, separator, and suffix values so that clicking a word pill regenerates only the words without re-rolling the affixes.
+              </p>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- Capitalization -->
+            <div id="shared-caps">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Capitalization</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                Controls the casing applied to each word before it is joined with separators and affixes.
+              </p>
+              <table class="value-table">
+                <thead><tr><th>Option</th><th>Behavior</th><th>Example</th></tr></thead>
+                <tbody>
+                  <tr><td>Title Case</td><td>First letter uppercase, rest lowercase.</td><td><code>River</code></td></tr>
+                  <tr><td>lowercase</td><td>All letters lowercase.</td><td><code>river</code></td></tr>
+                  <tr><td>UPPERCASE</td><td>All letters uppercase.</td><td><code>RIVER</code></td></tr>
+                  <tr><td>rAnDoM letters</td><td>Each character is randomly uppercased or lowercased.</td><td><code>rIvEr</code></td></tr>
+                  <tr><td>WORD word WORD word</td><td>Alternates between all-uppercase and all-lowercase by word position (even = upper, odd = lower).</td><td><code>RIVER flow CLOUD drift</code></td></tr>
+                  <tr><td>WORD word IS random</td><td>Each word is randomly chosen to be all-uppercase or all-lowercase.</td><td><code>RIVER flow CLOUD DRIFT</code></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- Leet Speak -->
+            <div id="shared-leet">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Leet Speak Substitutions</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                After capitalization and assembly, selected letters are replaced with look-alike symbols or digits.
+                Case is preserved where possible (e.g. <code>A</code> → <code>@</code>, <code>a</code> → <code>@</code>).
+              </p>
+              <table class="value-table">
+                <thead><tr><th>Substitution</th><th>Character replaced</th><th>Replacement</th></tr></thead>
+                <tbody>
+                  <tr><td>a → @</td><td><code>a</code> / <code>A</code></td><td><code>@</code></td></tr>
+                  <tr><td>e → 3</td><td><code>e</code> / <code>E</code></td><td><code>3</code></td></tr>
+                  <tr><td>i → 1</td><td><code>i</code> / <code>I</code></td><td><code>1</code></td></tr>
+                  <tr><td>o → 0</td><td><code>o</code> / <code>O</code></td><td><code>0</code></td></tr>
+                  <tr><td>s → $</td><td><code>s</code> / <code>S</code></td><td><code>$</code></td></tr>
+                  <tr><td>t → +</td><td><code>t</code> / <code>T</code></td><td><code>+</code></td></tr>
+                  <tr><td>l → !</td><td><code>l</code> / <code>L</code></td><td><code>!</code></td></tr>
+                  <tr><td>b → 8</td><td><code>b</code> / <code>B</code></td><td><code>8</code></td></tr>
+                  <tr><td>g → 9</td><td><code>g</code> / <code>G</code></td><td><code>9</code></td></tr>
+                  <tr><td>z → 2</td><td><code>z</code> / <code>Z</code></td><td><code>2</code></td></tr>
+                </tbody>
+              </table>
+              <br>
+              <p style="font-size:0.875rem;color:var(--text-secondary);">
+                <strong>All</strong> activates every substitution. <strong>None</strong> clears all substitutions.
+                Individual chips can be toggled independently. Leet speak is applied last, after capitalization.
+              </p>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- History -->
+            <div id="shared-history">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Generation History</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                Each generator maintains its own history of recently generated passwords.
+                Clicking any history entry restores that password to the output field.
+                The history strip only appears when there are 2 or more entries.
+              </p>
+              <p style="font-size:0.875rem;color:var(--text-secondary);">
+                The <strong>History</strong> control in the header sets the global maximum number of entries kept per generator:
+              </p>
+              <table class="value-table" style="margin-top:0.5rem;">
+                <thead><tr><th>Setting</th><th>Effect</th></tr></thead>
+                <tbody>
+                  <tr><td>Off (0)</td><td>History is disabled — no entries are stored. Existing history is cleared immediately.</td></tr>
+                  <tr><td>5 / 10 / 20 / 50</td><td>Keeps up to that many entries. Reducing the limit trims existing history to fit.</td></tr>
+                </tbody>
+              </table>
+              <br>
+              <p style="font-size:0.875rem;color:var(--text-secondary);">
+                History is stored in browser local storage. It persists across sessions but is cleared when you clear site data for this page.
+              </p>
+            </div>
+
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+  </body>
+</html>
