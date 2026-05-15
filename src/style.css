@@ -875,6 +875,8 @@ body {
 
 .header-docs-link {
   flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .docs-link {

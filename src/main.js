@@ -1887,6 +1887,9 @@ const App = {
               <a href="/docs.html" class="docs-link">
                 <span class="mdi mdi-book-open-outline"></span> Docs
               </a>
+              <a href="/changelog.html" class="docs-link">
+                <span class="mdi mdi-history"></span> Changelog
+              </a>
             </div>
             <div class="history-max-control">
               <label class="history-max-label">History</label>

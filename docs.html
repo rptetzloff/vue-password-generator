@@ -72,8 +72,14 @@
         opacity: 0.8;
       }
 
-      .header-back {
+      .header-nav {
         margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+        flex-shrink: 0;
+      }
+
+      .header-back {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
@@ -518,9 +524,14 @@
           <h1>Random Password Generator</h1>
           <p>Documentation &amp; Reference</p>
         </div>
-        <a href="/" class="header-back">
-          <span class="mdi mdi-arrow-left"></span> Back to App
-        </a>
+        <nav class="header-nav">
+          <a href="/changelog.html" class="header-back">
+            <span class="mdi mdi-history"></span> Changelog
+          </a>
+          <a href="/" class="header-back">
+            <span class="mdi mdi-arrow-left"></span> Back to App
+          </a>
+        </nav>
       </div>
     </header>
 

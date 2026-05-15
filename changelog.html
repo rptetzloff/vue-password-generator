@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Changelog — Random Password Generator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7/css/materialdesignicons.min.css" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      :root {
+        --primary: #0ea5e9;
+        --primary-dark: #0284c7;
+        --text: #1e293b;
+        --text-secondary: #64748b;
+        --border: #e2e8f0;
+        --background: #f8fafc;
+        --surface: #ffffff;
+        --radius: 8px;
+        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+      }
+
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+        min-height: 100vh;
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      /* ── Header ──────────────────────────────────────────── */
+
+      .site-header {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 1.5rem 0;
+        color: white;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+
+      .header-inner {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 0 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+      }
+
+      .header-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        flex-shrink: 0;
+        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
+      }
+
+      .header-text h1 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        line-height: 1.2;
+      }
+
+      .header-text p {
+        font-size: 0.85rem;
+        opacity: 0.8;
+      }
+
+      .header-nav {
+        margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+        flex-shrink: 0;
+      }
+
+      .header-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        border: 1.5px solid rgba(255, 255, 255, 0.45);
+        background: rgba(255, 255, 255, 0.12);
+        color: white;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        transition: background 0.15s, border-color 0.15s;
+        white-space: nowrap;
+      }
+
+      .header-link:hover {
+        background: rgba(255, 255, 255, 0.22);
+        border-color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* ── Page layout ──────────────────────────────────────── */
+
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2.5rem 1.5rem 4rem;
+      }
+
+      /* ── Timeline ──────────────────────────────────────────── */
+
+      .timeline {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+
+      .release {
+        display: grid;
+        grid-template-columns: 160px 1fr;
+        gap: 0 2rem;
+        position: relative;
+      }
+
+      /* Vertical line */
+      .release::before {
+        content: '';
+        position: absolute;
+        left: 159px;
+        top: 28px;
+        bottom: -2rem;
+        width: 2px;
+        background: rgba(255,255,255,0.2);
+      }
+
+      .release:last-child::before { display: none; }
+
+      /* ── Release meta (left column) ──────────────────────── */
+
+      .release-meta {
+        text-align: right;
+        padding-top: 1.1rem;
+        padding-right: 1.5rem;
+        position: relative;
+        flex-shrink: 0;
+      }
+
+      /* Dot on the line */
+      .release-meta::after {
+        content: '';
+        position: absolute;
+        right: -7px;
+        top: 1.45rem;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: white;
+        border: 3px solid var(--primary-dark);
+        box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+      }
+
+      .release-version {
+        font-size: 1rem;
+        font-weight: 800;
+        color: white;
+        letter-spacing: -0.01em;
+      }
+
+      .release-date {
+        font-size: 0.78rem;
+        color: rgba(255,255,255,0.65);
+        margin-top: 0.15rem;
+      }
+
+      .release-badge {
+        display: inline-block;
+        margin-top: 0.4rem;
+        padding: 0.15rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+      }
+
+      .badge-major  { background: #0284c7; color: white; }
+      .badge-minor  { background: rgba(255,255,255,0.2); color: white; }
+      .badge-patch  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
+
+      /* ── Release card (right column) ──────────────────────── */
+
+      .release-card {
+        background: var(--surface);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        margin-bottom: 2rem;
+      }
+
+      .release-card-head {
+        padding: 1.25rem 1.5rem;
+        border-bottom: 1px solid var(--border);
+      }
+
+      .release-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text);
+      }
+
+      .release-summary {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.3rem;
+        line-height: 1.5;
+      }
+
+      /* ── Change groups ─────────────────────────────────────── */
+
+      .change-groups {
+        padding: 0 1.5rem 1.25rem;
+      }
+
+      .change-group {
+        margin-top: 1.25rem;
+      }
+
+      .change-group-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.5rem;
+      }
+
+      .change-group-label .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .dot-added    { background: #16a34a; }
+      .dot-improved { background: #0ea5e9; }
+      .dot-fixed    { background: #f59e0b; }
+      .dot-removed  { background: #dc2626; }
+      .dot-security { background: #7c3aed; }
+
+      .label-added    { color: #16a34a; }
+      .label-improved { color: #0284c7; }
+      .label-fixed    { color: #d97706; }
+      .label-removed  { color: #dc2626; }
+      .label-security { color: #7c3aed; }
+
+      .change-list {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+
+      .change-list li {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        line-height: 1.5;
+      }
+
+      .change-list li::before {
+        content: '–';
+        color: var(--border);
+        flex-shrink: 0;
+      }
+
+      .change-list li strong {
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      /* ── Responsive ───────────────────────────────────────── */
+
+      @media (max-width: 640px) {
+        .release {
+          grid-template-columns: 1fr;
+        }
+        .release::before { display: none; }
+        .release-meta {
+          text-align: left;
+          padding-right: 0;
+          padding-top: 0;
+          padding-bottom: 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          flex-wrap: wrap;
+        }
+        .release-meta::after { display: none; }
+        .release-date { margin-top: 0; }
+        .release-card { margin-bottom: 1.5rem; }
+        .header-nav { gap: 0.35rem; }
+        .header-link { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
+      }
+    </style>
+  </head>
+  <body>
+
+    <header class="site-header">
+      <div class="header-inner">
+        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
+        <div class="header-text">
+          <h1>Random Password Generator</h1>
+          <p>Changelog</p>
+        </div>
+        <nav class="header-nav">
+          <a href="/docs.html" class="header-link">
+            <span class="mdi mdi-book-open-outline"></span> Docs
+          </a>
+          <a href="/" class="header-link">
+            <span class="mdi mdi-arrow-left"></span> Back to App
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <div class="page">
+      <div class="timeline">
+
+        <!-- v2.1.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.1.0</div>
+            <div class="release-date">2026-05-15</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Documentation &amp; housekeeping</div>
+                <div class="release-summary">Added an in-app documentation reference, a changelog page, and cleaned up the asset directory.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>docs.html</strong> — full reference page covering every generator type and all shared options (separator, prefix/suffix, capitalization, leet speak, history).</li>
+                    <li><strong>changelog.html</strong> — this page.</li>
+                    <li><strong>Docs button</strong> in the app header linking to the documentation page.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>Icon renamed</strong> to <code>password_generator_icon.svg</code> — removed the redundant <code>_v3 copy</code> variant and the unused <code>_v3</code> file.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- v2.0.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.0.0</div>
+            <div class="release-date">2025</div>
+            <span class="release-badge badge-major">Major</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Full rewrite — six generator modes</div>
+                <div class="release-summary">Complete rebuild with Vue 3 Composition API, Vite, and six distinct password generation modes replacing the single-mode v1 generator.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added — New generator modes</span></div>
+                  <ul class="change-list">
+                    <li><strong>Advanced mode</strong> — per-character-type minimum and maximum count sliders, plus an interactive symbol chip picker with All / Common / None presets.</li>
+                    <li><strong>Words mode</strong> — dictionary-based passwords from a curated word list; configurable word count (2–20), separator, capitalization, prefix/suffix, and leet-speak.</li>
+                    <li><strong>Passphrase mode</strong> — slot-based builder with adjective, adverb, noun, and verb slots; each slot has an independent thematic category (Animals, Colors, Mood, etc.).</li>
+                    <li><strong>Mad Lib mode</strong> — 12 narrative sentence templates; each typed placeholder gets its own category selector; readable phrase preview shown alongside the generated password.</li>
+                    <li><strong>Numbers mode</strong> — numeric PIN generator with configurable digit count and limits on consecutive repeated and sequential digits.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added — Shared features</span></div>
+                  <ul class="change-list">
+                    <li><strong>Separator picker</strong> — 14 built-in options (None, Space, Hyphen, Underscore, Period, Dollar, random symbols/numbers, combinations) plus a free-text Custom option.</li>
+                    <li><strong>Prefix &amp; Suffix</strong> — independent affix pickers with the same options as the separator, plus two suffix-only mirror modes (Mirror Prefix and Mirror Prefix with new digits).</li>
+                    <li><strong>Capitalization modes</strong> — Title Case, lowercase, UPPERCASE, random-per-letter, alternating-per-word, and random-per-word.</li>
+                    <li><strong>Leet speak substitutions</strong> — 10 toggleable character substitutions (a→@, e→3, i→1, o→0, s→$, t→+, l→!, b→8, g→9, z→2) with All / None presets.</li>
+                    <li><strong>Word pills</strong> — each word in the output appears as a clickable pill that swaps only that word without regenerating the whole password.</li>
+                    <li><strong>Affix lock</strong> — lock icon freezes the current prefix, separator, and suffix while still allowing individual word re-rolls.</li>
+                    <li><strong>Generation history</strong> — per-tab history strip showing recent passwords; clicking any entry restores it to the output.</li>
+                    <li><strong>History size control</strong> — global header chip (Off / 5 / 10 / 20 / 50) configures the history limit across all tabs.</li>
+                    <li><strong>Settings persistence</strong> — all options saved to <code>localStorage</code> and restored on next visit.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>Simple mode</strong> retained and refined — character set checkboxes, length slider (6–128), copy button with animated confirmation.</li>
+                    <li><strong>Responsive layout</strong> — tabs, cards, and affix pickers adapt cleanly from mobile to wide desktop.</li>
+                    <li><strong>Privacy notice</strong> in the header making the local-only guarantee explicit to users.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Architecture</span></div>
+                  <ul class="change-list">
+                    <li>Migrated from Vue 2 (Options API) to <strong>Vue 3 Composition API</strong>.</li>
+                    <li>Build tooling switched from Vue CLI to <strong>Vite 5</strong>.</li>
+                    <li>Vue loaded as an ES module from CDN — no framework bundling.</li>
+                    <li>Word data split into <code>wordlist.txt</code> (Words mode) and <code>words.json</code> (Passphrase / Mad Lib) for efficient per-mode loading.</li>
+                    <li>Shared composables (<code>useHistory</code>, <code>useCopyPassword</code>, <code>useNotification</code>, <code>persistedRef</code>) eliminate cross-component duplication.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- v1.x -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v1.x</div>
+            <div class="release-date">2021 – 2024</div>
+            <span class="release-badge badge-patch">Legacy</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Original release</div>
+                <div class="release-summary">Single-mode random password generator built with Vue 2 and the Vue CLI.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <ul class="change-list" style="margin-top:0.25rem;">
+                    <li>Simple character-type selection (lowercase, uppercase, numbers, symbols).</li>
+                    <li>Length slider and one-click copy to clipboard.</li>
+                    <li>Vue 2 Options API, Vue CLI build tooling.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </body>
+</html>
