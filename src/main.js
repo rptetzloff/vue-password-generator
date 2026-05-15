@@ -189,7 +189,7 @@ const useCopyPassword = (password, label = 'password') => {
 
 const HistoryStrip = {
   name: 'HistoryStrip',
-  props: { history: { default: () => [] }, current: String },
+  props: { history: { default: () => [] }, current: String, warnSet: { default: () => new Set() } },
   emits: ['select'],
   template: `
     <div v-if="history.length > 1" class="history-strip">
@@ -199,10 +199,10 @@ const HistoryStrip = {
           v-for="(pw, i) in history"
           :key="i"
           class="history-item"
-          :class="{ 'history-item-active': pw === current }"
+          :class="{ 'history-item-active': pw === current, 'history-item-warn': warnSet.has(pw) }"
           @click="$emit('select', pw)"
-          :title="pw"
-        >{{ pw }}</button>
+          :title="warnSet.has(pw) ? pw + ' (under 8 characters)' : pw"
+        >{{ pw }}<span v-if="warnSet.has(pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
       </div>
     </div>
   `
@@ -1642,6 +1642,8 @@ const WifiWords = {
       cachedSep.value = resolveToken(separator.value, customSeparator.value)
     }
 
+    const warnSet = ref(new Set())
+
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
@@ -1649,6 +1651,9 @@ const WifiWords = {
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
+      if (result.length < 8) {
+        warnSet.value = new Set([...warnSet.value, result])
+      }
       pushHistory(password.value)
     }
 
@@ -1718,7 +1723,7 @@ const WifiWords = {
       selectNoLeet,
       lockAffixes,
       alliterationMode, alliterationLetter,
-      password, rawWords, history, copied, preview, notification,
+      password, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword, regenWord, copyPassword
@@ -1919,7 +1924,7 @@ const WifiWords = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>

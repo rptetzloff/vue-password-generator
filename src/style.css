@@ -1141,6 +1141,27 @@ body {
   color: var(--primary);
 }
 
+.history-item-warn {
+  border-color: var(--warning, #f59e0b);
+  color: var(--warning, #f59e0b);
+}
+
+.history-warn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--warning, #f59e0b);
+  color: #000;
+  font-size: 9px;
+  font-weight: 700;
+  margin-left: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
 /* ── Site footer ────────────────────────────────────────── */
 
 .site-footer {
