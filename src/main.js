@@ -77,6 +77,37 @@ const AFFIX_OPTIONS = [
   { value: 'custom', label: 'Custom...' },
 ]
 
+const SUFFIX_OPTIONS = [
+  { value: '',              label: 'None' },
+  { value: 'r1sym',         label: '1 Random Symbol' },
+  { value: 'r2sym',         label: '2 Random Symbols' },
+  { value: 'r1num',         label: '1 Random Number' },
+  { value: 'r2num',         label: '2 Random Numbers' },
+  { value: 'r1s1n',         label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',         label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',         label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',         label: '2 Numbers + 2 Symbols' },
+  { value: 'mirror',        label: 'Mirror Prefix' },
+  { value: 'mirror-newdig', label: 'Mirror Prefix (new digits)' },
+  { value: 'custom',        label: 'Custom...' },
+]
+
+// Resolves suffix token; 'mirror' and 'mirror-newdig' require the already-resolved prefix string.
+const resolveSuffixToken = (value, custom, resolvedPrefix) => {
+  if (value === 'mirror') {
+    return resolvedPrefix.split('').reverse().join('')
+  }
+  if (value === 'mirror-newdig') {
+    // Keep same symbol characters but replace each digit with a fresh random digit
+    return resolvedPrefix
+      .split('')
+      .reverse()
+      .map(c => DIGITS.includes(c) ? randChar(DIGITS) : c)
+      .join('')
+  }
+  return resolveToken(value, custom)
+}
+
 const applyCapitalization = (word, mode, index = 0) => {
   switch (mode) {
     case 'title':      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -92,11 +123,10 @@ const applyCapitalization = (word, mode, index = 0) => {
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
 const AffixPicker = {
   name: 'AffixPicker',
-  props: ['label', 'modelValue', 'customValue'],
+  props: { label: String, modelValue: String, customValue: String, options: { default: () => AFFIX_OPTIONS } },
   emits: ['update:modelValue', 'update:customValue'],
   setup(props, { emit }) {
     return {
-      affixOptions: AFFIX_OPTIONS,
       onMode(v) { emit('update:modelValue', v) },
       onCustom(e) { emit('update:customValue', e.target.value) },
     }
@@ -106,7 +136,7 @@ const AffixPicker = {
       <div class="affix-label">{{ label }}</div>
       <div class="separator-grid">
         <label
-          v-for="opt in affixOptions"
+          v-for="opt in options"
           :key="opt.value"
           class="sep-option"
           :class="{ active: modelValue === opt.value }"
@@ -633,7 +663,7 @@ const WordsPassword = {
       }
 
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
     }
 
@@ -675,6 +705,7 @@ const WordsPassword = {
       password,
       notification,
       separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
       generatePassword,
       copyPassword
     }
@@ -759,6 +790,7 @@ const WordsPassword = {
             label="Suffix"
             :modelValue="suffixMode"
             :customValue="suffixCustom"
+            :options="suffixOptions"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1075,7 +1107,7 @@ const Passphrase = {
       )
       const sep = resolveToken(separator.value, customSeparator.value)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(sep) + suf
     }
 
@@ -1125,6 +1157,7 @@ const Passphrase = {
       suffixMode, suffixCustom,
       password, notification,
       separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
       generatePassword, copyPassword
     }
   },
@@ -1229,6 +1262,7 @@ const Passphrase = {
             label="Suffix"
             :modelValue="suffixMode"
             :customValue="suffixCustom"
+            :options="suffixOptions"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1346,7 +1380,7 @@ const MadLib = {
       const sep = resolveToken(separator.value, customSeparator.value)
       const words = filled.split(/\s+/).filter(Boolean)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(sep) + suf
     }
 
@@ -1386,6 +1420,7 @@ const MadLib = {
       suffixMode, suffixCustom,
       password, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
       generatePassword, copyPassword,
     }
   },
@@ -1495,6 +1530,7 @@ const MadLib = {
             label="Suffix"
             :modelValue="suffixMode"
             :customValue="suffixCustom"
+            :options="suffixOptions"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
