@@ -116,6 +116,8 @@ const applyCapitalization = (word, mode, index = 0) => {
     case 'random':     return word.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase()).join('')
     case 'word-alt':   return index % 2 === 0 ? word.toUpperCase() : word.toLowerCase()
     case 'word-random': return Math.random() > 0.5 ? word.toUpperCase() : word.toLowerCase()
+    case 'char-alt':   return word.split('').map((c, i) => i % 2 === 0 ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'last-upper': return word.slice(0, -1).toLowerCase() + word.slice(-1).toUpperCase()
     default:           return word
   }
 }
@@ -887,6 +889,14 @@ const WordsPassword = {
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
             <span>WORD word is RANDOM</span>
           </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>last letteR</span>
+          </label>
         </div>
       </div>
 
@@ -1432,6 +1442,14 @@ const Passphrase = {
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
             <span>WORD word is RANDOM</span>
           </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>last letteR</span>
+          </label>
         </div>
       </div>
 
@@ -1783,6 +1801,14 @@ const MadLib = {
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
             <span>WORD word is RANDOM</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>last letteR</span>
           </label>
         </div>
       </div>
