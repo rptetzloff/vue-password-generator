@@ -291,7 +291,7 @@ const SimplePassword = {
           placeholder="Generated password will appear here..."
         />
         <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
+          <span class="mdi mdi-content-copy"></span>
         </button>
       </div>
 
@@ -607,7 +607,7 @@ const AdvancedPassword = {
           placeholder="Generated password will appear here..."
         />
         <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
+          <span class="mdi mdi-content-copy"></span>
         </button>
       </div>
 
@@ -812,7 +812,7 @@ const WordsPassword = {
           placeholder="Generated password will appear here..."
         />
         <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
+          <span class="mdi mdi-content-copy"></span>
         </button>
       </div>
 
@@ -1006,7 +1006,7 @@ const NumbersPassword = {
           placeholder="Generated password will appear here..."
         />
         <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
+          <span class="mdi mdi-content-copy"></span>
         </button>
       </div>
 
