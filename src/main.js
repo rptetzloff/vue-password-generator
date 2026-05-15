@@ -292,49 +292,47 @@ const AdvancedPassword = {
         return
       }
 
-      const minTotal = lowerCase.value[0] + upperCase.value[0] + digits.value[0] + specialChars.value[0]
-      const maxTotal = lowerCase.value[1] + upperCase.value[1] + digits.value[1] + specialChars.value[1]
+      const len = parseInt(passwordLength.value)
+      const minTotal = parseInt(lowerCase.value[0]) + parseInt(upperCase.value[0]) + parseInt(digits.value[0]) + parseInt(specialChars.value[0])
+      const maxTotal = parseInt(lowerCase.value[1]) + parseInt(upperCase.value[1]) + parseInt(digits.value[1]) + parseInt(specialChars.value[1])
 
-      if (minTotal > passwordLength.value) {
+      if (minTotal > len) {
         showNotification('Minimum character requirements exceed password length', 'error')
         return
       }
 
-      if (maxTotal < passwordLength.value) {
+      if (maxTotal < len) {
         showNotification('Maximum character limits are less than password length', 'error')
         return
       }
+
+      const lcMin = parseInt(lowerCase.value[0]), lcMax = parseInt(lowerCase.value[1])
+      const ucMin = parseInt(upperCase.value[0]), ucMax = parseInt(upperCase.value[1])
+      const dgMin = parseInt(digits.value[0]), dgMax = parseInt(digits.value[1])
+      const spMin = parseInt(specialChars.value[0]), spMax = parseInt(specialChars.value[1])
 
       let newPassword = ''
       let charTypes = []
 
       // Add minimum required characters
-      for (let i = 0; i < lowerCase.value[0]; i++) {
-        charTypes.push('lower')
-      }
-      for (let i = 0; i < upperCase.value[0]; i++) {
-        charTypes.push('upper')
-      }
-      for (let i = 0; i < digits.value[0]; i++) {
-        charTypes.push('digits')
-      }
-      for (let i = 0; i < specialChars.value[0]; i++) {
-        charTypes.push('special')
-      }
+      for (let i = 0; i < lcMin; i++) charTypes.push('lower')
+      for (let i = 0; i < ucMin; i++) charTypes.push('upper')
+      for (let i = 0; i < dgMin; i++) charTypes.push('digits')
+      for (let i = 0; i < spMin; i++) charTypes.push('special')
 
       // Fill remaining slots randomly within limits
-      while (charTypes.length < passwordLength.value) {
+      while (charTypes.length < len) {
         const availableTypes = []
-        
+
         const lowerCount = charTypes.filter(t => t === 'lower').length
         const upperCount = charTypes.filter(t => t === 'upper').length
         const digitCount = charTypes.filter(t => t === 'digits').length
         const specialCount = charTypes.filter(t => t === 'special').length
-        
-        if (lowerCount < lowerCase.value[1]) availableTypes.push('lower')
-        if (upperCount < upperCase.value[1]) availableTypes.push('upper')
-        if (digitCount < digits.value[1]) availableTypes.push('digits')
-        if (specialCount < specialChars.value[1]) availableTypes.push('special')
+
+        if (lowerCount < lcMax) availableTypes.push('lower')
+        if (upperCount < ucMax) availableTypes.push('upper')
+        if (digitCount < dgMax) availableTypes.push('digits')
+        if (specialCount < spMax) availableTypes.push('special')
         
         if (availableTypes.length === 0) break
         
