@@ -300,10 +300,9 @@ const SimplePassword = {
             <span class="mdi mdi-content-copy"></span>
           </button>
         </div>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -623,10 +622,9 @@ const AdvancedPassword = {
             <span class="mdi mdi-content-copy"></span>
           </button>
         </div>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -843,10 +841,9 @@ const WordsPassword = {
             <span class="mdi mdi-content-copy"></span>
           </button>
         </div>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -1044,10 +1041,9 @@ const NumbersPassword = {
             <span class="mdi mdi-content-copy"></span>
           </button>
         </div>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -1328,10 +1324,9 @@ const Passphrase = {
             <span class="mdi mdi-content-copy"></span>
           </button>
         </div>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -1610,10 +1605,9 @@ const MadLib = {
             <span class="mdi mdi-content-copy"></span>
           </button>
         </div>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
