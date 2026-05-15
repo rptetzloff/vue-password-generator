@@ -63,7 +63,7 @@ body {
 
 /* Main content */
 .main {
-  padding: 2rem 0 0;
+  padding: 2rem 0;
 }
 
 /* Tabs */
@@ -109,6 +109,10 @@ body {
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   overflow: hidden;
+}
+
+.tab-content > * > .card:last-child {
+  margin-bottom: 0;
 }
 
 /* Form elements */
