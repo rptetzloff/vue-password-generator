@@ -430,6 +430,16 @@ body {
   color: var(--text);
 }
 
+.copy-btn.copied {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.copy-btn.copied:hover {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
 /* Notifications */
 .notification {
   position: fixed;
