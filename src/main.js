@@ -1872,11 +1872,13 @@ const App = {
     <div id="app">
       <header class="header">
         <div class="container">
-          <div class="header-title-row">
+          <div class="header-title-block">
             <img src="/src/assets/password_generator_icon_v3 copy.svg" class="header-icon" alt="" aria-hidden="true" />
-            <h1 class="title">Random Password Generator</h1>
+            <div>
+              <h1 class="title">Random Password Generator</h1>
+              <p class="subtitle">Generate secure passwords with multiple customization options</p>
+            </div>
           </div>
-          <p class="subtitle">Generate secure passwords with multiple customization options</p>
           <div class="header-meta">
             <div class="privacy-notice">
               🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. Your settings and generation history are stored only in your browser's local storage — history is session-local and cleared when you clear your browser data.
