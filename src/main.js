@@ -255,7 +255,20 @@ const AdvancedPassword = {
     const upperCase = ref([1, 20])
     const digits = ref([1, 20])
     const specialChars = ref([1, 20])
-    const customSymbols = ref('!#$%&()*+,-./:;<=>?@[]^_`{|}~')
+    const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
+    const activeSymbols = ref(new Set(ALL_SYMBOLS))
+    const customSymbols = computed(() =>
+      ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
+    )
+    const toggleSymbol = (sym) => {
+      const next = new Set(activeSymbols.value)
+      if (next.has(sym)) {
+        if (next.size > 1) next.delete(sym)
+      } else {
+        next.add(sym)
+      }
+      activeSymbols.value = next
+    }
     const password = ref('')
     const notification = ref({
       show: false,
@@ -380,7 +393,9 @@ const AdvancedPassword = {
       upperCase,
       digits,
       specialChars,
-      customSymbols,
+      allSymbols: ALL_SYMBOLS,
+      activeSymbols,
+      toggleSymbol,
       password,
       notification,
       generatePassword,
@@ -490,13 +505,17 @@ const AdvancedPassword = {
           <span>Max: {{ specialChars[1] }}</span>
         </div>
         <div class="form-group">
-          <label class="form-label">Custom Symbol Set</label>
-          <input
-            v-model="customSymbols"
-            type="text"
-            class="form-input"
-            placeholder="!@#$%^&*()"
-          />
+          <label class="form-label">Symbol Set</label>
+          <div class="symbol-chips">
+            <button
+              v-for="sym in allSymbols"
+              :key="sym"
+              type="button"
+              class="symbol-chip"
+              :class="{ active: activeSymbols.has(sym) }"
+              @click="toggleSymbol(sym)"
+            >{{ sym }}</button>
+          </div>
         </div>
       </div>
 
