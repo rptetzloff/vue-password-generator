@@ -1,5 +1,31 @@
 import { createApp, ref, computed, watch, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
 
+const loadSetting = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key)
+    if (raw === null) return fallback
+    const parsed = JSON.parse(raw)
+    if (Array.isArray(fallback) && Array.isArray(parsed)) return parsed
+    if (fallback instanceof Set) return new Set(parsed)
+    return parsed
+  } catch {
+    return fallback
+  }
+}
+
+const saveSetting = (key, value) => {
+  try {
+    const toStore = value instanceof Set ? [...value] : value
+    localStorage.setItem(key, JSON.stringify(toStore))
+  } catch {}
+}
+
+const persistedRef = (key, fallback) => {
+  const r = ref(loadSetting(key, fallback))
+  watch(r, (val) => saveSetting(key, val), { deep: true })
+  return r
+}
+
 const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
 const DIGITS = '0123456789'
 
@@ -106,11 +132,11 @@ const AffixPicker = {
 const SimplePassword = {
   name: 'SimplePassword',
   setup() {
-    const passwordLength = ref(20)
-    const lowerCase = ref(true)
-    const upperCase = ref(true)
-    const digits = ref(true)
-    const specialChars = ref(true)
+    const passwordLength = persistedRef('simple.passwordLength', 20)
+    const lowerCase = persistedRef('simple.lowerCase', true)
+    const upperCase = persistedRef('simple.upperCase', true)
+    const digits = persistedRef('simple.digits', true)
+    const specialChars = persistedRef('simple.specialChars', true)
     const password = ref('')
     const notification = ref({
       show: false,
@@ -250,13 +276,13 @@ const SimplePassword = {
 const AdvancedPassword = {
   name: 'AdvancedPassword',
   setup() {
-    const passwordLength = ref(20)
-    const lowerCase = ref([1, 20])
-    const upperCase = ref([1, 20])
-    const digits = ref([1, 20])
-    const specialChars = ref([1, 20])
+    const passwordLength = persistedRef('adv.passwordLength', 20)
+    const lowerCase = persistedRef('adv.lowerCase', [1, 20])
+    const upperCase = persistedRef('adv.upperCase', [1, 20])
+    const digits = persistedRef('adv.digits', [1, 20])
+    const specialChars = persistedRef('adv.specialChars', [1, 20])
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
-    const activeSymbols = ref(new Set(ALL_SYMBOLS))
+    const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -566,14 +592,14 @@ const AdvancedPassword = {
 const WordsPassword = {
   name: 'WordsPassword',
   setup() {
-    const wordCount = ref(4)
-    const separator = ref('$')
-    const customSeparator = ref('')
-    const capitalization = ref('title')
-    const prefixMode = ref('')
-    const prefixCustom = ref('')
-    const suffixMode = ref('')
-    const suffixCustom = ref('')
+    const wordCount = persistedRef('words.wordCount', 4)
+    const separator = persistedRef('words.separator', '$')
+    const customSeparator = persistedRef('words.customSeparator', '')
+    const capitalization = persistedRef('words.capitalization', 'title')
+    const prefixMode = persistedRef('words.prefixMode', '')
+    const prefixCustom = persistedRef('words.prefixCustom', '')
+    const suffixMode = persistedRef('words.suffixMode', '')
+    const suffixCustom = persistedRef('words.suffixCustom', '')
     const password = ref('')
     const notification = ref({
       show: false,
@@ -769,9 +795,9 @@ const WordsPassword = {
 const NumbersPassword = {
   name: 'NumbersPassword',
   setup() {
-    const passwordLength = ref(8)
-    const maxRepeated = ref(3)
-    const maxSequential = ref(3)
+    const passwordLength = persistedRef('nums.passwordLength', 8)
+    const maxRepeated = persistedRef('nums.maxRepeated', 3)
+    const maxSequential = persistedRef('nums.maxSequential', 3)
     const password = ref('')
     const notification = ref({
       show: false,
@@ -1007,17 +1033,18 @@ const Passphrase = {
   name: 'Passphrase',
   setup() {
     // Each slot: { id, type, cat }
-    let nextId = 0
+    const defaultSlots = [{ id: 0, type: 'adj', cat: 'random' }, { id: 1, type: 'noun', cat: 'random' }, { id: 2, type: 'verb', cat: 'random' }]
+    const slots = persistedRef('phrase.slots', defaultSlots)
+    let nextId = slots.value.reduce((max, s) => Math.max(max, s.id + 1), 0)
     const makeSlot = (type) => ({ id: nextId++, type, cat: 'random' })
 
-    const slots = ref([makeSlot('adj'), makeSlot('noun'), makeSlot('verb')])
-    const separator = ref('$')
-    const customSeparator = ref('')
-    const capitalization = ref('upper')
-    const prefixMode = ref('')
-    const prefixCustom = ref('')
-    const suffixMode = ref('')
-    const suffixCustom = ref('')
+    const separator = persistedRef('phrase.separator', '$')
+    const customSeparator = persistedRef('phrase.customSeparator', '')
+    const capitalization = persistedRef('phrase.capitalization', 'upper')
+    const prefixMode = persistedRef('phrase.prefixMode', '')
+    const prefixCustom = persistedRef('phrase.prefixCustom', '')
+    const suffixMode = persistedRef('phrase.suffixMode', '')
+    const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const password = ref('')
     const notification = ref({ show: false, message: '', type: 'success' })
     const wordData = ref({})
@@ -1249,9 +1276,9 @@ const MADLIB_TEMPLATES = [
 const MadLib = {
   name: 'MadLib',
   setup() {
-    const templateId = ref('hero')
+    const templateId = persistedRef('madlib.templateId', 'hero')
     // One entry per token occurrence: { type, cat }
-    const slotCats = ref([])
+    const slotCats = persistedRef('madlib.slotCats', [])
 
     const rebuildSlotCats = (newId, oldSlotCats) => {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === newId)
@@ -1274,13 +1301,13 @@ const MadLib = {
       return slotCats.value.map(s => ({ ...s, showOrdinal: typeTotals[s.type] > 1 }))
     })
 
-    const separator = ref('-')
-    const customSeparator = ref('')
-    const capitalization = ref('title')
-    const prefixMode = ref('')
-    const prefixCustom = ref('')
-    const suffixMode = ref('')
-    const suffixCustom = ref('')
+    const separator = persistedRef('madlib.separator', '-')
+    const customSeparator = persistedRef('madlib.customSeparator', '')
+    const capitalization = persistedRef('madlib.capitalization', 'title')
+    const prefixMode = persistedRef('madlib.prefixMode', '')
+    const prefixCustom = persistedRef('madlib.prefixCustom', '')
+    const suffixMode = persistedRef('madlib.suffixMode', '')
+    const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const password = ref('')
     const preview = ref('')
     const notification = ref({ show: false, message: '', type: 'success' })
@@ -1343,7 +1370,7 @@ const MadLib = {
 
     onMounted(async () => {
       await loadWordData()
-      slotCats.value = rebuildSlotCats(templateId.value, [])
+      slotCats.value = rebuildSlotCats(templateId.value, slotCats.value)
       generatePassword()
     })
 
