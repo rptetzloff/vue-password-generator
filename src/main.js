@@ -1196,24 +1196,25 @@ const Passphrase = {
 
 // Mad Lib Password Component
 const MADLIB_TEMPLATES = [
-  { id: 'hero',      label: 'The Hero',         template: 'The {adj} {noun} {verb} the {adj} {noun}' },
-  { id: 'villain',   label: 'The Villain',       template: 'A {adj} {noun} {verb} every {noun}' },
-  { id: 'quest',     label: 'The Quest',         template: '{noun} {verb} beyond the {adj} {noun}' },
-  { id: 'science',   label: 'Science!',          template: 'The {adj} {noun} can {verb} any {noun}' },
-  { id: 'proverb',   label: 'Wise Proverb',      template: 'A {adj} {noun} never {verb} alone' },
-  { id: 'news',      label: 'Breaking News',     template: '{adj} {noun} {verb} {adj} {noun} daily' },
-  { id: 'haiku',     label: 'Haiku-ish',         template: '{adj} {noun} {verb} softly' },
-  { id: 'epic',      label: 'Epic Tale',         template: '{noun} and {noun} {verb} the {adj} world' },
-  { id: 'mystery',   label: 'Mystery',           template: 'A {noun} {verb} the {adj} {noun} again' },
-  { id: 'romance',   label: 'Romance',           template: 'The {adj} {noun} {verb} a {adj} {noun}' },
-  { id: 'scifi',     label: 'Sci-Fi',            template: '{adj} {noun} {verb} through every {noun}' },
-  { id: 'fable',     label: 'Fable',             template: 'Once the {adj} {noun} learned to {verb}' },
+  { id: 'hero',      label: 'The Hero',       template: 'The {adj} {noun} {adv} {verb} the {adj} {noun}' },
+  { id: 'villain',   label: 'The Villain',    template: 'A {adj} {noun} {adv} {verb} every {noun}' },
+  { id: 'quest',     label: 'The Quest',      template: '{noun} {adv} {verb} beyond the {adj} {noun}' },
+  { id: 'science',   label: 'Science!',       template: 'The {adj} {noun} {adv} {verb} any {noun}' },
+  { id: 'proverb',   label: 'Wise Proverb',   template: 'A {adj} {noun} {adv} {verb} alone' },
+  { id: 'news',      label: 'Breaking News',  template: '{adj} {noun} {adv} {verb} the {noun}' },
+  { id: 'haiku',     label: 'Haiku-ish',      template: '{adj} {noun} {adv} {verb}' },
+  { id: 'epic',      label: 'Epic Tale',      template: '{noun} and {noun} {adv} {verb} the {adj} world' },
+  { id: 'mystery',   label: 'Mystery',        template: 'A {noun} {adv} {verb} the {adj} {noun}' },
+  { id: 'romance',   label: 'Romance',        template: 'The {adj} {noun} {adv} {verb} a {adj} {noun}' },
+  { id: 'scifi',     label: 'Sci-Fi',         template: '{adj} {noun} {adv} {verb} every {noun}' },
+  { id: 'fable',     label: 'Fable',          template: 'Once the {adj} {noun} {adv} {verb} alone' },
 ]
 
 const MadLib = {
   name: 'MadLib',
   setup() {
     const templateId = ref('hero')
+    const cats = ref({ adj: 'random', adv: 'random', noun: 'random', verb: 'random' })
     const separator = ref('-')
     const customSeparator = ref('')
     const capitalization = ref('title')
@@ -1224,45 +1225,42 @@ const MadLib = {
     const password = ref('')
     const preview = ref('')
     const notification = ref({ show: false, message: '', type: 'success' })
-    const wordLists = ref({ nouns: [], verbs: [], adjectives: [] })
+    const wordData = ref({})
 
-    const loadWordLists = async () => {
+    const loadWordData = async () => {
       try {
-        const [nr, vr, ar] = await Promise.all([
-          fetch('./data/nouns.txt'),
-          fetch('./data/verbs.txt'),
-          fetch('./data/adjectives.txt'),
-        ])
-        const parse = (t) => t.split(',').map(w => w.trim()).filter(Boolean)
-        wordLists.value.nouns      = parse(await nr.text())
-        wordLists.value.verbs      = parse(await vr.text())
-        wordLists.value.adjectives = parse(await ar.text())
-      } catch {
-        wordLists.value.nouns      = ['house','river','storm','blade','forest']
-        wordLists.value.verbs      = ['guards','breaks','finds','knows','seeks']
-        wordLists.value.adjectives = ['ancient','silent','wild','golden','lost']
-      }
+        const res = await fetch('./data/words.json')
+        wordData.value = await res.json()
+      } catch { console.error('Failed to load word data') }
     }
 
-    const pick = (list) => list[Math.floor(Math.random() * list.length)] || ''
+    const pickFrom = (type, catId) => {
+      const typeCats = wordData.value[type]
+      if (!typeCats) return type
+      const pool = catId === 'random' ? Object.values(typeCats).flat() : (typeCats[catId] || Object.values(typeCats).flat())
+      return pool[Math.floor(Math.random() * pool.length)] || ''
+    }
+
+    // Which word types the current template uses (deduplicated, in order of first appearance)
+    const usedTypes = computed(() => {
+      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
+      if (!tmpl) return []
+      const seen = new Set()
+      const matches = [...tmpl.template.matchAll(/\{(adj|adv|noun|verb)\}/g)]
+      return matches.map(m => m[1]).filter(t => { if (seen.has(t)) return false; seen.add(t); return true })
+    })
 
     const generatePassword = () => {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
       if (!tmpl) return
 
       let wordIndex = 0
-      const filled = tmpl.template.replace(/\{(adj|noun|verb)\}/g, (_, type) => {
-        let raw = ''
-        if (type === 'adj')  raw = pick(wordLists.value.adjectives)
-        if (type === 'noun') raw = pick(wordLists.value.nouns)
-        if (type === 'verb') raw = pick(wordLists.value.verbs)
-        const capped = applyCapitalization(raw, capitalization.value, wordIndex)
-        wordIndex++
+      const filled = tmpl.template.replace(/\{(adj|adv|noun|verb)\}/g, (_, type) => {
+        const raw = pickFrom(type, cats.value[type])
+        const capped = applyCapitalization(raw, capitalization.value, wordIndex++)
         return capped
       })
 
-      // The "sentence" words become the password joined by the chosen separator
-      // but the preview shows the readable filled template
       preview.value = filled
 
       const sep = resolveToken(separator.value, customSeparator.value)
@@ -1286,29 +1284,30 @@ const MadLib = {
     }
 
     onMounted(async () => {
-      await loadWordLists()
+      await loadWordData()
       generatePassword()
     })
 
     return {
       templateId,
       templates: MADLIB_TEMPLATES,
-      separator,
-      customSeparator,
+      cats,
+      usedTypes,
+      categoryMeta: CATEGORY_META,
+      slotTypes: SLOT_TYPES,
+      separator, customSeparator,
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
-      password,
-      preview,
-      notification,
+      password, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
-      generatePassword,
-      copyPassword,
+      generatePassword, copyPassword,
     }
   },
   components: { AffixPicker },
   template: `
     <div class="password-generator">
+
       <div class="card">
         <div class="card-header">Template</div>
         <div class="separator-grid">
@@ -1323,7 +1322,31 @@ const MadLib = {
           </label>
         </div>
         <div class="madlib-template-preview">
-          <span class="madlib-template-text">{{ templates.find(t => t.id === templateId)?.template }}</span>
+          <span
+            v-for="(token, i) in templates.find(t => t.id === templateId)?.template.split(/(\{[^}]+\})/)"
+            :key="i"
+            :class="token.match(/^\{(adj|adv|noun|verb)\}$/) ? ('madlib-token slot-' + token.slice(1,-1)) : 'madlib-literal'"
+          >{{ token.match(/^\{(adj|adv|noun|verb)\}$/) ? token.slice(1,-1) : token }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Word Categories</div>
+        <div class="word-cats">
+          <div v-for="type in usedTypes" :key="type" class="word-cat-row">
+            <div class="word-cat-label" :class="'wc-label-' + type">{{ type }}</div>
+            <div class="separator-grid">
+              <label
+                v-for="opt in categoryMeta[type]"
+                :key="opt.id"
+                class="sep-option"
+                :class="{ active: cats[type] === opt.id }"
+              >
+                <input v-model="cats[type]" :value="opt.id" type="radio" class="sr-only" />
+                <span>{{ opt.label }}</span>
+              </label>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1408,9 +1431,7 @@ const MadLib = {
           class="form-input password-input"
           placeholder="Generated password will appear here..."
         />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
+        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">

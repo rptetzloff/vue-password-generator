@@ -677,3 +677,56 @@ body {
   text-align: center;
   padding: 1rem 0;
 }
+
+/* ── Mad Lib template token preview ──────────────────── */
+
+.madlib-template-preview {
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--background);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.madlib-literal {
+  color: var(--text-secondary);
+  white-space: pre;
+}
+
+.madlib-token {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.madlib-token.slot-adj  { background: #dbeafe; color: #1d4ed8; }
+.madlib-token.slot-adv  { background: #ccfbf1; color: #0f766e; }
+.madlib-token.slot-noun { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
+.madlib-token.slot-verb { background: #fef3c7; color: #92400e; }
+
+/* ── Word cat label accent dots ──────────────────────── */
+
+.word-cat-label { display: flex; align-items: center; gap: 0.4rem; }
+.word-cat-label::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wc-label-adj::before  { background: #1d4ed8; }
+.wc-label-adv::before  { background: #0f766e; }
+.wc-label-noun::before { background: #64748b; }
+.wc-label-verb::before { background: #92400e; }
