@@ -215,7 +215,6 @@ const SimplePassword = {
     const upperCase = persistedRef('simple.upperCase', true)
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
-    const leetEnabled = persistedRef('simple.leetEnabled', false)
     const password = ref('')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
@@ -225,8 +224,6 @@ const SimplePassword = {
       digits: '0123456789',
       special: '!#$%&()*+,-./:;<=>?@[]^_`{|}~'
     }
-
-    const COMMON_LEET = new Set(LEET_MAP.map(m => m.char))
 
     const generatePassword = () => {
       if (!lowerCase.value && !upperCase.value && !digits.value && !specialChars.value) {
@@ -245,7 +242,7 @@ const SimplePassword = {
         newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
       }
 
-      password.value = leetEnabled.value ? applyLeet(newPassword, COMMON_LEET) : newPassword
+      password.value = newPassword
     }
 
     onMounted(() => {
@@ -258,7 +255,6 @@ const SimplePassword = {
       upperCase,
       digits,
       specialChars,
-      leetEnabled,
       password,
       copied,
       notification,
@@ -302,14 +298,6 @@ const SimplePassword = {
             <span>Symbols (!@#$%^&*)</span>
           </label>
         </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Leet Speak</div>
-        <label class="checkbox-item">
-          <input v-model="leetEnabled" type="checkbox" class="checkbox" />
-          <span>Common substitutions (a→@, e→3, i→1, o→0, s→$…)</span>
-        </label>
       </div>
 
       <div class="card">
@@ -371,15 +359,6 @@ const AdvancedPassword = {
     const selectAllSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS) }
     const selectNoSymbols = () => { activeSymbols.value = new Set([ALL_SYMBOLS[0]]) }
     const selectCommonSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS.filter(s => COMMON_SYMBOLS.has(s))) }
-    const activeLeet = persistedRef('adv.activeLeet', new Set())
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
@@ -469,7 +448,7 @@ const AdvancedPassword = {
         newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
       }
 
-      password.value = activeLeet.value.size > 0 ? applyLeet(newPassword, activeLeet.value) : newPassword
+      password.value = newPassword
     }
 
     onMounted(() => {
@@ -488,11 +467,6 @@ const AdvancedPassword = {
       selectAllSymbols,
       selectNoSymbols,
       selectCommonSymbols,
-      leetMap: LEET_MAP,
-      activeLeet,
-      toggleLeet,
-      selectAllLeet,
-      selectNoLeet,
       password,
       copied,
       notification,
@@ -625,28 +599,6 @@ const AdvancedPassword = {
       </div>
 
       <div class="card">
-        <div class="form-group">
-          <div class="symbol-chips-header">
-            <label class="form-label">Leet Speak Substitutions</label>
-            <div class="symbol-chips-actions">
-              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
-              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
-            </div>
-          </div>
-          <div class="symbol-chips">
-            <button
-              v-for="entry in leetMap"
-              :key="entry.char"
-              type="button"
-              class="symbol-chip leet-chip"
-              :class="{ active: activeLeet.has(entry.char) }"
-              @click="toggleLeet(entry.char)"
-            >{{ entry.label }}</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
           🎲 Generate Password
         </button>
@@ -690,8 +642,15 @@ const WordsPassword = {
     const prefixCustom = persistedRef('words.prefixCustom', '')
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
-    const leetEnabled = persistedRef('words.leetEnabled', false)
-    const COMMON_LEET = new Set(LEET_MAP.map(m => m.char))
+    const activeLeet = persistedRef('words.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
@@ -725,7 +684,7 @@ const WordsPassword = {
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       const raw = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
-      password.value = leetEnabled.value ? applyLeet(raw, COMMON_LEET) : raw
+      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
     }
 
     onMounted(async () => {
@@ -742,7 +701,11 @@ const WordsPassword = {
       prefixCustom,
       suffixMode,
       suffixCustom,
-      leetEnabled,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
       password,
       copied,
       preview,
@@ -841,11 +804,25 @@ const WordsPassword = {
       </div>
 
       <div class="card">
-        <div class="card-header">Leet Speak</div>
-        <label class="checkbox-item">
-          <input v-model="leetEnabled" type="checkbox" class="checkbox" />
-          <span>Common substitutions (a→@, e→3, i→1, o→0, s→$…)</span>
-        </label>
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -1121,8 +1098,15 @@ const Passphrase = {
     const prefixCustom = persistedRef('phrase.prefixCustom', '')
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
-    const leetEnabled = persistedRef('phrase.leetEnabled', false)
-    const COMMON_LEET = new Set(LEET_MAP.map(m => m.char))
+    const activeLeet = persistedRef('phrase.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
@@ -1156,7 +1140,7 @@ const Passphrase = {
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       const raw = pre + words.join(sep) + suf
-      password.value = leetEnabled.value ? applyLeet(raw, COMMON_LEET) : raw
+      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
     }
 
     const addSlot = (type) => {
@@ -1190,7 +1174,11 @@ const Passphrase = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
-      leetEnabled,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
       password, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1306,11 +1294,25 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <div class="card-header">Leet Speak</div>
-        <label class="checkbox-item">
-          <input v-model="leetEnabled" type="checkbox" class="checkbox" />
-          <span>Common substitutions (a→@, e→3, i→1, o→0, s→$…)</span>
-        </label>
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -1394,8 +1396,15 @@ const MadLib = {
     const prefixCustom = persistedRef('madlib.prefixCustom', '')
     const suffixMode = persistedRef('madlib.suffixMode', '')
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
-    const leetEnabled = persistedRef('madlib.leetEnabled', false)
-    const COMMON_LEET = new Set(LEET_MAP.map(m => m.char))
+    const activeLeet = persistedRef('madlib.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
     const { copied, notification, copyPassword } = useCopyPassword(password)
@@ -1436,7 +1445,7 @@ const MadLib = {
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       const raw = pre + words.join(sep) + suf
-      password.value = leetEnabled.value ? applyLeet(raw, COMMON_LEET) : raw
+      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
     }
 
     watch(templateId, (newId) => {
@@ -1460,7 +1469,11 @@ const MadLib = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
-      leetEnabled,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
       password, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1581,11 +1594,25 @@ const MadLib = {
       </div>
 
       <div class="card">
-        <div class="card-header">Leet Speak</div>
-        <label class="checkbox-item">
-          <input v-model="leetEnabled" type="checkbox" class="checkbox" />
-          <span>Common substitutions (a→@, e→3, i→1, o→0, s→$…)</span>
-        </label>
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
