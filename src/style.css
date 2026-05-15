@@ -48,10 +48,27 @@ body {
   color: white;
 }
 
+.header-title-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.25rem;
+  margin-bottom: 1rem;
+  text-align: left;
+}
+
+.header-icon {
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+  border-radius: 18px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
+}
+
 .title {
   font-size: 2.5rem;
   font-weight: 700;
-  margin-bottom: 0.5rem;
+  margin-bottom: 0.2rem;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -619,6 +636,11 @@ body {
   .title {
     font-size: 2rem;
   }
+
+  .header-icon {
+    width: 60px;
+    height: 60px;
+  }
   
   .tabs {
     flex-direction: column;
@@ -828,4 +850,216 @@ body {
   margin-top: 0.85rem;
   padding-top: 0.85rem;
   border-top: 1px solid var(--border);
+}
+
+/* ── Header meta row (privacy notice + history control) ─── */
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.privacy-notice {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.history-max-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.history-max-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.history-max-chips {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.history-max-chip {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.history-max-chip:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: white;
+}
+
+.history-max-chip.active {
+  background: white;
+  border-color: white;
+  color: var(--primary-dark);
+}
+
+@media (max-width: 600px) {
+  .header-meta { flex-direction: column; align-items: stretch; }
+  .history-max-control { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* ── Word pills (per-word regeneration) ─────────────────── */
+
+.word-pills-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.word-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.lock-affixes-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  font-size: 1rem;
+  margin-top: 1px;
+}
+
+.lock-affixes-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: rgba(14, 165, 233, 0.07);
+}
+
+.lock-affixes-btn.active {
+  border-color: var(--primary);
+  background: rgba(14, 165, 233, 0.12);
+  color: var(--primary);
+}
+
+.word-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--background);
+  color: var(--text);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.word-pill:hover {
+  border-color: var(--primary);
+  background: rgba(14, 165, 233, 0.07);
+  color: var(--primary);
+}
+
+.word-pill:hover .word-pill-icon {
+  opacity: 1;
+  transform: rotate(30deg);
+}
+
+.word-pill-icon {
+  font-size: 0.8rem;
+  opacity: 0.35;
+  transition: opacity 0.15s, transform 0.25s;
+}
+
+/* Slot-type color accents on passphrase word pills */
+.word-pill-adj  { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
+.word-pill-adj:hover  { border-color: #1d4ed8; background: #bfdbfe; }
+.word-pill-adv  { border-color: #5eead4; background: #ccfbf1; color: #0f766e; }
+.word-pill-adv:hover  { border-color: #0f766e; background: #99f6e4; }
+.word-pill-noun { border-color: #94a3b8; background: #f1f5f9; color: #334155; }
+.word-pill-noun:hover { border-color: #334155; background: #e2e8f0; }
+.word-pill-verb { border-color: #fcd34d; background: #fef3c7; color: #92400e; }
+.word-pill-verb:hover { border-color: #92400e; background: #fde68a; }
+
+/* ── History strip ──────────────────────────────────────── */
+
+.history-strip {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.history-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.history-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.history-item:hover {
+  background: var(--background);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.history-item-active {
+  background: rgba(14, 165, 233, 0.07);
+  border-color: var(--primary);
+  color: var(--primary);
 }
