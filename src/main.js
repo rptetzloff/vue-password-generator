@@ -699,9 +699,13 @@ const WordsPassword = {
     }
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
+    const lockAffixes = persistedRef('words.lockAffixes', false)
     const password = ref('')
     const preview = ref('')
     const rawWords = ref([])
+    const cachedPre = ref('')
+    const cachedSep = ref('')
+    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('words.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
@@ -717,12 +721,17 @@ const WordsPassword = {
       }
     }
 
-    const buildPassword = () => {
+    const rollAffixes = () => {
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+    }
+
+    const buildPassword = (rerollAffixes = false) => {
+      if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
       const words = rawWords.value.map((w, i) => applyCapitalization(w, capitalization.value, i))
-      const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      const assembled = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
+      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
     }
@@ -735,7 +744,7 @@ const WordsPassword = {
       rawWords.value = Array.from({ length: wordCount.value }, () =>
         wordList.value[Math.floor(Math.random() * wordList.value.length)]
       )
-      buildPassword()
+      buildPassword(true)
     }
 
     const regenWord = (idx) => {
@@ -743,7 +752,7 @@ const WordsPassword = {
       const next = [...rawWords.value]
       next[idx] = wordList.value[Math.floor(Math.random() * wordList.value.length)]
       rawWords.value = next
-      buildPassword()
+      buildPassword(false)
     }
 
     onMounted(async () => {
@@ -765,6 +774,7 @@ const WordsPassword = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      lockAffixes,
       password,
       rawWords,
       history,
@@ -893,16 +903,26 @@ const WordsPassword = {
       </div>
 
       <div class="card">
-        <div v-if="rawWords.length" class="word-pills">
+        <div v-if="rawWords.length" class="word-pills-row">
+          <div class="word-pills">
+            <button
+              v-for="(w, i) in rawWords"
+              :key="i"
+              class="word-pill"
+              @click="regenWord(i)"
+              title="Click to swap this word"
+            >
+              <span class="word-pill-text">{{ w }}</span>
+              <span class="mdi mdi-refresh word-pill-icon"></span>
+            </button>
+          </div>
           <button
-            v-for="(w, i) in rawWords"
-            :key="i"
-            class="word-pill"
-            @click="regenWord(i)"
-            title="Click to swap this word"
+            class="lock-affixes-btn"
+            :class="{ active: lockAffixes }"
+            @click="lockAffixes = !lockAffixes"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
           >
-            <span class="word-pill-text">{{ w }}</span>
-            <span class="mdi mdi-refresh word-pill-icon"></span>
+            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
           </button>
         </div>
 
@@ -1182,9 +1202,13 @@ const Passphrase = {
     }
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
+    const lockAffixes = persistedRef('phrase.lockAffixes', false)
     const password = ref('')
     const preview = ref('')
     const rawWords = ref([])
+    const cachedPre = ref('')
+    const cachedSep = ref('')
+    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('phrase.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
@@ -1205,13 +1229,17 @@ const Passphrase = {
       return pool[Math.floor(Math.random() * pool.length)]
     }
 
-    const buildPassword = () => {
+    const rollAffixes = () => {
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+    }
+
+    const buildPassword = (rerollAffixes = false) => {
+      if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
       const words = rawWords.value.map((w, i) => applyCapitalization(w, capitalization.value, i))
-      const sep = resolveToken(separator.value, customSeparator.value)
-      const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      const assembled = pre + words.join(sep) + suf
+      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
     }
@@ -1222,7 +1250,7 @@ const Passphrase = {
         return
       }
       rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
-      buildPassword()
+      buildPassword(true)
     }
 
     const regenWord = (idx) => {
@@ -1231,7 +1259,7 @@ const Passphrase = {
       const next = [...rawWords.value]
       next[idx] = pickFrom(slot.type, slot.cat)
       rawWords.value = next
-      buildPassword()
+      buildPassword(false)
     }
 
     const addSlot = (type) => {
@@ -1270,6 +1298,7 @@ const Passphrase = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      lockAffixes,
       password, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1411,17 +1440,27 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <div v-if="rawWords.length" class="word-pills">
+        <div v-if="rawWords.length" class="word-pills-row">
+          <div class="word-pills">
+            <button
+              v-for="(w, i) in rawWords"
+              :key="i"
+              class="word-pill"
+              :class="'word-pill-' + slots[i]?.type"
+              @click="regenWord(i)"
+              title="Click to swap this word"
+            >
+              <span class="word-pill-text">{{ w }}</span>
+              <span class="mdi mdi-refresh word-pill-icon"></span>
+            </button>
+          </div>
           <button
-            v-for="(w, i) in rawWords"
-            :key="i"
-            class="word-pill"
-            :class="'word-pill-' + slots[i]?.type"
-            @click="regenWord(i)"
-            title="Click to swap this word"
+            class="lock-affixes-btn"
+            :class="{ active: lockAffixes }"
+            @click="lockAffixes = !lockAffixes"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
           >
-            <span class="word-pill-text">{{ w }}</span>
-            <span class="mdi mdi-refresh word-pill-icon"></span>
+            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
           </button>
         </div>
 
@@ -1510,6 +1549,10 @@ const MadLib = {
     const preview = ref('')
     // rawWords stores the plain words from the template fill (no caps/leet) alongside their token types
     const rawSegments = ref([]) // [{ word, isToken, type? }]
+    const lockAffixes = persistedRef('madlib.lockAffixes', false)
+    const cachedPre = ref('')
+    const cachedSep = ref('')
+    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('madlib.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
@@ -1528,21 +1571,24 @@ const MadLib = {
       return pool[Math.floor(Math.random() * pool.length)] || ''
     }
 
-    const buildPassword = () => {
+    const rollAffixes = () => {
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+    }
+
+    const buildPassword = (rerollAffixes = false) => {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
       if (!tmpl) return
-      // Reconstruct preview and password from rawSegments
+      if (rerollAffixes || !lockAffixes.value) rollAffixes()
       let wordIndex = 0
       const filledSegments = rawSegments.value.map(seg => {
         if (!seg.isToken) return seg.word
         return applyCapitalization(seg.word, capitalization.value, wordIndex++)
       })
       preview.value = filledSegments.join('')
-      const sep = resolveToken(separator.value, customSeparator.value)
       const words = preview.value.split(/\s+/).filter(Boolean)
-      const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      const assembled = pre + words.join(sep) + suf
+      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
     }
@@ -1560,7 +1606,7 @@ const MadLib = {
         const slotEntry = slotCats.value.find(s => s.type === type && s.occurrence === typeOccurrence[type])
         return { word: pickFrom(type, slotEntry?.cat ?? 'random'), isToken: true, type, occurrence: typeOccurrence[type] }
       })
-      buildPassword()
+      buildPassword(true)
     }
 
     const regenWord = (segIdx) => {
@@ -1570,7 +1616,7 @@ const MadLib = {
       const next = [...rawSegments.value]
       next[segIdx] = { ...seg, word: pickFrom(seg.type, slotEntry?.cat ?? 'random') }
       rawSegments.value = next
-      buildPassword()
+      buildPassword(false)
     }
 
     watch(templateId, (newId) => {
@@ -1599,6 +1645,7 @@ const MadLib = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      lockAffixes,
       password, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1745,19 +1792,29 @@ const MadLib = {
       </div>
 
       <div class="card">
-        <div v-if="rawSegments.some(s => s.isToken)" class="word-pills">
-          <template v-for="(seg, i) in rawSegments" :key="i">
-            <button
-              v-if="seg.isToken"
-              class="word-pill"
-              :class="'word-pill-' + seg.type"
-              @click="regenWord(i)"
-              title="Click to swap this word"
-            >
-              <span class="word-pill-text">{{ seg.word }}</span>
-              <span class="mdi mdi-refresh word-pill-icon"></span>
-            </button>
-          </template>
+        <div v-if="rawSegments.some(s => s.isToken)" class="word-pills-row">
+          <div class="word-pills">
+            <template v-for="(seg, i) in rawSegments" :key="i">
+              <button
+                v-if="seg.isToken"
+                class="word-pill"
+                :class="'word-pill-' + seg.type"
+                @click="regenWord(i)"
+                title="Click to swap this word"
+              >
+                <span class="word-pill-text">{{ seg.word }}</span>
+                <span class="mdi mdi-refresh word-pill-icon"></span>
+              </button>
+            </template>
+          </div>
+          <button
+            class="lock-affixes-btn"
+            :class="{ active: lockAffixes }"
+            @click="lockAffixes = !lockAffixes"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
+          >
+            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
+          </button>
         </div>
 
         <div v-if="preview" class="madlib-preview-card">
