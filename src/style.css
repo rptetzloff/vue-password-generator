@@ -450,6 +450,52 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* Mad Lib */
+.madlib-template-preview {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.madlib-template-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.madlib-template-text .slot {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.madlib-preview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.madlib-preview-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.madlib-preview-phrase {
+  font-size: 1rem;
+  color: var(--text);
+  font-style: italic;
+  word-break: break-word;
+}
+
 /* Prefix / Suffix affix pickers */
 .affix-pair {
   display: flex;

@@ -1158,6 +1158,232 @@ const Passphrase = {
   `
 }
 
+// Mad Lib Password Component
+const MADLIB_TEMPLATES = [
+  { id: 'hero',      label: 'The Hero',         template: 'The {adj} {noun} {verb} the {adj} {noun}' },
+  { id: 'villain',   label: 'The Villain',       template: 'A {adj} {noun} {verb} every {noun}' },
+  { id: 'quest',     label: 'The Quest',         template: '{noun} {verb} beyond the {adj} {noun}' },
+  { id: 'science',   label: 'Science!',          template: 'The {adj} {noun} can {verb} any {noun}' },
+  { id: 'proverb',   label: 'Wise Proverb',      template: 'A {adj} {noun} never {verb} alone' },
+  { id: 'news',      label: 'Breaking News',     template: '{adj} {noun} {verb} {adj} {noun} daily' },
+  { id: 'haiku',     label: 'Haiku-ish',         template: '{adj} {noun} {verb} softly' },
+  { id: 'epic',      label: 'Epic Tale',         template: '{noun} and {noun} {verb} the {adj} world' },
+  { id: 'mystery',   label: 'Mystery',           template: 'A {noun} {verb} the {adj} {noun} again' },
+  { id: 'romance',   label: 'Romance',           template: 'The {adj} {noun} {verb} a {adj} {noun}' },
+  { id: 'scifi',     label: 'Sci-Fi',            template: '{adj} {noun} {verb} through every {noun}' },
+  { id: 'fable',     label: 'Fable',             template: 'Once the {adj} {noun} learned to {verb}' },
+]
+
+const MadLib = {
+  name: 'MadLib',
+  setup() {
+    const templateId = ref('hero')
+    const separator = ref('-')
+    const customSeparator = ref('')
+    const capitalization = ref('title')
+    const prefixMode = ref('')
+    const prefixCustom = ref('')
+    const suffixMode = ref('')
+    const suffixCustom = ref('')
+    const password = ref('')
+    const preview = ref('')
+    const notification = ref({ show: false, message: '', type: 'success' })
+    const wordLists = ref({ nouns: [], verbs: [], adjectives: [] })
+
+    const loadWordLists = async () => {
+      try {
+        const [nr, vr, ar] = await Promise.all([
+          fetch('./data/nouns.txt'),
+          fetch('./data/verbs.txt'),
+          fetch('./data/adjectives.txt'),
+        ])
+        const parse = (t) => t.split(',').map(w => w.trim()).filter(Boolean)
+        wordLists.value.nouns      = parse(await nr.text())
+        wordLists.value.verbs      = parse(await vr.text())
+        wordLists.value.adjectives = parse(await ar.text())
+      } catch {
+        wordLists.value.nouns      = ['house','river','storm','blade','forest']
+        wordLists.value.verbs      = ['guards','breaks','finds','knows','seeks']
+        wordLists.value.adjectives = ['ancient','silent','wild','golden','lost']
+      }
+    }
+
+    const pick = (list) => list[Math.floor(Math.random() * list.length)] || ''
+
+    const generatePassword = () => {
+      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
+      if (!tmpl) return
+
+      let wordIndex = 0
+      const filled = tmpl.template.replace(/\{(adj|noun|verb)\}/g, (_, type) => {
+        let raw = ''
+        if (type === 'adj')  raw = pick(wordLists.value.adjectives)
+        if (type === 'noun') raw = pick(wordLists.value.nouns)
+        if (type === 'verb') raw = pick(wordLists.value.verbs)
+        const capped = applyCapitalization(raw, capitalization.value, wordIndex)
+        wordIndex++
+        return capped
+      })
+
+      // The "sentence" words become the password joined by the chosen separator
+      // but the preview shows the readable filled template
+      preview.value = filled
+
+      const sep = resolveToken(separator.value, customSeparator.value)
+      const words = filled.split(/\s+/).filter(Boolean)
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      password.value = pre + words.join(sep) + suf
+    }
+
+    const copyPassword = async () => {
+      if (!password.value) { showNotification('No password to copy', 'error'); return }
+      try {
+        await navigator.clipboard.writeText(password.value)
+        showNotification('Password copied to clipboard!', 'success')
+      } catch { showNotification('Failed to copy password', 'error') }
+    }
+
+    const showNotification = (message, type = 'success') => {
+      notification.value = { show: true, message, type }
+      setTimeout(() => { notification.value.show = false }, 3000)
+    }
+
+    onMounted(async () => {
+      await loadWordLists()
+      generatePassword()
+    })
+
+    return {
+      templateId,
+      templates: MADLIB_TEMPLATES,
+      separator,
+      customSeparator,
+      capitalization,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      password,
+      preview,
+      notification,
+      separatorOptions: SEPARATOR_OPTIONS,
+      generatePassword,
+      copyPassword,
+    }
+  },
+  components: { AffixPicker },
+  template: `
+    <div class="password-generator">
+      <div class="card">
+        <div class="card-header">Template</div>
+        <div class="separator-grid">
+          <label
+            v-for="t in templates"
+            :key="t.id"
+            class="sep-option"
+            :class="{ active: templateId === t.id }"
+          >
+            <input v-model="templateId" :value="t.id" type="radio" class="sr-only" @change="generatePassword" />
+            <span>{{ t.label }}</span>
+          </label>
+        </div>
+        <div class="madlib-template-preview">
+          <span class="madlib-template-text">{{ templates.find(t => t.id === templateId)?.template }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Word Separator</div>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
+            <span>{{ opt.label }}</span>
+          </label>
+        </div>
+        <div v-if="separator === 'custom'" class="custom-sep-row">
+          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Capitalization</div>
+        <div class="separator-grid">
+          <label class="sep-option" :class="{ active: capitalization === 'title' }">
+            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
+            <span>Title Case</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'none' }">
+            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
+            <span>lowercase</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
+            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
+            <span>UPPERCASE</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'random' }">
+            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
+            <span>rAnDoM letters</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
+            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
+            <span>WORD word WORD word</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
+            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
+            <span>WORD word IS random</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Prefix &amp; Suffix</div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
+        </div>
+      </div>
+
+      <div class="card">
+        <button @click="generatePassword" class="btn btn-primary">Generate Mad Lib</button>
+      </div>
+
+      <div v-if="preview" class="madlib-preview-card">
+        <div class="madlib-preview-label">Readable phrase</div>
+        <div class="madlib-preview-phrase">{{ preview }}</div>
+      </div>
+
+      <div class="password-display">
+        <input
+          v-model="password"
+          type="text"
+          readonly
+          class="form-input password-input"
+          placeholder="Generated password will appear here..."
+        />
+        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+          📋
+        </button>
+      </div>
+
+      <div v-if="notification.show" :class="['notification', notification.type]">
+        {{ notification.message }}
+      </div>
+    </div>
+  `
+}
+
 // Main App Component
 const App = {
   name: 'App',
@@ -1168,7 +1394,8 @@ const App = {
       { id: 2, name: 'Advanced', component: AdvancedPassword },
       { id: 3, name: 'Words', component: WordsPassword },
       { id: 4, name: 'Numbers', component: NumbersPassword },
-      { id: 5, name: 'Passphrase', component: Passphrase }
+      { id: 5, name: 'Passphrase', component: Passphrase },
+      { id: 6, name: 'Mad Lib', component: MadLib }
     ]
 
     return {
