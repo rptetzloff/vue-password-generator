@@ -293,6 +293,7 @@ const SimplePassword = {
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
@@ -615,6 +616,7 @@ const AdvancedPassword = {
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
@@ -826,6 +828,7 @@ const WordsPassword = {
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
@@ -1026,6 +1029,7 @@ const NumbersPassword = {
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
@@ -1585,6 +1589,7 @@ const MadLib = {
             data-1p-ignore
             data-lpignore="true"
             data-form-type="other"
+            data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
