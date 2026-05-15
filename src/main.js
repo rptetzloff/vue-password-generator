@@ -924,23 +924,57 @@ const NumbersPassword = {
 }
 
 // Passphrase Generator Component
+const SLOT_TYPES = [
+  { type: 'adj',  label: 'Adj',  color: 'slot-adj'  },
+  { type: 'adv',  label: 'Adv',  color: 'slot-adv'  },
+  { type: 'noun', label: 'Noun', color: 'slot-noun' },
+  { type: 'verb', label: 'Verb', color: 'slot-verb' },
+]
+
+const CATEGORY_META = {
+  noun: [
+    { id: 'random',   label: 'Random'   },
+    { id: 'animals',  label: 'Animals'  },
+    { id: 'vehicles', label: 'Vehicles' },
+    { id: 'food',     label: 'Food'     },
+    { id: 'places',   label: 'Places'   },
+    { id: 'nature',   label: 'Nature'   },
+    { id: 'tech',     label: 'Tech'     },
+    { id: 'jobs',     label: 'Jobs'     },
+  ],
+  adj: [
+    { id: 'random',   label: 'Random'  },
+    { id: 'colors',   label: 'Colors'  },
+    { id: 'size',     label: 'Size'    },
+    { id: 'texture',  label: 'Texture' },
+    { id: 'mood',     label: 'Mood'    },
+    { id: 'weather',  label: 'Weather' },
+    { id: 'time',     label: 'Time'    },
+  ],
+  adv: [
+    { id: 'random',    label: 'Random'    },
+    { id: 'manner',    label: 'Manner'    },
+    { id: 'intensity', label: 'Intensity' },
+    { id: 'time',      label: 'Time'      },
+    { id: 'place',     label: 'Place'     },
+  ],
+  verb: [
+    { id: 'random',    label: 'Random'    },
+    { id: 'movement',  label: 'Movement'  },
+    { id: 'action',    label: 'Action'    },
+    { id: 'nature',    label: 'Nature'    },
+    { id: 'cognition', label: 'Cognition' },
+  ],
+}
+
 const Passphrase = {
   name: 'Passphrase',
   setup() {
-    const STRUCTURES = [
-      { id: 'adj-noun',           label: 'adj · noun',                parts: ['adj', 'noun'] },
-      { id: 'noun-verb',          label: 'noun · verb',                parts: ['noun', 'verb'] },
-      { id: 'adj-noun-verb',      label: 'adj · noun · verb',          parts: ['adj', 'noun', 'verb'] },
-      { id: 'adj-adj-noun',       label: 'adj · adj · noun',           parts: ['adj', 'adj', 'noun'] },
-      { id: 'noun-noun',          label: 'noun · noun',                parts: ['noun', 'noun'] },
-      { id: 'adj-noun-noun',      label: 'adj · noun · noun',          parts: ['adj', 'noun', 'noun'] },
-      { id: 'noun-verb-noun',     label: 'noun · verb · noun',         parts: ['noun', 'verb', 'noun'] },
-      { id: 'adj-noun-verb-noun', label: 'adj · noun · verb · noun',   parts: ['adj', 'noun', 'verb', 'noun'] },
-      { id: 'verb-noun',          label: 'verb · noun',                parts: ['verb', 'noun'] },
-      { id: 'adj-verb-noun',      label: 'adj · verb · noun',          parts: ['adj', 'verb', 'noun'] },
-      { id: 'noun-adj-noun',      label: 'noun · adj · noun',          parts: ['noun', 'adj', 'noun'] },
-    ]
-    const structure = ref('adj-noun-verb')
+    // Each slot: { id, type, cat }
+    let nextId = 0
+    const makeSlot = (type) => ({ id: nextId++, type, cat: 'random' })
+
+    const slots = ref([makeSlot('adj'), makeSlot('noun'), makeSlot('verb')])
     const separator = ref('$')
     const customSeparator = ref('')
     const capitalization = ref('upper')
@@ -949,117 +983,128 @@ const Passphrase = {
     const suffixMode = ref('')
     const suffixCustom = ref('')
     const password = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
-    const wordLists = ref({
-      nouns: [],
-      verbs: [],
-      adjectives: []
-    })
+    const notification = ref({ show: false, message: '', type: 'success' })
+    const wordData = ref({})
 
-    const loadWordLists = async () => {
+    const loadWordData = async () => {
       try {
-        const [nounsResponse, verbsResponse, adjectivesResponse] = await Promise.all([
-          fetch('./data/nouns.txt'),
-          fetch('./data/verbs.txt'),
-          fetch('./data/adjectives.txt')
-        ])
-
-        const nounsText = await nounsResponse.text()
-        const verbsText = await verbsResponse.text()
-        const adjectivesText = await adjectivesResponse.text()
-
-        wordLists.value.nouns = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-        wordLists.value.verbs = verbsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-        wordLists.value.adjectives = adjectivesText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        const res = await fetch('./data/words.json')
+        wordData.value = await res.json()
       } catch (err) {
-        console.error('Failed to load word lists:', err)
-        wordLists.value.nouns = ['house', 'car', 'tree', 'book', 'phone', 'computer', 'table', 'chair']
-        wordLists.value.verbs = ['run', 'jump', 'walk', 'talk', 'think', 'write', 'read', 'play']
-        wordLists.value.adjectives = ['big', 'small', 'fast', 'slow', 'happy', 'sad', 'bright', 'dark']
+        console.error('Failed to load word data:', err)
       }
+    }
+
+    const pickFrom = (type, catId) => {
+      const cats = wordData.value[type]
+      if (!cats) return type
+      const pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      return pool[Math.floor(Math.random() * pool.length)]
     }
 
     const generatePassword = () => {
-      const sel = STRUCTURES.find(s => s.id === structure.value)
-      if (!sel) return
-
-      const pick = (list) => list[Math.floor(Math.random() * list.length)]
-
-      const words = sel.parts.map((part, i) => {
-        let raw = ''
-        if (part === 'adj')  raw = pick(wordLists.value.adjectives) || 'quick'
-        if (part === 'noun') raw = pick(wordLists.value.nouns)      || 'fox'
-        if (part === 'verb') raw = pick(wordLists.value.verbs)      || 'jumps'
-        return applyCapitalization(raw, capitalization.value, i)
-      })
-
+      if (slots.value.length === 0) {
+        showNotification('Add at least one word slot', 'error')
+        return
+      }
+      const words = slots.value.map((s, i) =>
+        applyCapitalization(pickFrom(s.type, s.cat), capitalization.value, i)
+      )
+      const sep = resolveToken(separator.value, customSeparator.value)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveToken(suffixMode.value, suffixCustom.value)
-      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
+      password.value = pre + words.join(sep) + suf
+    }
+
+    const addSlot = (type) => {
+      if (slots.value.length >= 8) return
+      slots.value.push(makeSlot(type))
+    }
+
+    const removeSlot = (id) => {
+      slots.value = slots.value.filter(s => s.id !== id)
+    }
+
+    const moveSlot = (idx, dir) => {
+      const target = idx + dir
+      if (target < 0 || target >= slots.value.length) return
+      const arr = [...slots.value]
+      ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+      slots.value = arr
     }
 
     const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No passphrase to copy', 'error')
-        return
-      }
-
+      if (!password.value) { showNotification('No passphrase to copy', 'error'); return }
       try {
         await navigator.clipboard.writeText(password.value)
         showNotification('Passphrase copied to clipboard!', 'success')
-      } catch (err) {
-        showNotification('Failed to copy passphrase', 'error')
-      }
+      } catch { showNotification('Failed to copy passphrase', 'error') }
     }
 
     const showNotification = (message, type = 'success') => {
       notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
+      setTimeout(() => { notification.value.show = false }, 3000)
     }
 
     onMounted(async () => {
-      await loadWordLists()
+      await loadWordData()
       generatePassword()
     })
 
     return {
-      structure,
-      structures: STRUCTURES,
-      separator,
-      customSeparator,
+      slots,
+      slotTypes: SLOT_TYPES,
+      categoryMeta: CATEGORY_META,
+      addSlot, removeSlot, moveSlot,
+      separator, customSeparator,
       capitalization,
-      prefixMode,
-      prefixCustom,
-      suffixMode,
-      suffixCustom,
-      password,
-      notification,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      password, notification,
       separatorOptions: SEPARATOR_OPTIONS,
-      generatePassword,
-      copyPassword
+      generatePassword, copyPassword
     }
   },
   components: { AffixPicker },
   template: `
     <div class="password-generator">
+
       <div class="card">
-        <div class="card-header">Sentence Structure</div>
-        <div class="separator-grid">
-          <label
-            v-for="s in structures"
-            :key="s.id"
-            class="sep-option structure-chip"
-            :class="{ active: structure === s.id }"
+        <div class="card-header">Word Slots</div>
+
+        <div class="slot-add-row">
+          <span class="slot-add-label">Add:</span>
+          <button
+            v-for="t in slotTypes"
+            :key="t.type"
+            class="slot-add-btn"
+            :class="t.color"
+            @click="addSlot(t.type)"
+            :disabled="slots.length >= 8"
+          >+ {{ t.label }}</button>
+        </div>
+
+        <div class="slot-tray" v-if="slots.length > 0">
+          <div
+            v-for="(slot, idx) in slots"
+            :key="slot.id"
+            class="slot-pill"
+            :class="'slot-' + slot.type"
           >
-            <input v-model="structure" :value="s.id" type="radio" class="sr-only" />
-            <span>{{ s.label }}</span>
-          </label>
+            <span class="slot-pill-label">{{ slot.type }}</span>
+            <div class="slot-pill-actions">
+              <button class="slot-arrow" @click="moveSlot(idx, -1)" :disabled="idx === 0" title="Move left">&#8592;</button>
+              <button class="slot-arrow" @click="moveSlot(idx, 1)" :disabled="idx === slots.length - 1" title="Move right">&#8594;</button>
+              <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
+            </div>
+            <select class="slot-cat-select" v-model="slot.cat">
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-else class="slot-empty">
+          Add word slots above to build your passphrase structure.
         </div>
       </div>
 
@@ -1067,17 +1112,12 @@ const Passphrase = {
         <div class="card-header">Word Separator</div>
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
-            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
+            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
             <span>{{ opt.label }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
-          <input
-            v-model="customSeparator"
-            type="text"
-            class="form-input"
-            placeholder="Type your separator"
-          />
+          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
       </div>
 
@@ -1133,9 +1173,7 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <button @click="generatePassword" class="btn btn-primary">
-          Generate Passphrase
-        </button>
+        <button @click="generatePassword" class="btn btn-primary">Generate Passphrase</button>
       </div>
 
       <div class="password-display">
@@ -1146,9 +1184,7 @@ const Passphrase = {
           class="form-input password-input"
           placeholder="Generated passphrase will appear here..."
         />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
+        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
