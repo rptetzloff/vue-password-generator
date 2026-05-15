@@ -196,4 +196,4 @@ MIT — see [LICENSE](LICENSE) for details.
 
 *Your passwords are generated locally in your browser — no server storage, no transmission.*
 
-Made by [Raymond Tetzloff](https://github.com/rptetzloff)
+Made by [Raymond Tetzloff](https://github.com/rptetzloff) with [Bolt](https://bolt.new)
