@@ -144,6 +144,16 @@ const applyLeet = (str, activeSubs) => {
   }).join('')
 }
 
+const useHistory = (key, max = 10) => {
+  const history = persistedRef(key, [])
+  const pushHistory = (pw) => {
+    if (!pw) return
+    const list = history.value.filter(h => h !== pw)
+    history.value = [pw, ...list].slice(0, max)
+  }
+  return { history, pushHistory }
+}
+
 const useNotification = () => {
   const notification = ref({ show: false, message: '', type: 'success' })
   const showNotification = (message, type = 'success') => {
@@ -166,6 +176,27 @@ const useCopyPassword = (password, label = 'password') => {
     } catch { showNotification(`Failed to copy ${label}`, 'error') }
   }
   return { copied, notification, showNotification, copyPassword }
+}
+
+const HistoryStrip = {
+  name: 'HistoryStrip',
+  props: { history: { default: () => [] }, current: String },
+  emits: ['select'],
+  template: `
+    <div v-if="history.length > 1" class="history-strip">
+      <div class="history-label">History</div>
+      <div class="history-list">
+        <button
+          v-for="(pw, i) in history"
+          :key="i"
+          class="history-item"
+          :class="{ 'history-item-active': pw === current }"
+          @click="$emit('select', pw)"
+          :title="pw"
+        >{{ pw }}</button>
+      </div>
+    </div>
+  `
 }
 
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
@@ -209,6 +240,7 @@ const AffixPicker = {
 // Simple Password Generator Component
 const SimplePassword = {
   name: 'SimplePassword',
+  components: { HistoryStrip },
   setup() {
     const passwordLength = persistedRef('simple.passwordLength', 20)
     const lowerCase = persistedRef('simple.lowerCase', true)
@@ -216,6 +248,7 @@ const SimplePassword = {
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
     const password = ref('')
+    const { history, pushHistory } = useHistory('simple.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
@@ -243,6 +276,7 @@ const SimplePassword = {
       }
 
       password.value = newPassword
+      pushHistory(newPassword)
     }
 
     onMounted(() => {
@@ -256,6 +290,7 @@ const SimplePassword = {
       digits,
       specialChars,
       password,
+      history,
       copied,
       notification,
       generatePassword,
@@ -324,6 +359,7 @@ const SimplePassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <HistoryStrip :history="history" :current="password" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>
@@ -335,6 +371,7 @@ const SimplePassword = {
 // Advanced Password Generator Component
 const AdvancedPassword = {
   name: 'AdvancedPassword',
+  components: { HistoryStrip },
   setup() {
     const passwordLength = persistedRef('adv.passwordLength', 20)
     const lowerCase = persistedRef('adv.lowerCase', [1, 20])
@@ -360,6 +397,7 @@ const AdvancedPassword = {
     const selectNoSymbols = () => { activeSymbols.value = new Set([ALL_SYMBOLS[0]]) }
     const selectCommonSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS.filter(s => COMMON_SYMBOLS.has(s))) }
     const password = ref('')
+    const { history, pushHistory } = useHistory('adv.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
@@ -449,6 +487,7 @@ const AdvancedPassword = {
       }
 
       password.value = newPassword
+      pushHistory(newPassword)
     }
 
     onMounted(() => {
@@ -468,6 +507,7 @@ const AdvancedPassword = {
       selectNoSymbols,
       selectCommonSymbols,
       password,
+      history,
       copied,
       notification,
       generatePassword,
@@ -622,6 +662,7 @@ const AdvancedPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <HistoryStrip :history="history" :current="password" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>
@@ -633,6 +674,7 @@ const AdvancedPassword = {
 // Words Password Generator Component
 const WordsPassword = {
   name: 'WordsPassword',
+  components: { AffixPicker, HistoryStrip },
   setup() {
     const wordCount = persistedRef('words.wordCount', 4)
     const separator = persistedRef('words.separator', '$')
@@ -653,6 +695,8 @@ const WordsPassword = {
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
+    const rawWords = ref([])
+    const { history, pushHistory } = useHistory('words.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
 
@@ -667,24 +711,33 @@ const WordsPassword = {
       }
     }
 
+    const buildPassword = () => {
+      preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      const words = rawWords.value.map((w, i) => applyCapitalization(w, capitalization.value, i))
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
+      const assembled = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
+      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
+      pushHistory(password.value)
+    }
+
     const generatePassword = () => {
       if (wordList.value.length === 0) {
         showNotification('Word list not loaded', 'error')
         return
       }
+      rawWords.value = Array.from({ length: wordCount.value }, () =>
+        wordList.value[Math.floor(Math.random() * wordList.value.length)]
+      )
+      buildPassword()
+    }
 
-      const rawWords = []
-      for (let i = 0; i < wordCount.value; i++) {
-        rawWords.push(wordList.value[Math.floor(Math.random() * wordList.value.length)])
-      }
-
-      preview.value = rawWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-
-      const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
-      const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      const raw = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
-      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
+    const regenWord = (idx) => {
+      if (wordList.value.length === 0) return
+      const next = [...rawWords.value]
+      next[idx] = wordList.value[Math.floor(Math.random() * wordList.value.length)]
+      rawWords.value = next
+      buildPassword()
     }
 
     onMounted(async () => {
@@ -707,16 +760,18 @@ const WordsPassword = {
       selectAllLeet,
       selectNoLeet,
       password,
+      rawWords,
+      history,
       copied,
       preview,
       notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword,
+      regenWord,
       copyPassword
     }
   },
-  components: { AffixPicker },
   template: `
     <div class="password-generator">
       <div class="card">
@@ -832,9 +887,17 @@ const WordsPassword = {
       </div>
 
       <div class="card">
-        <div v-if="preview" class="madlib-preview-card">
-          <div class="madlib-preview-label">Readable phrase</div>
-          <div class="madlib-preview-phrase">{{ preview }}</div>
+        <div v-if="rawWords.length" class="word-pills">
+          <button
+            v-for="(w, i) in rawWords"
+            :key="i"
+            class="word-pill"
+            @click="regenWord(i)"
+            title="Click to swap this word"
+          >
+            <span class="word-pill-text">{{ w }}</span>
+            <span class="mdi mdi-refresh word-pill-icon"></span>
+          </button>
         </div>
 
         <div class="password-display">
@@ -854,6 +917,7 @@ const WordsPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <HistoryStrip :history="history" :current="password" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>
@@ -865,11 +929,13 @@ const WordsPassword = {
 // Numbers Password Generator Component
 const NumbersPassword = {
   name: 'NumbersPassword',
+  components: { HistoryStrip },
   setup() {
     const passwordLength = persistedRef('nums.passwordLength', 8)
     const maxRepeated = persistedRef('nums.maxRepeated', 3)
     const maxSequential = persistedRef('nums.maxSequential', 3)
     const password = ref('')
+    const { history, pushHistory } = useHistory('nums.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
 
     const generatePassword = () => {
@@ -945,6 +1011,7 @@ const NumbersPassword = {
       }
       
       password.value = newPassword
+      pushHistory(newPassword)
     }
 
     onMounted(() => {
@@ -956,6 +1023,7 @@ const NumbersPassword = {
       maxRepeated,
       maxSequential,
       password,
+      history,
       copied,
       notification,
       generatePassword,
@@ -1030,6 +1098,7 @@ const NumbersPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <HistoryStrip :history="history" :current="password" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>
@@ -1109,6 +1178,8 @@ const Passphrase = {
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
+    const rawWords = ref([])
+    const { history, pushHistory } = useHistory('phrase.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
 
@@ -1128,19 +1199,33 @@ const Passphrase = {
       return pool[Math.floor(Math.random() * pool.length)]
     }
 
+    const buildPassword = () => {
+      preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      const words = rawWords.value.map((w, i) => applyCapitalization(w, capitalization.value, i))
+      const sep = resolveToken(separator.value, customSeparator.value)
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
+      const assembled = pre + words.join(sep) + suf
+      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
+      pushHistory(password.value)
+    }
+
     const generatePassword = () => {
       if (slots.value.length === 0) {
         showNotification('Add at least one word slot', 'error')
         return
       }
-      const rawWords = slots.value.map(s => pickFrom(s.type, s.cat))
-      preview.value = rawWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
-      const sep = resolveToken(separator.value, customSeparator.value)
-      const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      const raw = pre + words.join(sep) + suf
-      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
+      rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
+      buildPassword()
+    }
+
+    const regenWord = (idx) => {
+      const slot = slots.value[idx]
+      if (!slot) return
+      const next = [...rawWords.value]
+      next[idx] = pickFrom(slot.type, slot.cat)
+      rawWords.value = next
+      buildPassword()
     }
 
     const addSlot = (type) => {
@@ -1179,13 +1264,13 @@ const Passphrase = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
-      password, copied, preview, notification,
+      password, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
-      generatePassword, copyPassword
+      generatePassword, regenWord, copyPassword
     }
   },
-  components: { AffixPicker },
+  components: { AffixPicker, HistoryStrip },
   template: `
     <div class="password-generator">
 
@@ -1320,9 +1405,18 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <div v-if="preview" class="madlib-preview-card">
-          <div class="madlib-preview-label">Readable phrase</div>
-          <div class="madlib-preview-phrase">{{ preview }}</div>
+        <div v-if="rawWords.length" class="word-pills">
+          <button
+            v-for="(w, i) in rawWords"
+            :key="i"
+            class="word-pill"
+            :class="'word-pill-' + slots[i]?.type"
+            @click="regenWord(i)"
+            title="Click to swap this word"
+          >
+            <span class="word-pill-text">{{ w }}</span>
+            <span class="mdi mdi-refresh word-pill-icon"></span>
+          </button>
         </div>
 
         <div class="password-display">
@@ -1337,6 +1431,7 @@ const Passphrase = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <HistoryStrip :history="history" :current="password" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>
@@ -1407,6 +1502,9 @@ const MadLib = {
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
+    // rawWords stores the plain words from the template fill (no caps/leet) alongside their token types
+    const rawSegments = ref([]) // [{ word, isToken, type? }]
+    const { history, pushHistory } = useHistory('madlib.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
 
@@ -1424,28 +1522,49 @@ const MadLib = {
       return pool[Math.floor(Math.random() * pool.length)] || ''
     }
 
+    const buildPassword = () => {
+      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
+      if (!tmpl) return
+      // Reconstruct preview and password from rawSegments
+      let wordIndex = 0
+      const filledSegments = rawSegments.value.map(seg => {
+        if (!seg.isToken) return seg.word
+        return applyCapitalization(seg.word, capitalization.value, wordIndex++)
+      })
+      preview.value = filledSegments.join('')
+      const sep = resolveToken(separator.value, customSeparator.value)
+      const words = preview.value.split(/\s+/).filter(Boolean)
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
+      const assembled = pre + words.join(sep) + suf
+      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
+      pushHistory(password.value)
+    }
+
     const generatePassword = () => {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
       if (!tmpl) return
-
       const typeOccurrence = {}
-      let wordIndex = 0
-      const filled = tmpl.template.replace(/\{(adj|adv|noun|verb)\}/g, (_, type) => {
+      const parts = tmpl.template.split(/(\{[^}]+\})/)
+      rawSegments.value = parts.map(part => {
+        const m = part.match(/^\{(adj|adv|noun|verb)\}$/)
+        if (!m) return { word: part, isToken: false }
+        const type = m[1]
         typeOccurrence[type] = (typeOccurrence[type] || 0) + 1
         const slotEntry = slotCats.value.find(s => s.type === type && s.occurrence === typeOccurrence[type])
-        const raw = pickFrom(type, slotEntry?.cat ?? 'random')
-        const capped = applyCapitalization(raw, capitalization.value, wordIndex++)
-        return capped
+        return { word: pickFrom(type, slotEntry?.cat ?? 'random'), isToken: true, type, occurrence: typeOccurrence[type] }
       })
+      buildPassword()
+    }
 
-      preview.value = filled
-
-      const sep = resolveToken(separator.value, customSeparator.value)
-      const words = filled.split(/\s+/).filter(Boolean)
-      const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      const raw = pre + words.join(sep) + suf
-      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
+    const regenWord = (segIdx) => {
+      const seg = rawSegments.value[segIdx]
+      if (!seg || !seg.isToken) return
+      const slotEntry = slotCats.value.find(s => s.type === seg.type && s.occurrence === seg.occurrence)
+      const next = [...rawSegments.value]
+      next[segIdx] = { ...seg, word: pickFrom(seg.type, slotEntry?.cat ?? 'random') }
+      rawSegments.value = next
+      buildPassword()
     }
 
     watch(templateId, (newId) => {
@@ -1474,13 +1593,13 @@ const MadLib = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
-      password, copied, preview, notification,
+      password, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
-      generatePassword, copyPassword,
+      generatePassword, regenWord, copyPassword,
     }
   },
-  components: { AffixPicker },
+  components: { AffixPicker, HistoryStrip },
   template: `
     <div class="password-generator">
 
@@ -1620,6 +1739,21 @@ const MadLib = {
       </div>
 
       <div class="card">
+        <div v-if="rawSegments.some(s => s.isToken)" class="word-pills">
+          <template v-for="(seg, i) in rawSegments" :key="i">
+            <button
+              v-if="seg.isToken"
+              class="word-pill"
+              :class="'word-pill-' + seg.type"
+              @click="regenWord(i)"
+              title="Click to swap this word"
+            >
+              <span class="word-pill-text">{{ seg.word }}</span>
+              <span class="mdi mdi-refresh word-pill-icon"></span>
+            </button>
+          </template>
+        </div>
+
         <div v-if="preview" class="madlib-preview-card">
           <div class="madlib-preview-label">Readable phrase</div>
           <div class="madlib-preview-phrase">{{ preview }}</div>
@@ -1642,6 +1776,7 @@ const MadLib = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <HistoryStrip :history="history" :current="password" @select="password = $event" />
         <div v-if="notification.show" :class="['notification', notification.type]">
           {{ notification.message }}
         </div>

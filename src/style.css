@@ -829,3 +829,108 @@ body {
   padding-top: 0.85rem;
   border-top: 1px solid var(--border);
 }
+
+/* ── Word pills (per-word regeneration) ─────────────────── */
+
+.word-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.word-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--border);
+  background: var(--background);
+  color: var(--text);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.word-pill:hover {
+  border-color: var(--primary);
+  background: rgba(14, 165, 233, 0.07);
+  color: var(--primary);
+}
+
+.word-pill:hover .word-pill-icon {
+  opacity: 1;
+  transform: rotate(30deg);
+}
+
+.word-pill-icon {
+  font-size: 0.8rem;
+  opacity: 0.35;
+  transition: opacity 0.15s, transform 0.25s;
+}
+
+/* Slot-type color accents on passphrase word pills */
+.word-pill-adj  { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
+.word-pill-adj:hover  { border-color: #1d4ed8; background: #bfdbfe; }
+.word-pill-adv  { border-color: #5eead4; background: #ccfbf1; color: #0f766e; }
+.word-pill-adv:hover  { border-color: #0f766e; background: #99f6e4; }
+.word-pill-noun { border-color: #94a3b8; background: #f1f5f9; color: #334155; }
+.word-pill-noun:hover { border-color: #334155; background: #e2e8f0; }
+.word-pill-verb { border-color: #fcd34d; background: #fef3c7; color: #92400e; }
+.word-pill-verb:hover { border-color: #92400e; background: #fde68a; }
+
+/* ── History strip ──────────────────────────────────────── */
+
+.history-strip {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.history-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.history-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: none;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.history-item:hover {
+  background: var(--background);
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.history-item-active {
+  background: rgba(14, 165, 233, 0.07);
+  border-color: var(--primary);
+  color: var(--primary);
+}
