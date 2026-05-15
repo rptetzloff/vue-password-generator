@@ -144,13 +144,18 @@ const applyLeet = (str, activeSubs) => {
   }).join('')
 }
 
-const useHistory = (key, max = 10) => {
+const historyMax = persistedRef('global.historyMax', 10)
+
+const useHistory = (key) => {
   const history = persistedRef(key, [])
   const pushHistory = (pw) => {
-    if (!pw) return
+    if (!pw || historyMax.value === 0) { history.value = []; return }
     const list = history.value.filter(h => h !== pw)
-    history.value = [pw, ...list].slice(0, max)
+    history.value = [pw, ...list].slice(0, historyMax.value)
   }
+  watch(historyMax, (max) => {
+    history.value = max === 0 ? [] : history.value.slice(0, max)
+  })
   return { history, pushHistory }
 }
 
@@ -249,6 +254,7 @@ const SimplePassword = {
     const specialChars = persistedRef('simple.specialChars', true)
     const password = ref('')
     const { history, pushHistory } = useHistory('simple.history')
+
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
@@ -1801,7 +1807,8 @@ const App = {
 
     return {
       activeTab,
-      tabs
+      tabs,
+      historyMax
     }
   },
   template: `
@@ -1810,8 +1817,22 @@ const App = {
         <div class="container">
           <h1 class="title">🔐 Password Generator</h1>
           <p class="subtitle">Generate secure passwords with multiple customization options</p>
-          <div style="background: rgba(255, 255, 255, 0.1); padding: 0.75rem 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.9rem; border: 1px solid rgba(255, 255, 255, 0.2);">
-            🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. Your settings and generation history are stored only in your browser's local storage — history is session-local and cleared when you clear your browser data.
+          <div class="header-meta">
+            <div class="privacy-notice">
+              🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. Your settings and generation history are stored only in your browser's local storage — history is session-local and cleared when you clear your browser data.
+            </div>
+            <div class="history-max-control">
+              <label class="history-max-label">History</label>
+              <div class="history-max-chips">
+                <button
+                  v-for="n in [0, 5, 10, 20, 50]"
+                  :key="n"
+                  class="history-max-chip"
+                  :class="{ active: historyMax === n }"
+                  @click="historyMax = n"
+                >{{ n === 0 ? 'Off' : n }}</button>
+              </div>
+            </div>
           </div>
         </div>
       </header>

@@ -830,6 +830,77 @@ body {
   border-top: 1px solid var(--border);
 }
 
+/* ── Header meta row (privacy notice + history control) ─── */
+
+.header-meta {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  flex-wrap: wrap;
+}
+
+.privacy-notice {
+  flex: 1;
+  min-width: 0;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+}
+
+.history-max-control {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+}
+
+.history-max-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.history-max-chips {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.history-max-chip {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.history-max-chip:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  color: white;
+}
+
+.history-max-chip.active {
+  background: white;
+  border-color: white;
+  color: var(--primary-dark);
+}
+
+@media (max-width: 600px) {
+  .header-meta { flex-direction: column; align-items: stretch; }
+  .history-max-control { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
 /* ── Word pills (per-word regeneration) ─────────────────── */
 
 .word-pills {
