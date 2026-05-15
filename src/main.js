@@ -269,8 +269,10 @@ const AdvancedPassword = {
       }
       activeSymbols.value = next
     }
+    const COMMON_SYMBOLS = new Set('!@#$%&*-_+=?'.split(''))
     const selectAllSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS) }
     const selectNoSymbols = () => { activeSymbols.value = new Set([ALL_SYMBOLS[0]]) }
+    const selectCommonSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS.filter(s => COMMON_SYMBOLS.has(s))) }
     const password = ref('')
     const notification = ref({
       show: false,
@@ -400,6 +402,7 @@ const AdvancedPassword = {
       toggleSymbol,
       selectAllSymbols,
       selectNoSymbols,
+      selectCommonSymbols,
       password,
       notification,
       generatePassword,
@@ -513,6 +516,7 @@ const AdvancedPassword = {
             <label class="form-label">Symbol Set</label>
             <div class="symbol-chips-actions">
               <button type="button" class="chip-action" @click="selectAllSymbols">All</button>
+              <button type="button" class="chip-action" @click="selectCommonSymbols">Common</button>
               <button type="button" class="chip-action" @click="selectNoSymbols">None</button>
             </div>
           </div>
