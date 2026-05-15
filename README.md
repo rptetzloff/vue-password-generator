@@ -99,10 +99,7 @@ For any other static host, build with `npm run build` and serve the `dist/` fold
 vue-password-generator/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
-│   ├── wordlist.txt      # EFF-style wordlist for Words mode
-│   ├── nouns.txt         # Legacy noun list
-│   ├── verbs.txt         # Legacy verb list
-│   └── adjectives.txt    # Legacy adjective list
+│   └── wordlist.txt      # General wordlist for Words mode
 ├── src/
 │   ├── main.js           # All Vue components (Composition API, CDN)
 │   └── style.css         # Design system and component styles

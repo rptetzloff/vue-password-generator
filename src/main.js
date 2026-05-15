@@ -548,7 +548,7 @@ const WordsPassword = {
 
     const loadWordList = async () => {
       try {
-        const response = await fetch('./data/nouns.txt')
+        const response = await fetch('./data/wordlist.txt')
         const text = await response.text()
         wordList.value = text.split(',').map(word => word.trim()).filter(word => word.length > 0)
       } catch (err) {
