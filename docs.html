@@ -975,24 +975,28 @@
           <div class="section-body">
 
             <div class="example-block">
-              <div class="example-label">Example output (defaults: Adj + Noun + Noun, Title Case, hyphen, 2-digit suffix)</div>
-              <div class="example-output">Crimson-River-Storm42</div>
+              <div class="example-label">Example output (defaults: Adj + Noun, Title Case, hyphen, 2-digit suffix)</div>
+              <div class="example-output">Crimson-River42</div>
             </div>
 
             <div class="example-block" style="border-left-color: #16a34a;">
               <div class="example-label">Example output with alliteration (letter S)</div>
-              <div class="example-output">Silent-Sparrow-Storm87</div>
+              <div class="example-output">Silent-Sparrow87</div>
             </div>
 
             <p style="font-size:0.875rem;color:var(--text-secondary);">
               Wireless uses the same slot-based word engine as <a href="#passphrase" style="color:var(--primary);">Passphrase</a> but ships with presets suited for WiFi network names: memorable, typeable on a phone keyboard, and visually distinct. All Passphrase options are available here with independent settings storage.
             </p>
 
+            <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:-0.5rem;">
+              Generated passwords are guaranteed to be at least <strong>8 characters</strong>. If a result falls below this minimum, the generator automatically retries (up to 10 times) before accepting the output.
+            </p>
+
             <div class="option-group">
               <div class="option-group-label">Default presets</div>
               <div class="option-row">
                 <div class="option-name">Word slots</div>
-                <div class="option-desc">Starts with <strong>Adj + Noun + Noun</strong> — two nouns give more combinatorial variety for network names while keeping the phrase short.</div>
+                <div class="option-desc">Starts with <strong>Adj + Noun</strong> — a concise, memorable two-word phrase. Additional slots can be added to increase length and variety.</div>
               </div>
               <div class="option-row">
                 <div class="option-name">Separator</div>
@@ -1008,7 +1012,7 @@
               </div>
               <div class="option-row">
                 <div class="option-name">Suffix</div>
-                <div class="option-desc"><strong>2 Random Digits</strong> — a short numeric suffix satisfies many router minimum-length requirements without making the password hard to remember.</div>
+                <div class="option-desc"><strong>2 Random Digits</strong> — a short numeric suffix helps meet the 8-character minimum and satisfies many router password requirements without making the phrase hard to remember.</div>
               </div>
             </div>
 
