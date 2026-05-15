@@ -875,6 +875,8 @@ body {
 
 .header-docs-link {
   flex-shrink: 0;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .docs-link {
@@ -1087,4 +1089,61 @@ body {
   background: rgba(14, 165, 233, 0.07);
   border-color: var(--primary);
   color: var(--primary);
+}
+
+/* ── Site footer ────────────────────────────────────────── */
+
+.site-footer {
+  background: rgba(0, 0, 0, 0.15);
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 1.25rem 0;
+  margin-top: 2rem;
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.footer-credit {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.footer-link {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.7);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.footer-link:hover {
+  color: white;
+}
+
+.footer-link-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.github-icon {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+@media (max-width: 560px) {
+  .footer-inner { flex-direction: column; align-items: flex-start; }
 }
