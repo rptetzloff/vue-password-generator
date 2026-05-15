@@ -189,7 +189,8 @@ MIT — see [LICENSE](LICENSE) for details.
 
 - [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — passphrase inspiration
 - [XKCD #936](https://xkcd.com/936/) — "correct horse battery staple"
-- [Vue.js](https://vuejs.org/), [Vite](https://vitejs.dev/), [Render.com](https://render.com/)
+- [Vue.js](https://vuejs.org/), [Vite](https://vitejs.dev/)
+- [Render](https://render.com/) — hosting
 - [Bolt](https://bolt.new/) — AI-assisted development
 
 ---
