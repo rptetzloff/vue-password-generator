@@ -1668,10 +1668,12 @@ const WifiWords = {
       }
       buildPassword(true)
       if (password.value.length < 8 && attempt < 10) {
+        console.warn(`[WifiWords] password too short (${password.value.length} chars), retrying (attempt ${attempt + 1})`)
         generatePassword(attempt + 1)
         return
       }
       if (password.value.length < 8) {
+        console.warn(`[WifiWords] gave up after 10 retries, password still too short: "${password.value}"`)
         warnSet.value = new Set([...warnSet.value, password.value])
       }
       pushHistory(password.value)
@@ -1685,10 +1687,12 @@ const WifiWords = {
       rawWords.value = next
       buildPassword(false)
       if (password.value.length < 8 && attempt < 10) {
+        console.warn(`[WifiWords] password too short (${password.value.length} chars) after regenWord, retrying (attempt ${attempt + 1})`)
         regenWord(idx, attempt + 1)
         return
       }
       if (password.value.length < 8) {
+        console.warn(`[WifiWords] gave up after 10 retries on regenWord, password still too short: "${password.value}"`)
         warnSet.value = new Set([...warnSet.value, password.value])
       }
       pushHistory(password.value)
