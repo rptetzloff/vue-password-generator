@@ -1668,13 +1668,11 @@ const WifiWords = {
         rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
       }
       buildPassword(true)
-      console.log(`[WifiWords] attempt ${attempt + 1}: "${password.value}" (${password.value.length} chars)`)
       if (password.value.length < 8 && attempt < 10) {
         generatePassword(attempt + 1)
         return
       }
       if (password.value.length < 8) {
-        console.warn(`[WifiWords] gave up after 10 retries, password still too short: "${password.value}"`)
         warnSet.value = new Set([...warnSet.value, password.value])
       }
       pushHistory(password.value)
@@ -1687,13 +1685,11 @@ const WifiWords = {
       next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
       rawWords.value = next
       buildPassword(false)
-      console.log(`[WifiWords] regenWord attempt ${attempt + 1}: "${password.value}" (${password.value.length} chars)`)
       if (password.value.length < 8 && attempt < 10) {
         regenWord(idx, attempt + 1)
         return
       }
       if (password.value.length < 8) {
-        console.warn(`[WifiWords] gave up after 10 retries on regenWord, password still too short: "${password.value}"`)
         warnSet.value = new Set([...warnSet.value, password.value])
       }
       pushHistory(password.value)
