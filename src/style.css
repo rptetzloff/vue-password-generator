@@ -214,6 +214,13 @@ body {
   color: var(--primary);
 }
 
+.leet-chip {
+  width: auto;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
