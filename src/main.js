@@ -1675,14 +1675,14 @@ const WifiWords = {
       const slot = slots.value[idx]
       if (!slot) return
       const next = [...rawWords.value]
-      next[idx] = pickFrom(slot.type, slot.cat)
+      next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
       rawWords.value = next
       buildPassword(false)
     }
 
     const addSlot = (type) => {
       if (slots.value.length >= 8) return
-      next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
+      slots.value = [...slots.value, makeSlot(type)]
     }
 
     const removeSlot = (id) => {
