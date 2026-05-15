@@ -367,6 +367,16 @@
         font-weight: 600;
       }
 
+      .section-body a {
+        color: var(--primary);
+        text-decoration: none;
+      }
+
+      .section-body a:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+      }
+
       /* ── Value tables ─────────────────────────────────────── */
 
       .value-table {
@@ -603,6 +613,8 @@
           <a class="nav-item" href="#numbers"><span class="mdi mdi-numeric"></span> Numbers</a>
           <div class="nav-divider"></div>
           <a class="nav-item" href="#shared"><span class="mdi mdi-share-variant-outline"></span> Shared Options</a>
+          <div class="nav-divider"></div>
+          <a class="nav-item" href="#built-with"><span class="mdi mdi-tools"></span> Built With</a>
           <a class="nav-sub nav-item" href="#shared-separator">Separator</a>
           <a class="nav-sub nav-item" href="#shared-affix">Prefix &amp; Suffix</a>
           <a class="nav-sub nav-item" href="#shared-caps">Capitalization</a>
@@ -657,6 +669,11 @@
               <span class="mdi mdi-numeric"></span>
               <div class="intro-tile-name">Numbers</div>
               <div class="intro-tile-desc">PIN &amp; numeric codes</div>
+            </a>
+            <a class="intro-tile" href="#built-with">
+              <span class="mdi mdi-tools"></span>
+              <div class="intro-tile-name">Built With</div>
+              <div class="intro-tile-desc">Tools &amp; technologies</div>
             </a>
           </div>
         </div>
@@ -1232,12 +1249,74 @@
           </div>
         </section>
 
+        <!-- ── BUILT WITH ────────────────────────────────────────── -->
+        <section id="built-with" class="section-card">
+          <div class="section-head">
+            <div class="section-icon slate"><span class="mdi mdi-tools"></span></div>
+            <div class="section-title">
+              <h2>Built With</h2>
+              <p>The tools and technologies used to create this app.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-vuejs" style="color:#41b883;"></span> Vue 3</div>
+              <div class="option-desc">
+                The UI is built with <a href="https://vuejs.org" target="_blank" rel="noopener">Vue 3</a> using the Composition API and a single-file component approach compiled by Vite.
+                Reactivity, computed properties, and watchers drive all generator logic without any external state-management library.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-lightning-bolt" style="color:#646cff;"></span> Vite</div>
+              <div class="option-desc">
+                <a href="https://vitejs.dev" target="_blank" rel="noopener">Vite</a> handles development serving and production bundling.
+                It compiles the Vue single-file component, processes CSS, and outputs a minimal static bundle that runs entirely in the browser.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-material-design" style="color:#2196f3;"></span> Material Design Icons</div>
+              <div class="option-desc">
+                All interface icons are served from the <a href="https://materialdesignicons.com" target="_blank" rel="noopener">@mdi/font</a> icon font.
+                Icons are referenced by CSS class name and require no additional JavaScript.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-robot-outline" style="color:#0ea5e9;"></span> Bolt (AI-assisted development)</div>
+              <div class="option-desc">
+                Much of this app was built with assistance from <a href="https://bolt.new" target="_blank" rel="noopener">Bolt</a>,
+                an AI-powered coding environment. Bolt accelerated feature development, UI design, and documentation authoring throughout the project.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-server-outline" style="color:#46e3b7;"></span> Render</div>
+              <div class="option-desc">
+                The app is hosted on <a href="https://render.com" target="_blank" rel="noopener">Render</a>, which serves the static build output.
+                Deployments happen automatically on every push to the main branch via the <code>render.yaml</code> configuration file.
+              </div>
+            </div>
+
+          </div>
+        </section>
+
       </main>
     </div>
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <span class="footer-credit">Made by <a href="https://github.com/rptetzloff" class="footer-link" target="_blank" rel="noopener">Raymond Tetzloff</a></span>
+        <span class="footer-credit">Made by <a href="https://github.com/rptetzloff" class="footer-link" target="_blank" rel="noopener">Raymond Tetzloff</a> with assistance from <a href="https://bolt.new" class="footer-link" target="_blank" rel="noopener">Bolt</a> &middot; Hosted on <a href="https://render.com" class="footer-link" target="_blank" rel="noopener">Render</a></span>
         <div class="footer-links">
           <a href="https://github.com/rptetzloff/vue-password-generator" class="footer-link footer-link-icon" target="_blank" rel="noopener">
             <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
