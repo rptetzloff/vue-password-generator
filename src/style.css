@@ -111,6 +111,10 @@ body {
   overflow: hidden;
 }
 
+.tab-content > * > .card:last-child {
+  margin-bottom: 0;
+}
+
 /* Form elements */
 .form-group {
   margin-bottom: 1.5rem;
@@ -396,7 +400,7 @@ body {
 /* Password display */
 .password-display {
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 .password-input {
@@ -424,6 +428,16 @@ body {
 .copy-btn:hover {
   background: var(--border);
   color: var(--text);
+}
+
+.copy-btn.copied {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.copy-btn.copied:hover {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
 }
 
 /* Notifications */
@@ -543,7 +557,7 @@ body {
   border-left: 3px solid var(--primary);
   border-radius: 8px;
   padding: 0.9rem 1rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .madlib-preview-label {

@@ -77,6 +77,37 @@ const AFFIX_OPTIONS = [
   { value: 'custom', label: 'Custom...' },
 ]
 
+const SUFFIX_OPTIONS = [
+  { value: '',              label: 'None' },
+  { value: 'r1sym',         label: '1 Random Symbol' },
+  { value: 'r2sym',         label: '2 Random Symbols' },
+  { value: 'r1num',         label: '1 Random Number' },
+  { value: 'r2num',         label: '2 Random Numbers' },
+  { value: 'r1s1n',         label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',         label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',         label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',         label: '2 Numbers + 2 Symbols' },
+  { value: 'mirror',        label: 'Mirror Prefix' },
+  { value: 'mirror-newdig', label: 'Mirror Prefix (new digits)' },
+  { value: 'custom',        label: 'Custom...' },
+]
+
+// Resolves suffix token; 'mirror' and 'mirror-newdig' require the already-resolved prefix string.
+const resolveSuffixToken = (value, custom, resolvedPrefix) => {
+  if (value === 'mirror') {
+    return resolvedPrefix.split('').reverse().join('')
+  }
+  if (value === 'mirror-newdig') {
+    // Keep same symbol characters but replace each digit with a fresh random digit
+    return resolvedPrefix
+      .split('')
+      .reverse()
+      .map(c => DIGITS.includes(c) ? randChar(DIGITS) : c)
+      .join('')
+  }
+  return resolveToken(value, custom)
+}
+
 const applyCapitalization = (word, mode, index = 0) => {
   switch (mode) {
     case 'title':      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -89,14 +120,37 @@ const applyCapitalization = (word, mode, index = 0) => {
   }
 }
 
+const useNotification = () => {
+  const notification = ref({ show: false, message: '', type: 'success' })
+  const showNotification = (message, type = 'success') => {
+    notification.value = { show: true, message, type }
+    setTimeout(() => { notification.value.show = false }, 3000)
+  }
+  return { notification, showNotification }
+}
+
+const useCopyPassword = (password, label = 'password') => {
+  const copied = ref(false)
+  const { notification, showNotification } = useNotification()
+  const copyPassword = async () => {
+    if (!password.value) { showNotification(`No ${label} to copy`, 'error'); return }
+    try {
+      await navigator.clipboard.writeText(password.value)
+      showNotification(`${label.charAt(0).toUpperCase() + label.slice(1)} copied to clipboard!`, 'success')
+      copied.value = true
+      setTimeout(() => { copied.value = false }, 1500)
+    } catch { showNotification(`Failed to copy ${label}`, 'error') }
+  }
+  return { copied, notification, showNotification, copyPassword }
+}
+
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
 const AffixPicker = {
   name: 'AffixPicker',
-  props: ['label', 'modelValue', 'customValue'],
+  props: { label: String, modelValue: String, customValue: String, options: { default: () => AFFIX_OPTIONS } },
   emits: ['update:modelValue', 'update:customValue'],
   setup(props, { emit }) {
     return {
-      affixOptions: AFFIX_OPTIONS,
       onMode(v) { emit('update:modelValue', v) },
       onCustom(e) { emit('update:customValue', e.target.value) },
     }
@@ -106,7 +160,7 @@ const AffixPicker = {
       <div class="affix-label">{{ label }}</div>
       <div class="separator-grid">
         <label
-          v-for="opt in affixOptions"
+          v-for="opt in options"
           :key="opt.value"
           class="sep-option"
           :class="{ active: modelValue === opt.value }"
@@ -138,11 +192,7 @@ const SimplePassword = {
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
     const password = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
       lower: 'abcdefghijklmnopqrstuvwxyz',
@@ -171,27 +221,6 @@ const SimplePassword = {
       password.value = newPassword
     }
 
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
-    }
-
     onMounted(() => {
       generatePassword()
     })
@@ -203,6 +232,7 @@ const SimplePassword = {
       digits,
       specialChars,
       password,
+      copied,
       notification,
       generatePassword,
       copyPassword
@@ -252,21 +282,27 @@ const SimplePassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            data-keeper-autofill="off"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -300,11 +336,7 @@ const AdvancedPassword = {
     const selectNoSymbols = () => { activeSymbols.value = new Set([ALL_SYMBOLS[0]]) }
     const selectCommonSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS.filter(s => COMMON_SYMBOLS.has(s))) }
     const password = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
       lower: 'abcdefghijklmnopqrstuvwxyz',
@@ -395,27 +427,6 @@ const AdvancedPassword = {
       password.value = newPassword
     }
 
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
-    }
-
     onMounted(() => {
       generatePassword()
     })
@@ -433,6 +444,7 @@ const AdvancedPassword = {
       selectNoSymbols,
       selectCommonSymbols,
       password,
+      copied,
       notification,
       generatePassword,
       copyPassword
@@ -568,21 +580,27 @@ const AdvancedPassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            data-keeper-autofill="off"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -601,11 +619,8 @@ const WordsPassword = {
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const password = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const preview = ref('')
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
 
     const loadWordList = async () => {
@@ -625,37 +640,17 @@ const WordsPassword = {
         return
       }
 
-      const words = []
-
+      const rawWords = []
       for (let i = 0; i < wordCount.value; i++) {
-        const raw = wordList.value[Math.floor(Math.random() * wordList.value.length)]
-        words.push(applyCapitalization(raw, capitalization.value, i))
+        rawWords.push(wordList.value[Math.floor(Math.random() * wordList.value.length)])
       }
 
+      preview.value = rawWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+
+      const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
     }
 
     onMounted(async () => {
@@ -673,8 +668,11 @@ const WordsPassword = {
       suffixMode,
       suffixCustom,
       password,
+      copied,
+      preview,
       notification,
       separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
       generatePassword,
       copyPassword
     }
@@ -759,6 +757,7 @@ const WordsPassword = {
             label="Suffix"
             :modelValue="suffixMode"
             :customValue="suffixCustom"
+            :options="suffixOptions"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -771,21 +770,32 @@ const WordsPassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
-      </div>
+      <div class="card">
+        <div v-if="preview" class="madlib-preview-card">
+          <div class="madlib-preview-label">Readable phrase</div>
+          <div class="madlib-preview-phrase">{{ preview }}</div>
+        </div>
 
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            data-keeper-autofill="off"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -799,11 +809,7 @@ const NumbersPassword = {
     const maxRepeated = persistedRef('nums.maxRepeated', 3)
     const maxSequential = persistedRef('nums.maxSequential', 3)
     const password = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, copyPassword } = useCopyPassword(password)
 
     const generatePassword = () => {
       let newPassword = ''
@@ -880,27 +886,6 @@ const NumbersPassword = {
       password.value = newPassword
     }
 
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
-    }
-
     onMounted(() => {
       generatePassword()
     })
@@ -910,6 +895,7 @@ const NumbersPassword = {
       maxRepeated,
       maxSequential,
       password,
+      copied,
       notification,
       generatePassword,
       copyPassword
@@ -965,21 +951,27 @@ const NumbersPassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            data-keeper-autofill="off"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -1046,7 +1038,8 @@ const Passphrase = {
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const password = ref('')
-    const notification = ref({ show: false, message: '', type: 'success' })
+    const preview = ref('')
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
 
     const loadWordData = async () => {
@@ -1070,12 +1063,12 @@ const Passphrase = {
         showNotification('Add at least one word slot', 'error')
         return
       }
-      const words = slots.value.map((s, i) =>
-        applyCapitalization(pickFrom(s.type, s.cat), capitalization.value, i)
-      )
+      const rawWords = slots.value.map(s => pickFrom(s.type, s.cat))
+      preview.value = rawWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
       const sep = resolveToken(separator.value, customSeparator.value)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(sep) + suf
     }
 
@@ -1096,19 +1089,6 @@ const Passphrase = {
       slots.value = arr
     }
 
-    const copyPassword = async () => {
-      if (!password.value) { showNotification('No passphrase to copy', 'error'); return }
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Passphrase copied to clipboard!', 'success')
-      } catch { showNotification('Failed to copy passphrase', 'error') }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => { notification.value.show = false }, 3000)
-    }
-
     onMounted(async () => {
       await loadWordData()
       generatePassword()
@@ -1123,8 +1103,9 @@ const Passphrase = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
-      password, notification,
+      password, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
       generatePassword, copyPassword
     }
   },
@@ -1229,6 +1210,7 @@ const Passphrase = {
             label="Suffix"
             :modelValue="suffixMode"
             :customValue="suffixCustom"
+            :options="suffixOptions"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1239,19 +1221,27 @@ const Passphrase = {
         <button @click="generatePassword" class="btn btn-primary">Generate Passphrase</button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated passphrase will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
-      </div>
+      <div class="card">
+        <div v-if="preview" class="madlib-preview-card">
+          <div class="madlib-preview-label">Readable phrase</div>
+          <div class="madlib-preview-phrase">{{ preview }}</div>
+        </div>
 
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            placeholder="Generated passphrase will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -1310,7 +1300,7 @@ const MadLib = {
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const password = ref('')
     const preview = ref('')
-    const notification = ref({ show: false, message: '', type: 'success' })
+    const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
 
     const loadWordData = async () => {
@@ -1346,21 +1336,8 @@ const MadLib = {
       const sep = resolveToken(separator.value, customSeparator.value)
       const words = filled.split(/\s+/).filter(Boolean)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
-      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(sep) + suf
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) { showNotification('No password to copy', 'error'); return }
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-      } catch { showNotification('Failed to copy password', 'error') }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => { notification.value.show = false }, 3000)
     }
 
     watch(templateId, (newId) => {
@@ -1384,8 +1361,9 @@ const MadLib = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
-      password, preview, notification,
+      password, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
       generatePassword, copyPassword,
     }
   },
@@ -1495,6 +1473,7 @@ const MadLib = {
             label="Suffix"
             :modelValue="suffixMode"
             :customValue="suffixCustom"
+            :options="suffixOptions"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1505,24 +1484,32 @@ const MadLib = {
         <button @click="generatePassword" class="btn btn-primary">Generate Mad Lib</button>
       </div>
 
-      <div v-if="preview" class="madlib-preview-card">
-        <div class="madlib-preview-label">Readable phrase</div>
-        <div class="madlib-preview-phrase">{{ preview }}</div>
-      </div>
+      <div class="card">
+        <div v-if="preview" class="madlib-preview-card">
+          <div class="madlib-preview-label">Readable phrase</div>
+          <div class="madlib-preview-phrase">{{ preview }}</div>
+        </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
-      </div>
-
-      <div v-if="notification.show" :class="['notification', notification.type]">
-        {{ notification.message }}
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            data-keeper-autofill="off"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `
@@ -1554,7 +1541,7 @@ const App = {
           <h1 class="title">🔐 Password Generator</h1>
           <p class="subtitle">Generate secure passwords with multiple customization options</p>
           <div style="background: rgba(255, 255, 255, 0.1); padding: 0.75rem 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.9rem; border: 1px solid rgba(255, 255, 255, 0.2);">
-            🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser. No data is sent to servers or stored anywhere.
+            🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser. Passwords are never saved or transmitted — your settings are stored only in your browser's local storage.
           </div>
         </div>
       </header>
