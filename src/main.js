@@ -120,6 +120,30 @@ const applyCapitalization = (word, mode, index = 0) => {
   }
 }
 
+const useNotification = () => {
+  const notification = ref({ show: false, message: '', type: 'success' })
+  const showNotification = (message, type = 'success') => {
+    notification.value = { show: true, message, type }
+    setTimeout(() => { notification.value.show = false }, 3000)
+  }
+  return { notification, showNotification }
+}
+
+const useCopyPassword = (password, label = 'password') => {
+  const copied = ref(false)
+  const { notification, showNotification } = useNotification()
+  const copyPassword = async () => {
+    if (!password.value) { showNotification(`No ${label} to copy`, 'error'); return }
+    try {
+      await navigator.clipboard.writeText(password.value)
+      showNotification(`${label.charAt(0).toUpperCase() + label.slice(1)} copied to clipboard!`, 'success')
+      copied.value = true
+      setTimeout(() => { copied.value = false }, 1500)
+    } catch { showNotification(`Failed to copy ${label}`, 'error') }
+  }
+  return { copied, notification, showNotification, copyPassword }
+}
+
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
 const AffixPicker = {
   name: 'AffixPicker',
@@ -168,12 +192,7 @@ const SimplePassword = {
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
     const password = ref('')
-    const copied = ref(false)
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
       lower: 'abcdefghijklmnopqrstuvwxyz',
@@ -200,29 +219,6 @@ const SimplePassword = {
       }
 
       password.value = newPassword
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 1500)
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
     }
 
     onMounted(() => {
@@ -340,12 +336,7 @@ const AdvancedPassword = {
     const selectNoSymbols = () => { activeSymbols.value = new Set([ALL_SYMBOLS[0]]) }
     const selectCommonSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS.filter(s => COMMON_SYMBOLS.has(s))) }
     const password = ref('')
-    const copied = ref(false)
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
     const characterSets = {
       lower: 'abcdefghijklmnopqrstuvwxyz',
@@ -434,29 +425,6 @@ const AdvancedPassword = {
       }
 
       password.value = newPassword
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 1500)
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
     }
 
     onMounted(() => {
@@ -651,13 +619,8 @@ const WordsPassword = {
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const password = ref('')
-    const copied = ref(false)
     const preview = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
 
     const loadWordList = async () => {
@@ -688,29 +651,6 @@ const WordsPassword = {
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 1500)
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
     }
 
     onMounted(async () => {
@@ -869,12 +809,7 @@ const NumbersPassword = {
     const maxRepeated = persistedRef('nums.maxRepeated', 3)
     const maxSequential = persistedRef('nums.maxSequential', 3)
     const password = ref('')
-    const copied = ref(false)
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
+    const { copied, notification, copyPassword } = useCopyPassword(password)
 
     const generatePassword = () => {
       let newPassword = ''
@@ -949,29 +884,6 @@ const NumbersPassword = {
       }
       
       password.value = newPassword
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No password to copy', 'error')
-        return
-      }
-
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 1500)
-      } catch (err) {
-        showNotification('Failed to copy password', 'error')
-      }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
     }
 
     onMounted(() => {
@@ -1126,9 +1038,8 @@ const Passphrase = {
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const password = ref('')
-    const copied = ref(false)
     const preview = ref('')
-    const notification = ref({ show: false, message: '', type: 'success' })
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
 
     const loadWordData = async () => {
@@ -1176,21 +1087,6 @@ const Passphrase = {
       const arr = [...slots.value]
       ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
       slots.value = arr
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) { showNotification('No passphrase to copy', 'error'); return }
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Passphrase copied to clipboard!', 'success')
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 1500)
-      } catch { showNotification('Failed to copy passphrase', 'error') }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => { notification.value.show = false }, 3000)
     }
 
     onMounted(async () => {
@@ -1403,9 +1299,8 @@ const MadLib = {
     const suffixMode = persistedRef('madlib.suffixMode', '')
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const password = ref('')
-    const copied = ref(false)
     const preview = ref('')
-    const notification = ref({ show: false, message: '', type: 'success' })
+    const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
 
     const loadWordData = async () => {
@@ -1443,21 +1338,6 @@ const MadLib = {
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(sep) + suf
-    }
-
-    const copyPassword = async () => {
-      if (!password.value) { showNotification('No password to copy', 'error'); return }
-      try {
-        await navigator.clipboard.writeText(password.value)
-        showNotification('Password copied to clipboard!', 'success')
-        copied.value = true
-        setTimeout(() => { copied.value = false }, 1500)
-      } catch { showNotification('Failed to copy password', 'error') }
-    }
-
-    const showNotification = (message, type = 'success') => {
-      notification.value = { show: true, message, type }
-      setTimeout(() => { notification.value.show = false }, 3000)
     }
 
     watch(templateId, (newId) => {
