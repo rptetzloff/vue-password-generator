@@ -1,310 +1,188 @@
-# 🔐 Vue Password Generator
+# Vue Password Generator
 
-A modern, secure password generator built with Vue 3. Generate customizable passwords with multiple generation modes including simple passwords, advanced character control, word-based passwords, numeric passwords, and passphrases.
+A modern, secure password generator built with Vue 3 and Vite. Generate highly customizable passwords across six distinct modes — all locally in your browser, with no data ever sent to a server.
 
-## ✨ Features
+## Live Demo
 
-### 🎯 **Multiple Generation Modes**
-- **Simple Mode**: Quick password generation with basic character type selection
-- **Advanced Mode**: Fine-grained control over character counts and custom symbol sets
-- **Words Mode**: Dictionary-based passwords with customizable separators and capitalization
-- **Numbers Mode**: Numeric passwords with intelligent repetition and sequence controls
-- **Passphrase Mode**: Grammar-based passphrases using adjectives, nouns, and verbs
+**[Try it now at getrandompassword.net](https://getrandompassword.net)**
 
-### 🎨 **Modern User Experience**
-- **Beautiful UI**: Clean, modern design with gradient backgrounds and smooth animations
-- **Fully Responsive**: Optimized for desktop, tablet, and mobile devices
-- **Dark Theme Ready**: Professional color scheme with excellent contrast
-- **Intuitive Controls**: Sliders, checkboxes, and radio buttons for easy customization
-- **Real-time Generation**: Instant password creation with visual feedback
+---
 
-### 🔒 **Security & Privacy**
-- **Client-side Only**: All generation happens in your browser - no data sent to servers
-- **Cryptographically Secure**: Uses browser's secure random number generation (`crypto.getRandomValues()`)
-- **No Storage**: Passwords are never stored, logged, or transmitted anywhere
-- **SRI Protected**: CDN resources use Subresource Integrity hashes for tamper protection
-- **Open Source**: Full transparency - inspect the code yourself
+## Generation Modes
 
-### 🛠️ **Technical Excellence**
-- **Vue 3**: Built with Vue.js using CDN delivery for maximum compatibility
-- **Vite**: Lightning-fast development and optimized production builds
-- **Modern CSS**: Custom properties, Grid, Flexbox, and smooth animations
-- **Static Deployment**: Optimized for static hosting platforms like Render.com
-- **No Dependencies**: Minimal external dependencies for security and reliability
+### Simple
+Quick password generation with toggles for lowercase, uppercase, numbers, and symbols. Set a length and go.
 
-## 🚀 Live Demo
+### Advanced
+Fine-grained control over minimum and maximum character counts per type, plus a configurable custom symbol set.
 
-**[Try it now →](https://getrandompassword.net)**
+### Words
+Dictionary-based passwords built from a curated word list. Choose word count, separator, and capitalization scheme. Separator options include hyphens, underscores, dots, numbers, spaces, and custom characters.
 
-## 📸 Screenshots
+### Numbers
+Numeric passwords with configurable length, plus controls to limit repeated and sequential digits.
 
-The application features five distinct generation modes:
+### Passphrase
+Slot-based passphrase builder. Add adjective, adverb, noun, and verb slots in any order to construct a custom grammatical structure. Each slot has independent category selection (e.g. Animals, Colors, Mood, Manner).
 
-- **Simple**: Basic password generation with character type toggles
-- **Advanced**: Precise control over minimum/maximum character counts
-- **Words**: Dictionary-based passwords with customizable formatting
-- **Numbers**: Numeric passwords with repetition and sequence controls
-- **Passphrase**: Grammar-based sentences with customizable structure
+### Mad Lib
+Template-based sentence passwords. Choose from 12 narrative templates (Hero, Villain, Quest, Sci-Fi, etc.). Each word slot in the template — adjective, adverb, noun, verb — gets its own category picker. Templates with multiple occurrences of the same part of speech (e.g. two nouns) show numbered rows so each can be controlled independently. The readable phrase is shown alongside the final joined password.
 
-## 🛠️ Development
+---
+
+## Shared Controls
+
+All modes support:
+
+- **Word Separator** — hyphen, underscore, dot, space, number, none, or custom
+- **Capitalization** — Title Case, lowercase, UPPERCASE, rAnDoM, WORD word alternating, or random per-word
+- **Prefix / Suffix** — add a number, symbol, or custom string before or after the password
+- **Copy to Clipboard** — one-click copy with confirmation
+
+---
+
+## Security & Privacy
+
+- **Client-side only** — all generation happens in your browser; nothing is transmitted
+- **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
+- **No storage** — passwords are never stored, logged, or cached
+- **Open source** — inspect the code yourself
+
+---
+
+## Development
 
 ### Prerequisites
 
-- **Node.js** 18+ ([Download](https://nodejs.org/))
-- **npm** or **yarn** package manager
-- **Git** for version control
+- Node.js 18+
+- npm
 
 ### Quick Start
 
 ```bash
-# Clone the repository
 git clone https://github.com/rptetzloff/vue-password-generator.git
 cd vue-password-generator
-
-# Install dependencies
 npm install
-
-# Start development server
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view the app in development mode.
+Open [http://localhost:5173](http://localhost:5173).
 
-### Available Scripts
-
-```bash
-# Development
-npm run dev          # Start development server with hot reload
-npm run build        # Build for production
-npm run preview      # Preview production build locally
-```
-
-## 🚀 Deployment
-
-### Deploy on Render.com (Recommended)
-
-This project is optimized for Render.com deployment with the included `render.yaml` configuration:
-
-1. **Connect your repository** to Render.com
-2. **Create a new Static Site** service
-3. **Render will automatically detect** the `render.yaml` configuration
-4. **Deploy** - Render will build and deploy your site automatically
-5. **Auto-deploy** - Future commits trigger automatic deployments
-
-The build configuration:
-- **Build Command**: `npm ci && npm run build`
-- **Publish Directory**: `dist`
-- **Security Headers**: Includes security headers for production
-
-### Alternative Deployment
-
-For other static hosting providers:
+### Scripts
 
 ```bash
-# Build for production
-npm run build
-
-# The dist/ folder contains the built application
-# Upload the contents to your static hosting provider
+npm run dev       # Development server with hot reload
+npm run build     # Production build
+npm run preview   # Preview production build locally
 ```
-
-### Environment Variables
-
-No environment variables are required - this is a fully client-side application.
-
-## 🏗️ Project Structure
-
-```
-vue-password-generator/
-├── public/                 # Static assets
-├── src/
-│   ├── data/              # Word lists for generation
-│   │   ├── nouns.txt      # Common nouns (1000+ words)
-│   │   ├── verbs.txt      # Action verbs (500+ words)
-│   │   └── adjectives.txt # Descriptive adjectives (500+ words)
-│   ├── main.js            # Main application with all components
-│   └── style.css          # Global styles and design system
-├── render.yaml            # Render.com deployment configuration
-├── package.json           # Dependencies and scripts
-├── vite.config.js         # Vite build configuration
-└── index.html             # HTML entry point
-```
-
-## 🔧 Architecture
-
-### Component Structure
-
-The application uses Vue 3's Composition API with five main components:
-
-- **SimplePassword**: Basic character-type selection
-- **AdvancedPassword**: Granular character count controls
-- **WordsPassword**: Dictionary-based generation
-- **NumbersPassword**: Numeric password generation
-- **Passphrase**: Grammar-based sentence generation
-
-### CDN Approach
-
-The project uses Vue 3 via CDN for maximum compatibility and deployment simplicity:
-
-```javascript
-// Pinned version with SRI hash for security
-import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
-```
-
-Benefits:
-- No complex build configuration
-- Reliable deployment across platforms
-- Reduced bundle size
-- Faster initial development setup
-
-## 🧠 Password Generation Algorithms
-
-### Simple Mode
-- Cryptographically secure random selection using `crypto.getRandomValues()`
-- Configurable character sets (lowercase, uppercase, numbers, symbols)
-- Length range: 6-128 characters
-- Ensures at least one character type is selected
-
-### Advanced Mode
-- Minimum/maximum character count controls for each type
-- Custom symbol set configuration
-- Intelligent character distribution algorithm
-- Validates requirements before generation
-
-### Words Mode
-- Curated dictionary of 1000+ common English words
-- Multiple separator options (symbols, numbers, spaces, custom)
-- Capitalization schemes: title case, lowercase, uppercase, random
-- Word count range: 2-20 words
-
-### Numbers Mode
-- Intelligent repetition prevention (configurable limit)
-- Sequential digit detection and limiting
-- Length range: 4-32 digits
-- Balanced randomness with usability constraints
-
-### Passphrase Mode
-- Grammar-based generation using parts of speech
-- Configurable sentence structure (adjective + noun + verb)
-- Multiple word lists: 1000+ nouns, 500+ verbs, 500+ adjectives
-- Optional numeric and symbol prefixes/suffixes
-
-## 🔒 Security Implementation
-
-### Client-Side Generation
-- **Zero server communication** during password generation
-- All randomness generated locally using `crypto.getRandomValues()`
-- No network requests to external password services
-- Passwords never leave the user's browser
-
-### Secure Randomness
-```javascript
-// Uses cryptographically secure random number generation
-const secureRandom = crypto.getRandomValues(new Uint32Array(1))[0]
-const randomIndex = secureRandom % charset.length
-```
-
-### Memory Safety
-- Generated passwords are not stored in variables longer than necessary
-- No password history or caching
-- Clipboard operations use secure browser APIs
-
-### CDN Security
-- **Subresource Integrity (SRI)** hashes verify CDN content integrity
-- **Pinned versions** prevent unexpected updates
-- **HTTPS-only** CDN delivery
-
-### Security Headers
-Production deployment includes security headers:
-```yaml
-headers:
-  - name: X-Frame-Options
-    value: DENY
-  - name: X-Content-Type-Options
-    value: nosniff
-  - name: Referrer-Policy
-    value: strict-origin-when-cross-origin
-```
-
-## 🌟 Browser Support
-
-- **Chrome** 88+ (recommended)
-- **Firefox** 85+
-- **Safari** 14+
-- **Edge** 88+
-
-*Requires support for ES6 modules and `crypto.getRandomValues()`*
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-### Reporting Issues
-- Use [GitHub Issues](https://github.com/rptetzloff/vue-password-generator/issues)
-- Include browser version and steps to reproduce
-- Check existing issues before creating new ones
-
-### Contributing Code
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Test** your changes across multiple browsers
-4. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-5. **Push** to your branch (`git push origin feature/amazing-feature`)
-6. **Open** a Pull Request
-
-### Development Guidelines
-- Follow Vue 3 Composition API patterns
-- Maintain responsive design principles
-- Test password generation algorithms thoroughly
-- Update word lists responsibly (family-friendly content)
-- Preserve security-first approach
-
-## 📄 License
-
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-### What this means:
-- ✅ Commercial use allowed
-- ✅ Modification allowed
-- ✅ Distribution allowed
-- ✅ Private use allowed
-- ❌ No warranty provided
-- ❌ No liability accepted
-
-## 🙏 Acknowledgments
-
-### Word Lists
-- [EFF Large Wordlist for Passphrases](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases)
-- [Google 10000 English](https://github.com/first20hours/google-10000-english)
-- Curated and filtered for family-friendly content
-
-### Inspiration
-- [XKCD Password Strength Comic](https://xkcd.com/936/) - "Correct Horse Battery Staple"
-- [Bitwarden Password Generator](https://bitwarden.com/password-generator/)
-- Modern password security best practices
-
-### Technologies
-- [Vue.js](https://vuejs.org/) - The Progressive JavaScript Framework
-- [Vite](https://vitejs.dev/) - Next Generation Frontend Tooling
-- [Render.com](https://render.com/) - Modern cloud platform
-
-## 📊 Project Stats
-
-![GitHub stars](https://img.shields.io/github/stars/rptetzloff/vue-password-generator?style=social)
-![GitHub forks](https://img.shields.io/github/forks/rptetzloff/vue-password-generator?style=social)
-![GitHub issues](https://img.shields.io/github/issues/rptetzloff/vue-password-generator)
-![GitHub license](https://img.shields.io/github/license/rptetzloff/vue-password-generator)
 
 ---
 
-<div align="center">
+## Deployment
 
-**🔒 Your passwords are generated locally in your browser - no server storage or transmission**
+The project includes a `render.yaml` for one-click deployment on [Render.com](https://render.com):
 
-**[⭐ Star this project](https://github.com/rptetzloff/vue-password-generator)** if you find it useful!
+1. Connect your repository to Render
+2. Create a new Static Site
+3. Render detects the config automatically and deploys
 
-Made with ❤️ and ☕ by [Raymond Tetzloff](https://github.com/rptetzloff)
+Build command: `npm ci && npm run build`  
+Publish directory: `dist`
 
-*This project was developed with assistance from [Bolt AI](https://bolt.new) - an AI-powered development environment.*
+For any other static host, build with `npm run build` and serve the `dist/` folder.
 
-</div>
+---
+
+## Project Structure
+
+```
+vue-password-generator/
+├── data/
+│   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
+│   ├── wordlist.txt      # EFF-style wordlist for Words mode
+│   ├── nouns.txt         # Legacy noun list
+│   ├── verbs.txt         # Legacy verb list
+│   └── adjectives.txt    # Legacy adjective list
+├── src/
+│   ├── main.js           # All Vue components (Composition API, CDN)
+│   └── style.css         # Design system and component styles
+├── render.yaml
+├── package.json
+├── vite.config.js
+└── index.html
+```
+
+---
+
+## Architecture
+
+### Components
+
+| Component | Description |
+|---|---|
+| `SimplePassword` | Basic character-type selection |
+| `AdvancedPassword` | Per-type min/max character counts |
+| `WordsPassword` | Dictionary word-based generation |
+| `NumbersPassword` | Numeric passwords with sequence controls |
+| `WordsPassword` (Passphrase) | Custom slot-order passphrase builder |
+| `MadLib` | Template sentence passwords with per-slot category control |
+
+### Vue via CDN
+
+Vue 3 is loaded from unpkg as an ES module, keeping the build output minimal and avoiding framework bundling complexity:
+
+```javascript
+import { createApp, ref, computed, watch, onMounted } from
+  'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
+```
+
+### Word Data
+
+`words.json` organizes words by part of speech and category:
+
+- **adj** — Animals, Colors, Nature, Mood, Size, Texture
+- **adv** — Manner, Intensity, Time, Place
+- **noun** — Animals, Vehicles, Nature, Objects, Food, Places
+- **verb** — Motion, Creation, Communication, Perception, Existence, Change
+
+---
+
+## Browser Support
+
+- Chrome 88+
+- Firefox 85+
+- Safari 14+
+- Edge 88+
+
+Requires ES module support and `crypto.getRandomValues()`.
+
+---
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Test across browsers
+4. Open a Pull Request
+
+Please keep passwords family-friendly and maintain the security-first approach.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE) for details.
+
+---
+
+## Acknowledgments
+
+- [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — passphrase inspiration
+- [XKCD #936](https://xkcd.com/936/) — "correct horse battery staple"
+- [Vue.js](https://vuejs.org/), [Vite](https://vitejs.dev/), [Render.com](https://render.com/)
+
+---
+
+*Your passwords are generated locally in your browser — no server storage, no transmission.*
+
+Made by [Raymond Tetzloff](https://github.com/rptetzloff)
