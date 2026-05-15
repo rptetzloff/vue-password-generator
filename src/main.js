@@ -269,6 +269,8 @@ const AdvancedPassword = {
       }
       activeSymbols.value = next
     }
+    const selectAllSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS) }
+    const selectNoSymbols = () => { activeSymbols.value = new Set([ALL_SYMBOLS[0]]) }
     const password = ref('')
     const notification = ref({
       show: false,
@@ -396,6 +398,8 @@ const AdvancedPassword = {
       allSymbols: ALL_SYMBOLS,
       activeSymbols,
       toggleSymbol,
+      selectAllSymbols,
+      selectNoSymbols,
       password,
       notification,
       generatePassword,
@@ -505,7 +509,13 @@ const AdvancedPassword = {
           <span>Max: {{ specialChars[1] }}</span>
         </div>
         <div class="form-group">
-          <label class="form-label">Symbol Set</label>
+          <div class="symbol-chips-header">
+            <label class="form-label">Symbol Set</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllSymbols">All</button>
+              <button type="button" class="chip-action" @click="selectNoSymbols">None</button>
+            </div>
+          </div>
           <div class="symbol-chips">
             <button
               v-for="sym in allSymbols"

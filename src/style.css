@@ -144,6 +144,38 @@ body {
   cursor: default;
 }
 
+.symbol-chips-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.symbol-chips-header .form-label {
+  margin-bottom: 0;
+}
+
+.symbol-chips-actions {
+  display: flex;
+  gap: 0.375rem;
+}
+
+.chip-action {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip-action:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
 .symbol-chips {
   display: flex;
   flex-wrap: wrap;
