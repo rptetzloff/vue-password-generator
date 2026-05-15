@@ -388,6 +388,57 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.4.1 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.4.1</div>
+            <div class="release-date">2026-05-15</div>
+            <span class="release-badge badge-patch">Patch</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Wireless retry logic fix</div>
+                <div class="release-summary">Fixed a bug where clicking the Generate button passed a PointerEvent as the retry counter, causing the generator to loop incorrectly without producing new words.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Wireless retry counter</strong> — <code>generatePassword</code> was receiving the click <code>PointerEvent</code> as its <code>attempt</code> argument when called directly from the button's <code>@click</code> handler. The generator now guards against a non-numeric attempt value and resets to 0, so retries count correctly and new words are drawn on each attempt.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- v2.4.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.4.0</div>
+            <div class="release-date">2026-05-15</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Wireless tab with alliteration mode</div>
+                <div class="release-summary">Added a dedicated WiFi password generator with router-friendly defaults and a new alliteration toggle that constrains all word slots to share the same starting letter.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Wireless tab</strong> — slot-based word generator optimized for WiFi passwords. Defaults to <strong>Adj + Noun</strong>, Title Case, hyphen separator, and a 2-digit numeric suffix (e.g. <em>Crimson-River42</em>). All generated passwords are guaranteed to be at least 8 characters — the generator retries automatically if the result falls short. Supports all the same options as Passphrase: word slots, separator, capitalization, prefix/suffix, leet speak, word pills, affix lock, and history.</li>
+                    <li><strong>Alliteration mode</strong> — toggle in the Word Slots header. When enabled, the generator picks a starting letter shared across all active slot categories and constrains every word pool to that letter. The active letter is shown as a badge on the toggle. Individual word pill re-rolls also respect the locked letter.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.3.0 -->
         <div class="release">
           <div class="release-meta">

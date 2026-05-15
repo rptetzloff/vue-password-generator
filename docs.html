@@ -609,6 +609,7 @@
           <a class="nav-item" href="#advanced"><span class="mdi mdi-tune"></span> Advanced</a>
           <a class="nav-item" href="#words"><span class="mdi mdi-text"></span> Words</a>
           <a class="nav-item" href="#passphrase"><span class="mdi mdi-format-list-bulleted"></span> Passphrase</a>
+          <a class="nav-item" href="#wireless"><span class="mdi mdi-wifi"></span> Wireless</a>
           <a class="nav-item" href="#madlib"><span class="mdi mdi-theater"></span> Mad Lib</a>
           <a class="nav-item" href="#numbers"><span class="mdi mdi-numeric"></span> Numbers</a>
           <div class="nav-divider"></div>
@@ -636,7 +637,7 @@
             history are saved only in your browser's local storage.
           </p>
           <p style="margin-top:0.75rem;">
-            Six generator types are available, each optimized for a different use case. Click any tile
+            Seven generator types are available, each optimized for a different use case. Click any tile
             to jump to its documentation.
           </p>
           <div class="intro-grid">
@@ -659,6 +660,11 @@
               <span class="mdi mdi-format-list-bulleted"></span>
               <div class="intro-tile-name">Passphrase</div>
               <div class="intro-tile-desc">Grammar-aware phrases</div>
+            </a>
+            <a class="intro-tile" href="#wireless">
+              <span class="mdi mdi-wifi"></span>
+              <div class="intro-tile-name">Wireless</div>
+              <div class="intro-tile-desc">WiFi-friendly passphrases</div>
             </a>
             <a class="intro-tile" href="#madlib">
               <span class="mdi mdi-theater"></span>
@@ -951,6 +957,98 @@
               <div class="option-row">
                 <div class="option-name">Word pills &amp; lock</div>
                 <div class="option-desc">Same as in <a href="#words" style="color:var(--primary);">Words</a>. Each word pill is color-coded to its slot type.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── WIRELESS ─────────────────────────────────────────────── -->
+        <section id="wireless" class="section-card">
+          <div class="section-head">
+            <div class="section-icon sky"><span class="mdi mdi-wifi"></span></div>
+            <div class="section-title">
+              <h2>Wireless</h2>
+              <p>A WiFi-optimized passphrase generator with router-friendly defaults and an alliteration mode.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="example-block">
+              <div class="example-label">Example output (defaults: Adj + Noun, Title Case, hyphen, 2-digit suffix)</div>
+              <div class="example-output">Crimson-River42</div>
+            </div>
+
+            <div class="example-block" style="border-left-color: #16a34a;">
+              <div class="example-label">Example output with alliteration (letter S)</div>
+              <div class="example-output">Silent-Sparrow87</div>
+            </div>
+
+            <p style="font-size:0.875rem;color:var(--text-secondary);">
+              Wireless uses the same slot-based word engine as <a href="#passphrase" style="color:var(--primary);">Passphrase</a> but ships with presets suited for WiFi network names: memorable, typeable on a phone keyboard, and visually distinct. All Passphrase options are available here with independent settings storage.
+            </p>
+
+            <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:-0.5rem;">
+              Generated passwords are guaranteed to be at least <strong>8 characters</strong>. If a result falls below this minimum, the generator automatically retries (up to 10 times) before accepting the output.
+            </p>
+
+            <div class="option-group">
+              <div class="option-group-label">Default presets</div>
+              <div class="option-row">
+                <div class="option-name">Word slots</div>
+                <div class="option-desc">Starts with <strong>Adj + Noun</strong> — a concise, memorable two-word phrase. Additional slots can be added to increase length and variety.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Separator</div>
+                <div class="option-desc"><strong>Hyphen</strong> — widely accepted by routers and easy to type on mobile.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Capitalization</div>
+                <div class="option-desc"><strong>Title Case</strong> — each word capitalized for readability.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Prefix</div>
+                <div class="option-desc"><strong>None</strong> — no prefix by default.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Suffix</div>
+                <div class="option-desc"><strong>2 Random Digits</strong> — a short numeric suffix helps meet the 8-character minimum and satisfies many router password requirements without making the phrase hard to remember.</div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Alliteration mode</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  The <strong>Alliteration</strong> toggle appears in the Word Slots card header. When enabled:
+                  <br><br>
+                  <ul style="margin-left:1.25rem;margin-top:0.25rem;font-size:0.875rem;color:var(--text-secondary);display:flex;flex-direction:column;gap:0.4rem;">
+                    <li>The generator finds letters that exist in <em>all</em> active slot categories, then picks one at random.</li>
+                    <li>Every word pool is filtered to words beginning with that letter before a word is drawn.</li>
+                    <li>The active letter is shown as a badge on the toggle button (e.g. <strong>S</strong>).</li>
+                    <li>Clicking a word pill to swap a single word also respects the locked letter.</li>
+                    <li>Hitting "Generate WiFi Password" picks a new shared letter each time.</li>
+                    <li>If no letter is shared across all categories (rare), the constraint is silently dropped for that slot.</li>
+                  </ul>
+                  <br>
+                  Alliteration produces passwords that are easier to dictate aloud: "Silent Sparrow Storm" is far easier to spell out over a phone than a random mix of words.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">All other options</div>
+              <div class="option-row">
+                <div class="option-name">Word Slots</div>
+                <div class="option-desc">Same as <a href="#passphrase" style="color:var(--primary);">Passphrase</a>. Up to 8 slots; each has a type (Adj, Adv, Noun, Verb) and a thematic category.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Separator, Capitalization, Prefix &amp; Suffix, Leet Speak</div>
+                <div class="option-desc">Identical to Passphrase. Settings are stored independently under the <code>wifi.*</code> namespace in <code>localStorage</code>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Word pills &amp; lock</div>
+                <div class="option-desc">Each generated word appears as a clickable pill. The lock icon freezes prefix/separator/suffix while swapping words. When alliteration is on, swapped words are drawn from the same letter-filtered pool.</div>
               </div>
             </div>
 

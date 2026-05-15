@@ -189,7 +189,7 @@ const useCopyPassword = (password, label = 'password') => {
 
 const HistoryStrip = {
   name: 'HistoryStrip',
-  props: { history: { default: () => [] }, current: String },
+  props: { history: { default: () => [] }, current: String, warnSet: { default: () => new Set() } },
   emits: ['select'],
   template: `
     <div v-if="history.length > 1" class="history-strip">
@@ -199,10 +199,10 @@ const HistoryStrip = {
           v-for="(pw, i) in history"
           :key="i"
           class="history-item"
-          :class="{ 'history-item-active': pw === current }"
+          :class="{ 'history-item-active': pw === current, 'history-item-warn': warnSet.has(pw) }"
           @click="$emit('select', pw)"
-          :title="pw"
-        >{{ pw }}</button>
+          :title="warnSet.has(pw) ? pw + ' (under 8 characters)' : pw"
+        >{{ pw }}<span v-if="warnSet.has(pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
       </div>
     </div>
   `
@@ -1565,6 +1565,384 @@ const Passphrase = {
   `
 }
 
+// WiFi Words Component
+const WifiWords = {
+  name: 'WifiWords',
+  setup() {
+    const defaultSlots = [{ id: 0, type: 'adj', cat: 'random' }, { id: 1, type: 'noun', cat: 'random' }]
+    const slots = persistedRef('wifi.slots', defaultSlots)
+    let nextId = slots.value.reduce((max, s) => Math.max(max, s.id + 1), 0)
+    const makeSlot = (type) => ({ id: nextId++, type, cat: 'random' })
+
+    const separator = persistedRef('wifi.separator', '-')
+    const customSeparator = persistedRef('wifi.customSeparator', '')
+    const capitalization = persistedRef('wifi.capitalization', 'title')
+    const prefixMode = persistedRef('wifi.prefixMode', '')
+    const prefixCustom = persistedRef('wifi.prefixCustom', '')
+    const suffixMode = persistedRef('wifi.suffixMode', 'r2num')
+    const suffixCustom = persistedRef('wifi.suffixCustom', '')
+    const activeLeet = persistedRef('wifi.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
+    const lockAffixes = persistedRef('wifi.lockAffixes', false)
+    const password = ref('')
+    const preview = ref('')
+    const rawWords = ref([])
+    const cachedPre = ref('')
+    const cachedSep = ref('')
+    const cachedSuf = ref('')
+    const { history, pushHistory } = useHistory('wifi.history')
+    const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'wifi')
+    const wordData = ref({})
+    const alliterationMode = persistedRef('wifi.alliterationMode', true)
+    const alliterationLetter = ref('')
+
+    const loadWordData = async () => {
+      try {
+        const res = await fetch('./data/words.json')
+        wordData.value = await res.json()
+      } catch (err) {
+        console.error('Failed to load word data:', err)
+      }
+    }
+
+    const pickFrom = (type, catId, forceLetter = '') => {
+      const cats = wordData.value[type]
+      if (!cats) return type
+      let pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      if (forceLetter) {
+        const filtered = pool.filter(w => w.charAt(0).toLowerCase() === forceLetter)
+        if (filtered.length > 0) pool = filtered
+      }
+      return pool[Math.floor(Math.random() * pool.length)]
+    }
+
+    const pickAlliterationLetter = () => {
+      const allPools = slots.value.map(s => {
+        const cats = wordData.value[s.type]
+        if (!cats) return new Set()
+        const pool = s.cat === 'random' ? Object.values(cats).flat() : (cats[s.cat] || Object.values(cats).flat())
+        return new Set(pool.map(w => w.charAt(0).toLowerCase()))
+      })
+      if (allPools.length === 0) return ''
+      const common = [...allPools[0]].filter(l => allPools.every(p => p.has(l)))
+      if (common.length === 0) return ''
+      return common[Math.floor(Math.random() * common.length)]
+    }
+
+    const rollAffixes = () => {
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+    }
+
+    const warnSet = ref(new Set())
+
+    const buildPassword = (rerollAffixes = false) => {
+      if (rerollAffixes || !lockAffixes.value) rollAffixes()
+      preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
+      const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
+      password.value = result
+    }
+
+    const generatePassword = (attempt = 0) => {
+      if (typeof attempt !== 'number') attempt = 0
+      if (slots.value.length === 0) {
+        showNotification('Add at least one word slot', 'error')
+        return
+      }
+      if (alliterationMode.value) {
+        const letter = pickAlliterationLetter()
+        alliterationLetter.value = letter
+        rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat, letter))
+      } else {
+        alliterationLetter.value = ''
+        rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
+      }
+      buildPassword(true)
+      if (password.value.length < 8 && attempt < 10) {
+        generatePassword(attempt + 1)
+        return
+      }
+      if (password.value.length < 8) {
+        warnSet.value = new Set([...warnSet.value, password.value])
+      }
+      pushHistory(password.value)
+    }
+
+    const regenWord = (idx, attempt = 0) => {
+      const slot = slots.value[idx]
+      if (!slot) return
+      const next = [...rawWords.value]
+      next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
+      rawWords.value = next
+      buildPassword(false)
+      if (password.value.length < 8 && attempt < 10) {
+        regenWord(idx, attempt + 1)
+        return
+      }
+      if (password.value.length < 8) {
+        warnSet.value = new Set([...warnSet.value, password.value])
+      }
+      pushHistory(password.value)
+    }
+
+    const addSlot = (type) => {
+      if (slots.value.length >= 8) return
+      slots.value = [...slots.value, makeSlot(type)]
+    }
+
+    const removeSlot = (id) => {
+      slots.value = slots.value.filter(s => s.id !== id)
+    }
+
+    const moveSlot = (idx, dir) => {
+      const target = idx + dir
+      if (target < 0 || target >= slots.value.length) return
+      const arr = [...slots.value]
+      ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+      slots.value = arr
+    }
+
+    onMounted(async () => {
+      await loadWordData()
+      generatePassword()
+    })
+
+    return {
+      slots,
+      slotTypes: SLOT_TYPES,
+      categoryMeta: CATEGORY_META,
+      addSlot, removeSlot, moveSlot,
+      separator, customSeparator,
+      capitalization,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
+      lockAffixes,
+      alliterationMode, alliterationLetter,
+      password, rawWords, history, warnSet, copied, preview, notification,
+      separatorOptions: SEPARATOR_OPTIONS,
+      suffixOptions: SUFFIX_OPTIONS,
+      generatePassword, regenWord, copyPassword
+    }
+  },
+  components: { AffixPicker, HistoryStrip },
+  template: `
+    <div class="password-generator">
+
+      <div class="card">
+        <div class="card-header card-header-row">
+          <span>Word Slots</span>
+          <label class="alliteration-toggle" :class="{ active: alliterationMode }" title="All words share the same starting letter">
+            <input type="checkbox" v-model="alliterationMode" class="sr-only" />
+            <span class="mdi mdi-alpha-a-box"></span>
+            <span>Alliteration</span>
+            <span v-if="alliterationMode && alliterationLetter" class="alliteration-letter">{{ alliterationLetter.toUpperCase() }}</span>
+          </label>
+        </div>
+
+        <div class="slot-add-row">
+          <span class="slot-add-label">Add:</span>
+          <button
+            v-for="t in slotTypes"
+            :key="t.type"
+            class="slot-add-btn"
+            :class="t.color"
+            @click="addSlot(t.type)"
+            :disabled="slots.length >= 8"
+          >+ {{ t.label }}</button>
+        </div>
+
+        <div class="slot-tray" v-if="slots.length > 0">
+          <div
+            v-for="(slot, idx) in slots"
+            :key="slot.id"
+            class="slot-pill"
+            :class="'slot-' + slot.type"
+          >
+            <span class="slot-pill-label">{{ slot.type }}</span>
+            <div class="slot-pill-actions">
+              <button class="slot-arrow" @click="moveSlot(idx, -1)" :disabled="idx === 0" title="Move left">&#8592;</button>
+              <button class="slot-arrow" @click="moveSlot(idx, 1)" :disabled="idx === slots.length - 1" title="Move right">&#8594;</button>
+              <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
+            </div>
+            <select class="slot-cat-select" v-model="slot.cat">
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-else class="slot-empty">
+          Add word slots above to build your WiFi password structure.
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Word Separator</div>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
+            <span>{{ opt.label }}</span>
+          </label>
+        </div>
+        <div v-if="separator === 'custom'" class="custom-sep-row">
+          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Capitalization</div>
+        <div class="separator-grid">
+          <label class="sep-option" :class="{ active: capitalization === 'title' }">
+            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
+            <span>Title Case</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'none' }">
+            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
+            <span>lowercase</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
+            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
+            <span>UPPERCASE</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'random' }">
+            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
+            <span>rAndOm LetTerS</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
+            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
+            <span>AlTeRnAtInG</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
+            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
+            <span>lasT letteR</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
+            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
+            <span>FIRST word only</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
+            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
+            <span>last word ONLY</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
+            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
+            <span>WORD word WORD word</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
+            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
+            <span>WORD word is RANDOM</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Prefix &amp; Suffix</div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            :options="suffixOptions"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-wifi"></span> Generate WiFi Password</button>
+      </div>
+
+      <div class="card">
+        <div v-if="rawWords.length" class="word-pills-row">
+          <div class="word-pills">
+            <button
+              v-for="(w, i) in rawWords"
+              :key="i"
+              class="word-pill"
+              :class="'word-pill-' + slots[i]?.type"
+              @click="regenWord(i)"
+              title="Click to swap this word"
+            >
+              <span class="word-pill-text">{{ w }}</span>
+              <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
+            </button>
+          </div>
+          <button
+            class="lock-affixes-btn"
+            :class="{ active: lockAffixes }"
+            @click="lockAffixes = !lockAffixes"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
+          >
+            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
+          </button>
+        </div>
+
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            placeholder="Generated WiFi password will appear here..."
+          />
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="password = $event" />
+        <div v-if="notification.show" :class="['notification', notification.type]">
+          {{ notification.message }}
+        </div>
+      </div>
+    </div>
+  `
+}
+
 // Mad Lib Password Component
 const MADLIB_TEMPLATES = [
   { id: 'hero',      label: 'The Hero',       template: 'The {adj} {noun} {adv} {verb} the {adj} {noun}' },
@@ -1955,8 +2333,9 @@ const App = {
       { id: 2, name: 'Advanced',   component: AdvancedPassword },
       { id: 3, name: 'Words',      component: WordsPassword },
       { id: 4, name: 'Passphrase', component: Passphrase },
-      { id: 5, name: 'Mad Lib',    component: MadLib },
-      { id: 6, name: 'Numbers',    component: NumbersPassword },
+      { id: 5, name: 'Wireless',   component: WifiWords },
+      { id: 6, name: 'Mad Lib',    component: MadLib },
+      { id: 7, name: 'Numbers',    component: NumbersPassword },
     ]
 
     return {

@@ -1,6 +1,6 @@
 # Vue Password Generator
 
-A modern, secure password generator built with Vue 3 and Vite. Generate highly customizable passwords across six distinct modes — all locally in your browser, with no data ever sent to a server.
+A modern, secure password generator built with Vue 3 and Vite. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
 
 ## Live Demo
 
@@ -24,6 +24,9 @@ Numeric passwords with configurable length, plus controls to limit repeated and 
 
 ### Passphrase
 Slot-based passphrase builder. Add adjective, adverb, noun, and verb slots in any order to construct a custom grammatical structure. Each slot has independent category selection (e.g. Animals, Colors, Mood, Manner).
+
+### Wireless
+WiFi-optimized passphrase generator. Uses the same slot-based word engine as Passphrase but defaults to Adj + Noun, Title Case, hyphen separator, and a 2-digit numeric suffix — producing memorable, router-friendly passwords like `Crimson-River42`. Includes an **Alliteration** toggle that constrains all word slots to begin with the same letter, picking a shared letter that exists across all active slot categories. All generated passwords are guaranteed to be at least **8 characters**; the generator retries automatically if a result falls short.
 
 ### Mad Lib
 Template-based sentence passwords. Choose from 12 narrative templates (Hero, Villain, Quest, Sci-Fi, etc.). Each word slot in the template — adjective, adverb, noun, verb — gets its own category picker. Templates with multiple occurrences of the same part of speech (e.g. two nouns) show numbered rows so each can be controlled independently. The readable phrase is shown alongside the final joined password.
@@ -134,7 +137,8 @@ vue-password-generator/
 | `AdvancedPassword` | Per-type min/max character counts |
 | `WordsPassword` | Dictionary word-based generation |
 | `NumbersPassword` | Numeric passwords with sequence controls |
-| `WordsPassword` (Passphrase) | Custom slot-order passphrase builder |
+| `Passphrase` | Custom slot-order passphrase builder |
+| `WifiWords` | WiFi-optimized passphrase with alliteration mode |
 | `MadLib` | Template sentence passwords with per-slot category control |
 
 ### Vue via CDN
