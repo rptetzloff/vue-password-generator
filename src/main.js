@@ -1852,7 +1852,7 @@ const MadLib = {
 const App = {
   name: 'App',
   setup() {
-    const activeTab = ref(0)
+    const activeTab = persistedRef('global.activeTab', 0)
     const tabs = [
       { id: 1, name: 'Simple',     component: SimplePassword },
       { id: 2, name: 'Advanced',   component: AdvancedPassword },
