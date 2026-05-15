@@ -287,6 +287,10 @@ body {
   font-size: 1.1rem;
   margin-bottom: 1rem;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
 }
 
 /* Sliders */
@@ -1189,4 +1193,43 @@ body {
 
 @media (max-width: 560px) {
   .footer-inner { flex-direction: column; align-items: flex-start; }
+}
+/* Alliteration toggle */
+.alliteration-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.alliteration-toggle:hover {
+  background: var(--surface-hover, rgba(0,0,0,0.04));
+  color: var(--text);
+}
+
+.alliteration-toggle.active {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.alliteration-letter {
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: rgba(255,255,255,0.25);
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  min-width: 1.4em;
+  text-align: center;
+  letter-spacing: 0.05em;
 }

@@ -1577,9 +1577,9 @@ const WifiWords = {
     const separator = persistedRef('wifi.separator', '-')
     const customSeparator = persistedRef('wifi.customSeparator', '')
     const capitalization = persistedRef('wifi.capitalization', 'title')
-    const prefixMode = persistedRef('wifi.prefixMode', 'r2num')
+    const prefixMode = persistedRef('wifi.prefixMode', '')
     const prefixCustom = persistedRef('wifi.prefixCustom', '')
-    const suffixMode = persistedRef('wifi.suffixMode', '')
+    const suffixMode = persistedRef('wifi.suffixMode', 'r2num')
     const suffixCustom = persistedRef('wifi.suffixCustom', '')
     const activeLeet = persistedRef('wifi.activeLeet', new Set())
     const toggleLeet = (char) => {
@@ -1600,6 +1600,8 @@ const WifiWords = {
     const { history, pushHistory } = useHistory('wifi.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'wifi')
     const wordData = ref({})
+    const alliterationMode = persistedRef('wifi.alliterationMode', false)
+    const alliterationLetter = ref('')
 
     const loadWordData = async () => {
       try {
@@ -1610,11 +1612,28 @@ const WifiWords = {
       }
     }
 
-    const pickFrom = (type, catId) => {
+    const pickFrom = (type, catId, forceLetter = '') => {
       const cats = wordData.value[type]
       if (!cats) return type
-      const pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      let pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      if (forceLetter) {
+        const filtered = pool.filter(w => w.charAt(0).toLowerCase() === forceLetter)
+        if (filtered.length > 0) pool = filtered
+      }
       return pool[Math.floor(Math.random() * pool.length)]
+    }
+
+    const pickAlliterationLetter = () => {
+      const allPools = slots.value.map(s => {
+        const cats = wordData.value[s.type]
+        if (!cats) return new Set()
+        const pool = s.cat === 'random' ? Object.values(cats).flat() : (cats[s.cat] || Object.values(cats).flat())
+        return new Set(pool.map(w => w.charAt(0).toLowerCase()))
+      })
+      if (allPools.length === 0) return ''
+      const common = [...allPools[0]].filter(l => allPools.every(p => p.has(l)))
+      if (common.length === 0) return ''
+      return common[Math.floor(Math.random() * common.length)]
     }
 
     const rollAffixes = () => {
@@ -1637,7 +1656,14 @@ const WifiWords = {
         showNotification('Add at least one word slot', 'error')
         return
       }
-      rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
+      if (alliterationMode.value) {
+        const letter = pickAlliterationLetter()
+        alliterationLetter.value = letter
+        rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat, letter))
+      } else {
+        alliterationLetter.value = ''
+        rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
+      }
       buildPassword(true)
     }
 
@@ -1652,7 +1678,7 @@ const WifiWords = {
 
     const addSlot = (type) => {
       if (slots.value.length >= 8) return
-      slots.value.push(makeSlot(type))
+      next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
     }
 
     const removeSlot = (id) => {
@@ -1697,8 +1723,17 @@ const WifiWords = {
   template: `
     <div class="password-generator">
 
-      <div class="card">
-        <div class="card-header">Word Slots</div>
+      alliterationMode, alliterationLetter,
+      generatePassword, regenWord, copyPassword
+        <div class="card-header">
+          <span>Word Slots</span>
+          <label class="alliteration-toggle" :class="{ active: alliterationMode }" title="All words share the same starting letter">
+            <input type="checkbox" v-model="alliterationMode" class="sr-only" />
+            <span class="mdi mdi-alpha-a-box"></span>
+            <span>Alliteration</span>
+            <span v-if="alliterationMode && alliterationLetter" class="alliteration-letter">{{ alliterationLetter.toUpperCase() }}</span>
+          </label>
+        </div>
 
         <div class="slot-add-row">
           <span class="slot-add-label">Add:</span>
@@ -2279,7 +2314,7 @@ const App = {
       { id: 2, name: 'Advanced',   component: AdvancedPassword },
       { id: 3, name: 'Words',      component: WordsPassword },
       { id: 4, name: 'Passphrase', component: Passphrase },
-      { id: 5, name: 'WiFi Words', component: WifiWords },
+      { id: 5, name: 'Wireless',   component: WifiWords },
       { id: 6, name: 'Mad Lib',    component: MadLib },
       { id: 7, name: 'Numbers',    component: NumbersPassword },
     ]
