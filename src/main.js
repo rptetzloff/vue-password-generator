@@ -1,4 +1,4 @@
-import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
+import { createApp, ref, computed, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
 
 const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
 const DIGITS = '0123456789'
