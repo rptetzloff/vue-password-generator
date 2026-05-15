@@ -645,6 +645,7 @@ const WordsPassword = {
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const password = ref('')
+    const preview = ref('')
     const notification = ref({
       show: false,
       message: '',
@@ -669,13 +670,14 @@ const WordsPassword = {
         return
       }
 
-      const words = []
-
+      const rawWords = []
       for (let i = 0; i < wordCount.value; i++) {
-        const raw = wordList.value[Math.floor(Math.random() * wordList.value.length)]
-        words.push(applyCapitalization(raw, capitalization.value, i))
+        rawWords.push(wordList.value[Math.floor(Math.random() * wordList.value.length)])
       }
 
+      preview.value = rawWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+
+      const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
       password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
@@ -717,6 +719,7 @@ const WordsPassword = {
       suffixMode,
       suffixCustom,
       password,
+      preview,
       notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -818,6 +821,11 @@ const WordsPassword = {
       </div>
 
       <div class="card">
+        <div v-if="preview" class="madlib-preview-card">
+          <div class="madlib-preview-label">Readable phrase</div>
+          <div class="madlib-preview-phrase">{{ preview }}</div>
+        </div>
+
         <div class="password-display">
           <input
             v-model="password"
@@ -1106,6 +1114,7 @@ const Passphrase = {
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const password = ref('')
+    const preview = ref('')
     const notification = ref({ show: false, message: '', type: 'success' })
     const wordData = ref({})
 
@@ -1130,9 +1139,9 @@ const Passphrase = {
         showNotification('Add at least one word slot', 'error')
         return
       }
-      const words = slots.value.map((s, i) =>
-        applyCapitalization(pickFrom(s.type, s.cat), capitalization.value, i)
-      )
+      const rawWords = slots.value.map(s => pickFrom(s.type, s.cat))
+      preview.value = rawWords.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
       const sep = resolveToken(separator.value, customSeparator.value)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
@@ -1183,7 +1192,7 @@ const Passphrase = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
-      password, notification,
+      password, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword, copyPassword
@@ -1302,6 +1311,11 @@ const Passphrase = {
       </div>
 
       <div class="card">
+        <div v-if="preview" class="madlib-preview-card">
+          <div class="madlib-preview-label">Readable phrase</div>
+          <div class="madlib-preview-phrase">{{ preview }}</div>
+        </div>
+
         <div class="password-display">
           <input
             v-model="password"
