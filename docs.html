@@ -658,6 +658,11 @@
               <div class="intro-tile-name">Numbers</div>
               <div class="intro-tile-desc">PIN &amp; numeric codes</div>
             </a>
+            <a class="intro-tile" href="#built-with">
+              <span class="mdi mdi-tools"></span>
+              <div class="intro-tile-name">Built With</div>
+              <div class="intro-tile-desc">Tools &amp; technologies</div>
+            </a>
           </div>
         </div>
 
@@ -1227,6 +1232,68 @@
               <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Active Tab</h3>
               <p style="font-size:0.875rem;color:var(--text-secondary);">
                 The last generator tab you had open is automatically saved to <code>localStorage</code> (<code>global.activeTab</code>) and restored the next time you visit the app. If no saved tab exists the app defaults to Simple.</p>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ── BUILT WITH ────────────────────────────────────────── -->
+        <section id="built-with" class="section-card">
+          <div class="section-head">
+            <div class="section-icon slate"><span class="mdi mdi-tools"></span></div>
+            <div class="section-title">
+              <h2>Built With</h2>
+              <p>The tools and technologies used to create this app.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-vuejs" style="color:#41b883;"></span> Vue 3</div>
+              <div class="option-desc">
+                The UI is built with <a href="https://vuejs.org" class="footer-link" target="_blank" rel="noopener">Vue 3</a> using the Composition API and a single-file component approach compiled by Vite.
+                Reactivity, computed properties, and watchers drive all generator logic without any external state-management library.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-lightning-bolt" style="color:#646cff;"></span> Vite</div>
+              <div class="option-desc">
+                <a href="https://vitejs.dev" class="footer-link" target="_blank" rel="noopener">Vite</a> handles development serving and production bundling.
+                It compiles the Vue single-file component, processes CSS, and outputs a minimal static bundle that runs entirely in the browser.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-material-design" style="color:#2196f3;"></span> Material Design Icons</div>
+              <div class="option-desc">
+                All interface icons are served from the <a href="https://materialdesignicons.com" class="footer-link" target="_blank" rel="noopener">@mdi/font</a> icon font.
+                Icons are referenced by CSS class name and require no additional JavaScript.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-robot-outline" style="color:#0ea5e9;"></span> Bolt (AI-assisted development)</div>
+              <div class="option-desc">
+                Much of this app was built with assistance from <a href="https://bolt.new" class="footer-link" target="_blank" rel="noopener">Bolt</a>,
+                an AI-powered coding environment. Bolt accelerated feature development, UI design, and documentation authoring throughout the project.
+              </div>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <div class="option-block">
+              <div class="option-name"><span class="mdi mdi-server-outline" style="color:#46e3b7;"></span> Render</div>
+              <div class="option-desc">
+                The app is hosted on <a href="https://render.com" class="footer-link" target="_blank" rel="noopener">Render</a>, which serves the static build output.
+                Deployments happen automatically on every push to the main branch via the <code>render.yaml</code> configuration file.
+              </div>
             </div>
 
           </div>
