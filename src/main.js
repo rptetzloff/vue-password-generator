@@ -1654,6 +1654,7 @@ const WifiWords = {
     }
 
     const generatePassword = (attempt = 0) => {
+      if (typeof attempt !== 'number') attempt = 0
       if (slots.value.length === 0) {
         showNotification('Add at least one word slot', 'error')
         return
