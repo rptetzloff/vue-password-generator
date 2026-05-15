@@ -1648,14 +1648,11 @@ const WifiWords = {
       const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      if (result.length < 8) {
-        showNotification('Password is under 8 characters — add more slots or a suffix', 'error')
-      }
       password.value = result
       pushHistory(password.value)
     }
 
-    const generatePassword = () => {
+    const generatePassword = (attempt = 0) => {
       if (slots.value.length === 0) {
         showNotification('Add at least one word slot', 'error')
         return
@@ -1669,6 +1666,9 @@ const WifiWords = {
         rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
       }
       buildPassword(true)
+      if (password.value.length < 8 && attempt < 10) {
+        generatePassword(attempt + 1)
+      }
     }
 
     const regenWord = (idx) => {
