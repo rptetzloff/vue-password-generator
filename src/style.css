@@ -334,6 +334,49 @@ body {
   color: var(--text);
 }
 
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.stepper-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.stepper-btn:active {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.stepper-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.stepper-label-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 56px;
+  text-align: center;
+}
+
 /* Checkboxes and switches */
 .checkbox-group {
   display: flex;
