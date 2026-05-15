@@ -1713,6 +1713,7 @@ const WifiWords = {
       selectAllLeet,
       selectNoLeet,
       lockAffixes,
+      alliterationMode, alliterationLetter,
       password, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1723,9 +1724,8 @@ const WifiWords = {
   template: `
     <div class="password-generator">
 
-      alliterationMode, alliterationLetter,
-      generatePassword, regenWord, copyPassword
-        <div class="card-header">
+      <div class="card">
+        <div class="card-header card-header-row">
           <span>Word Slots</span>
           <label class="alliteration-toggle" :class="{ active: alliterationMode }" title="All words share the same starting letter">
             <input type="checkbox" v-model="alliterationMode" class="sr-only" />
