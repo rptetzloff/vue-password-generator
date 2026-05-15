@@ -1569,7 +1569,7 @@ const Passphrase = {
 const WifiWords = {
   name: 'WifiWords',
   setup() {
-    const defaultSlots = [{ id: 0, type: 'adj', cat: 'random' }, { id: 1, type: 'noun', cat: 'random' }, { id: 2, type: 'noun', cat: 'random' }]
+    const defaultSlots = [{ id: 0, type: 'adj', cat: 'random' }, { id: 1, type: 'noun', cat: 'random' }]
     const slots = persistedRef('wifi.slots', defaultSlots)
     let nextId = slots.value.reduce((max, s) => Math.max(max, s.id + 1), 0)
     const makeSlot = (type) => ({ id: nextId++, type, cat: 'random' })
@@ -1600,7 +1600,7 @@ const WifiWords = {
     const { history, pushHistory } = useHistory('wifi.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'wifi')
     const wordData = ref({})
-    const alliterationMode = persistedRef('wifi.alliterationMode', false)
+    const alliterationMode = persistedRef('wifi.alliterationMode', true)
     const alliterationLetter = ref('')
 
     const loadWordData = async () => {
@@ -1647,7 +1647,11 @@ const WifiWords = {
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
       const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
-      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
+      const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
+      if (result.length < 8) {
+        showNotification('Password is under 8 characters — add more slots or a suffix', 'error')
+      }
+      password.value = result
       pushHistory(password.value)
     }
 
