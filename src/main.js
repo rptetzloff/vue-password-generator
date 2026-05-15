@@ -1,4 +1,4 @@
-import { createApp, ref, computed, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
+import { createApp, ref, computed, watch, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
 
 const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
 const DIGITS = '0123456789'
@@ -1214,7 +1214,30 @@ const MadLib = {
   name: 'MadLib',
   setup() {
     const templateId = ref('hero')
-    const cats = ref({ adj: 'random', adv: 'random', noun: 'random', verb: 'random' })
+    // One entry per token occurrence: { type, cat }
+    const slotCats = ref([])
+
+    const rebuildSlotCats = (newId, oldSlotCats) => {
+      const tmpl = MADLIB_TEMPLATES.find(t => t.id === newId)
+      if (!tmpl) return []
+      const tokens = [...tmpl.template.matchAll(/\{(adj|adv|noun|verb)\}/g)].map(m => m[1])
+      // count occurrences per type so we can track "adj #1" vs "adj #2"
+      const typeCount = {}
+      return tokens.map(type => {
+        typeCount[type] = (typeCount[type] || 0) + 1
+        const prev = oldSlotCats.find(s => s.type === type && s.occurrence === typeCount[type])
+        return { type, occurrence: typeCount[type], cat: prev?.cat ?? 'random' }
+      })
+    }
+
+    // Derived: unique (type, occurrence) entries — same as slotCats but with extra
+    // display info (showOrdinal: true when that type has > 1 occurrence in template)
+    const slotCatRows = computed(() => {
+      const typeTotals = {}
+      slotCats.value.forEach(s => { typeTotals[s.type] = (typeTotals[s.type] || 0) + 1 })
+      return slotCats.value.map(s => ({ ...s, showOrdinal: typeTotals[s.type] > 1 }))
+    })
+
     const separator = ref('-')
     const customSeparator = ref('')
     const capitalization = ref('title')
@@ -1241,22 +1264,16 @@ const MadLib = {
       return pool[Math.floor(Math.random() * pool.length)] || ''
     }
 
-    // Which word types the current template uses (deduplicated, in order of first appearance)
-    const usedTypes = computed(() => {
-      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
-      if (!tmpl) return []
-      const seen = new Set()
-      const matches = [...tmpl.template.matchAll(/\{(adj|adv|noun|verb)\}/g)]
-      return matches.map(m => m[1]).filter(t => { if (seen.has(t)) return false; seen.add(t); return true })
-    })
-
     const generatePassword = () => {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
       if (!tmpl) return
 
+      const typeOccurrence = {}
       let wordIndex = 0
       const filled = tmpl.template.replace(/\{(adj|adv|noun|verb)\}/g, (_, type) => {
-        const raw = pickFrom(type, cats.value[type])
+        typeOccurrence[type] = (typeOccurrence[type] || 0) + 1
+        const slotEntry = slotCats.value.find(s => s.type === type && s.occurrence === typeOccurrence[type])
+        const raw = pickFrom(type, slotEntry?.cat ?? 'random')
         const capped = applyCapitalization(raw, capitalization.value, wordIndex++)
         return capped
       })
@@ -1283,18 +1300,23 @@ const MadLib = {
       setTimeout(() => { notification.value.show = false }, 3000)
     }
 
+    watch(templateId, (newId) => {
+      slotCats.value = rebuildSlotCats(newId, slotCats.value)
+      generatePassword()
+    })
+
     onMounted(async () => {
       await loadWordData()
+      slotCats.value = rebuildSlotCats(templateId.value, [])
       generatePassword()
     })
 
     return {
       templateId,
       templates: MADLIB_TEMPLATES,
-      cats,
-      usedTypes,
+      slotCats,
+      slotCatRows,
       categoryMeta: CATEGORY_META,
-      slotTypes: SLOT_TYPES,
       separator, customSeparator,
       capitalization,
       prefixMode, prefixCustom,
@@ -1333,16 +1355,18 @@ const MadLib = {
       <div class="card">
         <div class="card-header">Word Categories</div>
         <div class="word-cats">
-          <div v-for="type in usedTypes" :key="type" class="word-cat-row">
-            <div class="word-cat-label" :class="'wc-label-' + type">{{ type }}</div>
+          <div v-for="(slot, idx) in slotCatRows" :key="idx" class="word-cat-row">
+            <div class="word-cat-label" :class="'wc-label-' + slot.type">
+              {{ slot.type }}<span v-if="slot.showOrdinal" class="wc-ordinal">&nbsp;{{ slot.occurrence }}</span>
+            </div>
             <div class="separator-grid">
               <label
-                v-for="opt in categoryMeta[type]"
+                v-for="opt in categoryMeta[slot.type]"
                 :key="opt.id"
                 class="sep-option"
-                :class="{ active: cats[type] === opt.id }"
+                :class="{ active: slotCats[idx].cat === opt.id }"
               >
-                <input v-model="cats[type]" :value="opt.id" type="radio" class="sr-only" />
+                <input v-model="slotCats[idx].cat" :value="opt.id" type="radio" class="sr-only" />
                 <span>{{ opt.label }}</span>
               </label>
             </div>

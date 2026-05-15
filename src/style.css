@@ -730,3 +730,15 @@ body {
 .wc-label-adv::before  { background: #0f766e; }
 .wc-label-noun::before { background: #64748b; }
 .wc-label-verb::before { background: #92400e; }
+
+.wc-ordinal {
+  font-weight: 400;
+  opacity: 0.6;
+  font-size: 0.78rem;
+}
+
+.word-cat-row + .word-cat-row {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
