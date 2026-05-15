@@ -1873,7 +1873,7 @@ const App = {
       <header class="header">
         <div class="container">
           <div class="header-title-row">
-            <img src="/src/assets/password_generator_icon_v3.svg" class="header-icon" alt="" aria-hidden="true" />
+            <img src="/src/assets/password_generator_icon_v3 copy.svg" class="header-icon" alt="" aria-hidden="true" />
             <h1 class="title">Random Password Generator</h1>
           </div>
           <p class="subtitle">Generate secure passwords with multiple customization options</p>
