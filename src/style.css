@@ -51,8 +51,10 @@ body {
 .header-title-block {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1.25rem;
   margin-bottom: 1rem;
+  text-align: left;
 }
 
 .header-icon {
