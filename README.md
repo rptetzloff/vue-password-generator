@@ -45,6 +45,8 @@ All modes support:
 
 All configuration preferences are automatically saved to `localStorage` and restored on your next visit. This includes password length, character type selections, separators, capitalization, prefix/suffix options, and custom symbol sets across all six modes.
 
+The **last active tab** is also persisted — returning to the app opens whichever generator you had open last.
+
 Each tab keeps a **generation history** of your last 10 passwords (shown below the output field). History is stored in `localStorage` and persists across page refreshes — but it is local to your browser only and is never transmitted anywhere. Clearing your browser's site data will erase it.
 
 ---
@@ -112,6 +114,8 @@ vue-password-generator/
 ├── src/
 │   ├── main.js           # All Vue components (Composition API, CDN)
 │   └── style.css         # Design system and component styles
+├── changelog.html        # Release history
+├── docs.html             # In-app documentation reference
 ├── render.yaml
 ├── package.json
 ├── vite.config.js

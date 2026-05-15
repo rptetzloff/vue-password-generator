@@ -608,6 +608,7 @@
           <a class="nav-sub nav-item" href="#shared-caps">Capitalization</a>
           <a class="nav-sub nav-item" href="#shared-leet">Leet Speak</a>
           <a class="nav-sub nav-item" href="#shared-history">History</a>
+          <a class="nav-sub nav-item" href="#shared-tab">Active Tab</a>
         </nav>
       </aside>
 
@@ -1217,6 +1218,15 @@
               <p style="font-size:0.875rem;color:var(--text-secondary);">
                 History is stored in browser local storage. It persists across sessions but is cleared when you clear site data for this page.
               </p>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- Tab Persistence -->
+            <div id="shared-tab">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Active Tab</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);">
+                The last generator tab you had open is automatically saved to <code>localStorage</code> (<code>global.activeTab</code>) and restored the next time you visit the app. If no saved tab exists the app defaults to Simple.</p>
             </div>
 
           </div>
