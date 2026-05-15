@@ -444,6 +444,12 @@ body {
   margin-top: 0.5rem;
 }
 
+.structure-chip span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
 /* Prefix / Suffix affix pickers */
 .affix-pair {
   display: flex;

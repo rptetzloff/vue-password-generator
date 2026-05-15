@@ -927,9 +927,20 @@ const NumbersPassword = {
 const Passphrase = {
   name: 'Passphrase',
   setup() {
-    const includeAdjective = ref(true)
-    const includeNoun = ref(true)
-    const includeVerb = ref(true)
+    const STRUCTURES = [
+      { id: 'adj-noun',           label: 'adj · noun',                parts: ['adj', 'noun'] },
+      { id: 'noun-verb',          label: 'noun · verb',                parts: ['noun', 'verb'] },
+      { id: 'adj-noun-verb',      label: 'adj · noun · verb',          parts: ['adj', 'noun', 'verb'] },
+      { id: 'adj-adj-noun',       label: 'adj · adj · noun',           parts: ['adj', 'adj', 'noun'] },
+      { id: 'noun-noun',          label: 'noun · noun',                parts: ['noun', 'noun'] },
+      { id: 'adj-noun-noun',      label: 'adj · noun · noun',          parts: ['adj', 'noun', 'noun'] },
+      { id: 'noun-verb-noun',     label: 'noun · verb · noun',         parts: ['noun', 'verb', 'noun'] },
+      { id: 'adj-noun-verb-noun', label: 'adj · noun · verb · noun',   parts: ['adj', 'noun', 'verb', 'noun'] },
+      { id: 'verb-noun',          label: 'verb · noun',                parts: ['verb', 'noun'] },
+      { id: 'adj-verb-noun',      label: 'adj · verb · noun',          parts: ['adj', 'verb', 'noun'] },
+      { id: 'noun-adj-noun',      label: 'noun · adj · noun',          parts: ['noun', 'adj', 'noun'] },
+    ]
+    const structure = ref('adj-noun-verb')
     const separator = ref('$')
     const customSeparator = ref('')
     const capitalization = ref('upper')
@@ -973,27 +984,18 @@ const Passphrase = {
     }
 
     const generatePassword = () => {
-      if (!includeAdjective.value && !includeNoun.value && !includeVerb.value) {
-        showNotification('Please select at least one word type', 'error')
-        return
-      }
+      const sel = STRUCTURES.find(s => s.id === structure.value)
+      if (!sel) return
 
-      const words = []
+      const pick = (list) => list[Math.floor(Math.random() * list.length)]
 
-      if (includeAdjective.value && wordLists.value.adjectives.length > 0) {
-        const word = wordLists.value.adjectives[Math.floor(Math.random() * wordLists.value.adjectives.length)]
-        words.push(applyCapitalization(word, capitalization.value, words.length))
-      }
-
-      if (includeNoun.value && wordLists.value.nouns.length > 0) {
-        const word = wordLists.value.nouns[Math.floor(Math.random() * wordLists.value.nouns.length)]
-        words.push(applyCapitalization(word, capitalization.value, words.length))
-      }
-
-      if (includeVerb.value && wordLists.value.verbs.length > 0) {
-        const word = wordLists.value.verbs[Math.floor(Math.random() * wordLists.value.verbs.length)]
-        words.push(applyCapitalization(word, capitalization.value, words.length))
-      }
+      const words = sel.parts.map((part, i) => {
+        let raw = ''
+        if (part === 'adj')  raw = pick(wordLists.value.adjectives) || 'quick'
+        if (part === 'noun') raw = pick(wordLists.value.nouns)      || 'fox'
+        if (part === 'verb') raw = pick(wordLists.value.verbs)      || 'jumps'
+        return applyCapitalization(raw, capitalization.value, i)
+      })
 
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveToken(suffixMode.value, suffixCustom.value)
@@ -1027,9 +1029,8 @@ const Passphrase = {
     })
 
     return {
-      includeAdjective,
-      includeNoun,
-      includeVerb,
+      structure,
+      structures: STRUCTURES,
       separator,
       customSeparator,
       capitalization,
@@ -1049,18 +1050,15 @@ const Passphrase = {
     <div class="password-generator">
       <div class="card">
         <div class="card-header">Sentence Structure</div>
-        <div class="checkbox-group">
-          <label class="checkbox-item">
-            <input v-model="includeAdjective" type="checkbox" class="checkbox" />
-            <span>Include Adjective</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="includeNoun" type="checkbox" class="checkbox" />
-            <span>Include Noun</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="includeVerb" type="checkbox" class="checkbox" />
-            <span>Include Verb</span>
+        <div class="separator-grid">
+          <label
+            v-for="s in structures"
+            :key="s.id"
+            class="sep-option structure-chip"
+            :class="{ active: structure === s.id }"
+          >
+            <input v-model="structure" :value="s.id" type="radio" class="sr-only" />
+            <span>{{ s.label }}</span>
           </label>
         </div>
       </div>
