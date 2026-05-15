@@ -1651,10 +1651,6 @@ const WifiWords = {
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
-      if (result.length < 8) {
-        warnSet.value = new Set([...warnSet.value, result])
-      }
-      pushHistory(password.value)
     }
 
     const generatePassword = (attempt = 0) => {
@@ -1673,16 +1669,29 @@ const WifiWords = {
       buildPassword(true)
       if (password.value.length < 8 && attempt < 10) {
         generatePassword(attempt + 1)
+        return
       }
+      if (password.value.length < 8) {
+        warnSet.value = new Set([...warnSet.value, password.value])
+      }
+      pushHistory(password.value)
     }
 
-    const regenWord = (idx) => {
+    const regenWord = (idx, attempt = 0) => {
       const slot = slots.value[idx]
       if (!slot) return
       const next = [...rawWords.value]
       next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
       rawWords.value = next
       buildPassword(false)
+      if (password.value.length < 8 && attempt < 10) {
+        regenWord(idx, attempt + 1)
+        return
+      }
+      if (password.value.length < 8) {
+        warnSet.value = new Set([...warnSet.value, password.value])
+      }
+      pushHistory(password.value)
     }
 
     const addSlot = (type) => {
