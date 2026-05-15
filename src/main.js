@@ -345,7 +345,7 @@ const SimplePassword = {
 
       <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
-          🎲 Generate Password
+          <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
       </div>
 
@@ -682,7 +682,7 @@ const AdvancedPassword = {
 
       <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
-          🎲 Generate Password
+          <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
       </div>
 
@@ -936,7 +936,7 @@ const WordsPassword = {
 
       <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
-          Generate Password
+          <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
       </div>
 
@@ -1146,7 +1146,7 @@ const NumbersPassword = {
 
       <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
-          🎲 Generate Password
+          <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
       </div>
 
@@ -1480,7 +1480,7 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <button @click="generatePassword" class="btn btn-primary">Generate Passphrase</button>
+        <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Passphrase</button>
       </div>
 
       <div class="card">
@@ -1832,7 +1832,7 @@ const MadLib = {
       </div>
 
       <div class="card">
-        <button @click="generatePassword" class="btn btn-primary">Generate Mad Lib</button>
+        <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Mad Lib</button>
       </div>
 
       <div class="card">
