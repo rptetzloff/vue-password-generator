@@ -289,6 +289,10 @@ const SimplePassword = {
             type="text"
             readonly
             class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
@@ -600,17 +604,23 @@ const AdvancedPassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          <span class="mdi mdi-content-copy"></span>
-        </button>
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+            <span class="mdi mdi-content-copy"></span>
+          </button>
+        </div>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
@@ -805,17 +815,23 @@ const WordsPassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          <span class="mdi mdi-content-copy"></span>
-        </button>
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+            <span class="mdi mdi-content-copy"></span>
+          </button>
+        </div>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
@@ -999,17 +1015,23 @@ const NumbersPassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          <span class="mdi mdi-content-copy"></span>
-        </button>
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+            <span class="mdi mdi-content-copy"></span>
+          </button>
+        </div>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
@@ -1275,15 +1297,19 @@ const Passphrase = {
         <button @click="generatePassword" class="btn btn-primary">Generate Passphrase</button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated passphrase will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            placeholder="Generated passphrase will appear here..."
+          />
+          <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+            <span class="mdi mdi-content-copy"></span>
+          </button>
+        </div>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
@@ -1555,6 +1581,10 @@ const MadLib = {
             type="text"
             readonly
             class="form-input password-input"
+            autocomplete="off"
+            data-1p-ignore
+            data-lpignore="true"
+            data-form-type="other"
             placeholder="Generated password will appear here..."
           />
           <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
