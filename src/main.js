@@ -308,6 +308,7 @@ const SimplePassword = {
       <div class="card">
         <div class="card-header">Password Length</div>
         <div class="slider-container">
+          <button class="stepper-btn" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="passwordLength"
             type="range"
@@ -315,6 +316,7 @@ const SimplePassword = {
             max="128"
             class="slider"
           />
+          <button class="stepper-btn" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
       </div>
@@ -525,6 +527,7 @@ const AdvancedPassword = {
       <div class="card">
         <div class="card-header">Password Length</div>
         <div class="slider-container">
+          <button class="stepper-btn" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="passwordLength"
             type="range"
@@ -532,6 +535,7 @@ const AdvancedPassword = {
             max="128"
             class="slider"
           />
+          <button class="stepper-btn" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
       </div>
@@ -539,7 +543,11 @@ const AdvancedPassword = {
       <div class="card">
         <div class="card-header">Lowercase Letters</div>
         <div class="slider-container">
-          <span>Min: {{ lowerCase[0] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="lowerCase[0] = Math.max(0, lowerCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Min: {{ lowerCase[0] }}</span>
+            <button class="stepper-btn" @click="lowerCase[0] = Math.min(passwordLength, lowerCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
           <input
             v-model="lowerCase[0]"
             type="range"
@@ -554,14 +562,22 @@ const AdvancedPassword = {
             :max="passwordLength"
             class="slider"
           />
-          <span>Max: {{ lowerCase[1] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="lowerCase[1] = Math.max(0, lowerCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Max: {{ lowerCase[1] }}</span>
+            <button class="stepper-btn" @click="lowerCase[1] = Math.min(passwordLength, lowerCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-header">Uppercase Letters</div>
         <div class="slider-container">
-          <span>Min: {{ upperCase[0] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="upperCase[0] = Math.max(0, upperCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Min: {{ upperCase[0] }}</span>
+            <button class="stepper-btn" @click="upperCase[0] = Math.min(passwordLength, upperCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
           <input
             v-model="upperCase[0]"
             type="range"
@@ -576,14 +592,22 @@ const AdvancedPassword = {
             :max="passwordLength"
             class="slider"
           />
-          <span>Max: {{ upperCase[1] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="upperCase[1] = Math.max(0, upperCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Max: {{ upperCase[1] }}</span>
+            <button class="stepper-btn" @click="upperCase[1] = Math.min(passwordLength, upperCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-header">Numbers</div>
         <div class="slider-container">
-          <span>Min: {{ digits[0] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="digits[0] = Math.max(0, digits[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Min: {{ digits[0] }}</span>
+            <button class="stepper-btn" @click="digits[0] = Math.min(passwordLength, digits[0] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
           <input
             v-model="digits[0]"
             type="range"
@@ -598,14 +622,22 @@ const AdvancedPassword = {
             :max="passwordLength"
             class="slider"
           />
-          <span>Max: {{ digits[1] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="digits[1] = Math.max(0, digits[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Max: {{ digits[1] }}</span>
+            <button class="stepper-btn" @click="digits[1] = Math.min(passwordLength, digits[1] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
         </div>
       </div>
 
       <div class="card">
         <div class="card-header">Symbols</div>
         <div class="slider-container">
-          <span>Min: {{ specialChars[0] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="specialChars[0] = Math.max(0, specialChars[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Min: {{ specialChars[0] }}</span>
+            <button class="stepper-btn" @click="specialChars[0] = Math.min(passwordLength, specialChars[0] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
           <input
             v-model="specialChars[0]"
             type="range"
@@ -620,7 +652,11 @@ const AdvancedPassword = {
             :max="passwordLength"
             class="slider"
           />
-          <span>Max: {{ specialChars[1] }}</span>
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="specialChars[1] = Math.max(0, specialChars[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Max: {{ specialChars[1] }}</span>
+            <button class="stepper-btn" @click="specialChars[1] = Math.min(passwordLength, specialChars[1] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
         </div>
         <div class="form-group">
           <div class="symbol-chips-header">
@@ -793,6 +829,7 @@ const WordsPassword = {
       <div class="card">
         <div class="card-header">Number of Words</div>
         <div class="slider-container">
+          <button class="stepper-btn" @click="wordCount = Math.max(2, wordCount - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="wordCount"
             type="range"
@@ -800,6 +837,7 @@ const WordsPassword = {
             max="20"
             class="slider"
           />
+          <button class="stepper-btn" @click="wordCount = Math.min(20, wordCount + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ wordCount }}</div>
         </div>
       </div>
@@ -913,7 +951,7 @@ const WordsPassword = {
               title="Click to swap this word"
             >
               <span class="word-pill-text">{{ w }}</span>
-              <span class="mdi mdi-refresh word-pill-icon"></span>
+              <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
             </button>
           </div>
           <button
@@ -1061,6 +1099,7 @@ const NumbersPassword = {
       <div class="card">
         <div class="card-header">Number of Digits</div>
         <div class="slider-container">
+          <button class="stepper-btn" @click="passwordLength = Math.max(4, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="passwordLength"
             type="range"
@@ -1068,6 +1107,7 @@ const NumbersPassword = {
             max="32"
             class="slider"
           />
+          <button class="stepper-btn" @click="passwordLength = Math.min(32, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
       </div>
@@ -1075,6 +1115,7 @@ const NumbersPassword = {
       <div class="card">
         <div class="card-header">Maximum Repeated Digits</div>
         <div class="slider-container">
+          <button class="stepper-btn" @click="maxRepeated = Math.max(2, maxRepeated - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="maxRepeated"
             type="range"
@@ -1082,6 +1123,7 @@ const NumbersPassword = {
             max="5"
             class="slider"
           />
+          <button class="stepper-btn" @click="maxRepeated = Math.min(5, maxRepeated + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ maxRepeated }}</div>
         </div>
       </div>
@@ -1089,6 +1131,7 @@ const NumbersPassword = {
       <div class="card">
         <div class="card-header">Maximum Sequential Digits</div>
         <div class="slider-container">
+          <button class="stepper-btn" @click="maxSequential = Math.max(2, maxSequential - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="maxSequential"
             type="range"
@@ -1096,6 +1139,7 @@ const NumbersPassword = {
             max="5"
             class="slider"
           />
+          <button class="stepper-btn" @click="maxSequential = Math.min(5, maxSequential + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ maxSequential }}</div>
         </div>
       </div>
@@ -1451,7 +1495,7 @@ const Passphrase = {
               title="Click to swap this word"
             >
               <span class="word-pill-text">{{ w }}</span>
-              <span class="mdi mdi-refresh word-pill-icon"></span>
+              <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
             </button>
           </div>
           <button
@@ -1803,7 +1847,7 @@ const MadLib = {
                 title="Click to swap this word"
               >
                 <span class="word-pill-text">{{ seg.word }}</span>
-                <span class="mdi mdi-refresh word-pill-icon"></span>
+                <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
               </button>
             </template>
           </div>
