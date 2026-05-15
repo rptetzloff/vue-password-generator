@@ -1,0 +1,31 @@
+{
+  "noun": {
+    "animals":   ["bear","wolf","fox","eagle","shark","tiger","lion","hawk","panther","cobra","raven","bison","jaguar","otter","viper","falcon","moose","lynx","badger","elk","mamba","weasel","heron","boar","osprey","mink","ibis","dingo","puma","kite"],
+    "vehicles":  ["rocket","tank","jet","comet","cruise","ferry","barge","rover","glider","vessel","shuttle","frigate","schooner","blimp","chopper","tugboat","sled","buggy","trailer","cruiser","transport","carrier","racer","skiff","bomber","patrol","speeder","hauler","drifter","lander"],
+    "food":      ["burger","taco","pizza","noodle","dumpling","biscuit","waffle","pretzel","donut","nachos","sushi","kebab","muffin","scone","bagel","brownie","panini","risotto","churro","samosa","falafel","truffle","baguette","croissant","lasagna","ramen","cobbler","custard","pudding","sorbet"],
+    "places":    ["canyon","glacier","harbor","jungle","lagoon","marsh","meadow","plateau","reef","summit","tundra","valley","volcano","delta","fjord","cavern","dune","basin","cove","cliff","ridge","shoal","geyser","rapids","steppe","thicket","gorge","inlet","moor","prairie"],
+    "nature":    ["thunder","storm","frost","blaze","torrent","gale","mist","ember","stone","crystal","shadow","tide","drift","surge","ripple","flare","spark","gust","cinder","vapor","current","squall","tempest","hail","bolt","floe","crag","ledge","spire","rift"],
+    "tech":      ["cipher","kernel","signal","vector","matrix","daemon","socket","token","buffer","proxy","binary","stack","heap","bridge","packet","fiber","relay","module","script","codec","parser","shader","thread","cluster","router","mesh","pulse","beacon","driver","core"],
+    "jobs":      ["pilot","ranger","scout","warden","captain","courier","marshal","surgeon","herald","broker","welder","steward","trooper","vendor","skipper","patron","envoy","deputy","hunter","watcher","guard","runner","rider","seeker","keeper","trader","builder","maker","forger","drafter"]
+  },
+  "adj": {
+    "colors":    ["crimson","cobalt","amber","scarlet","azure","ivory","ebony","jade","bronze","silver","golden","copper","coral","onyx","teal","ochre","maroon","turquoise","magenta","taupe","russet","chartreuse","cerise","umber","sienna","sable","ecru","fawn","slate","olive"],
+    "size":      ["colossal","tiny","vast","massive","micro","giant","slim","broad","narrow","towering","compact","bulky","lean","stout","petite","grand","modest","immense","slight","enormous","lanky","stocky","stubby","wide","trim","thick","hollow","dense","sparse","narrow"],
+    "texture":   ["rugged","silky","jagged","smooth","brittle","glossy","rough","velvety","crisp","grainy","coarse","sleek","gritty","polished","fuzzy","prickly","waxy","matte","shiny","crinkled","bumpy","supple","rigid","spongy","flaky","wiry","fibrous","powdery","tacky","lumpy"],
+    "mood":      ["fierce","calm","bold","serene","wild","daring","grim","swift","proud","brave","cunning","noble","stern","wary","eager","stoic","relentless","vigilant","graceful","reckless","fearless","patient","tenacious","alert","quiet","restless","steady","wise","resolute","agile"],
+    "weather":   ["frozen","blazing","stormy","frosty","arid","foggy","humid","brisk","sweltering","blustery","icy","scorching","drizzly","sultry","crisp","hazy","parched","dewy","breezy","murky","gusty","steamy","snowy","windswept","pelting","glaring","damp","bitter","overcast","tempestuous"],
+    "time":      ["ancient","swift","eternal","fleeting","timeless","modern","bygone","primeval","current","future","instant","enduring","transient","lasting","temporary","imminent","distant","recent","perpetual","brief","lingering","eventual","sudden","gradual","periodic","constant","shifting","early","late","immediate"]
+  },
+  "adv": {
+    "manner":    ["boldly","swiftly","fiercely","calmly","quietly","wildly","bravely","grimly","keenly","sharply","smoothly","roughly","steadily","coldly","warmly","briskly","coolly","darkly","softly","loudly","harshly","gently","firmly","slowly","rapidly","eagerly","freely","deeply","clearly","closely"],
+    "intensity": ["barely","nearly","almost","truly","fully","hardly","deeply","greatly","highly","purely","utterly","mostly","partly","broadly","sharply","strongly","heavily","lightly","barely","faintly","vaguely","exactly","roughly","quietly","boldly","swiftly","fiercely","clearly","quite","rather"],
+    "time":      ["always","never","often","rarely","once","twice","soon","early","late","daily","nightly","yearly","briefly","endlessly","forever","instantly","suddenly","gradually","promptly","swiftly","lately","already","still","yet","again","before","after","now","then","since"],
+    "place":     ["ahead","behind","below","above","beyond","within","nearby","outside","inward","outward","around","across","along","aside","away","forth","onward","upward","downward","forward","backward","inwards","outwards","sideways","overhead","underfoot","offshore","inland","skyward","homeward"]
+  },
+  "verb": {
+    "movement":  ["races","drifts","charges","glides","surges","bolts","sprints","leaps","prowls","dives","soars","rushes","lurks","roams","crawls","spirals","vaults","lunges","skids","swerves","streaks","plunges","gallops","slides","weaves","bounds","creeps","swoops","stomps","darts"],
+    "action":    ["builds","breaks","forges","hunts","crafts","guards","leads","seeks","carves","defends","launches","anchors","captures","drives","fends","sparks","ignites","conquers","escapes","survives","tracks","strikes","wields","commands","charts","reveals","conceals","summons","repels","unleashes"],
+    "nature":    ["erupts","freezes","floods","burns","echoes","rumbles","crackles","glows","fades","shimmers","swirls","blows","melts","hardens","settles","rises","falls","churns","clears","thickens","drains","spills","rushes","flows","stirs","shifts","breaks","forms","spreads","lifts"],
+    "cognition": ["knows","thinks","learns","sees","finds","seeks","reads","judges","weighs","plans","decides","recalls","senses","grasps","probes","doubts","trusts","marks","notes","scans","maps","tests","checks","proves","solves","tracks","follows","leads","guides","shapes"]
+  }
+}

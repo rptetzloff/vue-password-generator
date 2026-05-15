@@ -444,6 +444,58 @@ body {
   margin-top: 0.5rem;
 }
 
+.structure-chip span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+/* Mad Lib */
+.madlib-template-preview {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.madlib-template-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.madlib-template-text .slot {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.madlib-preview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.madlib-preview-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.madlib-preview-phrase {
+  font-size: 1rem;
+  color: var(--text);
+  font-style: italic;
+  word-break: break-word;
+}
+
 /* Prefix / Suffix affix pickers */
 .affix-pair {
   display: flex;
@@ -507,4 +559,186 @@ body {
     height: 1px;
     margin: 1rem 0;
   }
+}
+
+/* ── Slot builder ─────────────────────────────────────── */
+
+.slot-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.slot-add-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.slot-add-btn {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.03em;
+}
+
+.slot-add-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.slot-add-btn:not(:disabled):hover { opacity: 0.85; transform: scale(1.04); }
+
+.slot-add-btn.slot-adj  { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
+.slot-add-btn.slot-adv  { background: #ccfbf1; color: #0f766e; border-color: #5eead4; }
+.slot-add-btn.slot-noun { background: #f1f5f9; color: #334155; border-color: #94a3b8; }
+.slot-add-btn.slot-verb { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+
+.slot-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.slot-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  min-width: 90px;
+}
+
+.slot-adj  { background: #dbeafe; border-color: #93c5fd; }
+.slot-adv  { background: #ccfbf1; border-color: #5eead4; }
+.slot-noun { background: #f1f5f9; border-color: #94a3b8; }
+.slot-verb { background: #fef3c7; border-color: #fcd34d; }
+
+.slot-pill-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+.slot-pill-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.slot-arrow,
+.slot-remove {
+  background: rgba(0,0,0,0.06);
+  border: none;
+  border-radius: 4px;
+  width: 22px;
+  height: 22px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+  padding: 0;
+  line-height: 1;
+}
+
+.slot-arrow:disabled { opacity: 0.25; cursor: default; }
+.slot-arrow:not(:disabled):hover,
+.slot-remove:hover { background: rgba(0,0,0,0.14); }
+
+.slot-remove { margin-left: auto; color: #dc2626; }
+
+.slot-cat-select {
+  font-size: 0.75rem;
+  border: 1px solid rgba(0,0,0,0.15);
+  border-radius: 5px;
+  padding: 0.2rem 0.3rem;
+  background: rgba(255,255,255,0.6);
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+}
+
+.slot-empty {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+/* ── Mad Lib template token preview ──────────────────── */
+
+.madlib-template-preview {
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--background);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.madlib-literal {
+  color: var(--text-secondary);
+  white-space: pre;
+}
+
+.madlib-token {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.madlib-token.slot-adj  { background: #dbeafe; color: #1d4ed8; }
+.madlib-token.slot-adv  { background: #ccfbf1; color: #0f766e; }
+.madlib-token.slot-noun { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
+.madlib-token.slot-verb { background: #fef3c7; color: #92400e; }
+
+/* ── Word cat label accent dots ──────────────────────── */
+
+.word-cat-label { display: flex; align-items: center; gap: 0.4rem; }
+.word-cat-label::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wc-label-adj::before  { background: #1d4ed8; }
+.wc-label-adv::before  { background: #0f766e; }
+.wc-label-noun::before { background: #64748b; }
+.wc-label-verb::before { background: #92400e; }
+
+.wc-ordinal {
+  font-weight: 400;
+  opacity: 0.6;
+  font-size: 0.78rem;
+}
+
+.word-cat-row + .word-cat-row {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
 }

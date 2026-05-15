@@ -1,4 +1,4 @@
-import { createApp, ref, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
+import { createApp, ref, computed, watch, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
 
 const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
 const DIGITS = '0123456789'
@@ -924,12 +924,57 @@ const NumbersPassword = {
 }
 
 // Passphrase Generator Component
+const SLOT_TYPES = [
+  { type: 'adj',  label: 'Adj',  color: 'slot-adj'  },
+  { type: 'adv',  label: 'Adv',  color: 'slot-adv'  },
+  { type: 'noun', label: 'Noun', color: 'slot-noun' },
+  { type: 'verb', label: 'Verb', color: 'slot-verb' },
+]
+
+const CATEGORY_META = {
+  noun: [
+    { id: 'random',   label: 'Random'   },
+    { id: 'animals',  label: 'Animals'  },
+    { id: 'vehicles', label: 'Vehicles' },
+    { id: 'food',     label: 'Food'     },
+    { id: 'places',   label: 'Places'   },
+    { id: 'nature',   label: 'Nature'   },
+    { id: 'tech',     label: 'Tech'     },
+    { id: 'jobs',     label: 'Jobs'     },
+  ],
+  adj: [
+    { id: 'random',   label: 'Random'  },
+    { id: 'colors',   label: 'Colors'  },
+    { id: 'size',     label: 'Size'    },
+    { id: 'texture',  label: 'Texture' },
+    { id: 'mood',     label: 'Mood'    },
+    { id: 'weather',  label: 'Weather' },
+    { id: 'time',     label: 'Time'    },
+  ],
+  adv: [
+    { id: 'random',    label: 'Random'    },
+    { id: 'manner',    label: 'Manner'    },
+    { id: 'intensity', label: 'Intensity' },
+    { id: 'time',      label: 'Time'      },
+    { id: 'place',     label: 'Place'     },
+  ],
+  verb: [
+    { id: 'random',    label: 'Random'    },
+    { id: 'movement',  label: 'Movement'  },
+    { id: 'action',    label: 'Action'    },
+    { id: 'nature',    label: 'Nature'    },
+    { id: 'cognition', label: 'Cognition' },
+  ],
+}
+
 const Passphrase = {
   name: 'Passphrase',
   setup() {
-    const includeAdjective = ref(true)
-    const includeNoun = ref(true)
-    const includeVerb = ref(true)
+    // Each slot: { id, type, cat }
+    let nextId = 0
+    const makeSlot = (type) => ({ id: nextId++, type, cat: 'random' })
+
+    const slots = ref([makeSlot('adj'), makeSlot('noun'), makeSlot('verb')])
     const separator = ref('$')
     const customSeparator = ref('')
     const capitalization = ref('upper')
@@ -938,130 +983,128 @@ const Passphrase = {
     const suffixMode = ref('')
     const suffixCustom = ref('')
     const password = ref('')
-    const notification = ref({
-      show: false,
-      message: '',
-      type: 'success'
-    })
-    const wordLists = ref({
-      nouns: [],
-      verbs: [],
-      adjectives: []
-    })
+    const notification = ref({ show: false, message: '', type: 'success' })
+    const wordData = ref({})
 
-    const loadWordLists = async () => {
+    const loadWordData = async () => {
       try {
-        const [nounsResponse, verbsResponse, adjectivesResponse] = await Promise.all([
-          fetch('./data/nouns.txt'),
-          fetch('./data/verbs.txt'),
-          fetch('./data/adjectives.txt')
-        ])
-
-        const nounsText = await nounsResponse.text()
-        const verbsText = await verbsResponse.text()
-        const adjectivesText = await adjectivesResponse.text()
-
-        wordLists.value.nouns = nounsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-        wordLists.value.verbs = verbsText.split(',').map(word => word.trim()).filter(word => word.length > 0)
-        wordLists.value.adjectives = adjectivesText.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        const res = await fetch('./data/words.json')
+        wordData.value = await res.json()
       } catch (err) {
-        console.error('Failed to load word lists:', err)
-        wordLists.value.nouns = ['house', 'car', 'tree', 'book', 'phone', 'computer', 'table', 'chair']
-        wordLists.value.verbs = ['run', 'jump', 'walk', 'talk', 'think', 'write', 'read', 'play']
-        wordLists.value.adjectives = ['big', 'small', 'fast', 'slow', 'happy', 'sad', 'bright', 'dark']
+        console.error('Failed to load word data:', err)
       }
+    }
+
+    const pickFrom = (type, catId) => {
+      const cats = wordData.value[type]
+      if (!cats) return type
+      const pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      return pool[Math.floor(Math.random() * pool.length)]
     }
 
     const generatePassword = () => {
-      if (!includeAdjective.value && !includeNoun.value && !includeVerb.value) {
-        showNotification('Please select at least one word type', 'error')
+      if (slots.value.length === 0) {
+        showNotification('Add at least one word slot', 'error')
         return
       }
-
-      const words = []
-
-      if (includeAdjective.value && wordLists.value.adjectives.length > 0) {
-        const word = wordLists.value.adjectives[Math.floor(Math.random() * wordLists.value.adjectives.length)]
-        words.push(applyCapitalization(word, capitalization.value, words.length))
-      }
-
-      if (includeNoun.value && wordLists.value.nouns.length > 0) {
-        const word = wordLists.value.nouns[Math.floor(Math.random() * wordLists.value.nouns.length)]
-        words.push(applyCapitalization(word, capitalization.value, words.length))
-      }
-
-      if (includeVerb.value && wordLists.value.verbs.length > 0) {
-        const word = wordLists.value.verbs[Math.floor(Math.random() * wordLists.value.verbs.length)]
-        words.push(applyCapitalization(word, capitalization.value, words.length))
-      }
-
+      const words = slots.value.map((s, i) =>
+        applyCapitalization(pickFrom(s.type, s.cat), capitalization.value, i)
+      )
+      const sep = resolveToken(separator.value, customSeparator.value)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveToken(suffixMode.value, suffixCustom.value)
-      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
+      password.value = pre + words.join(sep) + suf
+    }
+
+    const addSlot = (type) => {
+      if (slots.value.length >= 8) return
+      slots.value.push(makeSlot(type))
+    }
+
+    const removeSlot = (id) => {
+      slots.value = slots.value.filter(s => s.id !== id)
+    }
+
+    const moveSlot = (idx, dir) => {
+      const target = idx + dir
+      if (target < 0 || target >= slots.value.length) return
+      const arr = [...slots.value]
+      ;[arr[idx], arr[target]] = [arr[target], arr[idx]]
+      slots.value = arr
     }
 
     const copyPassword = async () => {
-      if (!password.value) {
-        showNotification('No passphrase to copy', 'error')
-        return
-      }
-
+      if (!password.value) { showNotification('No passphrase to copy', 'error'); return }
       try {
         await navigator.clipboard.writeText(password.value)
         showNotification('Passphrase copied to clipboard!', 'success')
-      } catch (err) {
-        showNotification('Failed to copy passphrase', 'error')
-      }
+      } catch { showNotification('Failed to copy passphrase', 'error') }
     }
 
     const showNotification = (message, type = 'success') => {
       notification.value = { show: true, message, type }
-      setTimeout(() => {
-        notification.value.show = false
-      }, 3000)
+      setTimeout(() => { notification.value.show = false }, 3000)
     }
 
     onMounted(async () => {
-      await loadWordLists()
+      await loadWordData()
       generatePassword()
     })
 
     return {
-      includeAdjective,
-      includeNoun,
-      includeVerb,
-      separator,
-      customSeparator,
+      slots,
+      slotTypes: SLOT_TYPES,
+      categoryMeta: CATEGORY_META,
+      addSlot, removeSlot, moveSlot,
+      separator, customSeparator,
       capitalization,
-      prefixMode,
-      prefixCustom,
-      suffixMode,
-      suffixCustom,
-      password,
-      notification,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      password, notification,
       separatorOptions: SEPARATOR_OPTIONS,
-      generatePassword,
-      copyPassword
+      generatePassword, copyPassword
     }
   },
   components: { AffixPicker },
   template: `
     <div class="password-generator">
+
       <div class="card">
-        <div class="card-header">Sentence Structure</div>
-        <div class="checkbox-group">
-          <label class="checkbox-item">
-            <input v-model="includeAdjective" type="checkbox" class="checkbox" />
-            <span>Include Adjective</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="includeNoun" type="checkbox" class="checkbox" />
-            <span>Include Noun</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="includeVerb" type="checkbox" class="checkbox" />
-            <span>Include Verb</span>
-          </label>
+        <div class="card-header">Word Slots</div>
+
+        <div class="slot-add-row">
+          <span class="slot-add-label">Add:</span>
+          <button
+            v-for="t in slotTypes"
+            :key="t.type"
+            class="slot-add-btn"
+            :class="t.color"
+            @click="addSlot(t.type)"
+            :disabled="slots.length >= 8"
+          >+ {{ t.label }}</button>
+        </div>
+
+        <div class="slot-tray" v-if="slots.length > 0">
+          <div
+            v-for="(slot, idx) in slots"
+            :key="slot.id"
+            class="slot-pill"
+            :class="'slot-' + slot.type"
+          >
+            <span class="slot-pill-label">{{ slot.type }}</span>
+            <div class="slot-pill-actions">
+              <button class="slot-arrow" @click="moveSlot(idx, -1)" :disabled="idx === 0" title="Move left">&#8592;</button>
+              <button class="slot-arrow" @click="moveSlot(idx, 1)" :disabled="idx === slots.length - 1" title="Move right">&#8594;</button>
+              <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
+            </div>
+            <select class="slot-cat-select" v-model="slot.cat">
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+            </select>
+          </div>
+        </div>
+
+        <div v-else class="slot-empty">
+          Add word slots above to build your passphrase structure.
         </div>
       </div>
 
@@ -1069,17 +1112,12 @@ const Passphrase = {
         <div class="card-header">Word Separator</div>
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
-            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
+            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
             <span>{{ opt.label }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
-          <input
-            v-model="customSeparator"
-            type="text"
-            class="form-input"
-            placeholder="Type your separator"
-          />
+          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
       </div>
 
@@ -1135,9 +1173,7 @@ const Passphrase = {
       </div>
 
       <div class="card">
-        <button @click="generatePassword" class="btn btn-primary">
-          Generate Passphrase
-        </button>
+        <button @click="generatePassword" class="btn btn-primary">Generate Passphrase</button>
       </div>
 
       <div class="password-display">
@@ -1148,9 +1184,278 @@ const Passphrase = {
           class="form-input password-input"
           placeholder="Generated passphrase will appear here..."
         />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          📋
-        </button>
+        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
+      </div>
+
+      <div v-if="notification.show" :class="['notification', notification.type]">
+        {{ notification.message }}
+      </div>
+    </div>
+  `
+}
+
+// Mad Lib Password Component
+const MADLIB_TEMPLATES = [
+  { id: 'hero',      label: 'The Hero',       template: 'The {adj} {noun} {adv} {verb} the {adj} {noun}' },
+  { id: 'villain',   label: 'The Villain',    template: 'A {adj} {noun} {adv} {verb} every {noun}' },
+  { id: 'quest',     label: 'The Quest',      template: '{noun} {adv} {verb} beyond the {adj} {noun}' },
+  { id: 'science',   label: 'Science!',       template: 'The {adj} {noun} {adv} {verb} any {noun}' },
+  { id: 'proverb',   label: 'Wise Proverb',   template: 'A {adj} {noun} {adv} {verb} alone' },
+  { id: 'news',      label: 'Breaking News',  template: '{adj} {noun} {adv} {verb} the {noun}' },
+  { id: 'haiku',     label: 'Haiku-ish',      template: '{adj} {noun} {adv} {verb}' },
+  { id: 'epic',      label: 'Epic Tale',      template: '{noun} and {noun} {adv} {verb} the {adj} world' },
+  { id: 'mystery',   label: 'Mystery',        template: 'A {noun} {adv} {verb} the {adj} {noun}' },
+  { id: 'romance',   label: 'Romance',        template: 'The {adj} {noun} {adv} {verb} a {adj} {noun}' },
+  { id: 'scifi',     label: 'Sci-Fi',         template: '{adj} {noun} {adv} {verb} every {noun}' },
+  { id: 'fable',     label: 'Fable',          template: 'Once the {adj} {noun} {adv} {verb} alone' },
+]
+
+const MadLib = {
+  name: 'MadLib',
+  setup() {
+    const templateId = ref('hero')
+    // One entry per token occurrence: { type, cat }
+    const slotCats = ref([])
+
+    const rebuildSlotCats = (newId, oldSlotCats) => {
+      const tmpl = MADLIB_TEMPLATES.find(t => t.id === newId)
+      if (!tmpl) return []
+      const tokens = [...tmpl.template.matchAll(/\{(adj|adv|noun|verb)\}/g)].map(m => m[1])
+      // count occurrences per type so we can track "adj #1" vs "adj #2"
+      const typeCount = {}
+      return tokens.map(type => {
+        typeCount[type] = (typeCount[type] || 0) + 1
+        const prev = oldSlotCats.find(s => s.type === type && s.occurrence === typeCount[type])
+        return { type, occurrence: typeCount[type], cat: prev?.cat ?? 'random' }
+      })
+    }
+
+    // Derived: unique (type, occurrence) entries — same as slotCats but with extra
+    // display info (showOrdinal: true when that type has > 1 occurrence in template)
+    const slotCatRows = computed(() => {
+      const typeTotals = {}
+      slotCats.value.forEach(s => { typeTotals[s.type] = (typeTotals[s.type] || 0) + 1 })
+      return slotCats.value.map(s => ({ ...s, showOrdinal: typeTotals[s.type] > 1 }))
+    })
+
+    const separator = ref('-')
+    const customSeparator = ref('')
+    const capitalization = ref('title')
+    const prefixMode = ref('')
+    const prefixCustom = ref('')
+    const suffixMode = ref('')
+    const suffixCustom = ref('')
+    const password = ref('')
+    const preview = ref('')
+    const notification = ref({ show: false, message: '', type: 'success' })
+    const wordData = ref({})
+
+    const loadWordData = async () => {
+      try {
+        const res = await fetch('./data/words.json')
+        wordData.value = await res.json()
+      } catch { console.error('Failed to load word data') }
+    }
+
+    const pickFrom = (type, catId) => {
+      const typeCats = wordData.value[type]
+      if (!typeCats) return type
+      const pool = catId === 'random' ? Object.values(typeCats).flat() : (typeCats[catId] || Object.values(typeCats).flat())
+      return pool[Math.floor(Math.random() * pool.length)] || ''
+    }
+
+    const generatePassword = () => {
+      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
+      if (!tmpl) return
+
+      const typeOccurrence = {}
+      let wordIndex = 0
+      const filled = tmpl.template.replace(/\{(adj|adv|noun|verb)\}/g, (_, type) => {
+        typeOccurrence[type] = (typeOccurrence[type] || 0) + 1
+        const slotEntry = slotCats.value.find(s => s.type === type && s.occurrence === typeOccurrence[type])
+        const raw = pickFrom(type, slotEntry?.cat ?? 'random')
+        const capped = applyCapitalization(raw, capitalization.value, wordIndex++)
+        return capped
+      })
+
+      preview.value = filled
+
+      const sep = resolveToken(separator.value, customSeparator.value)
+      const words = filled.split(/\s+/).filter(Boolean)
+      const pre = resolveToken(prefixMode.value, prefixCustom.value)
+      const suf = resolveToken(suffixMode.value, suffixCustom.value)
+      password.value = pre + words.join(sep) + suf
+    }
+
+    const copyPassword = async () => {
+      if (!password.value) { showNotification('No password to copy', 'error'); return }
+      try {
+        await navigator.clipboard.writeText(password.value)
+        showNotification('Password copied to clipboard!', 'success')
+      } catch { showNotification('Failed to copy password', 'error') }
+    }
+
+    const showNotification = (message, type = 'success') => {
+      notification.value = { show: true, message, type }
+      setTimeout(() => { notification.value.show = false }, 3000)
+    }
+
+    watch(templateId, (newId) => {
+      slotCats.value = rebuildSlotCats(newId, slotCats.value)
+      generatePassword()
+    })
+
+    onMounted(async () => {
+      await loadWordData()
+      slotCats.value = rebuildSlotCats(templateId.value, [])
+      generatePassword()
+    })
+
+    return {
+      templateId,
+      templates: MADLIB_TEMPLATES,
+      slotCats,
+      slotCatRows,
+      categoryMeta: CATEGORY_META,
+      separator, customSeparator,
+      capitalization,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      password, preview, notification,
+      separatorOptions: SEPARATOR_OPTIONS,
+      generatePassword, copyPassword,
+    }
+  },
+  components: { AffixPicker },
+  template: `
+    <div class="password-generator">
+
+      <div class="card">
+        <div class="card-header">Template</div>
+        <div class="separator-grid">
+          <label
+            v-for="t in templates"
+            :key="t.id"
+            class="sep-option"
+            :class="{ active: templateId === t.id }"
+          >
+            <input v-model="templateId" :value="t.id" type="radio" class="sr-only" @change="generatePassword" />
+            <span>{{ t.label }}</span>
+          </label>
+        </div>
+        <div class="madlib-template-preview">
+          <span
+            v-for="(token, i) in templates.find(t => t.id === templateId)?.template.split(/(\{[^}]+\})/)"
+            :key="i"
+            :class="token.match(/^\{(adj|adv|noun|verb)\}$/) ? ('madlib-token slot-' + token.slice(1,-1)) : 'madlib-literal'"
+          >{{ token.match(/^\{(adj|adv|noun|verb)\}$/) ? token.slice(1,-1) : token }}</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Word Categories</div>
+        <div class="word-cats">
+          <div v-for="(slot, idx) in slotCatRows" :key="idx" class="word-cat-row">
+            <div class="word-cat-label" :class="'wc-label-' + slot.type">
+              {{ slot.type }}<span v-if="slot.showOrdinal" class="wc-ordinal">&nbsp;{{ slot.occurrence }}</span>
+            </div>
+            <div class="separator-grid">
+              <label
+                v-for="opt in categoryMeta[slot.type]"
+                :key="opt.id"
+                class="sep-option"
+                :class="{ active: slotCats[idx].cat === opt.id }"
+              >
+                <input v-model="slotCats[idx].cat" :value="opt.id" type="radio" class="sr-only" />
+                <span>{{ opt.label }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Word Separator</div>
+        <div class="separator-grid">
+          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
+            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
+            <span>{{ opt.label }}</span>
+          </label>
+        </div>
+        <div v-if="separator === 'custom'" class="custom-sep-row">
+          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Capitalization</div>
+        <div class="separator-grid">
+          <label class="sep-option" :class="{ active: capitalization === 'title' }">
+            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
+            <span>Title Case</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'none' }">
+            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
+            <span>lowercase</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
+            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
+            <span>UPPERCASE</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'random' }">
+            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
+            <span>rAnDoM letters</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
+            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
+            <span>WORD word WORD word</span>
+          </label>
+          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
+            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
+            <span>WORD word IS random</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">Prefix &amp; Suffix</div>
+        <div class="affix-pair">
+          <AffixPicker
+            label="Prefix"
+            :modelValue="prefixMode"
+            :customValue="prefixCustom"
+            @update:modelValue="prefixMode = $event"
+            @update:customValue="prefixCustom = $event"
+          />
+          <div class="affix-divider"></div>
+          <AffixPicker
+            label="Suffix"
+            :modelValue="suffixMode"
+            :customValue="suffixCustom"
+            @update:modelValue="suffixMode = $event"
+            @update:customValue="suffixCustom = $event"
+          />
+        </div>
+      </div>
+
+      <div class="card">
+        <button @click="generatePassword" class="btn btn-primary">Generate Mad Lib</button>
+      </div>
+
+      <div v-if="preview" class="madlib-preview-card">
+        <div class="madlib-preview-label">Readable phrase</div>
+        <div class="madlib-preview-phrase">{{ preview }}</div>
+      </div>
+
+      <div class="password-display">
+        <input
+          v-model="password"
+          type="text"
+          readonly
+          class="form-input password-input"
+          placeholder="Generated password will appear here..."
+        />
+        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
@@ -1170,7 +1475,8 @@ const App = {
       { id: 2, name: 'Advanced', component: AdvancedPassword },
       { id: 3, name: 'Words', component: WordsPassword },
       { id: 4, name: 'Numbers', component: NumbersPassword },
-      { id: 5, name: 'Passphrase', component: Passphrase }
+      { id: 5, name: 'Passphrase', component: Passphrase },
+      { id: 6, name: 'Mad Lib', component: MadLib }
     ]
 
     return {
