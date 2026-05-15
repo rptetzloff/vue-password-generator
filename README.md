@@ -14,7 +14,7 @@ A modern, secure password generator built with Vue 3 and Vite. Generate highly c
 Quick password generation with toggles for lowercase, uppercase, numbers, and symbols. Set a length and go.
 
 ### Advanced
-Fine-grained control over minimum and maximum character counts per type, plus a configurable custom symbol set.
+Fine-grained control over minimum and maximum character counts per type, plus a configurable custom symbol set. The symbol picker includes **All**, **Common** (`!@#$%&*-_+=?`), and **None** presets alongside individual symbol toggles.
 
 ### Words
 Dictionary-based passwords built from a curated word list. Choose word count, separator, and capitalization scheme. Separator options include hyphens, underscores, dots, numbers, spaces, and custom characters.
