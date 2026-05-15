@@ -45,7 +45,7 @@ All modes support:
 
 All configuration preferences are automatically saved to `localStorage` and restored on your next visit. This includes password length, character type selections, separators, capitalization, prefix/suffix options, and custom symbol sets across all six modes.
 
-Generated passwords are never saved — only your settings are persisted.
+Each tab keeps a **generation history** of your last 10 passwords (shown below the output field). History is stored in `localStorage` and persists across page refreshes — but it is local to your browser only and is never transmitted anywhere. Clearing your browser's site data will erase it.
 
 ---
 
@@ -53,7 +53,7 @@ Generated passwords are never saved — only your settings are persisted.
 
 - **Client-side only** — all generation happens in your browser; nothing is transmitted
 - **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
-- **Passwords never stored** — generated passwords are not saved, logged, or cached
+- **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only
 - **Open source** — inspect the code yourself
 

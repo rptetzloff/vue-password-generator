@@ -1811,7 +1811,7 @@ const App = {
           <h1 class="title">🔐 Password Generator</h1>
           <p class="subtitle">Generate secure passwords with multiple customization options</p>
           <div style="background: rgba(255, 255, 255, 0.1); padding: 0.75rem 1rem; border-radius: 6px; margin-top: 1rem; font-size: 0.9rem; border: 1px solid rgba(255, 255, 255, 0.2);">
-            🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser. Passwords are never saved or transmitted — your settings are stored only in your browser's local storage.
+            🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. Your settings and generation history are stored only in your browser's local storage — history is session-local and cleared when you clear your browser data.
           </div>
         </div>
       </header>
