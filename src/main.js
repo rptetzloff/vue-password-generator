@@ -120,6 +120,30 @@ const applyCapitalization = (word, mode, index = 0) => {
   }
 }
 
+const LEET_MAP = [
+  { char: 'a', sub: '@',  label: 'a → @'  },
+  { char: 'e', sub: '3',  label: 'e → 3'  },
+  { char: 'i', sub: '1',  label: 'i → 1'  },
+  { char: 'o', sub: '0',  label: 'o → 0'  },
+  { char: 's', sub: '$',  label: 's → $'  },
+  { char: 't', sub: '+',  label: 't → +'  },
+  { char: 'l', sub: '!',  label: 'l → !'  },
+  { char: 'b', sub: '8',  label: 'b → 8'  },
+  { char: 'g', sub: '9',  label: 'g → 9'  },
+  { char: 'z', sub: '2',  label: 'z → 2'  },
+]
+
+const applyLeet = (str, activeSubs) => {
+  if (!activeSubs || activeSubs.size === 0) return str
+  return str.split('').map(c => {
+    const entry = LEET_MAP.find(m => m.char === c.toLowerCase())
+    if (entry && activeSubs.has(entry.char)) {
+      return c === c.toUpperCase() ? entry.sub.toUpperCase?.() ?? entry.sub : entry.sub
+    }
+    return c
+  }).join('')
+}
+
 const useNotification = () => {
   const notification = ref({ show: false, message: '', type: 'success' })
   const showNotification = (message, type = 'success') => {
@@ -618,6 +642,15 @@ const WordsPassword = {
     const prefixCustom = persistedRef('words.prefixCustom', '')
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
+    const activeLeet = persistedRef('words.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
@@ -650,7 +683,8 @@ const WordsPassword = {
       const words = rawWords.map((raw, i) => applyCapitalization(raw, capitalization.value, i))
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      password.value = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
+      const raw = pre + words.join(resolveToken(separator.value, customSeparator.value)) + suf
+      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
     }
 
     onMounted(async () => {
@@ -667,6 +701,11 @@ const WordsPassword = {
       prefixCustom,
       suffixMode,
       suffixCustom,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
       password,
       copied,
       preview,
@@ -761,6 +800,28 @@ const WordsPassword = {
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
         </div>
       </div>
 
@@ -1037,6 +1098,15 @@ const Passphrase = {
     const prefixCustom = persistedRef('phrase.prefixCustom', '')
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
+    const activeLeet = persistedRef('phrase.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
@@ -1069,7 +1139,8 @@ const Passphrase = {
       const sep = resolveToken(separator.value, customSeparator.value)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      password.value = pre + words.join(sep) + suf
+      const raw = pre + words.join(sep) + suf
+      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
     }
 
     const addSlot = (type) => {
@@ -1103,6 +1174,11 @@ const Passphrase = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
       password, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1218,6 +1294,28 @@ const Passphrase = {
       </div>
 
       <div class="card">
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <button @click="generatePassword" class="btn btn-primary">Generate Passphrase</button>
       </div>
 
@@ -1298,6 +1396,15 @@ const MadLib = {
     const prefixCustom = persistedRef('madlib.prefixCustom', '')
     const suffixMode = persistedRef('madlib.suffixMode', '')
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
+    const activeLeet = persistedRef('madlib.activeLeet', new Set())
+    const toggleLeet = (char) => {
+      const next = new Set(activeLeet.value)
+      if (next.has(char)) next.delete(char)
+      else next.add(char)
+      activeLeet.value = next
+    }
+    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
+    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const preview = ref('')
     const { copied, notification, copyPassword } = useCopyPassword(password)
@@ -1337,7 +1444,8 @@ const MadLib = {
       const words = filled.split(/\s+/).filter(Boolean)
       const pre = resolveToken(prefixMode.value, prefixCustom.value)
       const suf = resolveSuffixToken(suffixMode.value, suffixCustom.value, pre)
-      password.value = pre + words.join(sep) + suf
+      const raw = pre + words.join(sep) + suf
+      password.value = activeLeet.value.size > 0 ? applyLeet(raw, activeLeet.value) : raw
     }
 
     watch(templateId, (newId) => {
@@ -1361,6 +1469,11 @@ const MadLib = {
       capitalization,
       prefixMode, prefixCustom,
       suffixMode, suffixCustom,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
       password, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1481,6 +1594,28 @@ const MadLib = {
       </div>
 
       <div class="card">
+        <div class="form-group">
+          <div class="symbol-chips-header">
+            <label class="form-label">Leet Speak Substitutions</label>
+            <div class="symbol-chips-actions">
+              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
+              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
+            </div>
+          </div>
+          <div class="symbol-chips">
+            <button
+              v-for="entry in leetMap"
+              :key="entry.char"
+              type="button"
+              class="symbol-chip leet-chip"
+              :class="{ active: activeLeet.has(entry.char) }"
+              @click="toggleLeet(entry.char)"
+            >{{ entry.label }}</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <button @click="generatePassword" class="btn btn-primary">Generate Mad Lib</button>
       </div>
 
@@ -1521,12 +1656,12 @@ const App = {
   setup() {
     const activeTab = ref(0)
     const tabs = [
-      { id: 1, name: 'Simple', component: SimplePassword },
-      { id: 2, name: 'Advanced', component: AdvancedPassword },
-      { id: 3, name: 'Words', component: WordsPassword },
-      { id: 4, name: 'Numbers', component: NumbersPassword },
-      { id: 5, name: 'Passphrase', component: Passphrase },
-      { id: 6, name: 'Mad Lib', component: MadLib }
+      { id: 1, name: 'Simple',     component: SimplePassword },
+      { id: 2, name: 'Advanced',   component: AdvancedPassword },
+      { id: 3, name: 'Words',      component: WordsPassword },
+      { id: 4, name: 'Passphrase', component: Passphrase },
+      { id: 5, name: 'Mad Lib',    component: MadLib },
+      { id: 6, name: 'Numbers',    component: NumbersPassword },
     ]
 
     return {
