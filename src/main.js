@@ -282,17 +282,19 @@ const SimplePassword = {
         </button>
       </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
-          <span class="mdi mdi-content-copy"></span>
-        </button>
+      <div class="card">
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+            <span class="mdi mdi-content-copy"></span>
+          </button>
+        </div>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">
@@ -1541,20 +1543,24 @@ const MadLib = {
         <button @click="generatePassword" class="btn btn-primary">Generate Mad Lib</button>
       </div>
 
-      <div v-if="preview" class="madlib-preview-card">
-        <div class="madlib-preview-label">Readable phrase</div>
-        <div class="madlib-preview-phrase">{{ preview }}</div>
-      </div>
+      <div class="card">
+        <div v-if="preview" class="madlib-preview-card">
+          <div class="madlib-preview-label">Readable phrase</div>
+          <div class="madlib-preview-phrase">{{ preview }}</div>
+        </div>
 
-      <div class="password-display">
-        <input
-          v-model="password"
-          type="text"
-          readonly
-          class="form-input password-input"
-          placeholder="Generated password will appear here..."
-        />
-        <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">&#128203;</button>
+        <div class="password-display">
+          <input
+            v-model="password"
+            type="text"
+            readonly
+            class="form-input password-input"
+            placeholder="Generated password will appear here..."
+          />
+          <button @click="copyPassword" class="copy-btn" title="Copy to clipboard">
+            <span class="mdi mdi-content-copy"></span>
+          </button>
+        </div>
       </div>
 
       <div v-if="notification.show" :class="['notification', notification.type]">

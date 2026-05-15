@@ -396,7 +396,7 @@ body {
 /* Password display */
 .password-display {
   position: relative;
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 .password-input {
@@ -543,7 +543,7 @@ body {
   border-left: 3px solid var(--primary);
   border-radius: 8px;
   padding: 0.9rem 1rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .madlib-preview-label {
