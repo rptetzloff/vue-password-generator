@@ -287,14 +287,19 @@ const AdvancedPassword = {
     }
 
     const generatePassword = () => {
+      if (passwordLength.value === 0) {
+        password.value = ''
+        return
+      }
+
       const minTotal = lowerCase.value[0] + upperCase.value[0] + digits.value[0] + specialChars.value[0]
       const maxTotal = lowerCase.value[1] + upperCase.value[1] + digits.value[1] + specialChars.value[1]
-      
+
       if (minTotal > passwordLength.value) {
         showNotification('Minimum character requirements exceed password length', 'error')
         return
       }
-      
+
       if (maxTotal < passwordLength.value) {
         showNotification('Maximum character limits are less than password length', 'error')
         return
