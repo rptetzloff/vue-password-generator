@@ -17,19 +17,19 @@ Quick password generation with toggles for lowercase, uppercase, numbers, and sy
 Fine-grained control over minimum and maximum character counts per type, plus a configurable custom symbol set. The symbol picker includes **All**, **Common** (`!@#$%&*-_+=?`), and **None** presets alongside individual symbol toggles.
 
 ### Words
-Dictionary-based passwords built from a curated word list. Choose word count, separator, and capitalization scheme. Separator options include hyphens, underscores, dots, numbers, spaces, and custom characters.
+Dictionary-based passwords built from a 7,776-word EFF wordlist. Choose word count (2–8), separator, and capitalization scheme. Separator options include hyphens, underscores, dots, numbers, spaces, and custom characters. A **character count pill** next to the copy button shows the total length of the generated password at a glance.
 
 ### Numbers
 Numeric passwords with configurable length, plus controls to limit repeated and sequential digits.
 
 ### Passphrase
-Slot-based passphrase builder. Add adjective, adverb, noun, and verb slots in any order to construct a custom grammatical structure. Each slot has independent category selection (e.g. Animals, Colors, Mood, Manner).
+Slot-based passphrase builder. Add adjective, adverb, noun, and verb slots in any order to construct a custom grammatical structure. Each slot has independent category selection (e.g. Animals, Colors, Mood, Manner). A **character count pill** shows the total password length.
 
 ### Wireless
-WiFi-optimized passphrase generator. Uses the same slot-based word engine as Passphrase but defaults to Adj + Noun, Title Case, hyphen separator, and a 2-digit numeric suffix — producing memorable, router-friendly passwords like `Crimson-River42`. Includes an **Alliteration** toggle that constrains all word slots to begin with the same letter, picking a shared letter that exists across all active slot categories. All generated passwords are guaranteed to be at least **8 characters**; the generator retries automatically if a result falls short.
+WiFi-optimized passphrase generator. Uses the same slot-based word engine as Passphrase but defaults to Adj + Noun, Title Case, hyphen separator, and a 2-digit numeric suffix — producing memorable, router-friendly passwords like `Crimson-River42`. Includes an **Alliteration** toggle that constrains all word slots to begin with the same letter, picking a shared letter that exists across all active slot categories. All generated passwords are guaranteed to be at least **8 characters**; the generator retries automatically if a result falls short. A **character count pill** shows the total password length.
 
 ### Mad Lib
-Template-based sentence passwords. Choose from 12 narrative templates (Hero, Villain, Quest, Sci-Fi, etc.). Each word slot in the template — adjective, adverb, noun, verb — gets its own category picker. Templates with multiple occurrences of the same part of speech (e.g. two nouns) show numbered rows so each can be controlled independently. The readable phrase is shown alongside the final joined password.
+Template-based sentence passwords. Choose from 12 narrative templates (Hero, Villain, Quest, Sci-Fi, etc.). Each word slot in the template — adjective, adverb, noun, verb — gets its own category picker. Templates with multiple occurrences of the same part of speech (e.g. two nouns) show numbered rows so each can be controlled independently. The readable phrase is shown alongside the final joined password. A **character count pill** shows the total password length.
 
 ---
 
@@ -46,7 +46,7 @@ All modes support:
 
 ## Settings Persistence
 
-All configuration preferences are automatically saved to `localStorage` and restored on your next visit. This includes password length, character type selections, separators, capitalization, prefix/suffix options, and custom symbol sets across all six modes.
+All configuration preferences are automatically saved to `localStorage` and restored on your next visit. This includes password length, character type selections, separators, capitalization, prefix/suffix options, and custom symbol sets across all seven modes.
 
 The **last active tab** is also persisted — returning to the app opens whichever generator you had open last.
 
@@ -113,7 +113,7 @@ For any other static host, build with `npm run build` and serve the `dist/` fold
 vue-password-generator/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
-│   └── wordlist.txt      # General wordlist for Words mode
+│   └── wordlist.txt      # EFF large wordlist for Words mode (7,776 words)
 ├── src/
 │   ├── main.js           # All Vue components (Composition API, CDN)
 │   └── style.css         # Design system and component styles
@@ -135,7 +135,7 @@ vue-password-generator/
 |---|---|
 | `SimplePassword` | Basic character-type selection |
 | `AdvancedPassword` | Per-type min/max character counts |
-| `WordsPassword` | Dictionary word-based generation |
+| `WordsPassword` | EFF wordlist-based generation |
 | `NumbersPassword` | Numeric passwords with sequence controls |
 | `Passphrase` | Custom slot-order passphrase builder |
 | `WifiWords` | WiFi-optimized passphrase with alliteration mode |
@@ -152,12 +152,14 @@ import { createApp, ref, computed, watch, onMounted } from
 
 ### Word Data
 
-`words.json` organizes words by part of speech and category:
+`words.json` organizes ~2,400 curated words by part of speech and category:
 
-- **adj** — Animals, Colors, Nature, Mood, Size, Texture
+- **noun** — Animals, Vehicles, Food, Places, Nature, Tech, Jobs
+- **adj** — Colors, Size, Texture, Mood, Weather, Time
 - **adv** — Manner, Intensity, Time, Place
-- **noun** — Animals, Vehicles, Nature, Objects, Food, Places
-- **verb** — Motion, Creation, Communication, Perception, Existence, Change
+- **verb** — Movement, Action, Nature, Cognition
+
+`wordlist.txt` is the EFF large wordlist (7,776 words, lengths 3–9), used exclusively by the Words mode for high-entropy dictionary passwords.
 
 ---
 
@@ -191,7 +193,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — passphrase inspiration
+- [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — used for Words mode
 - [XKCD #936](https://xkcd.com/936/) — "correct horse battery staple"
 - [Vue.js](https://vuejs.org/), [Vite](https://vitejs.dev/)
 - [Render](https://render.com/) — hosting
