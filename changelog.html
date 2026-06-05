@@ -388,6 +388,43 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.5.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.5.0</div>
+            <div class="release-date">2026-06-05</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Expanded word lists &amp; character count pill</div>
+                <div class="release-summary">Grew the categorized word vocabulary from ~240 to 2,400+ words across all 20 categories, and added a character-count badge to the output field in all word-based generators.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Character count pill</strong> — a small rounded badge appears inside the password output field (left of the copy button) showing the total character length of the generated password. Displayed in Passphrase, Wireless, Mad Lib, and Words modes. Hidden when the field is empty.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>Word vocabulary — 10× expansion</strong> — <code>words.json</code> grew from ~30 words per category to 80–220+ per category, totalling 2,400+ curated words across all 20 categories (7 noun, 6 adjective, 4 adverb, 4 verb). Reduces repetition across generated passwords and significantly improves alliteration mode coverage, which now finds valid shared letters for a much wider range of slot combinations.</li>
+                    <li><strong>Noun categories</strong> — Animals (220+), Vehicles (110+), Food (190+), Places (126+), Nature (134+), Tech (131+), Jobs (135+).</li>
+                    <li><strong>Adjective categories</strong> — Colors (130+), Size (100+), Texture (117+), Mood (129+), Weather (104+), Time (87+).</li>
+                    <li><strong>Adverb categories</strong> — Manner (129+), Intensity (80+), Time (69+), Place (60+).</li>
+                    <li><strong>Verb categories</strong> — Movement (96+), Action (119+), Nature (84+), Cognition (82+).</li>
+                    <li><strong>README updated</strong> — corrected mode count, word category names, and word counts to match the current codebase. Added character count pill documentation.</li>
+                    <li><strong>Docs updated</strong> — added character count pill entries to Words, Passphrase, Wireless, and Mad Lib sections; corrected shared separator section to include Wireless; added word count note to Passphrase category table.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.4.1 -->
         <div class="release">
           <div class="release-meta">

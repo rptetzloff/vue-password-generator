@@ -877,6 +877,17 @@
               </div>
             </div>
 
+            <div class="option-group">
+              <div class="option-group-label">Character count pill</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  Once a password is generated, a small <strong>pill badge</strong> appears inside the output field
+                  to the left of the copy button, showing the total character count of the password at a glance.
+                  The pill is hidden when the field is empty.
+                </div>
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -931,6 +942,8 @@
                     </tbody>
                   </table>
                   <br>
+                  Each category draws from a curated list of ~100–220 words per category (2,400+ words total across all categories). The word pool is large enough that repeated words are rare even across many generations.
+                  <br>
                   Slots can be added, removed, and reordered with the arrow buttons. The default structure is <strong>Adj + Noun + Verb</strong>.
                 </div>
               </div>
@@ -957,6 +970,10 @@
               <div class="option-row">
                 <div class="option-name">Word pills &amp; lock</div>
                 <div class="option-desc">Same as in <a href="#words" style="color:var(--primary);">Words</a>. Each word pill is color-coded to its slot type.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Character count pill</div>
+                <div class="option-desc">A badge inside the output field shows the total character length of the generated passphrase. Hidden when the field is empty.</div>
               </div>
             </div>
 
@@ -1050,6 +1067,10 @@
                 <div class="option-name">Word pills &amp; lock</div>
                 <div class="option-desc">Each generated word appears as a clickable pill. The lock icon freezes prefix/separator/suffix while swapping words. When alliteration is on, swapped words are drawn from the same letter-filtered pool.</div>
               </div>
+              <div class="option-row">
+                <div class="option-name">Character count pill</div>
+                <div class="option-desc">A badge inside the output field shows the total character length of the generated password. Hidden when the field is empty.</div>
+              </div>
             </div>
 
           </div>
@@ -1140,6 +1161,10 @@
                 <div class="option-name">Word pills &amp; lock</div>
                 <div class="option-desc">Same as in <a href="#words" style="color:var(--primary);">Words</a>. Only token words appear as pills; literal template words are not swappable.</div>
               </div>
+              <div class="option-row">
+                <div class="option-name">Character count pill</div>
+                <div class="option-desc">A badge inside the output field shows the total character length of the generated password. Hidden when the field is empty.</div>
+              </div>
             </div>
 
           </div>
@@ -1206,7 +1231,7 @@
             <div id="shared-separator">
               <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Word Separator</h3>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
-                Inserted between each word in word-based generators (Words, Passphrase, Mad Lib).
+                Inserted between each word in word-based generators (Words, Passphrase, Wireless, Mad Lib).
               </p>
               <table class="value-table">
                 <thead>
