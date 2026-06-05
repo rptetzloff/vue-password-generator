@@ -989,7 +989,7 @@ const WordsPassword = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             autocomplete="off"
             data-1p-ignore
             data-lpignore="true"
@@ -997,6 +997,7 @@ const WordsPassword = {
             data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
@@ -1549,9 +1550,10 @@ const Passphrase = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             placeholder="Generated passphrase will appear here..."
           />
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
@@ -1927,9 +1929,10 @@ const WifiWords = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             placeholder="Generated WiFi password will appear here..."
           />
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
@@ -2302,7 +2305,7 @@ const MadLib = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             autocomplete="off"
             data-1p-ignore
             data-lpignore="true"
@@ -2310,6 +2313,7 @@ const MadLib = {
             data-keeper-autofill="off"
             placeholder="Generated password will appear here..."
           />
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
