@@ -1837,6 +1837,22 @@ const WifiWords = {
     })
 
     return {
+      slots,
+      slotTypes: SLOT_TYPES,
+      categoryMeta: CATEGORY_META,
+      addSlot, removeSlot, moveSlot,
+      alliterationMode, alliterationLetter,
+      separator, customSeparator,
+      capitalization,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
+      useEmoji,
+      lockAffixes,
       password, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
