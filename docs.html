@@ -620,6 +620,7 @@
           <a class="nav-sub nav-item" href="#shared-affix">Prefix &amp; Suffix</a>
           <a class="nav-sub nav-item" href="#shared-caps">Capitalization</a>
           <a class="nav-sub nav-item" href="#shared-leet">Leet Speak</a>
+          <a class="nav-sub nav-item" href="#shared-emoji">Emoji</a>
           <a class="nav-sub nav-item" href="#shared-history">History</a>
           <a class="nav-sub nav-item" href="#shared-tab">Active Tab</a>
         </nav>
@@ -727,6 +728,11 @@
                 <div class="option-name">Symbols</div>
                 <div class="option-desc">Includes the full symbol set <strong>! # $ % &amp; ( ) * + , - . / : ; &lt; = &gt; ? @ [ ] ^ _ ` { | } ~</strong> when checked. At least one character type must remain selected.</div>
               </div>
+
+              <div class="option-row">
+                <div class="option-name">Emoji</div>
+                <div class="option-desc">When enabled, a single random emoji is appended to the end of the generated password (e.g. <code>mX7!vQ#nR2🌟</code>). Off by default. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for details.</div>
+              </div>
             </div>
 
             <p style="font-size:0.875rem;color:var(--text-secondary);">
@@ -800,6 +806,14 @@
                 the <em>sum of all minimums</em> must not exceed the total length, and the
                 <em>sum of all maximums</em> must not be less than the total length.
                 An error notification is shown if either condition fails.
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Emoji</div>
+              <div class="option-row">
+                <div class="option-name">Emoji</div>
+                <div class="option-desc">When enabled, a single random emoji is appended to the end of the generated password. The emoji count does not factor into the character-type min/max validation. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for details.</div>
               </div>
             </div>
 
@@ -1335,6 +1349,56 @@
               <p style="font-size:0.875rem;color:var(--text-secondary);">
                 <strong>All</strong> activates every substitution. <strong>None</strong> clears all substitutions.
                 Individual chips can be toggled independently. Leet speak is applied last, after capitalization.
+              </p>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- Emoji -->
+            <div id="shared-emoji">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Emoji</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                An optional <strong>Emoji</strong> toggle appears in all seven generator modes. It is <strong>off by default</strong> and persisted independently per generator.
+              </p>
+              <table class="value-table">
+                <thead><tr><th>Generator</th><th>Behavior when on</th></tr></thead>
+                <tbody>
+                  <tr>
+                    <td class="plain">Simple</td>
+                    <td>One random emoji is appended to the end of the generated character string.</td>
+                  </tr>
+                  <tr>
+                    <td class="plain">Advanced</td>
+                    <td>One random emoji is appended to the end of the generated character string. The emoji is added after all min/max validation and does not count toward any character-type limit.</td>
+                  </tr>
+                  <tr>
+                    <td class="plain">Words</td>
+                    <td>Each word gets a random emoji prepended before it (e.g. <code>🌟Flame-🌊River</code>). Drawn from a general-purpose pool.</td>
+                  </tr>
+                  <tr>
+                    <td class="plain">Passphrase</td>
+                    <td>Each word gets a category-matched emoji prepended (e.g. a noun from Animals gets an animal emoji; an adjective from Colors gets a color emoji).</td>
+                  </tr>
+                  <tr>
+                    <td class="plain">Wireless</td>
+                    <td>Same as Passphrase. Emojis respect alliteration mode — words are still filtered by the shared starting letter, and the emoji is drawn from the word's category pool.</td>
+                  </tr>
+                  <tr>
+                    <td class="plain">Mad Lib</td>
+                    <td>Each template token word gets a category-matched emoji prepended. Literal words in the template (e.g. "the", "beyond") are not decorated.</td>
+                  </tr>
+                  <tr>
+                    <td class="plain">Numbers</td>
+                    <td>Not available — emoji is not offered in the Numbers generator.</td>
+                  </tr>
+                </tbody>
+              </table>
+              <br>
+              <p style="font-size:0.875rem;color:var(--text-secondary);">
+                Emojis are drawn using <code>crypto.getRandomValues()</code>-independent random selection from curated per-category pools. The setting is saved to <code>localStorage</code> per generator and restored on your next visit.
+              </p>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:0.5rem;">
+                <strong>Note:</strong> Many authentication systems and websites do not accept emoji characters in passwords. Treat this as a fun option for passphrases stored in a password manager, not for general account passwords.
               </p>
             </div>
 

@@ -289,6 +289,7 @@ const SimplePassword = {
     const upperCase = persistedRef('simple.upperCase', true)
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
+    const useEmoji = persistedRef('simple.useEmoji', false)
     const password = ref('')
     const { history, pushHistory } = useHistory('simple.history')
 
@@ -318,8 +319,8 @@ const SimplePassword = {
         newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
       }
 
-      password.value = newPassword
-      pushHistory(newPassword)
+      password.value = newPassword + (useEmoji.value ? pickEmoji('default') : '')
+      pushHistory(password.value)
     }
 
     onMounted(() => {
@@ -332,6 +333,7 @@ const SimplePassword = {
       upperCase,
       digits,
       specialChars,
+      useEmoji,
       password,
       history,
       copied,
@@ -387,6 +389,16 @@ const SimplePassword = {
       </div>
 
       <div class="card">
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji; generatePassword()" title="Append a random emoji to the password">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="password-display">
           <input
             v-model="password"
@@ -412,8 +424,6 @@ const SimplePassword = {
     </div>
   `
 }
-
-// Advanced Password Generator Component
 const AdvancedPassword = {
   name: 'AdvancedPassword',
   components: { HistoryStrip },
@@ -425,6 +435,7 @@ const AdvancedPassword = {
     const specialChars = persistedRef('adv.specialChars', [1, 20])
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
+    const useEmoji = persistedRef('adv.useEmoji', false)
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -531,8 +542,8 @@ const AdvancedPassword = {
         newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
       }
 
-      password.value = newPassword
-      pushHistory(newPassword)
+      password.value = newPassword + (useEmoji.value ? pickEmoji('default') : '')
+      pushHistory(password.value)
     }
 
     onMounted(() => {
@@ -551,6 +562,7 @@ const AdvancedPassword = {
       selectAllSymbols,
       selectNoSymbols,
       selectCommonSymbols,
+      useEmoji,
       password,
       history,
       copied,
@@ -721,6 +733,16 @@ const AdvancedPassword = {
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
+      </div>
+
+      <div class="card">
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji; generatePassword()" title="Append a random emoji to the password">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
