@@ -1723,10 +1723,12 @@ const WifiWords = {
       const cats = wordData.value[type]
       if (!cats) return type
       let pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      pool = pool.filter(w => typeof w === 'string' && w.length > 0)
       if (forceLetter) {
         const filtered = pool.filter(w => w.charAt(0).toLowerCase() === forceLetter)
         if (filtered.length > 0) pool = filtered
       }
+      if (pool.length === 0) return type
       return pool[Math.floor(Math.random() * pool.length)]
     }
 
@@ -1753,9 +1755,9 @@ const WifiWords = {
 
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
-      preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      preview.value = rawWords.value.map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
       const words = rawWords.value.map((w, i, arr) => {
-        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        const cased = applyCapitalization(w || '', capitalization.value, i, arr.length)
         if (useEmoji.value) {
           const slot = slots.value[i]
           const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
@@ -1835,6 +1837,22 @@ const WifiWords = {
     })
 
     return {
+      slots,
+      slotTypes: SLOT_TYPES,
+      categoryMeta: CATEGORY_META,
+      addSlot, removeSlot, moveSlot,
+      alliterationMode, alliterationLetter,
+      separator, customSeparator,
+      capitalization,
+      prefixMode, prefixCustom,
+      suffixMode, suffixCustom,
+      leetMap: LEET_MAP,
+      activeLeet,
+      toggleLeet,
+      selectAllLeet,
+      selectNoLeet,
+      useEmoji,
+      lockAffixes,
       password, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
