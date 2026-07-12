@@ -390,6 +390,33 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.7.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.7.0</div>
+            <div class="release-date">2026-07-12</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Wireless tab crash &amp; changelog layout fixes</div>
+                <div class="release-summary">Fixed a blank-page crash on the Wireless tab introduced by the v2.6.0 emoji addition, and corrected a changelog list-item alignment issue where inline elements were rendered as separate grid columns.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Wireless — blank page on load</strong> — the WifiWords component's <code>setup()</code> <code>return</code> was missing the reactive state added in v2.6.0 (slots, alliteration, emoji toggle, leet map, affix pickers, capitalization, separator). Vue silently treated those template bindings as <code>undefined</code>, causing a <code>Cannot read properties of undefined (reading 'length')</code> crash that prevented the tab from rendering at all.</li>
+                    <li><strong>Wireless — pool empty crash</strong> — <code>pickFrom</code> could return <code>undefined</code> when a word pool was empty (e.g. an unrecognized category ID), then <code>buildPassword</code> called <code>.charAt()</code> on the result. Pool entries are now filtered to non-empty strings and fall back to the type name; <code>buildPassword</code> also guards against any stale undefined words.</li>
+                    <li><strong>Changelog — list item layout</strong> — <code>display: grid</code> on <code>.change-list li</code> caused each inline child element (<code>&lt;strong&gt;</code>, <code>&lt;em&gt;</code>, <code>&lt;code&gt;</code>, text nodes) to become a separate grid item, splitting sentences across columns. Replaced with <code>position: absolute</code> on the <code>::before</code> bullet so content flows as normal inline text.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.6.0 -->
         <div class="release">
           <div class="release-meta">
