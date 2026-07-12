@@ -137,6 +137,39 @@ const LEET_MAP = [
   { char: 'z', sub: '2',  label: 'z → 2'  },
 ]
 
+const EMOJI_POOLS = {
+  // noun categories
+  Animals:   ['🐶','🐱','🦊','🐻','🐼','🦁','🐯','🦓','🐘','🦒','🐬','🦅','🦋','🐊','🦔','🦦','🐺','🦉','🐙','🦑','🦜','🐸','🦘','🦛','🐆','🐍','🦎','🦚','🐇','🦫'],
+  Vehicles:  ['🚗','🏎️','🚕','🚙','🚌','🚑','🚒','🚓','🚚','🛻','🏍️','🛵','🚲','✈️','🚀','🚁','⛵','🛥️','🚢','🚂','🚜'],
+  Food:      ['🍕','🍔','🌮','🍣','🍜','🍛','🍰','🧁','🍩','🍫','🍭','🍇','🍎','🍊','🍋','🍓','🫐','🥑','🥦','🥕','🍄','🧇','🥞','🍱'],
+  Places:    ['🏔️','🏝️','🏜️','🌋','🏙️','🌆','🏕️','🏯','🗼','🗽','🏛️','⛩️','🌉','🌌','🏟️','🌃','🏖️','🌄'],
+  Nature:    ['🌲','🌿','🍀','🌸','🌺','🌻','🌊','🌈','⛰️','🌙','⭐','☀️','❄️','🌪️','🍁','🌾','🪸','🌵','🌴','🍂','💧','🔥'],
+  Tech:      ['💻','📱','🖥️','⌨️','🖱️','🔭','🔬','💡','🔋','📡','🤖','⚙️','🛠️','🔌','💾','📺','🎮','🕹️'],
+  Jobs:      ['🧑‍⚕️','👩‍💻','👨‍🍳','👩‍🏫','👨‍🔧','👩‍🎨','👨‍🚀','👩‍⚖️','🧑‍🌾','👨‍🎤','🧑‍🚒','👩‍🔬','🧑‍✈️','👩‍🏭'],
+  // adj categories
+  Colors:    ['🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🌈'],
+  Size:      ['🔬','📏','🏔️','🌌','🐘','🌱','🦠','🗿'],
+  Texture:   ['🧊','🪨','🪵','🌊','💎','🧈','🫧','🕸️'],
+  Mood:      ['😊','😢','😡','🤩','😌','😤','🥳','😔','😎','🤗','😴','😱'],
+  Weather:   ['☀️','🌧️','❄️','⛈️','🌫️','🌪️','🌈','⛅','🌤️','🌊','🌬️','⚡'],
+  Time:      ['⏰','🌅','🌙','🌃','🌄','🕛','⌛','📅','🌠','🌒'],
+  // adv categories
+  Manner:    ['💨','🏃','🐢','🎯','💫','✨','🌀','⚡','🦅','🐌'],
+  Intensity: ['🔥','❄️','⚡','💥','🌊','🌪️','✨','💤','🔊','🤫'],
+  Place:     ['🏠','🌍','🏔️','🌊','🏙️','🌌','🌿','⬆️','🌏','🗺️'],
+  // verb categories
+  Movement:  ['🏃','🚀','💨','🌀','⬆️','🔄','🏊','🦅','🛹','🏇'],
+  Action:    ['⚒️','🎯','💪','✂️','🔨','🖊️','🎨','⚡','🧩','🎸'],
+  Cognition: ['🧠','💡','🤔','📚','🔍','💭','🎓','👁️','🌀','✏️'],
+  // Words mode (no category) + fallback
+  default:   ['🌟','✨','💫','🔥','❄️','🌊','⚡','🎯','🎪','🎨','🎭','🎲','🌈','🦋','🌺','🍀','🎸','🎺','🌙','⭐'],
+}
+
+const pickEmoji = (category) => {
+  const pool = EMOJI_POOLS[category] || EMOJI_POOLS.default
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
 const applyLeet = (str, activeSubs) => {
   if (!activeSubs || activeSubs.size === 0) return str
   return str.split('').map(c => {
@@ -256,6 +289,7 @@ const SimplePassword = {
     const upperCase = persistedRef('simple.upperCase', true)
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
+    const useEmoji = persistedRef('simple.useEmoji', false)
     const password = ref('')
     const { history, pushHistory } = useHistory('simple.history')
 
@@ -269,24 +303,32 @@ const SimplePassword = {
     }
 
     const generatePassword = () => {
-      if (!lowerCase.value && !upperCase.value && !digits.value && !specialChars.value) {
+      if (!lowerCase.value && !upperCase.value && !digits.value && !specialChars.value && !useEmoji.value) {
         showNotification('Please select at least one character type', 'error')
         return
       }
 
-      let charset = ''
-      if (lowerCase.value) charset += characterSets.lower
-      if (upperCase.value) charset += characterSets.upper
-      if (digits.value) charset += characterSets.digits
-      if (specialChars.value) charset += characterSets.special
+      const availableTypes = []
+      if (lowerCase.value) availableTypes.push('lower')
+      if (upperCase.value) availableTypes.push('upper')
+      if (digits.value) availableTypes.push('digits')
+      if (specialChars.value) availableTypes.push('special')
+      if (useEmoji.value) availableTypes.push('emoji')
 
       let newPassword = ''
       for (let i = 0; i < passwordLength.value; i++) {
-        newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
+        const type = availableTypes[Math.floor(Math.random() * availableTypes.length)]
+        switch (type) {
+          case 'lower':   newPassword += characterSets.lower.charAt(Math.floor(Math.random() * characterSets.lower.length)); break
+          case 'upper':   newPassword += characterSets.upper.charAt(Math.floor(Math.random() * characterSets.upper.length)); break
+          case 'digits':  newPassword += characterSets.digits.charAt(Math.floor(Math.random() * characterSets.digits.length)); break
+          case 'special': newPassword += characterSets.special.charAt(Math.floor(Math.random() * characterSets.special.length)); break
+          case 'emoji':   newPassword += pickEmoji('default'); break
+        }
       }
 
       password.value = newPassword
-      pushHistory(newPassword)
+      pushHistory(password.value)
     }
 
     onMounted(() => {
@@ -299,6 +341,7 @@ const SimplePassword = {
       upperCase,
       digits,
       specialChars,
+      useEmoji,
       password,
       history,
       copied,
@@ -344,6 +387,10 @@ const SimplePassword = {
             <input v-model="specialChars" type="checkbox" class="checkbox" />
             <span>Symbols (!@#$%^&*)</span>
           </label>
+          <label class="checkbox-item">
+            <input v-model="useEmoji" type="checkbox" class="checkbox" />
+            <span>Emoji 🎲</span>
+          </label>
         </div>
       </div>
 
@@ -379,8 +426,6 @@ const SimplePassword = {
     </div>
   `
 }
-
-// Advanced Password Generator Component
 const AdvancedPassword = {
   name: 'AdvancedPassword',
   components: { HistoryStrip },
@@ -392,6 +437,7 @@ const AdvancedPassword = {
     const specialChars = persistedRef('adv.specialChars', [1, 20])
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
+    const emojiCount = persistedRef('adv.emojiCount', [0, 0])
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -425,8 +471,9 @@ const AdvancedPassword = {
       }
 
       const len = parseInt(passwordLength.value)
-      const minTotal = parseInt(lowerCase.value[0]) + parseInt(upperCase.value[0]) + parseInt(digits.value[0]) + parseInt(specialChars.value[0])
-      const maxTotal = parseInt(lowerCase.value[1]) + parseInt(upperCase.value[1]) + parseInt(digits.value[1]) + parseInt(specialChars.value[1])
+      const emMin = parseInt(emojiCount.value[0]), emMax = parseInt(emojiCount.value[1])
+      const minTotal = parseInt(lowerCase.value[0]) + parseInt(upperCase.value[0]) + parseInt(digits.value[0]) + parseInt(specialChars.value[0]) + emMin
+      const maxTotal = parseInt(lowerCase.value[1]) + parseInt(upperCase.value[1]) + parseInt(digits.value[1]) + parseInt(specialChars.value[1]) + emMax
 
       if (minTotal > len) {
         showNotification('Minimum character requirements exceed password length', 'error')
@@ -443,7 +490,6 @@ const AdvancedPassword = {
       const dgMin = parseInt(digits.value[0]), dgMax = parseInt(digits.value[1])
       const spMin = parseInt(specialChars.value[0]), spMax = parseInt(specialChars.value[1])
 
-      let newPassword = ''
       let charTypes = []
 
       // Add minimum required characters
@@ -451,23 +497,25 @@ const AdvancedPassword = {
       for (let i = 0; i < ucMin; i++) charTypes.push('upper')
       for (let i = 0; i < dgMin; i++) charTypes.push('digits')
       for (let i = 0; i < spMin; i++) charTypes.push('special')
+      for (let i = 0; i < emMin; i++) charTypes.push('emoji')
 
       // Fill remaining slots randomly within limits
       while (charTypes.length < len) {
-        const availableTypes = []
-
         const lowerCount = charTypes.filter(t => t === 'lower').length
         const upperCount = charTypes.filter(t => t === 'upper').length
         const digitCount = charTypes.filter(t => t === 'digits').length
         const specialCount = charTypes.filter(t => t === 'special').length
+        const emojiCountCur = charTypes.filter(t => t === 'emoji').length
 
+        const availableTypes = []
         if (lowerCount < lcMax) availableTypes.push('lower')
         if (upperCount < ucMax) availableTypes.push('upper')
         if (digitCount < dgMax) availableTypes.push('digits')
         if (specialCount < spMax) availableTypes.push('special')
-        
+        if (emojiCountCur < emMax) availableTypes.push('emoji')
+
         if (availableTypes.length === 0) break
-        
+
         const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)]
         charTypes.push(randomType)
       }
@@ -479,27 +527,19 @@ const AdvancedPassword = {
       }
 
       // Generate actual password
+      let newPassword = ''
       for (const type of charTypes) {
-        let charset = ''
         switch (type) {
-          case 'lower':
-            charset = characterSets.lower
-            break
-          case 'upper':
-            charset = characterSets.upper
-            break
-          case 'digits':
-            charset = characterSets.digits
-            break
-          case 'special':
-            charset = customSymbols.value
-            break
+          case 'lower':   newPassword += characterSets.lower.charAt(Math.floor(Math.random() * characterSets.lower.length)); break
+          case 'upper':   newPassword += characterSets.upper.charAt(Math.floor(Math.random() * characterSets.upper.length)); break
+          case 'digits':  newPassword += characterSets.digits.charAt(Math.floor(Math.random() * characterSets.digits.length)); break
+          case 'special':  newPassword += customSymbols.value.charAt(Math.floor(Math.random() * customSymbols.value.length)); break
+          case 'emoji':   newPassword += pickEmoji('default'); break
         }
-        newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
       }
 
       password.value = newPassword
-      pushHistory(newPassword)
+      pushHistory(password.value)
     }
 
     onMounted(() => {
@@ -518,6 +558,7 @@ const AdvancedPassword = {
       selectAllSymbols,
       selectNoSymbols,
       selectCommonSymbols,
+      emojiCount,
       password,
       history,
       copied,
@@ -685,6 +726,36 @@ const AdvancedPassword = {
       </div>
 
       <div class="card">
+        <div class="card-header">Emoji 🎲</div>
+        <div class="slider-container">
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="emojiCount[0] = Math.max(0, emojiCount[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Min: {{ emojiCount[0] }}</span>
+            <button class="stepper-btn" @click="emojiCount[0] = Math.min(passwordLength, emojiCount[0] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
+          <input
+            v-model="emojiCount[0]"
+            type="range"
+            min="0"
+            :max="passwordLength"
+            class="slider"
+          />
+          <input
+            v-model="emojiCount[1]"
+            type="range"
+            min="0"
+            :max="passwordLength"
+            class="slider"
+          />
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="emojiCount[1] = Math.max(0, emojiCount[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Max: {{ emojiCount[1] }}</span>
+            <button class="stepper-btn" @click="emojiCount[1] = Math.min(passwordLength, emojiCount[1] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -731,6 +802,7 @@ const WordsPassword = {
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const activeLeet = persistedRef('words.activeLeet', new Set())
+    const useEmoji = persistedRef('words.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -770,7 +842,10 @@ const WordsPassword = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const words = rawWords.value.map((w, i, arr) => {
+        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        return useEmoji.value ? pickEmoji('default') + cased : cased
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -795,6 +870,8 @@ const WordsPassword = {
       buildPassword(false)
     }
 
+    watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+
     onMounted(async () => {
       await loadWordList()
       generatePassword()
@@ -814,6 +891,7 @@ const WordsPassword = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       password,
       rawWords,
@@ -951,6 +1029,13 @@ const WordsPassword = {
               @click="toggleLeet(entry.char)"
             >{{ entry.label }}</button>
           </div>
+        </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a random emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
         </div>
       </div>
 
@@ -1259,6 +1344,7 @@ const Passphrase = {
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const activeLeet = persistedRef('phrase.activeLeet', new Set())
+    const useEmoji = persistedRef('phrase.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -1303,7 +1389,15 @@ const Passphrase = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const words = rawWords.value.map((w, i, arr) => {
+        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        if (useEmoji.value) {
+          const slot = slots.value[i]
+          const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
+          return pickEmoji(emojiCat) + cased
+        }
+        return cased
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -1344,6 +1438,8 @@ const Passphrase = {
       slots.value = arr
     }
 
+    watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+
     onMounted(async () => {
       await loadWordData()
       generatePassword()
@@ -1363,6 +1459,7 @@ const Passphrase = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       password, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
@@ -1514,6 +1611,13 @@ const Passphrase = {
             >{{ entry.label }}</button>
           </div>
         </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -1584,6 +1688,7 @@ const WifiWords = {
     const suffixMode = persistedRef('wifi.suffixMode', 'r2num')
     const suffixCustom = persistedRef('wifi.suffixCustom', '')
     const activeLeet = persistedRef('wifi.activeLeet', new Set())
+    const useEmoji = persistedRef('wifi.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -1649,7 +1754,15 @@ const WifiWords = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const words = rawWords.value.map((w, i, arr) => {
+        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        if (useEmoji.value) {
+          const slot = slots.value[i]
+          const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
+          return pickEmoji(emojiCat) + cased
+        }
+        return cased
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
@@ -1714,27 +1827,14 @@ const WifiWords = {
       slots.value = arr
     }
 
+    watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+
     onMounted(async () => {
       await loadWordData()
       generatePassword()
     })
 
     return {
-      slots,
-      slotTypes: SLOT_TYPES,
-      categoryMeta: CATEGORY_META,
-      addSlot, removeSlot, moveSlot,
-      separator, customSeparator,
-      capitalization,
-      prefixMode, prefixCustom,
-      suffixMode, suffixCustom,
-      leetMap: LEET_MAP,
-      activeLeet,
-      toggleLeet,
-      selectAllLeet,
-      selectNoLeet,
-      lockAffixes,
-      alliterationMode, alliterationLetter,
       password, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1893,6 +1993,13 @@ const WifiWords = {
             >{{ entry.label }}</button>
           </div>
         </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -1998,6 +2105,7 @@ const MadLib = {
     const suffixMode = persistedRef('madlib.suffixMode', '')
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const activeLeet = persistedRef('madlib.activeLeet', new Set())
+    const useEmoji = persistedRef('madlib.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -2049,7 +2157,16 @@ const MadLib = {
         return applyCapitalization(seg.word, capitalization.value, wordIndex++, totalWords)
       })
       preview.value = filledSegments.join('')
-      const words = preview.value.split(/\s+/).filter(Boolean)
+      const tokenSegs = rawSegments.value.filter(s => s.isToken)
+      const words = filledSegments.filter((_, i) => rawSegments.value[i]?.isToken).map((w, i) => {
+        if (useEmoji.value) {
+          const seg = tokenSegs[i]
+          const slotEntry = slotCats.value.find(s => s.type === seg?.type && s.occurrence === seg?.occurrence)
+          const emojiCat = slotEntry?.cat === 'random' ? (seg?.type || 'default') : (slotEntry?.cat || seg?.type || 'default')
+          return pickEmoji(emojiCat) + w
+        }
+        return w
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -2086,6 +2203,8 @@ const MadLib = {
       generatePassword()
     })
 
+    watch(useEmoji, () => { if (rawSegments.value.length) buildPassword() })
+
     onMounted(async () => {
       await loadWordData()
       slotCats.value = rebuildSlotCats(templateId.value, slotCats.value)
@@ -2107,6 +2226,7 @@ const MadLib = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       password, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
@@ -2262,6 +2382,13 @@ const MadLib = {
               @click="toggleLeet(entry.char)"
             >{{ entry.label }}</button>
           </div>
+        </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
         </div>
       </div>
 
