@@ -398,16 +398,17 @@
           <div>
             <div class="release-card">
               <div class="release-card-head">
-                <div class="release-title">Emoji as a first-class character type in Simple &amp; Advanced</div>
-                <div class="release-summary">Reworked the emoji feature in Simple and Advanced to match how the other character sets work — a checkbox in Simple and min/max sliders in Advanced — so emoji slots count toward the password length and validation.</div>
+                <div class="release-title">Emoji as a first-class character type in Simple &amp; Advanced; live toggle in word generators</div>
+                <div class="release-summary">Reworked the emoji feature in Simple and Advanced to match how the other character sets work — a checkbox in Simple and min/max sliders in Advanced — so emoji slots count toward the password length and validation. Also fixed the emoji toggle in Words, Passphrase, Wireless, and Mad Lib so it instantly rebuilds the password without requiring a full regeneration.</div>
               </div>
               <div class="change-groups">
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
                   <ul class="change-list">
                     <li><strong>Simple — Emoji checkbox</strong> — emoji is now a fifth <em>Character Types</em> checkbox alongside Lowercase, Uppercase, Numbers, and Symbols. When checked, each position in the password has an equal probability of drawing from any enabled type, so emojis are distributed throughout the password and count toward the total length. Previously, a single emoji was appended as a bonus outside the length.</li>
-                    <li><strong>Advanced — Emoji min/max</strong> — emoji is now a fifth character-type card with Min and Max sliders, identical in structure to the existing four types. Emoji slots count toward total password length and are fully included in the min/max validation (sum of all minimums may not exceed length; sum of all maximums must reach length). Min defaults to 0 (effectively excluded) and Max defaults to 20. Set Max to 0 to exclude emoji entirely.</li>
-                    <li><strong>Docs updated</strong> — Simple and Advanced sections now describe emoji as a character type. The Shared Options — Emoji section updated with accurate per-generator behavior and a comparison table.</li>
+                    <li><strong>Advanced — Emoji min/max</strong> — emoji is now a fifth character-type card with Min and Max sliders, identical in structure to the existing four types. Emoji slots count toward total password length and are fully included in the min/max validation (sum of all minimums may not exceed length; sum of all maximums must reach length). Min and Max both default to 0 (emoji excluded by default). Raise Min or Max to include emojis.</li>
+                    <li><strong>Words, Passphrase, Wireless, Mad Lib — live emoji toggle</strong> — toggling the Emoji option now immediately rebuilds the password using the already-generated words, without re-rolling them. Previously the toggle had no visible effect until the next full generation.</li>
+                    <li><strong>Docs updated</strong> — Simple, Advanced, Words, Passphrase, Wireless, and Mad Lib sections now each include an inline Emoji option row. The Shared Options — Emoji section updated with accurate per-generator behavior and a comparison table.</li>
                   </ul>
                 </div>
               </div>
