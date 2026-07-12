@@ -137,6 +137,39 @@ const LEET_MAP = [
   { char: 'z', sub: '2',  label: 'z → 2'  },
 ]
 
+const EMOJI_POOLS = {
+  // noun categories
+  Animals:   ['🐶','🐱','🦊','🐻','🐼','🦁','🐯','🦓','🐘','🦒','🐬','🦅','🦋','🐊','🦔','🦦','🐺','🦉','🐙','🦑','🦜','🐸','🦘','🦛','🐆','🐍','🦎','🦚','🐇','🦫'],
+  Vehicles:  ['🚗','🏎️','🚕','🚙','🚌','🚑','🚒','🚓','🚚','🛻','🏍️','🛵','🚲','✈️','🚀','🚁','⛵','🛥️','🚢','🚂','🚜'],
+  Food:      ['🍕','🍔','🌮','🍣','🍜','🍛','🍰','🧁','🍩','🍫','🍭','🍇','🍎','🍊','🍋','🍓','🫐','🥑','🥦','🥕','🍄','🧇','🥞','🍱'],
+  Places:    ['🏔️','🏝️','🏜️','🌋','🏙️','🌆','🏕️','🏯','🗼','🗽','🏛️','⛩️','🌉','🌌','🏟️','🌃','🏖️','🌄'],
+  Nature:    ['🌲','🌿','🍀','🌸','🌺','🌻','🌊','🌈','⛰️','🌙','⭐','☀️','❄️','🌪️','🍁','🌾','🪸','🌵','🌴','🍂','💧','🔥'],
+  Tech:      ['💻','📱','🖥️','⌨️','🖱️','🔭','🔬','💡','🔋','📡','🤖','⚙️','🛠️','🔌','💾','📺','🎮','🕹️'],
+  Jobs:      ['🧑‍⚕️','👩‍💻','👨‍🍳','👩‍🏫','👨‍🔧','👩‍🎨','👨‍🚀','👩‍⚖️','🧑‍🌾','👨‍🎤','🧑‍🚒','👩‍🔬','🧑‍✈️','👩‍🏭'],
+  // adj categories
+  Colors:    ['🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🌈'],
+  Size:      ['🔬','📏','🏔️','🌌','🐘','🌱','🦠','🗿'],
+  Texture:   ['🧊','🪨','🪵','🌊','💎','🧈','🫧','🕸️'],
+  Mood:      ['😊','😢','😡','🤩','😌','😤','🥳','😔','😎','🤗','😴','😱'],
+  Weather:   ['☀️','🌧️','❄️','⛈️','🌫️','🌪️','🌈','⛅','🌤️','🌊','🌬️','⚡'],
+  Time:      ['⏰','🌅','🌙','🌃','🌄','🕛','⌛','📅','🌠','🌒'],
+  // adv categories
+  Manner:    ['💨','🏃','🐢','🎯','💫','✨','🌀','⚡','🦅','🐌'],
+  Intensity: ['🔥','❄️','⚡','💥','🌊','🌪️','✨','💤','🔊','🤫'],
+  Place:     ['🏠','🌍','🏔️','🌊','🏙️','🌌','🌿','⬆️','🌏','🗺️'],
+  // verb categories
+  Movement:  ['🏃','🚀','💨','🌀','⬆️','🔄','🏊','🦅','🛹','🏇'],
+  Action:    ['⚒️','🎯','💪','✂️','🔨','🖊️','🎨','⚡','🧩','🎸'],
+  Cognition: ['🧠','💡','🤔','📚','🔍','💭','🎓','👁️','🌀','✏️'],
+  // Words mode (no category) + fallback
+  default:   ['🌟','✨','💫','🔥','❄️','🌊','⚡','🎯','🎪','🎨','🎭','🎲','🌈','🦋','🌺','🍀','🎸','🎺','🌙','⭐'],
+}
+
+const pickEmoji = (category) => {
+  const pool = EMOJI_POOLS[category] || EMOJI_POOLS.default
+  return pool[Math.floor(Math.random() * pool.length)]
+}
+
 const applyLeet = (str, activeSubs) => {
   if (!activeSubs || activeSubs.size === 0) return str
   return str.split('').map(c => {
@@ -731,6 +764,7 @@ const WordsPassword = {
     const suffixMode = persistedRef('words.suffixMode', '')
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const activeLeet = persistedRef('words.activeLeet', new Set())
+    const useEmoji = persistedRef('words.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -770,7 +804,10 @@ const WordsPassword = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const words = rawWords.value.map((w, i, arr) => {
+        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        return useEmoji.value ? pickEmoji('default') + cased : cased
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -814,6 +851,7 @@ const WordsPassword = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       password,
       rawWords,
@@ -951,6 +989,13 @@ const WordsPassword = {
               @click="toggleLeet(entry.char)"
             >{{ entry.label }}</button>
           </div>
+        </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a random emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
         </div>
       </div>
 
@@ -1259,6 +1304,7 @@ const Passphrase = {
     const suffixMode = persistedRef('phrase.suffixMode', '')
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const activeLeet = persistedRef('phrase.activeLeet', new Set())
+    const useEmoji = persistedRef('phrase.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -1303,7 +1349,15 @@ const Passphrase = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const words = rawWords.value.map((w, i, arr) => {
+        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        if (useEmoji.value) {
+          const slot = slots.value[i]
+          const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
+          return pickEmoji(emojiCat) + cased
+        }
+        return cased
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -1363,6 +1417,7 @@ const Passphrase = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       password, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
@@ -1514,6 +1569,13 @@ const Passphrase = {
             >{{ entry.label }}</button>
           </div>
         </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -1584,6 +1646,7 @@ const WifiWords = {
     const suffixMode = persistedRef('wifi.suffixMode', 'r2num')
     const suffixCustom = persistedRef('wifi.suffixCustom', '')
     const activeLeet = persistedRef('wifi.activeLeet', new Set())
+    const useEmoji = persistedRef('wifi.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -1649,7 +1712,15 @@ const WifiWords = {
     const buildPassword = (rerollAffixes = false) => {
       if (rerollAffixes || !lockAffixes.value) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => applyCapitalization(w, capitalization.value, i, arr.length))
+      const words = rawWords.value.map((w, i, arr) => {
+        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
+        if (useEmoji.value) {
+          const slot = slots.value[i]
+          const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
+          return pickEmoji(emojiCat) + cased
+        }
+        return cased
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
@@ -1733,6 +1804,7 @@ const WifiWords = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       alliterationMode, alliterationLetter,
       password, rawWords, history, warnSet, copied, preview, notification,
@@ -1893,6 +1965,13 @@ const WifiWords = {
             >{{ entry.label }}</button>
           </div>
         </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -1998,6 +2077,7 @@ const MadLib = {
     const suffixMode = persistedRef('madlib.suffixMode', '')
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const activeLeet = persistedRef('madlib.activeLeet', new Set())
+    const useEmoji = persistedRef('madlib.useEmoji', false)
     const toggleLeet = (char) => {
       const next = new Set(activeLeet.value)
       if (next.has(char)) next.delete(char)
@@ -2049,7 +2129,16 @@ const MadLib = {
         return applyCapitalization(seg.word, capitalization.value, wordIndex++, totalWords)
       })
       preview.value = filledSegments.join('')
-      const words = preview.value.split(/\s+/).filter(Boolean)
+      const tokenSegs = rawSegments.value.filter(s => s.isToken)
+      const words = filledSegments.filter((_, i) => rawSegments.value[i]?.isToken).map((w, i) => {
+        if (useEmoji.value) {
+          const seg = tokenSegs[i]
+          const slotEntry = slotCats.value.find(s => s.type === seg?.type && s.occurrence === seg?.occurrence)
+          const emojiCat = slotEntry?.cat === 'random' ? (seg?.type || 'default') : (slotEntry?.cat || seg?.type || 'default')
+          return pickEmoji(emojiCat) + w
+        }
+        return w
+      })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       pushHistory(password.value)
@@ -2107,6 +2196,7 @@ const MadLib = {
       toggleLeet,
       selectAllLeet,
       selectNoLeet,
+      useEmoji,
       lockAffixes,
       password, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
@@ -2262,6 +2352,13 @@ const MadLib = {
               @click="toggleLeet(entry.char)"
             >{{ entry.label }}</button>
           </div>
+        </div>
+        <div class="emoji-toggle-row">
+          <label class="form-label">Emoji</label>
+          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
+            <span class="emoji-toggle-icon">🎲</span>
+            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
+          </button>
         </div>
       </div>
 

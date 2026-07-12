@@ -238,6 +238,57 @@ body {
   letter-spacing: 0.01em;
 }
 
+.emoji-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.emoji-toggle-row .form-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.emoji-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1.4;
+}
+
+.emoji-toggle-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.emoji-toggle-btn.active {
+  border-color: var(--primary);
+  background: rgba(14, 165, 233, 0.1);
+  color: var(--primary);
+}
+
+.emoji-toggle-icon {
+  font-style: normal;
+  line-height: 1;
+}
+
+.emoji-toggle-label {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.8rem;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
