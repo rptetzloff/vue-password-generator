@@ -303,23 +303,31 @@ const SimplePassword = {
     }
 
     const generatePassword = () => {
-      if (!lowerCase.value && !upperCase.value && !digits.value && !specialChars.value) {
+      if (!lowerCase.value && !upperCase.value && !digits.value && !specialChars.value && !useEmoji.value) {
         showNotification('Please select at least one character type', 'error')
         return
       }
 
-      let charset = ''
-      if (lowerCase.value) charset += characterSets.lower
-      if (upperCase.value) charset += characterSets.upper
-      if (digits.value) charset += characterSets.digits
-      if (specialChars.value) charset += characterSets.special
+      const availableTypes = []
+      if (lowerCase.value) availableTypes.push('lower')
+      if (upperCase.value) availableTypes.push('upper')
+      if (digits.value) availableTypes.push('digits')
+      if (specialChars.value) availableTypes.push('special')
+      if (useEmoji.value) availableTypes.push('emoji')
 
       let newPassword = ''
       for (let i = 0; i < passwordLength.value; i++) {
-        newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
+        const type = availableTypes[Math.floor(Math.random() * availableTypes.length)]
+        switch (type) {
+          case 'lower':   newPassword += characterSets.lower.charAt(Math.floor(Math.random() * characterSets.lower.length)); break
+          case 'upper':   newPassword += characterSets.upper.charAt(Math.floor(Math.random() * characterSets.upper.length)); break
+          case 'digits':  newPassword += characterSets.digits.charAt(Math.floor(Math.random() * characterSets.digits.length)); break
+          case 'special': newPassword += characterSets.special.charAt(Math.floor(Math.random() * characterSets.special.length)); break
+          case 'emoji':   newPassword += pickEmoji('default'); break
+        }
       }
 
-      password.value = newPassword + (useEmoji.value ? pickEmoji('default') : '')
+      password.value = newPassword
       pushHistory(password.value)
     }
 
@@ -379,6 +387,10 @@ const SimplePassword = {
             <input v-model="specialChars" type="checkbox" class="checkbox" />
             <span>Symbols (!@#$%^&*)</span>
           </label>
+          <label class="checkbox-item">
+            <input v-model="useEmoji" type="checkbox" class="checkbox" />
+            <span>Emoji 🎲</span>
+          </label>
         </div>
       </div>
 
@@ -386,16 +398,6 @@ const SimplePassword = {
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
-
-      <div class="card">
-        <div class="emoji-toggle-row">
-          <label class="form-label">Emoji</label>
-          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji; generatePassword()" title="Append a random emoji to the password">
-            <span class="emoji-toggle-icon">🎲</span>
-            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
-          </button>
-        </div>
       </div>
 
       <div class="card">
@@ -435,7 +437,7 @@ const AdvancedPassword = {
     const specialChars = persistedRef('adv.specialChars', [1, 20])
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
-    const useEmoji = persistedRef('adv.useEmoji', false)
+    const emojiCount = persistedRef('adv.emojiCount', [0, 20])
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -469,8 +471,9 @@ const AdvancedPassword = {
       }
 
       const len = parseInt(passwordLength.value)
-      const minTotal = parseInt(lowerCase.value[0]) + parseInt(upperCase.value[0]) + parseInt(digits.value[0]) + parseInt(specialChars.value[0])
-      const maxTotal = parseInt(lowerCase.value[1]) + parseInt(upperCase.value[1]) + parseInt(digits.value[1]) + parseInt(specialChars.value[1])
+      const emMin = parseInt(emojiCount.value[0]), emMax = parseInt(emojiCount.value[1])
+      const minTotal = parseInt(lowerCase.value[0]) + parseInt(upperCase.value[0]) + parseInt(digits.value[0]) + parseInt(specialChars.value[0]) + emMin
+      const maxTotal = parseInt(lowerCase.value[1]) + parseInt(upperCase.value[1]) + parseInt(digits.value[1]) + parseInt(specialChars.value[1]) + emMax
 
       if (minTotal > len) {
         showNotification('Minimum character requirements exceed password length', 'error')
@@ -487,7 +490,6 @@ const AdvancedPassword = {
       const dgMin = parseInt(digits.value[0]), dgMax = parseInt(digits.value[1])
       const spMin = parseInt(specialChars.value[0]), spMax = parseInt(specialChars.value[1])
 
-      let newPassword = ''
       let charTypes = []
 
       // Add minimum required characters
@@ -495,23 +497,25 @@ const AdvancedPassword = {
       for (let i = 0; i < ucMin; i++) charTypes.push('upper')
       for (let i = 0; i < dgMin; i++) charTypes.push('digits')
       for (let i = 0; i < spMin; i++) charTypes.push('special')
+      for (let i = 0; i < emMin; i++) charTypes.push('emoji')
 
       // Fill remaining slots randomly within limits
       while (charTypes.length < len) {
-        const availableTypes = []
-
         const lowerCount = charTypes.filter(t => t === 'lower').length
         const upperCount = charTypes.filter(t => t === 'upper').length
         const digitCount = charTypes.filter(t => t === 'digits').length
         const specialCount = charTypes.filter(t => t === 'special').length
+        const emojiCountCur = charTypes.filter(t => t === 'emoji').length
 
+        const availableTypes = []
         if (lowerCount < lcMax) availableTypes.push('lower')
         if (upperCount < ucMax) availableTypes.push('upper')
         if (digitCount < dgMax) availableTypes.push('digits')
         if (specialCount < spMax) availableTypes.push('special')
-        
+        if (emojiCountCur < emMax) availableTypes.push('emoji')
+
         if (availableTypes.length === 0) break
-        
+
         const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)]
         charTypes.push(randomType)
       }
@@ -523,26 +527,18 @@ const AdvancedPassword = {
       }
 
       // Generate actual password
+      let newPassword = ''
       for (const type of charTypes) {
-        let charset = ''
         switch (type) {
-          case 'lower':
-            charset = characterSets.lower
-            break
-          case 'upper':
-            charset = characterSets.upper
-            break
-          case 'digits':
-            charset = characterSets.digits
-            break
-          case 'special':
-            charset = customSymbols.value
-            break
+          case 'lower':   newPassword += characterSets.lower.charAt(Math.floor(Math.random() * characterSets.lower.length)); break
+          case 'upper':   newPassword += characterSets.upper.charAt(Math.floor(Math.random() * characterSets.upper.length)); break
+          case 'digits':  newPassword += characterSets.digits.charAt(Math.floor(Math.random() * characterSets.digits.length)); break
+          case 'special':  newPassword += customSymbols.value.charAt(Math.floor(Math.random() * customSymbols.value.length)); break
+          case 'emoji':   newPassword += pickEmoji('default'); break
         }
-        newPassword += charset.charAt(Math.floor(Math.random() * charset.length))
       }
 
-      password.value = newPassword + (useEmoji.value ? pickEmoji('default') : '')
+      password.value = newPassword
       pushHistory(password.value)
     }
 
@@ -562,7 +558,7 @@ const AdvancedPassword = {
       selectAllSymbols,
       selectNoSymbols,
       selectCommonSymbols,
-      useEmoji,
+      emojiCount,
       password,
       history,
       copied,
@@ -730,19 +726,39 @@ const AdvancedPassword = {
       </div>
 
       <div class="card">
-        <button @click="generatePassword" class="btn btn-primary">
-          <span class="mdi mdi-shuffle-variant"></span> Generate Password
-        </button>
+        <div class="card-header">Emoji 🎲</div>
+        <div class="slider-container">
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="emojiCount[0] = Math.max(0, emojiCount[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Min: {{ emojiCount[0] }}</span>
+            <button class="stepper-btn" @click="emojiCount[0] = Math.min(passwordLength, emojiCount[0] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
+          <input
+            v-model="emojiCount[0]"
+            type="range"
+            min="0"
+            :max="passwordLength"
+            class="slider"
+          />
+          <input
+            v-model="emojiCount[1]"
+            type="range"
+            min="0"
+            :max="passwordLength"
+            class="slider"
+          />
+          <div class="stepper-label">
+            <button class="stepper-btn" @click="emojiCount[1] = Math.max(0, emojiCount[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <span class="stepper-label-text">Max: {{ emojiCount[1] }}</span>
+            <button class="stepper-btn" @click="emojiCount[1] = Math.min(passwordLength, emojiCount[1] + 1)"><span class="mdi mdi-plus"></span></button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
-        <div class="emoji-toggle-row">
-          <label class="form-label">Emoji</label>
-          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji; generatePassword()" title="Append a random emoji to the password">
-            <span class="emoji-toggle-icon">🎲</span>
-            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
-          </button>
-        </div>
+        <button @click="generatePassword" class="btn btn-primary">
+          <span class="mdi mdi-shuffle-variant"></span> Generate Password
+        </button>
       </div>
 
       <div class="card">

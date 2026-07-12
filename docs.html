@@ -730,8 +730,8 @@
               </div>
 
               <div class="option-row">
-                <div class="option-name">Emoji</div>
-                <div class="option-desc">When enabled, a single random emoji is appended to the end of the generated password (e.g. <code>mX7!vQ#nR2🌟</code>). Off by default. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for details.</div>
+                <div class="option-name">Emoji 🎲</div>
+                <div class="option-desc">When checked, emoji characters are included in the pool as a fifth character type. Each position in the password has an equal chance of being any enabled type, so emoji slots count toward the total length. Off by default. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for the full pool details.</div>
               </div>
             </div>
 
@@ -810,10 +810,13 @@
             </div>
 
             <div class="option-group">
-              <div class="option-group-label">Emoji</div>
+              <div class="option-group-label">Emoji 🎲</div>
               <div class="option-row">
-                <div class="option-name">Emoji</div>
-                <div class="option-desc">When enabled, a single random emoji is appended to the end of the generated password. The emoji count does not factor into the character-type min/max validation. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for details.</div>
+                <div class="option-name">Emoji 🎲<br><span style="font-weight:400;font-size:0.82rem;color:var(--text-secondary);">Min / Max</span></div>
+                <div class="option-desc">
+                  Same min/max controls as the other character types. Emoji slots count toward the total password length and are included in the min/max validation — the sum of all minimums (including emoji) must not exceed the total length, and the sum of all maximums must not fall below it.<br><br>
+                  <strong>Min defaults to 0</strong> — emoji is effectively off until you raise the minimum or the random fill selects it. Set Min to 0 and Max to 0 to exclude emoji entirely. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for the pool details.
+                </div>
               </div>
             </div>
 
@@ -1358,47 +1361,47 @@
             <div id="shared-emoji">
               <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Emoji</h3>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
-                An optional <strong>Emoji</strong> toggle appears in all seven generator modes. It is <strong>off by default</strong> and persisted independently per generator.
+                All generators except Numbers support an <strong>Emoji 🎲</strong> option. It is <strong>off by default</strong> and persisted independently per generator. Behavior varies by generator type:
               </p>
               <table class="value-table">
-                <thead><tr><th>Generator</th><th>Behavior when on</th></tr></thead>
+                <thead><tr><th>Generator</th><th>How emoji is integrated</th></tr></thead>
                 <tbody>
                   <tr>
                     <td class="plain">Simple</td>
-                    <td>One random emoji is appended to the end of the generated character string.</td>
+                    <td>Emoji is a <strong>fifth character type checkbox</strong> alongside Lowercase, Uppercase, Numbers, and Symbols. When checked, each position in the password has an equal probability of becoming any enabled type — so emoji characters are randomly distributed throughout the password and count toward the total length.</td>
                   </tr>
                   <tr>
                     <td class="plain">Advanced</td>
-                    <td>One random emoji is appended to the end of the generated character string. The emoji is added after all min/max validation and does not count toward any character-type limit.</td>
+                    <td>Emoji is a <strong>fifth character type with min/max sliders</strong>, identical to the other four types. Emoji slots count toward the total password length and are fully included in the min/max validation. Min defaults to 0 (effectively excluded); set Max to 0 to exclude emoji entirely.</td>
                   </tr>
                   <tr>
                     <td class="plain">Words</td>
-                    <td>Each word gets a random emoji prepended before it (e.g. <code>🌟Flame-🌊River</code>). Drawn from a general-purpose pool.</td>
+                    <td>A random emoji from a general-purpose pool is prepended before each word (e.g. <code>🌟Flame-🌊River</code>).</td>
                   </tr>
                   <tr>
                     <td class="plain">Passphrase</td>
-                    <td>Each word gets a category-matched emoji prepended (e.g. a noun from Animals gets an animal emoji; an adjective from Colors gets a color emoji).</td>
+                    <td>Each word gets a <strong>category-matched emoji</strong> prepended — a noun from Animals gets an animal emoji, an adjective from Colors gets a color emoji, and so on.</td>
                   </tr>
                   <tr>
                     <td class="plain">Wireless</td>
-                    <td>Same as Passphrase. Emojis respect alliteration mode — words are still filtered by the shared starting letter, and the emoji is drawn from the word's category pool.</td>
+                    <td>Same as Passphrase. Emojis respect alliteration mode — words are still filtered by the shared starting letter; the emoji is drawn from the word's category pool independently.</td>
                   </tr>
                   <tr>
                     <td class="plain">Mad Lib</td>
-                    <td>Each template token word gets a category-matched emoji prepended. Literal words in the template (e.g. "the", "beyond") are not decorated.</td>
+                    <td>Each filled placeholder word gets a category-matched emoji prepended. Literal words from the template structure (e.g. "the", "beyond", "alone") are not decorated.</td>
                   </tr>
                   <tr>
                     <td class="plain">Numbers</td>
-                    <td>Not available — emoji is not offered in the Numbers generator.</td>
+                    <td>Not available.</td>
                   </tr>
                 </tbody>
               </table>
               <br>
               <p style="font-size:0.875rem;color:var(--text-secondary);">
-                Emojis are drawn using <code>crypto.getRandomValues()</code>-independent random selection from curated per-category pools. The setting is saved to <code>localStorage</code> per generator and restored on your next visit.
+                Emojis are drawn from curated per-category pools (Animals, Colors, Food, Weather, etc.) totalling hundreds of options. The setting is saved to <code>localStorage</code> per generator and restored on your next visit.
               </p>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:0.5rem;">
-                <strong>Note:</strong> Many authentication systems and websites do not accept emoji characters in passwords. Treat this as a fun option for passphrases stored in a password manager, not for general account passwords.
+                <strong>Note:</strong> Many authentication systems and websites do not accept emoji characters in passwords. This option works best for passphrases stored in a password manager rather than for general account passwords.
               </p>
             </div>
 
