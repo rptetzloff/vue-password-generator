@@ -264,9 +264,9 @@
       }
 
       .change-list li {
-        display: flex;
-        align-items: baseline;
-        gap: 0.6rem;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 0.5rem;
         font-size: 0.875rem;
         color: var(--text-secondary);
         line-height: 1.5;
@@ -275,7 +275,7 @@
       .change-list li::before {
         content: '–';
         color: var(--border);
-        flex-shrink: 0;
+        padding-top: 0.05em;
       }
 
       .change-list li strong {
