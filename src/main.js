@@ -437,7 +437,7 @@ const AdvancedPassword = {
     const specialChars = persistedRef('adv.specialChars', [1, 20])
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
-    const emojiCount = persistedRef('adv.emojiCount', [0, 20])
+    const emojiCount = persistedRef('adv.emojiCount', [0, 0])
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -869,6 +869,8 @@ const WordsPassword = {
       rawWords.value = next
       buildPassword(false)
     }
+
+    watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordList()
@@ -1436,6 +1438,8 @@ const Passphrase = {
       slots.value = arr
     }
 
+    watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+
     onMounted(async () => {
       await loadWordData()
       generatePassword()
@@ -1823,28 +1827,14 @@ const WifiWords = {
       slots.value = arr
     }
 
+    watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+
     onMounted(async () => {
       await loadWordData()
       generatePassword()
     })
 
     return {
-      slots,
-      slotTypes: SLOT_TYPES,
-      categoryMeta: CATEGORY_META,
-      addSlot, removeSlot, moveSlot,
-      separator, customSeparator,
-      capitalization,
-      prefixMode, prefixCustom,
-      suffixMode, suffixCustom,
-      leetMap: LEET_MAP,
-      activeLeet,
-      toggleLeet,
-      selectAllLeet,
-      selectNoLeet,
-      useEmoji,
-      lockAffixes,
-      alliterationMode, alliterationLetter,
       password, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2212,6 +2202,8 @@ const MadLib = {
       slotCats.value = rebuildSlotCats(newId, slotCats.value)
       generatePassword()
     })
+
+    watch(useEmoji, () => { if (rawSegments.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
