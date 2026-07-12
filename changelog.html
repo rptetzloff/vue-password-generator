@@ -264,18 +264,20 @@
       }
 
       .change-list li {
-        display: grid;
-        grid-template-columns: auto 1fr;
-        gap: 0.5rem;
+        position: relative;
+        padding-left: 1.1rem;
         font-size: 0.875rem;
         color: var(--text-secondary);
         line-height: 1.5;
+        margin-bottom: 0.4rem;
       }
 
       .change-list li::before {
         content: '–';
         color: var(--border);
-        padding-top: 0.05em;
+        position: absolute;
+        left: 0;
+        top: 0;
       }
 
       .change-list li strong {
