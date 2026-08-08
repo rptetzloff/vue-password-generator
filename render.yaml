@@ -2,8 +2,9 @@ services:
   - type: web
     name: vue-password-generator
     runtime: static
-    buildCommand: npm ci && npm run build
-    staticPublishPath: ./dist
+    # No build step: index.html loads src/main.js as a native ES module and the
+    # wordlists are fetched from data/, so the repo is served as-is.
+    staticPublishPath: ./
     headers:
       - path: /*
         name: X-Frame-Options

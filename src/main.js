@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch, onMounted } from 'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
+import { createApp, ref, computed, watch, onMounted } from '../vendor/vue.esm-browser.prod.js'
 
 const loadSetting = (key, fallback) => {
   try {
