@@ -2,6 +2,9 @@
 
 A modern, secure password generator built with Vue 3. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
 
+No build step, no dependencies, and no third-party CDNs: the site runs exactly as
+it appears in this repository.
+
 ## Live Demo
 
 **[Try it now at getrandompassword.net](https://getrandompassword.net)**
