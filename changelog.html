@@ -401,7 +401,7 @@
             <div class="release-card">
               <div class="release-card-head">
                 <div class="release-title">Build step removed &amp; runtime assets self-hosted</div>
-                <div class="release-summary">Removed the Vite build, which was never used in production, and moved Vue and the icon font into the repository. The site now has no dependencies, no build step, and no third-party requests. No change to password generation or the interface.</div>
+                <div class="release-summary">Removed the Vite build, which the production site never served, and moved Vue and the icon font into the repository. The site now has no dependencies, no build step, and no third-party requests. No change to password generation or the interface.</div>
               </div>
               <div class="change-groups">
                 <div class="change-group">
@@ -428,7 +428,7 @@
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
                   <ul class="change-list">
-                    <li><strong>Broken build output</strong> — the build had been producing an unusable bundle. <code>format: 'umd'</code> in the Rollup options suppressed CSS emission entirely, so the stylesheet link was dropped and all 27&nbsp;KB of styles were lost, and <code>data/</code> was never copied into the output, leaving Words, Passphrase, and Mad Lib non-functional and Wireless silently emitting the literal placeholder words <code>Adj</code> and <code>Noun</code>. The deployed site was unaffected, as it never served this output.</li>
+                    <li><strong>Blank page from the build output</strong> — <code>format: 'umd'</code> in the Rollup options wrapped the app in a UMD factory that read Vue from a global named <code>vue_esmBrowser_prod_js</code>, a name Rollup invented because the Vue import was a CDN URL it could not otherwise name. No such global exists in a browser, so the bundle threw <code>Cannot read properties of undefined</code> before mounting and left the page blank. <code>data/</code> was also never copied into the output, so the wordlists returned 404 for the word-based modes. The production site was unaffected because it serves this repository directly rather than the build output.</li>
                   </ul>
                 </div>
               </div>
