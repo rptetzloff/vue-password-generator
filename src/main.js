@@ -29,7 +29,27 @@ const persistedRef = (key, fallback) => {
 const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
 const DIGITS = '0123456789'
 
-const randChar = (str) => str.charAt(Math.floor(Math.random() * str.length))
+// Uniform random integer in [0, max), drawn from the CSPRNG.
+// Rejection sampling discards the ragged tail above the largest multiple of
+// `max` that fits in a uint32, so every value is equally likely. Plain
+// `getRandomValues(...) % max` would skew toward low values.
+const randInt = (max) => {
+  if (max <= 1) return 0
+  const buf = new Uint32Array(1)
+  const limit = Math.floor(0x100000000 / max) * max
+  let x
+  do {
+    crypto.getRandomValues(buf)
+    x = buf[0]
+  } while (x >= limit)
+  return x % max
+}
+
+const randPick = (arr) => arr[randInt(arr.length)]
+
+const randBool = () => randInt(2) === 1
+
+const randChar = (str) => str.charAt(randInt(str.length))
 
 const resolveToken = (value, custom) => {
   switch (value) {
@@ -113,13 +133,13 @@ const applyCapitalization = (word, mode, index = 0, total = 1) => {
     case 'title':        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     case 'none':         return word.toLowerCase()
     case 'upper':        return word.toUpperCase()
-    case 'random':       return word.split('').map(c => Math.random() > 0.5 ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'random':       return word.split('').map(c => randBool() ? c.toUpperCase() : c.toLowerCase()).join('')
     case 'char-alt':     return word.split('').map((c, i) => i % 2 === 0 ? c.toUpperCase() : c.toLowerCase()).join('')
     case 'last-upper':   return word.slice(0, -1).toLowerCase() + word.slice(-1).toUpperCase()
     case 'first-only':   return index === 0 ? word.toUpperCase() : word.toLowerCase()
     case 'last-only':    return index === total - 1 ? word.toUpperCase() : word.toLowerCase()
     case 'word-alt':     return index % 2 === 0 ? word.toUpperCase() : word.toLowerCase()
-    case 'word-random':  return Math.random() > 0.5 ? word.toUpperCase() : word.toLowerCase()
+    case 'word-random':  return randBool() ? word.toUpperCase() : word.toLowerCase()
     default:             return word
   }
 }
@@ -167,7 +187,7 @@ const EMOJI_POOLS = {
 
 const pickEmoji = (category) => {
   const pool = EMOJI_POOLS[category] || EMOJI_POOLS.default
-  return pool[Math.floor(Math.random() * pool.length)]
+  return randPick(pool)
 }
 
 const applyLeet = (str, activeSubs) => {
@@ -317,12 +337,12 @@ const SimplePassword = {
 
       let newPassword = ''
       for (let i = 0; i < passwordLength.value; i++) {
-        const type = availableTypes[Math.floor(Math.random() * availableTypes.length)]
+        const type = randPick(availableTypes)
         switch (type) {
-          case 'lower':   newPassword += characterSets.lower.charAt(Math.floor(Math.random() * characterSets.lower.length)); break
-          case 'upper':   newPassword += characterSets.upper.charAt(Math.floor(Math.random() * characterSets.upper.length)); break
-          case 'digits':  newPassword += characterSets.digits.charAt(Math.floor(Math.random() * characterSets.digits.length)); break
-          case 'special': newPassword += characterSets.special.charAt(Math.floor(Math.random() * characterSets.special.length)); break
+          case 'lower':   newPassword += randChar(characterSets.lower); break
+          case 'upper':   newPassword += randChar(characterSets.upper); break
+          case 'digits':  newPassword += randChar(characterSets.digits); break
+          case 'special': newPassword += randChar(characterSets.special); break
           case 'emoji':   newPassword += pickEmoji('default'); break
         }
       }
@@ -516,13 +536,13 @@ const AdvancedPassword = {
 
         if (availableTypes.length === 0) break
 
-        const randomType = availableTypes[Math.floor(Math.random() * availableTypes.length)]
+        const randomType = randPick(availableTypes)
         charTypes.push(randomType)
       }
 
       // Shuffle character types
       for (let i = charTypes.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1))
+        const j = randInt(i + 1)
         ;[charTypes[i], charTypes[j]] = [charTypes[j], charTypes[i]]
       }
 
@@ -530,10 +550,10 @@ const AdvancedPassword = {
       let newPassword = ''
       for (const type of charTypes) {
         switch (type) {
-          case 'lower':   newPassword += characterSets.lower.charAt(Math.floor(Math.random() * characterSets.lower.length)); break
-          case 'upper':   newPassword += characterSets.upper.charAt(Math.floor(Math.random() * characterSets.upper.length)); break
-          case 'digits':  newPassword += characterSets.digits.charAt(Math.floor(Math.random() * characterSets.digits.length)); break
-          case 'special':  newPassword += customSymbols.value.charAt(Math.floor(Math.random() * customSymbols.value.length)); break
+          case 'lower':   newPassword += randChar(characterSets.lower); break
+          case 'upper':   newPassword += randChar(characterSets.upper); break
+          case 'digits':  newPassword += randChar(characterSets.digits); break
+          case 'special':  newPassword += randChar(customSymbols.value); break
           case 'emoji':   newPassword += pickEmoji('default'); break
         }
       }
@@ -857,7 +877,7 @@ const WordsPassword = {
         return
       }
       rawWords.value = Array.from({ length: wordCount.value }, () =>
-        wordList.value[Math.floor(Math.random() * wordList.value.length)]
+        randPick(wordList.value)
       )
       buildPassword(true)
     }
@@ -865,7 +885,7 @@ const WordsPassword = {
     const regenWord = (idx) => {
       if (wordList.value.length === 0) return
       const next = [...rawWords.value]
-      next[idx] = wordList.value[Math.floor(Math.random() * wordList.value.length)]
+      next[idx] = randPick(wordList.value)
       rawWords.value = next
       buildPassword(false)
     }
@@ -1141,7 +1161,7 @@ const NumbersPassword = {
           availableDigits = '0123456789'
         }
         
-        const nextDigit = availableDigits.charAt(Math.floor(Math.random() * availableDigits.length))
+        const nextDigit = randChar(availableDigits)
         newPassword += nextDigit
         
         // Update counters
@@ -1377,7 +1397,7 @@ const Passphrase = {
       const cats = wordData.value[type]
       if (!cats) return type
       const pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
-      return pool[Math.floor(Math.random() * pool.length)]
+      return randPick(pool)
     }
 
     const rollAffixes = () => {
@@ -1729,7 +1749,7 @@ const WifiWords = {
         if (filtered.length > 0) pool = filtered
       }
       if (pool.length === 0) return type
-      return pool[Math.floor(Math.random() * pool.length)]
+      return randPick(pool)
     }
 
     const pickAlliterationLetter = () => {
@@ -1742,7 +1762,7 @@ const WifiWords = {
       if (allPools.length === 0) return ''
       const common = [...allPools[0]].filter(l => allPools.every(p => p.has(l)))
       if (common.length === 0) return ''
-      return common[Math.floor(Math.random() * common.length)]
+      return randPick(common)
     }
 
     const rollAffixes = () => {
@@ -2155,7 +2175,7 @@ const MadLib = {
       const typeCats = wordData.value[type]
       if (!typeCats) return type
       const pool = catId === 'random' ? Object.values(typeCats).flat() : (typeCats[catId] || Object.values(typeCats).flat())
-      return pool[Math.floor(Math.random() * pool.length)] || ''
+      return randPick(pool) || ''
     }
 
     const rollAffixes = () => {
