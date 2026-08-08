@@ -61,10 +61,14 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 
 - **Client-side only** — all generation happens in your browser; nothing is transmitted
 - **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
+- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `src/main.js` discards the ragged tail instead
+- **Fails loudly** — `crypto.getRandomValues()` needs a secure context (HTTPS or `localhost`). Over plain HTTP on a non-localhost host, generation errors out rather than falling back to a weaker source
 - **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only
 - **No third-party requests** — Vue and the icon font are served from this site, so no CDN observes your visit
 - **Open source** — inspect the code yourself
+
+> **Upgrading from v2.7.1 or earlier?** Those versions used `Math.random()` for all randomness, which is not cryptographically secure — its internal state is recoverable from observed outputs. Passwords generated before v2.7.2 should be considered predictable and are worth regenerating.
 
 ---
 
@@ -184,7 +188,7 @@ Upgrading Vue means replacing `vendor/vue.esm-browser.prod.js` with a newer
 - Safari 14+
 - Edge 88+
 
-Requires ES module support and `crypto.getRandomValues()`.
+Requires ES module support and `crypto.getRandomValues()`. Because `crypto.getRandomValues()` is only exposed in a secure context, the app must be served over HTTPS or from `localhost`.
 
 ---
 
