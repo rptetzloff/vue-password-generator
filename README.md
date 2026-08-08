@@ -1,6 +1,9 @@
 # Vue Password Generator
 
-A modern, secure password generator built with Vue 3 and Vite. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
+A modern, secure password generator built with Vue 3. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
+
+No build step, no dependencies, and no third-party CDNs: the site runs exactly as
+it appears in this repository.
 
 ## Live Demo
 
@@ -60,6 +63,7 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 - **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
 - **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only
+- **No third-party requests** — Vue and the icon font are served from this site, so no CDN observes your visit
 - **Open source** — inspect the code yourself
 
 ---
@@ -68,27 +72,29 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 
 ### Prerequisites
 
-- Node.js 18+
-- npm
+Any static file server. The `npm run dev` script below uses one via `npx`, which
+needs Node.js 18+, but nothing in the project itself depends on Node.
 
 ### Quick Start
 
 ```bash
 git clone https://github.com/rptetzloff/vue-password-generator.git
 cd vue-password-generator
-npm install
 npm run dev
 ```
 
 Open [http://localhost:5173](http://localhost:5173).
 
-### Scripts
+There is no build step and no dependencies to install — `npm run dev` just serves
+the repository over HTTP. Any static server works equally well:
 
 ```bash
-npm run dev       # Development server with hot reload
-npm run build     # Production build
-npm run preview   # Preview production build locally
+python3 -m http.server 5173
 ```
+
+Opening `index.html` directly from the filesystem will not work: `src/main.js` is
+an ES module and the wordlists are loaded with `fetch`, both of which require
+`http://` rather than `file://`.
 
 ---
 
@@ -100,10 +106,10 @@ The project includes a `render.yaml` for one-click deployment on [Render.com](ht
 2. Create a new Static Site
 3. Render detects the config automatically and deploys
 
-Build command: `npm ci && npm run build`  
-Publish directory: `dist`
+Build command: none  
+Publish directory: `./` (the repository root)
 
-For any other static host, build with `npm run build` and serve the `dist/` folder.
+For any other static host, serve the repository root as-is.
 
 ---
 
@@ -115,13 +121,15 @@ vue-password-generator/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── wordlist.txt      # EFF large wordlist for Words mode (7,776 words)
 ├── src/
-│   ├── main.js           # All Vue components (Composition API, CDN)
+│   ├── main.js           # All Vue components (Composition API)
 │   └── style.css         # Design system and component styles
+├── vendor/
+│   ├── vue.esm-browser.prod.js   # Vue 3.4.0 runtime
+│   └── mdi/                      # Material Design Icons 7.4.47 (css + woff2)
 ├── changelog.html        # Release history
 ├── docs.html             # In-app documentation reference
 ├── render.yaml
 ├── package.json
-├── vite.config.js
 └── index.html
 ```
 
@@ -141,14 +149,20 @@ vue-password-generator/
 | `WifiWords` | WiFi-optimized passphrase with alliteration mode |
 | `MadLib` | Template sentence passwords with per-slot category control |
 
-### Vue via CDN
+### Vue as a vendored ES module
 
-Vue 3 is loaded from unpkg as an ES module, keeping the build output minimal and avoiding framework bundling complexity:
+Vue 3 is loaded as a native ES module from a checked-in copy, avoiding both a
+bundler and a third-party CDN in the critical path:
 
 ```javascript
 import { createApp, ref, computed, watch, onMounted } from
-  'https://unpkg.com/vue@3.4.0/dist/vue.esm-browser.prod.js'
+  '../vendor/vue.esm-browser.prod.js'
 ```
+
+Everything the page needs is served from this repository, so the site has no
+external runtime dependencies and keeps working if any CDN is unreachable.
+Upgrading Vue means replacing `vendor/vue.esm-browser.prod.js` with a newer
+`vue.esm-browser.prod.js` build.
 
 ### Word Data
 
@@ -195,7 +209,7 @@ MIT — see [LICENSE](LICENSE) for details.
 
 - [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — used for Words mode
 - [XKCD #936](https://xkcd.com/936/) — "correct horse battery staple"
-- [Vue.js](https://vuejs.org/), [Vite](https://vitejs.dev/)
+- [Vue.js](https://vuejs.org/)
 - [Render](https://render.com/) — hosting
 - [Bolt](https://bolt.new/) — AI-assisted development
 

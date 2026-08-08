@@ -1,0 +1,3 @@
+# Vendored third-party assets are kept byte-identical to their upstream copies,
+# so they must not be line-ending normalized on checkout.
+vendor/** -text

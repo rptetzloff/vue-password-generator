@@ -6,7 +6,7 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Changelog — Random Password Generator</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7/css/materialdesignicons.min.css" />
+    <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -389,6 +389,52 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.7.1 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.7.1</div>
+            <div class="release-date">2026-08-08</div>
+            <span class="release-badge badge-patch">Patch</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Build step removed &amp; runtime assets self-hosted</div>
+                <div class="release-summary">Removed the Vite build, which the production site never served, and moved Vue and the icon font into the repository. The site now has no dependencies, no build step, and no third-party requests. No change to password generation or the interface.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong>Five advisories resolved by removal</strong> — <code>postcss</code> (four advisories, including an XSS via unescaped <code>&lt;/style&gt;</code> and path traversal via attacker-controlled <code>sourceMappingURL</code>), plus <code>esbuild</code>, <code>rollup</code>, and <code>nanoid</code>. All were transitive build-time dependencies of Vite and never reached the browser, so no released version of the site was affected. Deleting the toolchain removes them permanently rather than deferring to the next upgrade.</li>
+                    <li><strong>No third-party requests</strong> — Vue was previously fetched from <code>unpkg.com</code> and the icon font from <code>cdn.jsdelivr.net</code> on every page load, exposing visitors to those CDNs. Both are now served from this site, so no external party observes who uses the generator.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>No single point of failure in the CDN</strong> — <code>src/main.js</code> imported Vue directly from a CDN URL, so an outage there produced a blank page rather than a degraded one. Vue 3.4.0 and Material Design Icons 7.4.47 are now vendored under <code>vendor/</code>, and the site renders entirely from its own origin.</li>
+                    <li><strong>Smaller icon font payload</strong> — only the <code>woff2</code> format is kept; the legacy <code>eot</code>, <code>ttf</code>, and <code>woff</code> variants were dropped, as every browser able to run the app's ES modules supports <code>woff2</code>.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Vite build toolchain</strong> — <code>vite</code>, <code>@vitejs/plugin-vue</code>, <code>vite.config.js</code>, and <code>package-lock.json</code>. The project has no npm dependencies at all now. Because <code>index.html</code> loads <code>src/main.js</code> as a native ES module, the browser needs no bundling step, and production has always served the repository directly rather than a build directory.</li>
+                    <li><strong>Unused packages</strong> — <code>vue</code> and <code>@mdi/font</code> were declared as dependencies but never imported; Vue came from a CDN URL and the icon font from a stylesheet link.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Blank page from the build output</strong> — <code>format: 'umd'</code> in the Rollup options wrapped the app in a UMD factory that read Vue from a global named <code>vue_esmBrowser_prod_js</code>, a name Rollup invented because the Vue import was a CDN URL it could not otherwise name. No such global exists in a browser, so the bundle threw <code>Cannot read properties of undefined</code> before mounting and left the page blank. <code>data/</code> was also never copied into the output, so the wordlists returned 404 for the word-based modes. The production site was unaffected because it serves this repository directly rather than the build output.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.7.0 -->
         <div class="release">
