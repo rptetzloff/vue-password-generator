@@ -63,6 +63,12 @@ watch(historyMax, (max) => {
   if (max === 0) clearStoredHistories()
 })
 
+// The watcher above only fires when the setting changes. Anyone who chose Off
+// before v2.8.2 therefore still has the other generators' passwords stored, and
+// would have to toggle the control again to be rid of them. Sweep once at
+// startup so that clears itself.
+if (historyMax.value === 0) clearStoredHistories()
+
 const useHistory = (key) => {
   const history = persistedRef(key, [])
   const pushHistory = (pw) => {
