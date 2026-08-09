@@ -20,10 +20,22 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding: 1.5rem 0;
   color: white;
-  position: sticky;
+  /* Fixed, not sticky. Sticky keeps the header in the document flow, so
+     shrinking it changed the page height, shifted the content and moved the
+     scroll position -- which fed straight back into the decision to shrink.
+     Out of flow, the size change affects nothing but the header itself. */
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
-  transition: padding 0.18s ease;
+}
+
+/* Holds open the space the fixed header would have occupied. Sized from the
+   expanded header and never updated while condensed, so the page never
+   reflows as the header resizes. */
+.site-header-spacer {
+  flex-shrink: 0;
 }
 
 /* Condensed state.
@@ -50,6 +62,11 @@
   font-size: 0.95rem;
 }
 
+/* Collapse rather than display:none. Toggling display is not animatable, so
+   the header height lurched from one size to the other in a single frame while
+   the icon and title were still easing -- the two halves of the change did not
+   move together. Animating max-height with the vertical spacing lets the whole
+   header shrink as one movement. */
 .site-header.is-condensed .header-text p,
 .site-header.is-condensed .header-description {
   display: none;
@@ -60,11 +77,17 @@
   font-size: 0.8rem;
 }
 
-.header-icon,
-.header-text h1,
-.header-link {
-  transition: width 0.18s ease, height 0.18s ease, font-size 0.18s ease, padding 0.18s ease;
-}
+/* The size change is deliberately not animated.
+ *
+ * Condensing alters padding, width, height, font-size and the spacing around
+ * the collapsed rows -- every one of them a layout property, on several
+ * elements at once. Transitioning them forces the header to re-lay-out on every
+ * frame, which reads as a stutter rather than a glide, and easing cannot fix
+ * that. An instant change never looks half-finished.
+ *
+ * With nothing animating, the collapsed rows can use display: none again
+ * instead of the max-height machinery an animated version would need.
+ */
 
 /* Below this the nav would wrap to several rows before the header condensed,
    so drop the link text and keep the icons. aria-label preserves each name. */
@@ -77,14 +100,9 @@
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .site-header,
-  .header-icon,
-  .header-text h1,
-  .header-link {
-    transition: none;
-  }
-}
+/* No prefers-reduced-motion rule here any more: nothing in the header animates
+   position or size. The only remaining transition is a hover colour fade on
+   the links, which is not motion. */
 
 .header-inner {
   max-width: var(--header-max, 1100px);

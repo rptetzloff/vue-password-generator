@@ -100,19 +100,18 @@ const SMALL_SCREEN = '(max-width: 640px)'
 /**
  * Whether the header should be condensed, given the current state.
  *
- * Pure and exported so the rules can be unit-tested. They resist a real
- * feedback loop that is awkward to reproduce in a browser -- requestAnimationFrame
- * is paused while a tab is hidden, so a scroll-driven check cannot be observed
- * reliably from automation.
+ * Just a scroll threshold with a little hysteresis so jitter around the
+ * boundary does not flutter the class.
+ *
+ * An earlier version also carried a "room to condense" rule and a settle lock,
+ * to survive the header shrinking the document and the browser clamping the
+ * scroll position in response. That feedback was self-inflicted: the header was
+ * position: sticky, so it sat in the flow and its height was part of the page.
+ * It is now fixed with a spacer holding the space, so condensing changes no
+ * layout at all and there is nothing to guard against.
  */
-export const shouldCondense = ({ small, scrollY, scrollable, headerHeight, condensed }) => {
+export const shouldCondense = ({ small, scrollY, condensed }) => {
   if (small) return true
-  // Condensing removes header height, which shortens the page and can make the
-  // browser clamp the scroll position back up. Only condense when there is
-  // enough scrollable distance that the clamp cannot undo the decision.
-  const roomToCondense = scrollable > headerHeight + CONDENSE_AT
-  if (!roomToCondense) return false
-  // Hysteresis: a small clamp must not be able to cross both thresholds.
   if (!condensed) return scrollY > CONDENSE_AT
   return scrollY >= EXPAND_AT
 }
@@ -121,16 +120,31 @@ const attachCondense = (header) => {
   const small = typeof matchMedia === 'function' ? matchMedia(SMALL_SCREEN) : null
   let condensed = false
 
+  // The header is fixed, so it no longer occupies space. This spacer holds the
+  // expanded height open beneath it. Its height is only ever refreshed while
+  // the header is expanded, so condensing leaves the page layout completely
+  // untouched -- which is what makes the animation purely visual.
+  const spacer = document.createElement('div')
+  spacer.className = 'site-header-spacer'
+  spacer.setAttribute('aria-hidden', 'true')
+  header.after(spacer)
+
+  // Only measured while expanded, so the spacer always holds the full height
+  // and condensing cannot move the content.
+  const syncSpacer = () => {
+    if (condensed) return
+    spacer.style.height = `${header.offsetHeight}px`
+  }
+
   const update = () => {
     frame = 0
-    const de = document.documentElement
-    condensed = shouldCondense({
+    const next = shouldCondense({
       small: !!(small && small.matches),
       scrollY: window.scrollY,
-      scrollable: de.scrollHeight - window.innerHeight,
-      headerHeight: header.offsetHeight,
       condensed,
     })
+    if (next === condensed) return
+    condensed = next
     header.classList.toggle('is-condensed', condensed)
   }
 
@@ -139,7 +153,16 @@ const attachCondense = (header) => {
   const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
 
   window.addEventListener('scroll', schedule, { passive: true })
-  window.addEventListener('resize', schedule, { passive: true })
+  window.addEventListener('resize', () => { syncSpacer(); schedule() }, { passive: true })
   if (small) small.addEventListener('change', update)
+
+  // The expanded height changes with the text-size setting and with wrapping,
+  // so re-measure rather than measuring once -- but syncSpacer ignores anything
+  // sampled mid-transition.
+  if (typeof ResizeObserver === 'function') {
+    new ResizeObserver(syncSpacer).observe(header)
+  }
+
+  syncSpacer()
   update()
 }
