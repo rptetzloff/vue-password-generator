@@ -16,6 +16,7 @@ import {
   EMOJI_POOLS,
   pickEmoji,
   applyLeet,
+  historyKeysIn,
 } from './lib.js'
 
 const loadSetting = (key, fallback) => {
@@ -46,6 +47,21 @@ const persistedRef = (key, fallback) => {
 
 
 const historyMax = persistedRef('global.historyMax', 10)
+
+// Tabs render through <component :is> with no <keep-alive>, so only the active
+// generator is mounted and only its useHistory watcher can fire. Turning
+// History off therefore cleared just the tab you happened to be on and left the
+// other six generators' passwords sitting in localStorage. Sweep every history
+// store directly instead, so "Off" means off everywhere.
+const clearStoredHistories = () => {
+  try {
+    historyKeysIn(Object.keys(localStorage)).forEach(k => localStorage.removeItem(k))
+  } catch {}
+}
+
+watch(historyMax, (max) => {
+  if (max === 0) clearStoredHistories()
+})
 
 const useHistory = (key) => {
   const history = persistedRef(key, [])

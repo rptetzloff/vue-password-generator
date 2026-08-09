@@ -5,6 +5,8 @@ import {
   applyLeet,
   resolveToken,
   pickEmoji,
+  isHistoryKey,
+  historyKeysIn,
   DIGITS,
   SPECIAL_CHARS,
   LEET_MAP,
@@ -120,4 +122,45 @@ test('pickEmoji falls back to the default pool for unknown categories', () => {
   for (let i = 0; i < 100; i++) {
     assert.ok(EMOJI_POOLS.default.includes(pickEmoji('NoSuchCategory')))
   }
+})
+
+// Guards the "History: Off" privacy fix. Each generator stores its passwords
+// under "<generator>.history"; settings keys must never be swept. The real
+// localStorage keys below are taken from the seven useHistory() call sites and
+// the persistedRef() settings keys in main.js.
+test('isHistoryKey matches only per-generator history stores', () => {
+  const historyKeys = [
+    'simple.history', 'adv.history', 'words.history', 'nums.history',
+    'phrase.history', 'wifi.history', 'madlib.history',
+  ]
+  for (const k of historyKeys) assert.ok(isHistoryKey(k), `${k} should match`)
+
+  const settingsKeys = [
+    'global.activeTab', 'global.historyMax', 'adv.passwordLength',
+    'adv.activeSymbols', 'madlib.slotCats', 'madlib.useEmoji',
+    'nums.maxRepeated', 'phrase.capitalization', 'wifi.separator',
+    'history', 'historyMax', 'simple.historyLimit',
+  ]
+  for (const k of settingsKeys) assert.ok(!isHistoryKey(k), `${k} should NOT match`)
+})
+
+test('isHistoryKey tolerates non-string keys', () => {
+  for (const v of [null, undefined, 42, {}, []]) {
+    assert.equal(isHistoryKey(v), false)
+  }
+})
+
+test('historyKeysIn selects every history store and nothing else', () => {
+  const all = [
+    'simple.history', 'global.activeTab', 'adv.history', 'adv.digits',
+    'global.historyMax', 'madlib.history', 'madlib.slotCats',
+  ]
+  assert.deepEqual(historyKeysIn(all), ['simple.history', 'adv.history', 'madlib.history'])
+  assert.deepEqual(historyKeysIn([]), [])
+})
+
+// A new generator must be swept automatically. If someone adds one and this
+// starts failing, the naming convention was broken -- not the sweep.
+test('historyKeysIn covers a hypothetical new generator', () => {
+  assert.deepEqual(historyKeysIn(['brandnew.history', 'brandnew.length']), ['brandnew.history'])
 })
