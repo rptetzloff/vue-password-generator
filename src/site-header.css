@@ -23,6 +23,67 @@
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: padding 0.18s ease;
+}
+
+/* Condensed state.
+ *
+ * The header is sticky, so at full height it follows the reader down the page
+ * and eats screen the content needs -- worst on a phone, and worse again at a
+ * raised text size. Once scrolled past the top it shrinks to an icon, the title
+ * and the nav; the subtitle and description are dropped, since they describe
+ * the page rather than help you move around it.
+ *
+ * Applied by site-header.js on scroll, and unconditionally below 640px where
+ * the full header would dominate the viewport from the outset.
+ */
+.site-header.is-condensed {
+  padding: 0.5rem 0;
+}
+
+.site-header.is-condensed .header-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.site-header.is-condensed .header-text h1 {
+  font-size: 0.95rem;
+}
+
+.site-header.is-condensed .header-text p,
+.site-header.is-condensed .header-description {
+  display: none;
+}
+
+.site-header.is-condensed .header-link {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+.header-icon,
+.header-text h1,
+.header-link {
+  transition: width 0.18s ease, height 0.18s ease, font-size 0.18s ease, padding 0.18s ease;
+}
+
+/* Below this the nav would wrap to several rows before the header condensed,
+   so drop the link text and keep the icons. aria-label preserves each name. */
+@media (max-width: 560px) {
+  .header-link-text {
+    display: none;
+  }
+  .header-link {
+    padding: 0.4rem 0.55rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-header,
+  .header-icon,
+  .header-text h1,
+  .header-link {
+    transition: none;
+  }
 }
 
 .header-inner {

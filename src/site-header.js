@@ -71,5 +71,75 @@ export const mountSiteHeader = (container, { pathname = location.pathname, setti
   mountSiteNav(nav, pathname)
   mountSettingsPanel(nav, settings)
 
+  attachCondense(header)
+
   return { header, nav }
+}
+
+/**
+ * Shrink the sticky header once the page is scrolled, and keep it shrunk on
+ * small screens where the full version would dominate the viewport anyway.
+ *
+ * Two guards against feedback, both needed. Condensing removes ~180px of
+ * header, which shortens the document; on a short page the browser then clamps
+ * the scroll position back up, and a naive `scrollY > threshold` test flips
+ * straight back. Measured on about.html: the state changed every single frame,
+ * with scrollY bouncing between 70 and 14.
+ *
+ *   1. Hysteresis -- condense above CONDENSE_AT, but only expand again below
+ *      the lower EXPAND_AT, so a small clamp cannot cross both.
+ *   2. A room check -- do not condense at all unless the page has more
+ *      scrollable distance than the header could give back. Without this, a
+ *      page barely taller than the viewport can still be clamped past both
+ *      thresholds at once.
+ */
+export const CONDENSE_AT = 64
+export const EXPAND_AT = 24
+const SMALL_SCREEN = '(max-width: 640px)'
+
+/**
+ * Whether the header should be condensed, given the current state.
+ *
+ * Pure and exported so the rules can be unit-tested. They resist a real
+ * feedback loop that is awkward to reproduce in a browser -- requestAnimationFrame
+ * is paused while a tab is hidden, so a scroll-driven check cannot be observed
+ * reliably from automation.
+ */
+export const shouldCondense = ({ small, scrollY, scrollable, headerHeight, condensed }) => {
+  if (small) return true
+  // Condensing removes header height, which shortens the page and can make the
+  // browser clamp the scroll position back up. Only condense when there is
+  // enough scrollable distance that the clamp cannot undo the decision.
+  const roomToCondense = scrollable > headerHeight + CONDENSE_AT
+  if (!roomToCondense) return false
+  // Hysteresis: a small clamp must not be able to cross both thresholds.
+  if (!condensed) return scrollY > CONDENSE_AT
+  return scrollY >= EXPAND_AT
+}
+
+const attachCondense = (header) => {
+  const small = typeof matchMedia === 'function' ? matchMedia(SMALL_SCREEN) : null
+  let condensed = false
+
+  const update = () => {
+    frame = 0
+    const de = document.documentElement
+    condensed = shouldCondense({
+      small: !!(small && small.matches),
+      scrollY: window.scrollY,
+      scrollable: de.scrollHeight - window.innerHeight,
+      headerHeight: header.offsetHeight,
+      condensed,
+    })
+    header.classList.toggle('is-condensed', condensed)
+  }
+
+  // Coalesce to one update per frame; scroll fires far more often than that.
+  let frame = 0
+  const schedule = () => { if (!frame) frame = requestAnimationFrame(update) }
+
+  window.addEventListener('scroll', schedule, { passive: true })
+  window.addEventListener('resize', schedule, { passive: true })
+  if (small) small.addEventListener('change', update)
+  update()
 }

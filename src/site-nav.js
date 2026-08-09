@@ -59,7 +59,17 @@ export const mountSiteNav = (container, pathname = location.pathname) => {
     const icon = document.createElement('span')
     icon.className = `mdi ${p.icon}`
     icon.setAttribute('aria-hidden', 'true')
-    a.append(icon, document.createTextNode(' ' + p.label))
+
+    // The label is wrapped so the condensed header can hide it and leave the
+    // icon. aria-label carries the name regardless, because display:none would
+    // otherwise remove the text from the accessibility tree along with the
+    // link's only name.
+    const text = document.createElement('span')
+    text.className = 'header-link-text'
+    text.textContent = p.label
+    a.setAttribute('aria-label', p.label)
+
+    a.append(icon, text)
     container.appendChild(a)
     return a
   })
