@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legal — Random Password Generator</title>
+    <link rel="stylesheet" href="/src/tokens.css" />
+    <link rel="stylesheet" href="/src/site-header.css" />
+    <link rel="stylesheet" href="/src/site-footer.css" />
+    <link rel="stylesheet" href="/src/prose-page.css" />
+    <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
+    <style>
+      :root { --header-max: 760px; --footer-max: 760px; --footer-pad: 1.5rem; --page-max: 760px; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
+        <div class="header-text">
+          <h1>Random Password Generator</h1>
+          <p>Legal</p>
+        </div>
+        <nav class="header-nav">
+          <a href="/about.html" class="header-link">
+            <span class="mdi mdi-information-outline"></span> About
+          </a>
+          <a href="/" class="header-link">
+            <span class="mdi mdi-arrow-left"></span> Back to App
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page">
+      <article class="prose-card">
+        <h2>Privacy</h2>
+        <p>
+          This site does not collect anything. There is no account system, no
+          analytics, no cookies, and no tracking of any kind. Passwords are
+          generated in your browser and are never transmitted.
+        </p>
+        <p>
+          The only data stored is kept by your own browser, in
+          <code>localStorage</code>, on your device:
+        </p>
+        <ul>
+          <li>Your generator preferences — length, character types, separators, capitalization and similar settings.</li>
+          <li>The tab you last had open.</li>
+          <li>
+            Recently generated passwords, in plain text. Note that
+            <strong>each of the seven generators keeps its own separate list</strong>,
+            and the History control sets the limit per generator rather than
+            overall — so at the default of 10 you may have up to 70 passwords
+            stored across all of them.
+          </li>
+        </ul>
+        <p>
+          Clearing your browser's site data erases all of it. None of it is ever
+          sent anywhere.
+        </p>
+
+        <h3>Why we say “no cookies”, and what that does and doesn't mean</h3>
+        <p>
+          The distinction is worth being precise about, because “no cookies” is
+          easy to use as a dodge.
+        </p>
+        <p>
+          <strong>It does mean something real.</strong> A cookie is attached
+          automatically to every request your browser makes to a site — every page
+          load, every asset. Had this site set one, its contents would travel to
+          the server constantly whether that was useful or not.
+          <code>localStorage</code> behaves differently: it is readable only by
+          code running on this page, and nothing in it reaches a server unless code
+          deliberately sends it. This site contains no such code. That is a
+          structural difference, not a promise we are asking you to take on trust.
+        </p>
+        <p>
+          <strong>It is not a loophole.</strong> <code>localStorage</code> is still
+          data kept on your device, and the rules that people think of as “cookie
+          law” are written to cover any storage on a user's device, not the word
+          <em>cookie</em>. So the honest position is not “we avoided cookies,
+          therefore nothing applies” — it is that everything stored here is
+          functional: settings you chose, the tab you were last on, and a history
+          you can switch off. There is no identifier, no profile, no third party,
+          and nothing that could be used to recognise you later or anywhere else.
+        </p>
+        <p>
+          Which is why this page lists what is stored rather than simply asserting
+          that the site is private. You can also check it yourself: open your
+          browser's developer tools and look under <code>localStorage</code> for
+          this domain. The entries are namespaced by generator — you will see keys
+          such as <code>simple.history</code>, <code>words.history</code> and
+          <code>global.activeTab</code>, one set per generator you have used. There
+          is no identifier among them, and nothing beyond the categories listed
+          above.
+        </p>
+        <p>
+          The site makes no third-party requests. Vue and the icon font are served
+          from this domain rather than a CDN, so no outside party observes your
+          visit. Links to other sites are ordinary links and are only followed if
+          you click them.
+        </p>
+        <p>
+          The site is hosted on <a href="https://render.com" target="_blank" rel="noopener">Render</a>,
+          which — like any web host — may keep standard server logs. That is
+          outside this project's control and is governed by Render's own policies.
+        </p>
+
+        <h2>Licence</h2>
+        <p>
+          The source code is released under the MIT Licence, Copyright &copy; 2019
+          Ray Tetzloff. The full text is in the
+          <a href="https://github.com/rptetzloff/vue-password-generator/blob/master/LICENSE" target="_blank" rel="noopener">LICENSE</a>
+          file in the repository. In short: you may use, copy, modify and
+          distribute it, including commercially, provided the copyright notice and
+          licence text are retained.
+        </p>
+
+        <h2>Disclaimer</h2>
+        <p>
+          This software is provided "as is", without warranty of any kind, express
+          or implied, including but not limited to the warranties of
+          merchantability, fitness for a particular purpose and non-infringement.
+          In no event shall the author be liable for any claim, damages or other
+          liability arising from the use of this software.
+        </p>
+        <p>
+          Practically: while passwords are generated using the browser's
+          cryptographic random number generator, no guarantee is made about the
+          security of any particular password, about the security of the device or
+          browser you run this on, or about how you subsequently store and use what
+          you generate.
+        </p>
+
+        <h2>Third-party components</h2>
+        <p>
+          Copies of these are vendored into the repository so the site can be
+          served without external requests.
+        </p>
+        <dl>
+          <dt><a href="https://vuejs.org" target="_blank" rel="noopener">Vue</a> 3.4.0</dt>
+          <dd>
+            The user interface framework. MIT Licence, Copyright &copy; 2018–present,
+            Yuxi (Evan) You and Vue contributors. Full text:
+            <a href="/vendor/vue.LICENSE">vendor/vue.LICENSE</a>.
+          </dd>
+
+          <dt><a href="https://pictogrammers.com/library/mdi/" target="_blank" rel="noopener">Material Design Icons</a> 7.4.47</dt>
+          <dd>
+            The icon font, published by the
+            <a href="https://pictogrammers.com/" target="_blank" rel="noopener">Pictogrammers</a>
+            group under the Pictogrammers Free License — icons and fonts under
+            Apache&nbsp;2.0, code under MIT. This is the community icon set, which
+            is a distinct project from Google's Material Icons. Full text:
+            <a href="/vendor/mdi/LICENSE">vendor/mdi/LICENSE</a>.
+          </dd>
+
+          <dt><a href="https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases" target="_blank" rel="noopener">EFF Long Wordlist</a></dt>
+          <dd>
+            The 7,776-word list behind the Words generator, published by the
+            Electronic Frontier Foundation under a Creative Commons Attribution
+            licence.
+          </dd>
+        </dl>
+        <p>
+          The categorized word lists used by the Passphrase, Wireless and
+          Mad&nbsp;Lib generators are original to this project and covered by the
+          MIT licence above.
+        </p>
+
+        <p class="prose-updated">
+          Questions about any of the above can be raised as an
+          <a href="https://github.com/rptetzloff/vue-password-generator/issues" target="_blank" rel="noopener">issue on GitHub</a>.
+        </p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-links">
+          <a href="https://github.com/rptetzloff/vue-password-generator" class="footer-link footer-link-icon" target="_blank" rel="noopener">
+            <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            GitHub
+          </a>
+          <a href="/" class="footer-link">App</a>
+          <a href="/docs.html" class="footer-link">Docs</a>
+          <a href="/changelog.html" class="footer-link">Changelog</a>
+          <a href="/about.html" class="footer-link">About</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -31,6 +31,11 @@
   padding: 0 1.5rem;
   display: flex;
   align-items: center;
+  /* Wrap the nav onto its own line rather than overflowing. The icon and nav
+     are both flex-shrink: 0 and the links are nowrap, so without this the row
+     could only grow -- which pushed the whole page into horizontal scroll on
+     narrow screens. */
+  flex-wrap: wrap;
   gap: 1rem;
 }
 

@@ -216,9 +216,10 @@ MIT — see [LICENSE](LICENSE) for details.
 - [Vue.js](https://vuejs.org/)
 - [Render](https://render.com/) — hosting
 - [Bolt](https://bolt.new/) — AI-assisted development
+- [Claude Code](https://claude.com/claude-code) — AI-assisted development
 
 ---
 
 *Your passwords are generated locally in your browser — no server storage, no transmission.*
 
-Made by [Raymond Tetzloff](https://github.com/rptetzloff) with assistance from [Bolt](https://bolt.new)
+Made by [Raymond Tetzloff](https://github.com/rptetzloff) with assistance from [Bolt](https://bolt.new) and [Claude Code](https://claude.com/claude-code)
