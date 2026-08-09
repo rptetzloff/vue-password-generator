@@ -179,3 +179,12 @@ export const applyLeet = (str, activeSubs) => {
     return c
   }).join('')
 }
+
+// Each generator stores its password history under a "<generator>.history" key.
+// Settings keys never use that suffix, so matching on it finds every history
+// store without a hand-maintained list that a new generator could be left out
+// of -- which would silently reintroduce the bug this exists to prevent.
+export const isHistoryKey = (key) =>
+  typeof key === 'string' && key.endsWith('.history')
+
+export const historyKeysIn = (keys) => keys.filter(isHistoryKey)

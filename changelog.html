@@ -256,6 +256,33 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.8.1 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.8.1</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-patch">Patch</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">History &ldquo;Off&rdquo; now clears every generator</div>
+                <div class="release-summary">Turning history off only emptied the generator you happened to be looking at. The other six kept their stored passwords in the browser indefinitely. If you have used Off before, open the app once on this version to clear what was left behind.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong>Off left passwords behind</strong> — each generator keeps its own history list, but only the tab currently on screen is actually loaded, so only that one responded when the setting changed. Choosing Off cleared, say, Simple while Advanced, Words, Passphrase, Wireless, Mad&nbsp;Lib and Numbers quietly kept theirs. At the default limit that could be up to 60 passwords still stored after you had asked for none.</li>
+                    <li><strong>Now cleared everywhere</strong> — Off erases every generator's list at once, whether or not that generator is open, and stops anything further being stored. Your settings — lengths, character types, separators, categories — are untouched.</li>
+                    <li><strong>Guarded against reappearing</strong> — the clearing works by matching how history entries are named rather than a fixed list, so a generator added later is covered automatically. Tests cover both that every history store is matched and that no settings entry ever is.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.8.0 -->
         <div class="release">
           <div class="release-meta">
