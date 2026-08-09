@@ -98,7 +98,14 @@ Small, and pairs naturally with Epic 4 since you'll be in that data anyway.
 - [ ] **Link to anagrimoire.com** from the header or footer.
 - [ ] **Lead with the shared privacy stance.** Anagrimoire's framing is "nothing you type into a solver leaves your device"; this project's is "all generation happens in your browser." That's the same promise, and it's a more compelling cross-link than a bare link.
 - [ ] **Reciprocal link** from anagrimoire, if you want the pair to read as one family of tools.
-- [ ] Both sites are account-free, client-side, and now dependency-free — worth stating once, consistently.
+- [ ] **Describe the account model accurately — the two sites differ here.** Anagrimoire has optional accounts, used for syncing (stats, streaks, boards) across devices; everything works without signing in. This project has no accounts and, per the owner, **should stay that way**. So the shared line is "works without an account," not "has no accounts." Don't flatten the difference.
+- [ ] Both sites are client-side and dependency-free — worth stating once, consistently.
+
+**Decided against: accounts / cross-device sync for this project.** Recorded so it
+doesn't get re-proposed. It also settles adjacent questions — no server-side
+settings sync, so `localStorage` stays the only persistence layer, which keeps the
+"nothing is transmitted" promise absolute and keeps the history question in the
+Suggestions list a purely local one.
 
 ---
 
