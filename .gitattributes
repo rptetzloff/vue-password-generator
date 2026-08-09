@@ -1,3 +1,8 @@
 # Vendored third-party assets are kept byte-identical to their upstream copies,
 # so they must not be line-ending normalized on checkout.
 vendor/** -text
+
+# Git hooks are executed by sh. With core.autocrlf=true (the default on Windows)
+# they would otherwise be checked out with CRLF endings, and sh fails on the
+# shebang with "bad interpreter". Force LF.
+.githooks/** text eol=lf

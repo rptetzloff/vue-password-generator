@@ -22,6 +22,7 @@
   "homepage": "https://github.com/rptetzloff/vue-password-generator",
   "type": "module",
   "scripts": {
-    "dev": "npx --yes serve . --listen 5173"
+    "dev": "npx --yes serve . --listen 5173",
+    "test": "node --test"
   }
 }

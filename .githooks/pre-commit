@@ -1,0 +1,29 @@
+#!/bin/sh
+#
+# Run the test suite before allowing a commit.
+#
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+#
+# Bypass deliberately (WIP commits, docs-only work) with:
+#     git commit --no-verify
+#
+# Note: this checks the working tree, not the staged snapshot. If you stage only
+# some of your changes, the tests run against everything on disk. CI is the
+# authoritative gate -- this hook is for fast local feedback.
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "pre-commit: node not found on PATH, skipping tests" >&2
+  exit 0
+fi
+
+echo "pre-commit: running tests..."
+
+if ! node --test; then
+  echo "" >&2
+  echo "pre-commit: tests FAILED -- commit aborted." >&2
+  echo "Fix them, or bypass with: git commit --no-verify" >&2
+  exit 1
+fi
+
+echo "pre-commit: tests passed."
