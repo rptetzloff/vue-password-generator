@@ -17,6 +17,8 @@
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
         var fs = JSON.parse(localStorage.getItem('global.fontScale'));
         if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
+        var pal = JSON.parse(localStorage.getItem('global.palette'));
+        if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
       } catch (e) {}
     </script>
     <link rel="stylesheet" href="/src/tokens.css" />

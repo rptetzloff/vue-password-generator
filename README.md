@@ -53,7 +53,20 @@ A settings gear in the header opens a small panel, available on every page.
 
 - **Theme** — Light, Dark, or System. System follows your OS setting and updates live if you change it.
 - **Text size** — Default, 112%, 125% or 150%. Scales the whole interface, not just the copy, and multiplies your browser's own font size rather than replacing it.
+- **Colours** — ten accent themes: Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate and Mono. Themes marked with an eye are verified to stay distinct from the success, warning and error colours for every kind of colour blindness.
 - **History** — the per-generator history limit, on the app page only.
+
+A theme swaps the accent family — primary, hover, focus ring, focus tint and the
+page gradient — and in dark mode it also tints the surfaces, so a violet theme
+gives violet cards rather than the same grey card with a violet button. The
+tints are all at or below the neutral slate they replace, so they can only raise
+the contrast of everything sitting on them.
+
+**Mono** is the exception: it is a true grayscale theme and overrides the status
+and change-group colours too. That is the interesting constraint — with no hue,
+those have to separate by lightness alone, while every one of them still clears
+4.5:1 on white, which pins them into the dark half of the scale. Mono is also
+the only theme that is provably identical for every kind of colour vision.
 
 The theme is applied by a blocking inline script before the page paints, so
 switching to dark never shows a flash of the light theme first. Your choice is
@@ -87,8 +100,35 @@ what made a toggle hard to justify; under simulation it is not. The old dark
 set had two groups a protanope sees at CIEDE2000 1.1 — below the threshold of
 noticing any difference at all — against 7.3 now.
 
-A floor of 7.0 is not a comfortable margin, and no user-selectable themes
-exist yet. Both are open work; see [ROADMAP.md](ROADMAP.md).
+The same tooling decides which accent themes get the eye marker in Settings. A
+theme earns it when its accent stays at least 10 (CIEDE2000) from all three
+status colours under normal, protan, deutan and tritan vision, in both themes.
+That flag is recomputed from `tokens.css` on every test run and the suite fails
+if the recorded value disagrees, so the marker cannot quietly become a lie.
+
+A second, stricter floor applies to the accent against `--error` alone: **20**
+at normal vision. This exists because the first floor asked the wrong question.
+2.3 is the point at which two colours can be told apart *when compared*, but
+the accent fills buttons and the error fills a toast — two large blocks of
+solid colour — and those read as the same thing long before they become hard
+to distinguish side by side. Rose cleared 2.3 comfortably at 11.9 and still
+made an error stop looking like an error.
+
+That reshaped the red theme twice. An amber accent was dropped outright at
+**0.0** from the warning colour, because it *was* the warning colour. Rose went
+from rose-700 (11.9 from `--error`) to rose-900 at 22.3 in light, and from
+rose-400 — 1.4 apart under tritanopia — to rose-200 at 22.5 in dark. It reads
+as a deep burgundy now rather than a bright rose, which is the price of keeping
+a red theme on a site that uses red to mean something.
+
+**Mono is exempt**, and cannot help it. The three status greys already occupy
+most of the lightness band that clears 4.5:1, and the accent has to fit in the
+same band; it sits 7.1 from its error grey. In a theme where nothing is
+colour-coded that is the trade being made, not a defect — the toast is
+identified by its words, as it is everywhere else.
+
+Neither the 7.0 group floor nor mono's 6.0 is a comfortable margin. Raising
+them is open work; see [ROADMAP.md](ROADMAP.md).
 
 ---
 
@@ -200,7 +240,8 @@ vue-password-generator/
 ├── src/
 │   ├── main.js           # Vue components for the seven generators
 │   ├── lib.js            # Pure generation helpers (no Vue, no DOM) — unit tested
-│   ├── theme.js          # Light/dark/system runtime
+│   ├── theme.js          # Light/dark/system + palette runtime
+│   ├── palettes.js       # The accent palette manifest, incl. cvd-safe flags
 │   ├── logo.js           # The site mark, inline so it can follow the theme
 │   ├── site-header.js    # Shared header: icon, title, subtitle, nav
 │   ├── site-nav.js       # One list of pages; every nav is generated from it
@@ -316,6 +357,14 @@ MIT — see [LICENSE](LICENSE) for details.
 - [Render](https://render.com/) — hosting
 - [Bolt](https://bolt.new/) — AI-assisted development
 - [Claude Code](https://claude.com/claude-code) — AI-assisted development
+
+The colour tooling in `test/helpers/color.js` implements two published methods.
+Neither is vendored or shipped — it is test-only measurement code written from
+the papers, which is why it is credited here rather than in the third-party
+components on the [Legal page](legal.html):
+
+- **CIEDE2000** — Sharma, Wu & Dalal (2005), *The CIEDE2000 Color-Difference Formula*. The reference pairs published with it are used to verify the implementation.
+- **Colour-vision-deficiency simulation** — Machado, Oliveira & Fernandes (2009), *A Physiologically-based Model for Simulation of Color Vision Deficiency*. The severity-1.0 matrices for protanopia, deuteranopia and tritanopia.
 
 ---
 

@@ -54,11 +54,17 @@ colours are now simply the default (see Epic 3).
 The version worth building is the one that was actually wanted — pick a colour
 you like:
 
-- [ ] **Ship a set of accent themes** — red / blue / green / purple and so on, as a `data-palette` axis independent of light/dark, so every theme works in both. This is a preference feature, not an accessibility feature; treat it as such.
-- [ ] **Include pre-built colour-blind-friendly themes** in the same list, rather than a separate mechanism. One picker, some entries tuned for protanopia/deuteranopia/tritanopia.
-- [ ] **Label which themes suit which kind of colour vision.** This is the interesting bit and it should be computed, not asserted: `test/helpers/color.js` already simulates all three deficiencies and measures CIEDE2000, so a theme's suitability can be *measured* and the label generated from the measurement. A theme whose weakest pair holds up under deuteranopia can say so honestly.
-- [ ] **Gate new themes on the existing floor.** Every palette has to clear WCAG AA on contrast *and* the CIEDE2000 separation floor before it ships. The tests already do this for the default set; parameterise them over the palette list.
-- [ ] **Watch the combinatorics.** Palettes × light/dark × four vision types is a lot of assertions. Better to iterate over a palette manifest than to hand-write each case.
+- [x] **Ship a set of accent themes** — ten: Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate, Mono. A `data-palette` axis independent of light/dark, so every theme works in both.
+- [x] **Include pre-built colour-blind-friendly themes** in the same list rather than a separate mechanism. Blue, Indigo, Violet, Slate and Mono qualify; they sit in the same picker as the rest.
+- [x] **Label which themes suit which kind of colour vision, by measuring it.** A theme is marked when its accent stays ≥10 (CIEDE2000) from all three status colours under normal/protan/deutan/tritan in both themes. `src/palettes.js` records the flag and `test/colour-vision.test.js` recomputes it from `tokens.css`, failing if the two disagree — so the marker in the UI cannot become a lie.
+- [x] **Gate new themes on the floors.** Every palette clears AA on the accent pairs, on all six badge pairs, on every token pair, and on the change groups, in both themes. Two candidates were rejected by measurement rather than taste: amber at 0.0 from `--warning`, and the first rose at 1.4 from `--error` in dark.
+- [x] **Iterate a manifest rather than hand-writing cases.** The suite went from 63 tests to 244 without hand-writing any of the new ones; `PALETTES` drives all of it. A palette present in `tokens.css` but missing from the manifest now fails a test, so it cannot skip coverage.
+
+Still open in 2a:
+
+- [ ] **Raise the separation floor.** Coloured palettes hold the change groups ≥7.0 apart and monochrome ≥6.0, neither of which is a comfortable margin. Both are near the ceiling of what the current fixed group colours allow, so raising the floor means re-deriving that set, not nudging a constant.
+- [ ] **Light mode does not tint.** Only dark surfaces follow the palette; in light mode every theme is a white card on a coloured gradient. Tinting light surfaces is harder — they have far less headroom before text drops below 4.5:1.
+- [ ] **The accent-vs-status metric is narrow.** It compares one colour against three. It says nothing about the accent against the badge families or the change groups, which is a weaker claim than the eye marker might suggest.
 
 ---
 

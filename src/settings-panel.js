@@ -9,7 +9,11 @@
 import {
   THEMES, getThemeChoice, setThemeChoice,
   FONT_SCALES, getFontScale, setFontScale,
+  getPalette, setPalette,
 } from './theme.js'
+import { PALETTES } from './palettes.js'
+
+const CVD_NOTE = 'Stays distinct from the success, warning and error colours for all types of colour blindness'
 
 const THEME_LABELS = { light: 'Light', dark: 'Dark', system: 'System' }
 const THEME_ICONS = {
@@ -19,7 +23,7 @@ const THEME_ICONS = {
 }
 
 /** Build a labelled row of chip buttons. Returns { row, sync }. */
-const buildChipRow = (label, options, getValue, onSelect) => {
+const buildChipRow = (label, options, getValue, onSelect, { note } = {}) => {
   const row = document.createElement('div')
   row.className = 'settings-row'
 
@@ -35,7 +39,7 @@ const buildChipRow = (label, options, getValue, onSelect) => {
   group.setAttribute('role', 'radiogroup')
   group.setAttribute('aria-labelledby', heading.id)
 
-  const chips = options.map(({ value, label: text, icon }) => {
+  const chips = options.map(({ value, label: text, icon, swatch, badge, description }) => {
     const b = document.createElement('button')
     b.type = 'button'
     b.className = 'settings-chip'
@@ -47,7 +51,28 @@ const buildChipRow = (label, options, getValue, onSelect) => {
       i.setAttribute('aria-hidden', 'true')
       b.appendChild(i)
     }
+    if (swatch) {
+      // Decorative: the name beside it is what actually identifies the option,
+      // so this never becomes the only cue (WCAG 1.4.1).
+      const s = document.createElement('span')
+      s.className = 'settings-swatch'
+      s.style.background = swatch
+      s.setAttribute('aria-hidden', 'true')
+      b.appendChild(s)
+    }
     b.appendChild(document.createTextNode(text))
+    if (badge) {
+      const g = document.createElement('span')
+      g.className = `mdi ${badge}`
+      g.setAttribute('aria-hidden', 'true')
+      b.appendChild(g)
+    }
+    // The badge is an icon, so the meaning has to reach assistive tech some
+    // other way. title also gives sighted users a hover explanation.
+    if (description) {
+      b.setAttribute('aria-label', `${text}. ${description}`)
+      b.title = description
+    }
     b.addEventListener('click', () => { onSelect(value); sync() })
     group.appendChild(b)
     return b
@@ -81,8 +106,53 @@ const buildChipRow = (label, options, getValue, onSelect) => {
   })
 
   row.appendChild(group)
+  if (note) {
+    const n = document.createElement('p')
+    n.className = 'settings-note'
+    n.textContent = note
+    row.appendChild(n)
+  }
   sync()
   return { row, sync }
+}
+
+/**
+ * Every palette's accent colour, read from tokens.css rather than duplicated
+ * here -- a second copy of eight hex values is exactly the kind of drift these
+ * tokens exist to prevent.
+ *
+ * A detached element would not match the `[data-palette='x']` rules, so the
+ * probe has to be in the document, and data-theme is mirrored onto it because
+ * the dark overrides are `[data-theme='dark'][data-palette='x']` -- both
+ * attributes must be on the same element for that selector to match.
+ *
+ * The root's own data-palette is lifted for the duration. Custom properties
+ * inherit, and the default palette is the bare :root with no rule of its own,
+ * so while the root said `violet` the probe for the default inherited violet
+ * and the Sky chip showed a violet dot. Nothing paints between removing and
+ * restoring the attribute -- getComputedStyle forces a style recalc, not a
+ * frame -- so this is invisible.
+ */
+const readSwatches = (values) => {
+  const root = document.documentElement
+  const saved = root.getAttribute('data-palette')
+  if (saved !== null) root.removeAttribute('data-palette')
+
+  const probe = document.createElement('div')
+  probe.style.cssText = 'position:absolute;width:0;height:0;visibility:hidden'
+  const theme = root.getAttribute('data-theme')
+  if (theme) probe.setAttribute('data-theme', theme)
+  document.body.appendChild(probe)
+
+  const out = {}
+  for (const v of values) {
+    probe.setAttribute('data-palette', v)
+    out[v] = getComputedStyle(probe).getPropertyValue('--primary').trim()
+  }
+
+  probe.remove()
+  if (saved !== null) root.setAttribute('data-palette', saved)
+  return out
 }
 
 /**
@@ -118,7 +188,9 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
     'Theme',
     THEMES.map(t => ({ value: t, label: THEME_LABELS[t], icon: THEME_ICONS[t] })),
     getThemeChoice,
-    (v) => setThemeChoice(v),
+    // The accent differs between light and dark, so the swatches below are
+    // stale the moment the theme changes. refreshColours is hoisted.
+    (v) => { setThemeChoice(v); refreshColours() },
   )
   panel.appendChild(theme.row)
   syncers.push(theme.sync)
@@ -131,6 +203,36 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
   )
   panel.appendChild(textSize.row)
   syncers.push(textSize.sync)
+
+  // Swatches are read at mount time, and the accent colours differ between
+  // light and dark, so the row is rebuilt whenever the theme changes.
+  let colours = null
+  const buildColours = () => {
+    const swatches = readSwatches(PALETTES.map(p => p.value))
+    return buildChipRow(
+    'Colours',
+    PALETTES.map(p => ({
+      value: p.value,
+      label: p.label,
+      swatch: swatches[p.value],
+      badge: p.cvdSafe ? 'mdi-eye-check-outline' : undefined,
+      description: p.cvdSafe ? CVD_NOTE : undefined,
+    })),
+    getPalette,
+    (v) => { setPalette(v); refreshColours() },
+    { note: 'Themes marked with an eye stay distinct from the status colours for all types of colour blindness.' },
+    )
+  }
+  function refreshColours () {
+    const next = buildColours()
+    panel.replaceChild(next.row, colours.row)
+    const i = syncers.indexOf(colours.sync)
+    if (i !== -1) syncers[i] = next.sync
+    colours = next
+  }
+  colours = buildColours()
+  panel.appendChild(colours.row)
+  syncers.push(colours.sync)
 
   for (const s of extraSections) {
     const built = buildChipRow(s.label, s.options, s.get, s.set)

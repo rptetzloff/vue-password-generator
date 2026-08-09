@@ -12,9 +12,9 @@
  */
 
 .site-header {
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--header-bg);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  border-bottom: 1px solid var(--header-hairline);
   padding: 1.5rem 0;
   color: white;
   /* Fixed, not sticky. Sticky keeps the header in the document flow, so
@@ -171,10 +171,10 @@
   flex-basis: 100%;
   margin-top: 0.85rem;
   padding-top: 0.85rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  border-top: 1px solid var(--header-hairline);
   font-size: 0.82rem;
   line-height: 1.5;
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--footer-text);
 }
 
 .header-description strong {
@@ -188,8 +188,8 @@
   gap: 0.4rem;
   padding: 0.5rem 1rem;
   border-radius: 6px;
-  border: 1.5px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--band-control-border);
+  background: var(--band-control-bg);
   color: white;
   font-size: 0.875rem;
   font-weight: 500;
@@ -199,8 +199,8 @@
 }
 
 .header-link:hover {
-  background: rgba(255, 255, 255, 0.22);
-  border-color: rgba(255, 255, 255, 0.7);
+  background: var(--band-control-hover-bg);
+  border-color: var(--band-control-border);
 }
 
 .header-link:focus-visible {
@@ -212,7 +212,7 @@
    the visual half. Not colour alone -- the border weight changes too, so the
    state survives a colour-vision difference (WCAG 1.4.1). */
 .header-link.is-current {
-  background: rgba(255, 255, 255, 0.28);
+  background: var(--band-control-hover-bg);
   border-color: white;
   font-weight: 700;
 }

@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import { resolveTheme, THEMES, THEME_KEY, resolveFontScale, FONT_SCALES, FONT_SCALE_KEY } from '../src/theme.js'
+import { PALETTE_KEY, PALETTE_VALUES, DEFAULT_PALETTE, resolvePalette } from '../src/palettes.js'
 
 // theme.js is importable here only because nothing runs at module scope -- the
 // DOM-touching functions are all called explicitly. If someone adds an
@@ -55,4 +57,38 @@ test('the font-scale contract matches the inline head snippet', () => {
   // raising the text size does not flash at the default first.
   assert.equal(FONT_SCALE_KEY, 'global.fontScale')
   assert.deepEqual(FONT_SCALES.filter(n => n !== 100), [112, 125, 150])
+})
+
+test('every page pre-paints the same palette list as the manifest', () => {
+  // The pre-paint script cannot import anything -- it is inline, blocking and
+  // non-module -- so it repeats the palette names. That duplication is the
+  // whole risk: add a palette to src/palettes.js and, without this, the new
+  // theme would apply only after first paint, flashing the default first on
+  // every page load. Five pages, so five chances to update four of them.
+  assert.equal(PALETTE_KEY, 'global.palette')
+  const expected = PALETTE_VALUES.filter((v) => v !== DEFAULT_PALETTE)
+
+  for (const page of ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html']) {
+    const html = fs.readFileSync(new URL(`../${page}`, import.meta.url), 'utf8')
+    const m = /\[([^\]]*)\]\s*\.indexOf\(pal\)/.exec(html)
+    assert.ok(m, `${page} has no palette list in its pre-paint script`)
+    const listed = [...m[1].matchAll(/'([\w-]+)'/g)].map((x) => x[1])
+    assert.deepEqual(
+      listed,
+      expected,
+      `${page} pre-paints [${listed.join(', ')}] but the manifest says [${expected.join(', ')}]`,
+    )
+  }
+})
+
+test('resolvePalette accepts only the offered palettes', () => {
+  for (const v of PALETTE_VALUES) assert.equal(resolvePalette(v), v)
+})
+
+test('resolvePalette falls back to the default for anything else', () => {
+  // Including the value the removed opt-in palette used to store, which is
+  // still sitting in localStorage for anyone who selected it.
+  for (const bad of ['cvd', 'amber', '', null, undefined, 0, {}, 'SKY']) {
+    assert.equal(resolvePalette(bad), DEFAULT_PALETTE)
+  }
 })
