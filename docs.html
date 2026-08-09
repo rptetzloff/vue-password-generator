@@ -163,7 +163,7 @@
 
       .intro-tile:hover {
         border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(14,165,233,0.1);
+        box-shadow: 0 0 0 3px var(--focus-tint);
         transform: translateY(-2px);
       }
 
@@ -214,12 +214,12 @@
         font-size: 1.25rem;
       }
 
-      .section-icon.blue   { background: #dbeafe; color: #1d4ed8; }
-      .section-icon.sky    { background: #e0f2fe; color: #0284c7; }
-      .section-icon.teal   { background: #ccfbf1; color: #0f766e; }
-      .section-icon.slate  { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
-      .section-icon.amber  { background: #fef3c7; color: #92400e; }
-      .section-icon.rose   { background: #ffe4e6; color: #be123c; }
+      .section-icon.blue   { background: var(--badge-blue-bg);  color: var(--badge-blue-fg); }
+      .section-icon.sky    { background: var(--badge-sky-bg);   color: var(--badge-sky-fg); }
+      .section-icon.teal   { background: var(--badge-teal-bg);  color: var(--badge-teal-fg); }
+      .section-icon.slate  { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border: 1px solid var(--badge-slate-border); }
+      .section-icon.amber  { background: var(--badge-amber-bg); color: var(--badge-amber-fg); }
+      .section-icon.rose   { background: var(--badge-rose-bg);  color: var(--badge-rose-fg); }
 
       .section-title h2 {
         font-size: 1.2rem;
@@ -403,10 +403,10 @@
         line-height: 1.6;
       }
 
-      .tag-blue   { background: #dbeafe; color: #1d4ed8; }
-      .tag-teal   { background: #ccfbf1; color: #0f766e; }
-      .tag-slate  { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
-      .tag-amber  { background: #fef3c7; color: #92400e; }
+      .tag-blue   { background: var(--badge-blue-bg);  color: var(--badge-blue-fg); }
+      .tag-teal   { background: var(--badge-teal-bg);  color: var(--badge-teal-fg); }
+      .tag-slate  { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border: 1px solid var(--badge-slate-border); }
+      .tag-amber  { background: var(--badge-amber-bg); color: var(--badge-amber-fg); }
 
       /* ── Shared options section ───────────────────────────── */
 
@@ -690,7 +690,7 @@
               </div>
             </div>
 
-            <div class="example-block" style="border-left-color: #f59e0b;">
+            <div class="example-block" style="border-left-color: var(--accent-warn);">
               <div class="example-label">Validation rules</div>
               <div class="option-desc" style="font-size:0.85rem;">
                 The generator validates before producing a password:
@@ -912,7 +912,7 @@
               <div class="example-output">Crimson-River42</div>
             </div>
 
-            <div class="example-block" style="border-left-color: #16a34a;">
+            <div class="example-block" style="border-left-color: var(--accent-ok);">
               <div class="example-label">Example output with alliteration (letter S)</div>
               <div class="example-output">Silent-Sparrow87</div>
             </div>
