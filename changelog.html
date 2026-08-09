@@ -390,6 +390,33 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.7.2 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.7.2</div>
+            <div class="release-date">2026-08-08</div>
+            <span class="release-badge badge-patch">Patch</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">All randomness now drawn from <code>crypto.getRandomValues()</code></div>
+                <div class="release-summary">Every generator drew its random values from <code>Math.random()</code>, which is not cryptographically secure — passwords produced before this release should be considered predictable and are worth regenerating.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong>Predictable passwords</strong> — all 22 randomness call sites used <code>Math.random()</code>, which V8 implements as xorshift128+. Its internal state can be recovered from a short run of observed outputs, meaning an attacker who saw some generated passwords could predict others. All seven generators (Simple, Advanced, Words, Passphrase, Wireless, Mad Lib, Numbers) were affected.</li>
+                    <li><strong>New <code>randInt()</code> helper</strong> — draws a uint32 from <code>crypto.getRandomValues()</code> and uses rejection sampling to stay unbiased: draws at or above the largest multiple of the range that fits in a uint32 are discarded, so the remaining values divide evenly. A plain <code>% n</code> would have skewed results toward low values. The <code>randPick</code>, <code>randBool</code>, and <code>randChar</code> helpers wrap it, and every call site now routes through them — including the Fisher-Yates shuffle in Advanced mode.</li>
+                    <li><strong>No silent fallback</strong> — <code>crypto.getRandomValues()</code> requires a secure context (HTTPS or <code>localhost</code>). Generation now fails loudly rather than falling back to <code>Math.random()</code>, which would quietly reintroduce the same weakness.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.7.1 -->
         <div class="release">
           <div class="release-meta">

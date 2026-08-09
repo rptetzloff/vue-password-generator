@@ -1,6 +1,6 @@
 {
   "name": "vue-password-generator",
-  "version": "2.7.1",
+  "version": "2.7.2",
   "description": "A modern password generator built with Vue 3",
   "author": "Raymond Tetzloff <ray@raytetzloff.com>",
   "repository": {
