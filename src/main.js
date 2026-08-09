@@ -243,15 +243,16 @@ const SimplePassword = {
       <div class="card">
         <div class="card-header">Password Length</div>
         <div class="slider-container">
-          <button class="stepper-btn" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
+          <button class="stepper-btn" aria-label="Decrease password length" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="passwordLength"
             type="range"
+            aria-label="Password Length"
             min="6"
             max="128"
             class="slider"
           />
-          <button class="stepper-btn" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
+          <button class="stepper-btn" aria-label="Increase password length" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
       </div>
@@ -294,7 +295,7 @@ const SimplePassword = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            class="form-input password-input" aria-label="Generated password"
             autocomplete="off"
             data-1p-ignore
             data-lpignore="true"
@@ -460,15 +461,16 @@ const AdvancedPassword = {
       <div class="card">
         <div class="card-header">Password Length</div>
         <div class="slider-container">
-          <button class="stepper-btn" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
+          <button class="stepper-btn" aria-label="Decrease password length" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="passwordLength"
             type="range"
+            aria-label="Password Length"
             min="6"
             max="128"
             class="slider"
           />
-          <button class="stepper-btn" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
+          <button class="stepper-btn" aria-label="Increase password length" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
       </div>
@@ -477,13 +479,14 @@ const AdvancedPassword = {
         <div class="card-header">Lowercase Letters</div>
         <div class="slider-container">
           <div class="stepper-label">
-            <button class="stepper-btn" @click="lowerCase[0] = Math.max(0, lowerCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease min lowercase letters" @click="lowerCase[0] = Math.max(0, lowerCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Min: {{ lowerCase[0] }}</span>
-            <button class="stepper-btn" @click="lowerCase[0] = Math.min(passwordLength, lowerCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase min lowercase letters" @click="lowerCase[0] = Math.min(passwordLength, lowerCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
           <input
             v-model="lowerCase[0]"
             type="range"
+            aria-label="Lowercase Letters"
             min="0"
             :max="passwordLength"
             class="slider"
@@ -491,14 +494,15 @@ const AdvancedPassword = {
           <input
             v-model="lowerCase[1]"
             type="range"
+            aria-label="Lowercase Letters"
             min="0"
             :max="passwordLength"
             class="slider"
           />
           <div class="stepper-label">
-            <button class="stepper-btn" @click="lowerCase[1] = Math.max(0, lowerCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease max lowercase letters" @click="lowerCase[1] = Math.max(0, lowerCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Max: {{ lowerCase[1] }}</span>
-            <button class="stepper-btn" @click="lowerCase[1] = Math.min(passwordLength, lowerCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase max lowercase letters" @click="lowerCase[1] = Math.min(passwordLength, lowerCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
         </div>
       </div>
@@ -507,13 +511,14 @@ const AdvancedPassword = {
         <div class="card-header">Uppercase Letters</div>
         <div class="slider-container">
           <div class="stepper-label">
-            <button class="stepper-btn" @click="upperCase[0] = Math.max(0, upperCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease min uppercase letters" @click="upperCase[0] = Math.max(0, upperCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Min: {{ upperCase[0] }}</span>
-            <button class="stepper-btn" @click="upperCase[0] = Math.min(passwordLength, upperCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase min uppercase letters" @click="upperCase[0] = Math.min(passwordLength, upperCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
           <input
             v-model="upperCase[0]"
             type="range"
+            aria-label="Uppercase Letters"
             min="0"
             :max="passwordLength"
             class="slider"
@@ -521,14 +526,15 @@ const AdvancedPassword = {
           <input
             v-model="upperCase[1]"
             type="range"
+            aria-label="Uppercase Letters"
             min="0"
             :max="passwordLength"
             class="slider"
           />
           <div class="stepper-label">
-            <button class="stepper-btn" @click="upperCase[1] = Math.max(0, upperCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease max uppercase letters" @click="upperCase[1] = Math.max(0, upperCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Max: {{ upperCase[1] }}</span>
-            <button class="stepper-btn" @click="upperCase[1] = Math.min(passwordLength, upperCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase max uppercase letters" @click="upperCase[1] = Math.min(passwordLength, upperCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
         </div>
       </div>
@@ -537,13 +543,14 @@ const AdvancedPassword = {
         <div class="card-header">Numbers</div>
         <div class="slider-container">
           <div class="stepper-label">
-            <button class="stepper-btn" @click="digits[0] = Math.max(0, digits[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease min numbers" @click="digits[0] = Math.max(0, digits[0] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Min: {{ digits[0] }}</span>
-            <button class="stepper-btn" @click="digits[0] = Math.min(passwordLength, digits[0] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase min numbers" @click="digits[0] = Math.min(passwordLength, digits[0] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
           <input
             v-model="digits[0]"
             type="range"
+            aria-label="Numbers"
             min="0"
             :max="passwordLength"
             class="slider"
@@ -551,14 +558,15 @@ const AdvancedPassword = {
           <input
             v-model="digits[1]"
             type="range"
+            aria-label="Numbers"
             min="0"
             :max="passwordLength"
             class="slider"
           />
           <div class="stepper-label">
-            <button class="stepper-btn" @click="digits[1] = Math.max(0, digits[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease max numbers" @click="digits[1] = Math.max(0, digits[1] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Max: {{ digits[1] }}</span>
-            <button class="stepper-btn" @click="digits[1] = Math.min(passwordLength, digits[1] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase max numbers" @click="digits[1] = Math.min(passwordLength, digits[1] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
         </div>
       </div>
@@ -567,13 +575,14 @@ const AdvancedPassword = {
         <div class="card-header">Symbols</div>
         <div class="slider-container">
           <div class="stepper-label">
-            <button class="stepper-btn" @click="specialChars[0] = Math.max(0, specialChars[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease min symbols" @click="specialChars[0] = Math.max(0, specialChars[0] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Min: {{ specialChars[0] }}</span>
-            <button class="stepper-btn" @click="specialChars[0] = Math.min(passwordLength, specialChars[0] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase min symbols" @click="specialChars[0] = Math.min(passwordLength, specialChars[0] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
           <input
             v-model="specialChars[0]"
             type="range"
+            aria-label="Symbols"
             min="0"
             :max="passwordLength"
             class="slider"
@@ -581,14 +590,15 @@ const AdvancedPassword = {
           <input
             v-model="specialChars[1]"
             type="range"
+            aria-label="Symbols"
             min="0"
             :max="passwordLength"
             class="slider"
           />
           <div class="stepper-label">
-            <button class="stepper-btn" @click="specialChars[1] = Math.max(0, specialChars[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease max symbols" @click="specialChars[1] = Math.max(0, specialChars[1] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Max: {{ specialChars[1] }}</span>
-            <button class="stepper-btn" @click="specialChars[1] = Math.min(passwordLength, specialChars[1] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase max symbols" @click="specialChars[1] = Math.min(passwordLength, specialChars[1] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
         </div>
         <div class="form-group">
@@ -617,13 +627,14 @@ const AdvancedPassword = {
         <div class="card-header">Emoji 🎲</div>
         <div class="slider-container">
           <div class="stepper-label">
-            <button class="stepper-btn" @click="emojiCount[0] = Math.max(0, emojiCount[0] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease min emoji 🎲" @click="emojiCount[0] = Math.max(0, emojiCount[0] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Min: {{ emojiCount[0] }}</span>
-            <button class="stepper-btn" @click="emojiCount[0] = Math.min(passwordLength, emojiCount[0] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase min emoji 🎲" @click="emojiCount[0] = Math.min(passwordLength, emojiCount[0] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
           <input
             v-model="emojiCount[0]"
             type="range"
+            aria-label="Emoji"
             min="0"
             :max="passwordLength"
             class="slider"
@@ -631,14 +642,15 @@ const AdvancedPassword = {
           <input
             v-model="emojiCount[1]"
             type="range"
+            aria-label="Emoji 🎲"
             min="0"
             :max="passwordLength"
             class="slider"
           />
           <div class="stepper-label">
-            <button class="stepper-btn" @click="emojiCount[1] = Math.max(0, emojiCount[1] - 1)"><span class="mdi mdi-minus"></span></button>
+            <button class="stepper-btn" aria-label="Decrease max emoji 🎲" @click="emojiCount[1] = Math.max(0, emojiCount[1] - 1)"><span class="mdi mdi-minus"></span></button>
             <span class="stepper-label-text">Max: {{ emojiCount[1] }}</span>
-            <button class="stepper-btn" @click="emojiCount[1] = Math.min(passwordLength, emojiCount[1] + 1)"><span class="mdi mdi-plus"></span></button>
+            <button class="stepper-btn" aria-label="Increase max emoji 🎲" @click="emojiCount[1] = Math.min(passwordLength, emojiCount[1] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
         </div>
       </div>
@@ -655,7 +667,7 @@ const AdvancedPassword = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            class="form-input password-input" aria-label="Generated password"
             autocomplete="off"
             data-1p-ignore
             data-lpignore="true"
@@ -799,15 +811,16 @@ const WordsPassword = {
       <div class="card">
         <div class="card-header">Number of Words</div>
         <div class="slider-container">
-          <button class="stepper-btn" @click="wordCount = Math.max(2, wordCount - 1)"><span class="mdi mdi-minus"></span></button>
+          <button class="stepper-btn" aria-label="Decrease number of words" @click="wordCount = Math.max(2, wordCount - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="wordCount"
             type="range"
+            aria-label="Number of Words"
             min="2"
             max="20"
             class="slider"
           />
-          <button class="stepper-btn" @click="wordCount = Math.min(20, wordCount + 1)"><span class="mdi mdi-plus"></span></button>
+          <button class="stepper-btn" aria-label="Increase number of words" @click="wordCount = Math.min(20, wordCount + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ wordCount }}</div>
         </div>
       </div>
@@ -962,6 +975,7 @@ const WordsPassword = {
             v-model="password"
             type="text"
             readonly
+            aria-label="Generated password"
             :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             autocomplete="off"
             data-1p-ignore
@@ -1093,15 +1107,16 @@ const NumbersPassword = {
       <div class="card">
         <div class="card-header">Number of Digits</div>
         <div class="slider-container">
-          <button class="stepper-btn" @click="passwordLength = Math.max(4, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
+          <button class="stepper-btn" aria-label="Decrease number of digits" @click="passwordLength = Math.max(4, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="passwordLength"
             type="range"
+            aria-label="Number of Digits"
             min="4"
             max="32"
             class="slider"
           />
-          <button class="stepper-btn" @click="passwordLength = Math.min(32, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
+          <button class="stepper-btn" aria-label="Increase number of digits" @click="passwordLength = Math.min(32, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
       </div>
@@ -1109,15 +1124,16 @@ const NumbersPassword = {
       <div class="card">
         <div class="card-header">Maximum Repeated Digits</div>
         <div class="slider-container">
-          <button class="stepper-btn" @click="maxRepeated = Math.max(2, maxRepeated - 1)"><span class="mdi mdi-minus"></span></button>
+          <button class="stepper-btn" aria-label="Decrease maximum repeated digits" @click="maxRepeated = Math.max(2, maxRepeated - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="maxRepeated"
             type="range"
+            aria-label="Maximum Repeated Digits"
             min="2"
             max="5"
             class="slider"
           />
-          <button class="stepper-btn" @click="maxRepeated = Math.min(5, maxRepeated + 1)"><span class="mdi mdi-plus"></span></button>
+          <button class="stepper-btn" aria-label="Increase maximum repeated digits" @click="maxRepeated = Math.min(5, maxRepeated + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ maxRepeated }}</div>
         </div>
       </div>
@@ -1125,15 +1141,16 @@ const NumbersPassword = {
       <div class="card">
         <div class="card-header">Maximum Sequential Digits</div>
         <div class="slider-container">
-          <button class="stepper-btn" @click="maxSequential = Math.max(2, maxSequential - 1)"><span class="mdi mdi-minus"></span></button>
+          <button class="stepper-btn" aria-label="Decrease maximum sequential digits" @click="maxSequential = Math.max(2, maxSequential - 1)"><span class="mdi mdi-minus"></span></button>
           <input
             v-model="maxSequential"
             type="range"
+            aria-label="Maximum Sequential Digits"
             min="2"
             max="5"
             class="slider"
           />
-          <button class="stepper-btn" @click="maxSequential = Math.min(5, maxSequential + 1)"><span class="mdi mdi-plus"></span></button>
+          <button class="stepper-btn" aria-label="Increase maximum sequential digits" @click="maxSequential = Math.min(5, maxSequential + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ maxSequential }}</div>
         </div>
       </div>
@@ -1150,7 +1167,7 @@ const NumbersPassword = {
             v-model="password"
             type="text"
             readonly
-            class="form-input password-input"
+            class="form-input password-input" aria-label="Generated password"
             autocomplete="off"
             data-1p-ignore
             data-lpignore="true"
@@ -1542,6 +1559,7 @@ const Passphrase = {
             v-model="password"
             type="text"
             readonly
+            aria-label="Generated password"
             :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             placeholder="Generated passphrase will appear here..."
           />
@@ -1942,6 +1960,7 @@ const WifiWords = {
             v-model="password"
             type="text"
             readonly
+            aria-label="Generated password"
             :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             placeholder="Generated WiFi password will appear here..."
           />
@@ -2338,6 +2357,7 @@ const MadLib = {
             v-model="password"
             type="text"
             readonly
+            aria-label="Generated password"
             :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
             autocomplete="off"
             data-1p-ignore

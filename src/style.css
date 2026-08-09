@@ -106,10 +106,14 @@ body {
   background: var(--surface);
 }
 
-.form-input:focus {
-  outline: none;
+.form-input:focus-visible {
+  /* Was `outline: none` with a 10%-alpha shadow as the only cue, and that
+     shadow was hardcoded to the old primary so it no longer matched the brand
+     or the theme. Keep the ring. */
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
   border-color: var(--border-focus);
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+  box-shadow: 0 0 0 3px var(--focus-tint);
 }
 
 .form-input:read-only {
@@ -122,6 +126,10 @@ body {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.5rem;
+  /* The label and its All/Common/None buttons do not fit side by side at
+     narrow widths once the text size is raised. */
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .symbol-chips-header .form-label {
@@ -131,6 +139,7 @@ body {
 .symbol-chips-actions {
   display: flex;
   gap: 0.375rem;
+  flex-wrap: wrap;
 }
 
 .chip-action {
@@ -179,7 +188,7 @@ body {
 
 .symbol-chip.active {
   border-color: var(--primary);
-  background: rgba(14, 165, 233, 0.1);
+  background: var(--focus-tint);
   color: var(--primary);
 }
 
@@ -227,7 +236,7 @@ body {
 
 .emoji-toggle-btn.active {
   border-color: var(--primary);
-  background: rgba(14, 165, 233, 0.1);
+  background: var(--focus-tint);
   color: var(--primary);
 }
 
@@ -273,7 +282,7 @@ body {
 }
 
 .btn-secondary:hover {
-  background: #475569;
+  background: var(--secondary);
 }
 
 /* Cards */
@@ -605,7 +614,7 @@ body {
 .sep-option:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(14, 165, 233, 0.05);
+  background: var(--focus-tint);
 }
 
 .sep-option.active {
@@ -782,10 +791,10 @@ body {
 
 .slot-add-btn:not(:disabled):hover { opacity: 0.85; transform: scale(1.04); }
 
-.slot-add-btn.slot-adj  { background: #dbeafe; color: #1d4ed8; border-color: #93c5fd; }
-.slot-add-btn.slot-adv  { background: #ccfbf1; color: #0f766e; border-color: #5eead4; }
-.slot-add-btn.slot-noun { background: #f1f5f9; color: #334155; border-color: #94a3b8; }
-.slot-add-btn.slot-verb { background: #fef3c7; color: #92400e; border-color: #fcd34d; }
+.slot-add-btn.slot-adj { background: var(--badge-blue-bg); color: var(--badge-blue-fg); border-color: var(--badge-blue-fg); }
+.slot-add-btn.slot-adv { background: var(--badge-teal-bg); color: var(--badge-teal-fg); border-color: var(--badge-teal-fg); }
+.slot-add-btn.slot-noun { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border-color: var(--badge-slate-border); }
+.slot-add-btn.slot-verb { background: var(--badge-amber-bg); color: var(--badge-amber-fg); border-color: var(--badge-amber-fg); }
 
 .slot-tray {
   display: flex;
@@ -803,10 +812,20 @@ body {
   min-width: 5.625rem;
 }
 
-.slot-adj  { background: #dbeafe; border-color: #93c5fd; }
-.slot-adv  { background: #ccfbf1; border-color: #5eead4; }
-.slot-noun { background: #f1f5f9; border-color: #94a3b8; }
-.slot-verb { background: #fef3c7; border-color: #fcd34d; }
+/* Part-of-speech pills.
+ *
+ * These were hardcoded pale backgrounds with no text colour, so in dark mode
+ * the inherited light text landed on a light pill: 1.01:1, effectively
+ * invisible, and the worst contrast anywhere in the app. Setting the colour
+ * explicitly is the actual fix -- a background is only half a pair.
+ *
+ * They reuse the docs badge tokens rather than defining a fifth set of
+ * category colours: same four hues, already verified in both themes and in
+ * both palettes. */
+.slot-adj  { background: var(--badge-blue-bg);  color: var(--badge-blue-fg);  border-color: var(--badge-blue-fg); }
+.slot-adv  { background: var(--badge-teal-bg);  color: var(--badge-teal-fg);  border-color: var(--badge-teal-fg); }
+.slot-noun { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border-color: var(--badge-slate-border); }
+.slot-verb { background: var(--badge-amber-bg); color: var(--badge-amber-fg); border-color: var(--badge-amber-fg); }
 
 .slot-pill-label {
   font-size: 0.7rem;
@@ -823,7 +842,11 @@ body {
 
 .slot-arrow,
 .slot-remove {
-  background: rgba(0,0,0,0.06);
+  background: var(--overlay-soft);
+  /* Neither set a colour, so both fell through to the UA's `buttontext`. That
+     tracks color-scheme and so looked right in both themes by luck, but it is
+     not the theme's colour and would not follow a palette. */
+  color: var(--text);
   border: none;
   border-radius: 4px;
   width: 1.375rem;
@@ -838,18 +861,25 @@ body {
   line-height: 1;
 }
 
-.slot-arrow:disabled { opacity: 0.25; cursor: default; }
+/* 0.25 was tuned against the UA's disabled text, which is already translucent;
+   stacking the two left the arrow at roughly 7% alpha. Now that the colour is
+   ours, the opacity is the only fade applied. */
+.slot-arrow:disabled { opacity: 0.4; cursor: default; }
 .slot-arrow:not(:disabled):hover,
-.slot-remove:hover { background: rgba(0,0,0,0.14); }
+.slot-remove:hover { background: var(--overlay-strong); }
 
-.slot-remove { margin-left: auto; color: #dc2626; }
+.slot-remove { margin-left: auto; color: var(--error); }
 
 .slot-cat-select {
   font-size: 0.75rem;
-  border: 1px solid rgba(0,0,0,0.15);
+  /* Was a translucent white fill with var(--text) on top. In dark mode that put
+     light text on a near-white control, and the browser draws the native option
+     list from these same colours -- so the whole dropdown was unreadable.
+     A solid themed surface fixes the control and the popup together. */
+  border: 1px solid var(--border-strong);
   border-radius: 5px;
   padding: 0.2rem 0.3rem;
-  background: rgba(255,255,255,0.6);
+  background: var(--surface);
   color: var(--text);
   cursor: pointer;
   width: 100%;
@@ -894,10 +924,10 @@ body {
   line-height: 1.6;
 }
 
-.madlib-token.slot-adj  { background: #dbeafe; color: #1d4ed8; }
-.madlib-token.slot-adv  { background: #ccfbf1; color: #0f766e; }
-.madlib-token.slot-noun { background: #f1f5f9; color: #334155; border: 1px solid #94a3b8; }
-.madlib-token.slot-verb { background: #fef3c7; color: #92400e; }
+.madlib-token.slot-adj { background: var(--badge-blue-bg); color: var(--badge-blue-fg); border: 1px solid var(--badge-blue-fg); }
+.madlib-token.slot-adv { background: var(--badge-teal-bg); color: var(--badge-teal-fg); border: 1px solid var(--badge-teal-fg); }
+.madlib-token.slot-noun { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border: 1px solid var(--badge-slate-border); }
+.madlib-token.slot-verb { background: var(--badge-amber-bg); color: var(--badge-amber-fg); border: 1px solid var(--badge-amber-fg); }
 
 /* ── Word cat label accent dots ──────────────────────── */
 
@@ -910,10 +940,10 @@ body {
   border-radius: 50%;
   flex-shrink: 0;
 }
-.wc-label-adj::before  { background: #1d4ed8; }
-.wc-label-adv::before  { background: #0f766e; }
-.wc-label-noun::before { background: #64748b; }
-.wc-label-verb::before { background: #92400e; }
+.wc-label-adj::before { background: var(--badge-blue-fg); }
+.wc-label-adv::before { background: var(--badge-teal-fg); }
+.wc-label-noun::before { background: var(--badge-slate-fg); }
+.wc-label-verb::before { background: var(--badge-amber-fg); }
 
 .wc-ordinal {
   font-weight: 400;
@@ -965,12 +995,12 @@ body {
 .lock-affixes-btn:hover {
   border-color: var(--primary);
   color: var(--primary);
-  background: rgba(14, 165, 233, 0.07);
+  background: var(--focus-tint);
 }
 
 .lock-affixes-btn.active {
   border-color: var(--primary);
-  background: rgba(14, 165, 233, 0.12);
+  background: var(--focus-tint);
   color: var(--primary);
 }
 
@@ -992,7 +1022,7 @@ body {
 
 .word-pill:hover {
   border-color: var(--primary);
-  background: rgba(14, 165, 233, 0.07);
+  background: var(--focus-tint);
   color: var(--primary);
 }
 
@@ -1008,14 +1038,14 @@ body {
 }
 
 /* Slot-type color accents on passphrase word pills */
-.word-pill-adj  { border-color: #93c5fd; background: #dbeafe; color: #1d4ed8; }
-.word-pill-adj:hover  { border-color: #1d4ed8; background: #bfdbfe; }
-.word-pill-adv  { border-color: #5eead4; background: #ccfbf1; color: #0f766e; }
-.word-pill-adv:hover  { border-color: #0f766e; background: #99f6e4; }
-.word-pill-noun { border-color: #94a3b8; background: #f1f5f9; color: #334155; }
-.word-pill-noun:hover { border-color: #334155; background: #e2e8f0; }
-.word-pill-verb { border-color: #fcd34d; background: #fef3c7; color: #92400e; }
-.word-pill-verb:hover { border-color: #92400e; background: #fde68a; }
+.word-pill-adj { border-color: var(--badge-blue-fg); background: var(--badge-blue-bg); color: var(--badge-blue-fg); }
+.word-pill-adj:hover { border-color: var(--badge-blue-fg); background: var(--badge-blue-bg); }
+.word-pill-adv { border-color: var(--badge-teal-fg); background: var(--badge-teal-bg); color: var(--badge-teal-fg); }
+.word-pill-adv:hover { border-color: var(--badge-teal-fg); background: var(--badge-teal-bg); }
+.word-pill-noun { border-color: var(--badge-slate-border); background: var(--badge-slate-bg); color: var(--badge-slate-fg); }
+.word-pill-noun:hover { border-color: var(--badge-slate-fg); background: var(--badge-slate-bg); }
+.word-pill-verb { border-color: var(--badge-amber-fg); background: var(--badge-amber-bg); color: var(--badge-amber-fg); }
+.word-pill-verb:hover { border-color: var(--badge-amber-fg); background: var(--badge-amber-bg); }
 
 /* ── History strip ──────────────────────────────────────── */
 
@@ -1065,14 +1095,14 @@ body {
 }
 
 .history-item-active {
-  background: rgba(14, 165, 233, 0.07);
+  background: var(--focus-tint);
   border-color: var(--primary);
   color: var(--primary);
 }
 
 .history-item-warn {
-  border-color: var(--warning, #f59e0b);
-  color: var(--warning, #f59e0b);
+  border-color: var(--warning);
+  color: var(--warning);
 }
 
 .history-warn-badge {
@@ -1082,8 +1112,8 @@ body {
   width: 0.875rem;
   height: 0.875rem;
   border-radius: 50%;
-  background: var(--warning, #f59e0b);
-  color: #000;
+  background: var(--warning);
+  color: var(--on-status);
   font-size: 0.5625rem;
   font-weight: 700;
   margin-left: 4px;
@@ -1112,7 +1142,7 @@ body {
 }
 
 .alliteration-toggle:hover {
-  background: var(--surface-hover, rgba(0,0,0,0.04));
+  background: var(--surface-hover);
   color: var(--text);
 }
 
@@ -1125,7 +1155,7 @@ body {
 .alliteration-letter {
   font-weight: 700;
   font-size: 0.9rem;
-  background: rgba(255,255,255,0.25);
+  background: var(--overlay-strong);
   border-radius: 4px;
   padding: 0 0.3rem;
   min-width: 1.4em;

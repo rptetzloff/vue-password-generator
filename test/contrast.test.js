@@ -79,6 +79,36 @@ const PAIRS = [
 ]
 
 const BADGES = ['blue', 'sky', 'teal', 'slate', 'amber', 'rose']
+const GROUPS = ['added', 'improved', 'fixed', 'removed', 'security']
+
+// The changelog change-group colours. These lived hardcoded in changelog.html
+// and so were never covered: seven of the ten theme/group combinations failed
+// AA, having been picked for a white card before dark mode existed.
+//
+// There was briefly a second [data-palette='cvd'] set behind a Colours
+// setting. The separation-optimised values are simply the default now, so
+// there is one set per theme to check rather than four.
+for (const [name, tokens] of [
+  ['light', light],
+  ['dark', dark],
+]) {
+  test(`changelog group colours meet WCAG AA in ${name}`, () => {
+    for (const g of GROUPS) {
+      const token = `--group-${g}`
+      assert.ok(tokens[token], `${token} missing in ${name}`)
+      const ratio = contrast(tokens[token], tokens['--surface'])
+      assert.ok(
+        ratio >= 4.5,
+        `${name}: ${token} is ${ratio.toFixed(2)}:1 on --surface, needs 4.5:1`,
+      )
+    }
+  })
+}
+
+// A test asserting the cvd palette differed from the default lived here. Both
+// the palette and the toggle are gone -- the separation-optimised values are
+// simply the default -- and colour-vision.test.js now measures the property
+// that test was standing in for, rather than that two lists are unequal.
 
 for (const [themeName, tokens] of [['light', light], ['dark', dark]]) {
   test(`${themeName} theme meets WCAG AA for every token pair`, () => {
@@ -106,6 +136,24 @@ for (const [themeName, tokens] of [['light', light], ['dark', dark]]) {
     }
   })
 }
+
+// Left to the browser, the focus ring was inconsistent -- measured at 0.67px on
+// some controls and 2px on others, in colours that vary by browser. A sub-pixel
+// ring is easy to miss (WCAG 2.4.7). The contrast of --border-focus itself is
+// asserted in the pair table above; this pins the ring's existence and weight.
+test('a global focus ring is defined at a visible weight', () => {
+  const rule = CSS.match(/:where\([^)]*\):focus-visible\s*\{([^}]*)\}/)
+  assert.ok(rule, 'tokens.css should define a global :focus-visible ring')
+  const body = rule[1]
+  const width = body.match(/outline:\s*(\d+(?:\.\d+)?)px/)
+  assert.ok(width, 'the ring should set an explicit outline width')
+  assert.ok(
+    parseFloat(width[1]) >= 2,
+    `focus ring is ${width[1]}px; 2px is the minimum that reads reliably`,
+  )
+  assert.match(body, /var\(--border-focus\)/, 'the ring should use the verified token')
+  assert.match(body, /outline-offset/, 'the ring needs an offset to clear the control edge')
+})
 
 test('both themes define the same colour tokens', () => {
   // A token defined only in light silently falls back in dark, which is how a
@@ -140,7 +188,12 @@ const baseSelector = (sel) =>
 test('no stylesheet puts a literal colour on a themed fill', () => {
   const sheets = ['../src/style.css', '../src/site-footer.css', '../src/settings-panel.css', '../src/site-header.css']
   const themedBg = /background:\s*var\(--(primary|primary-dark|secondary|success|warning|error)\)/
-  const literalColour = /(^|\n)\s*color:\s*(white|#fff(fff)?)\s*;/i
+  // Any literal, not just white: the history warning badge was `color: #000` on
+  // `background: var(--warning)`, which the white-only version of this pattern
+  // walked straight past.
+  // Anchored on a declaration boundary rather than a newline: anchoring on `\n`
+  // meant a rule written on one line hid its own violation.
+  const literalColour = /(?:^|[\n{;])\s*color:\s*(white|black|#[0-9a-f]{3,8}|rgba?\()/i
 
   const families = new Map() // base selector -> { bg, literalAt }
   for (const rel of sheets) {
@@ -169,5 +222,40 @@ test('no stylesheet puts a literal colour on a themed fill', () => {
     offenders,
     [],
     `these sit on a themed fill and need --on-primary / --on-status rather than a literal colour: ${offenders.join(' | ')}`,
+  )
+})
+
+// The stronger version of the rule above, and the one that would have caught
+// every wave of this bug at once rather than after a user reported it.
+//
+// A literal colour in style.css cannot follow the theme and is invisible to
+// every contrast test in this file, because those read tokens.css. That is the
+// entire reason the part-of-speech pills sat at 1.01:1 in dark mode, the
+// changelog groups failed seven of ten combinations, and the toast sat at
+// 1.81:1 -- in each case the colour was real, rendered, and untested.
+//
+// site-header.css and site-footer.css are deliberately exempt: both sit on
+// --page-gradient, which is dark in both themes, so their translucent whites
+// are correct against a known backdrop rather than an unknown surface. Their
+// contrast is fixed by construction, not by the theme.
+test('style.css carries no literal colours', () => {
+  const text = fs
+    .readFileSync(new URL('../src/style.css', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+
+  const offenders = []
+  text.split('\n').forEach((line, i) => {
+    // Shadows are the one honest exception: a shadow is an alpha wash rather
+    // than a colour choice, and tokens.css already defines the two in use.
+    if (/box-shadow|drop-shadow|text-shadow/.test(line)) return
+    const m = line.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)/)
+    if (m) offenders.push(`line ${i + 1}: ${line.trim()}`)
+  })
+
+  assert.deepEqual(
+    offenders,
+    [],
+    `every colour in style.css must come from a token in tokens.css, so the ` +
+      `theme reaches it and the contrast tests above can see it:\n  ${offenders.join('\n  ')}`,
   )
 })

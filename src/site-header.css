@@ -1,17 +1,14 @@
-/* Shared site header for the static pages (docs.html, changelog.html).
+/* The shared site header, used by all five pages including the app.
  *
- * Both pages previously carried their own copy of these rules. They had
- * drifted: the link style was called .header-back on docs and .header-link on
- * changelog despite having byte-identical declarations, and only changelog had
- * the small-screen overrides -- so the docs header did not shrink on mobile.
- * Unified here on the .header-nav / .header-link naming.
+ * Every page once hand-rolled its own version and they had drifted: the link
+ * style was called .header-back on docs and .header-link on changelog despite
+ * identical declarations, only changelog had small-screen overrides, and the
+ * app had a wholly separate header of its own. Unified on .header-nav /
+ * .header-link, rendered from src/site-header.js.
  *
- * The app (index.html) deliberately does not use this. Its header is a
- * different component -- a full content header carrying the privacy notice and
- * history controls -- and converging the two is a visual redesign that belongs
- * with ROADMAP Epic 2, not this refactor.
- *
- * Pages set --header-max to line the header up with their own content column.
+ * The chrome is one width on every page. Pages used to set --header-max to
+ * match their own content column, which made the header wrap differently and
+ * condense to a different height on each.
  */
 
 .site-header {
@@ -20,13 +17,93 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   padding: 1.5rem 0;
   color: white;
-  position: sticky;
+  /* Fixed, not sticky. Sticky keeps the header in the document flow, so
+     shrinking it changed the page height, shifted the content and moved the
+     scroll position -- which fed straight back into the decision to shrink.
+     Out of flow, the size change affects nothing but the header itself. */
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 100;
 }
 
+/* Holds open the space the fixed header would have occupied. Sized in
+   site-header.js from the expanded header, so condensing on scroll never
+   reflows the page. Below the small-screen breakpoint the header is condensed
+   permanently, and there the spacer tracks its real height instead -- holding
+   room for an expansion that never comes left a large gap above the content. */
+.site-header-spacer {
+  flex-shrink: 0;
+}
+
+/* Condensed state.
+ *
+ * The header is fixed, so at full height it sits over the reader for the whole
+ * page and takes screen the content needs -- worst on a phone, and worse again
+ * at a raised text size. Once scrolled past the top it shrinks to an icon, the
+ * title and the nav; the subtitle and description are dropped, since they
+ * describe the page rather than help you move around it.
+ *
+ * Applied by site-header.js on scroll, and unconditionally below 640px where
+ * the full header would dominate the viewport from the outset.
+ */
+.site-header.is-condensed {
+  padding: 0.5rem 0;
+}
+
+.site-header.is-condensed .header-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.site-header.is-condensed .header-text h1 {
+  font-size: 0.95rem;
+}
+
+.site-header.is-condensed .header-text p,
+.site-header.is-condensed .header-description {
+  display: none;
+}
+
+.site-header.is-condensed .header-link {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+/* The size change is deliberately not animated.
+ *
+ * Condensing alters padding, width, height, font-size and the spacing around
+ * the collapsed rows -- every one of them a layout property, on several
+ * elements at once. Transitioning them forces the header to re-lay-out on every
+ * frame, which reads as a stutter rather than a glide, and easing cannot fix
+ * that. An instant change never looks half-finished.
+ *
+ * With nothing animating, the collapsed rows can use display: none again
+ * instead of the max-height machinery an animated version would need.
+ */
+
+/* Below this the nav would wrap to several rows before the header condensed,
+   so drop the link text and keep the icons. aria-label preserves each name. */
+@media (max-width: 560px) {
+  .header-link-text {
+    display: none;
+  }
+  .header-link {
+    padding: 0.4rem 0.55rem;
+  }
+}
+
+/* No prefers-reduced-motion rule here any more: nothing in the header animates
+   position or size. The only remaining transition is a hover colour fade on
+   the links, which is not motion. */
+
 .header-inner {
-  max-width: var(--header-max, 1100px);
+  /* One width for the site chrome on every page. Pages used to set this to
+     match their own content column -- 1100, 900, 760 -- so the header wrapped
+     differently and condensed to a different height on each one. 75rem is the
+     app container width, in rem so it tracks the text-size setting. */
+  max-width: var(--header-max, 75rem);
   margin: 0 auto;
   padding: 0 1.5rem;
   display: flex;
@@ -77,8 +154,13 @@
   margin-left: auto;
   display: flex;
   gap: 0.5rem;
-  flex-shrink: 0;
   align-items: stretch;
+  /* Five links plus the gear overflow once the text size is raised. The wrap on
+     .header-inner only moves the nav as a block, so the nav has to wrap
+     internally too -- and it can only do that if it is allowed to shrink below
+     its single-line width, which flex-shrink: 0 previously prevented. */
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 /* Optional full-width row below the title, for pages that need to say

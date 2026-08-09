@@ -52,6 +52,7 @@ All modes support:
 A settings gear in the header opens a small panel, available on every page.
 
 - **Theme** — Light, Dark, or System. System follows your OS setting and updates live if you change it.
+- **Text size** — Default, 112%, 125% or 150%. Scales the whole interface, not just the copy, and multiplies your browser's own font size rather than replacing it.
 - **History** — the per-generator history limit, on the app page only.
 
 The theme is applied by a blocking inline script before the page paints, so
@@ -63,14 +64,31 @@ remembered in `localStorage`.
 ## Accessibility
 
 - Every colour pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
-- Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it.
+- Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it. Verified with no horizontal scroll at 320px — the WCAG 1.4.10 reflow width — at both default and 150% text.
+- Every interactive control has an accessible name; icon-only buttons carry contextual labels such as "Decrease min lowercase letters".
+- A single 2px focus ring is defined site-wide rather than relying on browser defaults, which measured as little as 0.67px on some controls.
 - The settings panel is keyboard operable: arrow keys move between options, Escape closes and returns focus to the gear.
 - Status messages such as "password copied" are announced to screen readers.
 - The current page is marked with `aria-current` and distinguished by weight and border, not colour alone.
 - Animations respect `prefers-reduced-motion`.
+- Colour is never the only signal. The changelog's change groups, for example, each print their name as text.
 
-Colour-vision-deficiency palettes and a font-size control are not implemented
-yet — see [ROADMAP.md](ROADMAP.md).
+### Colour vision
+
+The changelog's change-group colours are chosen by simulating protanopia,
+deuteranopia and tritanopia and maximising the *weakest* pair, measured as
+CIEDE2000 in CIE Lab. `test/colour-vision.test.js` re-measures this on every
+run, and pins the CIEDE2000 implementation itself against the reference pairs
+published with the formula.
+
+This started as an opt-in "Colour-blind" palette and is now simply the default.
+With normal vision the difference from the old brand set is small, which is
+what made a toggle hard to justify; under simulation it is not. The old dark
+set had two groups a protanope sees at CIEDE2000 1.1 — below the threshold of
+noticing any difference at all — against 7.3 now.
+
+A floor of 7.0 is not a comfortable margin, and no user-selectable themes
+exist yet. Both are open work; see [ROADMAP.md](ROADMAP.md).
 
 ---
 
@@ -88,7 +106,7 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 
 - **Client-side only** — all generation happens in your browser; nothing is transmitted
 - **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
-- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `src/main.js` discards the ragged tail instead
+- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `src/lib.js` discards the ragged tail instead
 - **Fails loudly** — `crypto.getRandomValues()` needs a secure context (HTTPS or `localhost`). Over plain HTTP on a non-localhost host, generation errors out rather than falling back to a weaker source
 - **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only
@@ -137,8 +155,15 @@ Runs on Node's built-in test runner with **no dependencies** — Node 20+ is the
 floor, since the suite uses `globalThis.crypto`. Coverage is the pure logic that
 can be tested without a browser: the CSPRNG (range, uniformity, and that
 rejection sampling actually discards the biased tail), the word and character
-transforms, theme resolution, nav path matching, and WCAG contrast read straight
-out of `src/tokens.css`.
+transforms, theme resolution, nav path matching, and both WCAG contrast and
+colour-vision separation read straight out of `src/tokens.css`.
+
+Two of those are lints rather than assertions about values, and both exist
+because the same bug shipped repeatedly: a colour hardcoded in a stylesheet is
+invisible to every contrast test, because those read the tokens. So `style.css`
+is required to carry no literal colours at all, and no rule may put a literal
+`color` on a themed fill. `site-header.css` and `site-footer.css` are exempt —
+they sit on the page gradient, which is dark in both themes.
 
 To run the suite automatically before each commit, once per clone:
 
@@ -187,10 +212,14 @@ vue-password-generator/
 │   ├── prose-page.css    # Layout for the About and Legal pages
 │   └── style.css         # App-specific component styles
 ├── test/                 # node --test, zero dependencies
+│   ├── helpers/
+│   │   └── color.js      # CIEDE2000 + colour-vision simulation (test tooling)
 │   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling
 │   ├── transforms.test.js
 │   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
+│   ├── colour-vision.test.js  # Palette separation under protan/deutan/tritan
 │   ├── theme.test.js
+│   ├── site-header.test.js
 │   └── site-nav.test.js
 ├── vendor/
 │   ├── vue.esm-browser.prod.js   # Vue 3.4.0 runtime

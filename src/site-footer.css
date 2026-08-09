@@ -25,7 +25,8 @@
 }
 
 .footer-inner {
-  max-width: var(--footer-max, none);
+  /* Matches the header, so the chrome lines up top and bottom. */
+  max-width: var(--footer-max, 75rem);
   margin-inline: auto;
   padding-inline: var(--footer-pad, 0);
   display: flex;
@@ -42,6 +43,10 @@
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  /* Five links do not fit on one line at 320px, the WCAG 1.4.10 reflow width,
+     and without wrapping they pushed the page into horizontal scroll. */
+  flex-wrap: wrap;
+  justify-content: center;
 }
 
 .footer-link {

@@ -16,6 +16,8 @@
         if (c !== 'light' && c !== 'dark') c = 'system';
         var dark = c === 'dark' || (c === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var fs = JSON.parse(localStorage.getItem('global.fontScale'));
+        if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
       } catch (e) {}
     </script>
     <link rel="stylesheet" href="/src/tokens.css" />
@@ -24,7 +26,7 @@
     <link rel="stylesheet" href="/src/settings-panel.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
-      :root { --header-max: 1100px; --footer-max: 1100px; --footer-pad: 1.5rem; }
+      :root { --footer-pad: 1.5rem; }
 
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -1366,6 +1368,17 @@
               </div>
             </div>
 
+            <div class="option-group">
+              <div class="option-group-label">Text size</div>
+              <div class="option-row">
+                <div class="option-name">Default / 112% / 125% / 150%</div>
+                <div class="option-desc">
+                  Scales the whole interface, not just the text &mdash; controls, spacing and icons grow with it.
+                  Applied as a percentage of your browser&rsquo;s own font size, so if you have already raised that,
+                  this multiplies it rather than replacing it. Saved across pages and applied before the page draws.
+                </div>
+              </div>
+            </div>
             <div class="option-group">
               <div class="option-group-label">History</div>
               <div class="option-row">
