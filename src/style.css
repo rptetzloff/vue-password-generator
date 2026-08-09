@@ -16,7 +16,7 @@ body {
 }
 
 .container {
-  max-width: 1200px;
+  max-width: 75rem;
   margin: 0 auto;
   padding: 0 1rem;
 }
@@ -41,8 +41,8 @@ body {
 }
 
 .header-icon {
-  width: 80px;
-  height: 80px;
+  width: 5rem;
+  height: 5rem;
   flex-shrink: 0;
   border-radius: 18px;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
@@ -80,7 +80,7 @@ body {
 
 .tab {
   flex: 1;
-  min-width: 120px;
+  min-width: 7.5rem;
   padding: 0.75rem 1rem;
   border: none;
   background: transparent;
@@ -340,7 +340,7 @@ body {
 
 .slider {
   flex: 1;
-  height: 6px;
+  height: 0.375rem;
   border-radius: 3px;
   background: var(--border);
   outline: none;
@@ -350,8 +350,8 @@ body {
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 50%;
   background: var(--primary);
   cursor: pointer;
@@ -359,8 +359,8 @@ body {
 }
 
 .slider::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border-radius: 50%;
   background: var(--primary);
   cursor: pointer;
@@ -369,7 +369,7 @@ body {
 }
 
 .slider-value {
-  min-width: 60px;
+  min-width: 3.75rem;
   text-align: center;
   font-weight: 600;
   color: var(--text);
@@ -379,8 +379,8 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 1.75rem;
+  height: 1.75rem;
   border-radius: 6px;
   border: 1px solid var(--border);
   background: var(--surface);
@@ -414,7 +414,7 @@ body {
   font-size: 0.85rem;
   font-weight: 600;
   color: var(--text);
-  min-width: 56px;
+  min-width: 3.5rem;
   text-align: center;
 }
 
@@ -432,8 +432,8 @@ body {
 }
 
 .checkbox {
-  width: 20px;
-  height: 20px;
+  width: 1.25rem;
+  height: 1.25rem;
   border: 2px solid var(--border);
   border-radius: 4px;
   cursor: pointer;
@@ -453,14 +453,14 @@ body {
   left: 50%;
   transform: translate(-50%, -50%);
   color: white;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: bold;
 }
 
 /* Radio buttons */
 .radio-group {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
   gap: 0.75rem;
   margin-bottom: 1rem;
 }
@@ -480,8 +480,8 @@ body {
 }
 
 .radio {
-  width: 18px;
-  height: 18px;
+  width: 1.125rem;
+  height: 1.125rem;
   border: 2px solid var(--border);
   border-radius: 50%;
   cursor: pointer;
@@ -499,8 +499,8 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   background: var(--primary);
 }
@@ -744,8 +744,8 @@ body {
   }
 
   .header-icon {
-    width: 60px;
-    height: 60px;
+    width: 3.75rem;
+    height: 3.75rem;
   }
   
   .tabs {
@@ -831,7 +831,7 @@ body {
   padding: 0.55rem 0.7rem;
   border-radius: 10px;
   border: 2px solid transparent;
-  min-width: 90px;
+  min-width: 5.625rem;
 }
 
 .slot-adj  { background: #dbeafe; border-color: #93c5fd; }
@@ -857,8 +857,8 @@ body {
   background: rgba(0,0,0,0.06);
   border: none;
   border-radius: 4px;
-  width: 22px;
-  height: 22px;
+  width: 1.375rem;
+  height: 1.375rem;
   font-size: 0.8rem;
   cursor: pointer;
   display: flex;
@@ -936,8 +936,8 @@ body {
 .word-cat-label::before {
   content: '';
   display: inline-block;
-  width: 8px;
-  height: 8px;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   flex-shrink: 0;
 }
@@ -1077,8 +1077,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  width: 2rem;
+  height: 2rem;
   border-radius: 8px;
   border: 1.5px solid var(--border);
   background: var(--background);
@@ -1206,12 +1206,12 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
+  width: 0.875rem;
+  height: 0.875rem;
   border-radius: 50%;
   background: var(--warning, #f59e0b);
   color: #000;
-  font-size: 9px;
+  font-size: 0.5625rem;
   font-weight: 700;
   margin-left: 4px;
   line-height: 1;
@@ -1264,8 +1264,8 @@ body {
 }
 
 .github-icon {
-  width: 16px;
-  height: 16px;
+  width: 1rem;
+  height: 1rem;
   fill: currentColor;
   flex-shrink: 0;
   vertical-align: middle;
