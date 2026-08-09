@@ -16,6 +16,8 @@
         if (c !== 'light' && c !== 'dark') c = 'system';
         var dark = c === 'dark' || (c === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var fs = JSON.parse(localStorage.getItem('global.fontScale'));
+        if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
       } catch (e) {}
     </script>
     <link rel="stylesheet" href="/src/tokens.css" />
@@ -252,6 +254,41 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.10.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.10.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Text size control, and the rest of the accessibility work</div>
+                <div class="release-summary">Adds a text size setting that scales the whole interface, gives every button and slider a name screen readers can announce, and makes the keyboard focus outline consistent instead of leaving it to the browser.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Text size</strong> — Default, 112%, 125% or 150%, in the settings gear. It scales the entire interface, not just the words: controls, spacing and icons grow with it. It multiplies whatever font size your browser is already set to rather than overriding it, so if you have raised that, this builds on it. Like the theme, it is applied before the page draws, so the page never renders small and then jumps.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Buttons and sliders had no name</strong> — the &minus;/+ steppers, the length sliders and the password field itself were unlabelled, so a screen reader announced them as just &ldquo;button&rdquo; or &ldquo;slider&rdquo; with no indication of what they did. All 55 now describe themselves in context, for example &ldquo;Decrease min lowercase letters&rdquo;. The densest screen went from four unnamed controls to none out of 140.</li>
+                    <li><strong>The keyboard focus outline was inconsistent</strong> — most controls fell back to the browser's own, which measured as little as 0.67 pixels on some and differed between browsers. There is now one 2-pixel outline everywhere, in a colour already verified to stand out against its background.</li>
+                    <li><strong>Raising the text size left button labels behind</strong> — buttons do not inherit the page's text size by default, so the tab boxes grew while the words inside them stayed small.</li>
+                    <li><strong>The page scrolled sideways on narrow screens</strong> — the footer links could not wrap, and at larger text sizes neither could the header navigation. Both now wrap, and there is no sideways scroll at 320&nbsp;pixels wide even at 150% text.</li>
+                    <li><strong>Text fields showed almost no focus indication</strong> — the outline was switched off in favour of a 10%-opacity glow that was also still hardcoded to the old brand colour, so it neither matched the theme nor read clearly.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.9.0 -->
         <div class="release">

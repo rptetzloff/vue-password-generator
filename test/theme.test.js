@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { resolveTheme, THEMES, THEME_KEY } from '../src/theme.js'
+import { resolveTheme, THEMES, THEME_KEY, resolveFontScale, FONT_SCALES, FONT_SCALE_KEY } from '../src/theme.js'
 
 // theme.js is importable here only because nothing runs at module scope -- the
 // DOM-touching functions are all called explicitly. If someone adds an
@@ -35,4 +35,24 @@ test('the theme contract is the one the inline head snippet assumes', () => {
   // change the snippets must change with them.
   assert.equal(THEME_KEY, 'global.theme')
   assert.deepEqual(THEMES, ['light', 'dark', 'system'])
+})
+
+// Text size. Everything that should scale is in rem, so this resizes the whole
+// interface rather than only the copy.
+test('resolveFontScale accepts only the offered scales', () => {
+  for (const n of FONT_SCALES) assert.equal(resolveFontScale(n), n)
+  assert.equal(resolveFontScale('125'), 125, 'a numeric string should be accepted')
+})
+
+test('resolveFontScale falls back to 100 for anything else', () => {
+  for (const bad of [null, undefined, 0, -50, 999, 'huge', {}, [], NaN]) {
+    assert.equal(resolveFontScale(bad), 100, `${JSON.stringify(bad)} should fall back`)
+  }
+})
+
+test('the font-scale contract matches the inline head snippet', () => {
+  // Each page hardcodes the non-default scales in its pre-paint script, so that
+  // raising the text size does not flash at the default first.
+  assert.equal(FONT_SCALE_KEY, 'global.fontScale')
+  assert.deepEqual(FONT_SCALES.filter(n => n !== 100), [112, 125, 150])
 })

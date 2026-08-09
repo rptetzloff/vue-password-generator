@@ -79,6 +79,33 @@
   --accent-ok: #15803d;
 }
 
+/* One focus ring for the whole site.
+ *
+ * Left to the browser, this was inconsistent: measured at 0.67px orange on
+ * some controls and 2px slate on others, and a sub-pixel ring is easy to miss.
+ * --border-focus is verified at 3:1 against both --surface and --background by
+ * the contrast tests, so this ring is legible wherever it lands.
+ *
+ * :where() keeps specificity at zero, so anything with a deliberate focus style
+ * of its own -- the header controls, which need a white ring against the
+ * gradient -- still wins without needing !important.
+ *
+ * This lives here rather than in a sixth stylesheet because tokens.css is the
+ * one file every page already links.
+ */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+/* Form controls do not inherit the document font. Left alone, a button keeps
+   the browser's own 13.3px regardless of the root size, so raising the text
+   size grew the tab boxes while their labels stayed put. :where() keeps this at
+   zero specificity so every existing font rule still wins. */
+:where(button, input, select, textarea) {
+  font: inherit;
+}
+
 [data-theme='dark'] {
   color-scheme: dark;
 

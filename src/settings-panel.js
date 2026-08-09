@@ -6,7 +6,10 @@
 //
 // Nothing runs at import time -- call mountSettingsPanel() explicitly.
 
-import { THEMES, getThemeChoice, setThemeChoice } from './theme.js'
+import {
+  THEMES, getThemeChoice, setThemeChoice,
+  FONT_SCALES, getFontScale, setFontScale,
+} from './theme.js'
 
 const THEME_LABELS = { light: 'Light', dark: 'Dark', system: 'System' }
 const THEME_ICONS = {
@@ -118,6 +121,15 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
   )
   panel.appendChild(theme.row)
   syncers.push(theme.sync)
+
+  const textSize = buildChipRow(
+    'Text size',
+    FONT_SCALES.map(n => ({ value: n, label: n === 100 ? 'Default' : `${n}%` })),
+    getFontScale,
+    (v) => setFontScale(v),
+  )
+  panel.appendChild(textSize.row)
+  syncers.push(textSize.sync)
 
   for (const s of extraSections) {
     const built = buildChipRow(s.label, s.options, s.get, s.set)

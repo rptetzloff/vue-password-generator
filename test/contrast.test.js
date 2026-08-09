@@ -107,6 +107,24 @@ for (const [themeName, tokens] of [['light', light], ['dark', dark]]) {
   })
 }
 
+// Left to the browser, the focus ring was inconsistent -- measured at 0.67px on
+// some controls and 2px on others, in colours that vary by browser. A sub-pixel
+// ring is easy to miss (WCAG 2.4.7). The contrast of --border-focus itself is
+// asserted in the pair table above; this pins the ring's existence and weight.
+test('a global focus ring is defined at a visible weight', () => {
+  const rule = CSS.match(/:where\([^)]*\):focus-visible\s*\{([^}]*)\}/)
+  assert.ok(rule, 'tokens.css should define a global :focus-visible ring')
+  const body = rule[1]
+  const width = body.match(/outline:\s*(\d+(?:\.\d+)?)px/)
+  assert.ok(width, 'the ring should set an explicit outline width')
+  assert.ok(
+    parseFloat(width[1]) >= 2,
+    `focus ring is ${width[1]}px; 2px is the minimum that reads reliably`,
+  )
+  assert.match(body, /var\(--border-focus\)/, 'the ring should use the verified token')
+  assert.match(body, /outline-offset/, 'the ring needs an offset to clear the control edge')
+})
+
 test('both themes define the same colour tokens', () => {
   // A token defined only in light silently falls back in dark, which is how a
   // theme ends up with an unreadable leftover.

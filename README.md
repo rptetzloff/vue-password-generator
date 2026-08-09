@@ -52,6 +52,7 @@ All modes support:
 A settings gear in the header opens a small panel, available on every page.
 
 - **Theme** — Light, Dark, or System. System follows your OS setting and updates live if you change it.
+- **Text size** — Default, 112%, 125% or 150%. Scales the whole interface, not just the copy, and multiplies your browser's own font size rather than replacing it.
 - **History** — the per-generator history limit, on the app page only.
 
 The theme is applied by a blocking inline script before the page paints, so
@@ -63,14 +64,16 @@ remembered in `localStorage`.
 ## Accessibility
 
 - Every colour pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
-- Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it.
+- Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it. Verified with no horizontal scroll at 320px — the WCAG 1.4.10 reflow width — at both default and 150% text.
+- Every interactive control has an accessible name; icon-only buttons carry contextual labels such as "Decrease min lowercase letters".
+- A single 2px focus ring is defined site-wide rather than relying on browser defaults, which measured as little as 0.67px on some controls.
 - The settings panel is keyboard operable: arrow keys move between options, Escape closes and returns focus to the gear.
 - Status messages such as "password copied" are announced to screen readers.
 - The current page is marked with `aria-current` and distinguished by weight and border, not colour alone.
 - Animations respect `prefers-reduced-motion`.
 
-Colour-vision-deficiency palettes and a font-size control are not implemented
-yet — see [ROADMAP.md](ROADMAP.md).
+Colour-vision-deficiency palettes are not implemented yet — see
+[ROADMAP.md](ROADMAP.md).
 
 ---
 
@@ -88,7 +91,7 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 
 - **Client-side only** — all generation happens in your browser; nothing is transmitted
 - **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
-- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `src/main.js` discards the ragged tail instead
+- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `src/lib.js` discards the ragged tail instead
 - **Fails loudly** — `crypto.getRandomValues()` needs a secure context (HTTPS or `localhost`). Over plain HTTP on a non-localhost host, generation errors out rather than falling back to a weaker source
 - **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only

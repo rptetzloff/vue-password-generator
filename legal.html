@@ -16,6 +16,8 @@
         if (c !== 'light' && c !== 'dark') c = 'system';
         var dark = c === 'dark' || (c === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var fs = JSON.parse(localStorage.getItem('global.fontScale'));
+        if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
       } catch (e) {}
     </script>
     <link rel="stylesheet" href="/src/tokens.css" />
