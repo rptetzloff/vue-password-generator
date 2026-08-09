@@ -18,3 +18,34 @@ services:
       - path: /*
         name: Permissions-Policy
         value: geolocation=(), microphone=(), camera=()
+
+      # Caching for the vendored third-party assets. Since v2.7.1 these are
+      # served from this domain rather than a CDN, so their bytes are ours --
+      # and the icon webfont alone is 403 KB, by far the heaviest thing a
+      # first-time visitor downloads.
+      #
+      # Deliberately scoped narrowly. Render does not document what happens when
+      # two header rules match the same request, so these paths are kept
+      # non-overlapping rather than relying on a precedence guess. (The /*
+      # rules above set different header names, so they do not collide with
+      # Cache-Control.)
+      #
+      # Nothing is set for /src or the HTML on purpose: those change every
+      # release and carry stable filenames, so they should keep revalidating
+      # and pick up deploys immediately.
+
+      # The font is requested with a ?v=7.4.47 query, so the URL changes when
+      # the font does. That makes it genuinely safe to treat as immutable.
+      - path: /vendor/mdi/fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+      # Vue and the icon stylesheet have stable, unversioned filenames, so they
+      # must NOT be immutable -- an upgrade would strand cached copies for as
+      # long as the max-age. A day, then revalidate.
+      - path: /vendor/*
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /vendor/mdi/css/*
+        name: Cache-Control
+        value: public, max-age=86400
