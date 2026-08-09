@@ -47,6 +47,21 @@
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
 }
 
+/* The mark follows the theme. Its two colours are the brand pair, so the key
+   is guaranteed legible against its own tile in both themes -- the same
+   --primary / --on-primary contrast the buttons rely on.
+   Set by class, not by a var() inside a fill attribute, which is not reliably
+   supported. */
+.header-icon .logo-tile { fill: var(--primary); }
+.header-icon .logo-ink { fill: var(--on-primary); }
+.header-icon .logo-ink-soft { fill: var(--on-primary); fill-opacity: 0.7; }
+.header-icon .logo-outline {
+  fill: none;
+  stroke: var(--on-primary);
+  stroke-opacity: 0.35;
+  stroke-width: 2px;
+}
+
 .header-text h1 {
   font-size: 1.25rem;
   font-weight: 700;
@@ -63,6 +78,26 @@
   display: flex;
   gap: 0.5rem;
   flex-shrink: 0;
+  align-items: stretch;
+}
+
+/* Optional full-width row below the title, for pages that need to say
+   something before the content starts. The app uses it for the privacy
+   notice. flex-basis: 100% makes it take its own line in the wrapping
+   .header-inner rather than squeezing in beside the nav. */
+.header-description {
+  flex-basis: 100%;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.header-description strong {
+  color: white;
+  font-weight: 600;
 }
 
 .header-link {
@@ -84,6 +119,20 @@
 .header-link:hover {
   background: rgba(255, 255, 255, 0.22);
   border-color: rgba(255, 255, 255, 0.7);
+}
+
+.header-link:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* The page you are on. aria-current carries this for screen readers; this is
+   the visual half. Not colour alone -- the border weight changes too, so the
+   state survives a colour-vision difference (WCAG 1.4.1). */
+.header-link.is-current {
+  background: rgba(255, 255, 255, 0.28);
+  border-color: white;
+  font-weight: 700;
 }
 
 /* Was changelog-only; now applies to both pages. */

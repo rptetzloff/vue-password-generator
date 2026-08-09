@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/src/tokens.css" />
     <link rel="stylesheet" href="/src/site-header.css" />
     <link rel="stylesheet" href="/src/site-footer.css" />
+    <link rel="stylesheet" href="/src/settings-panel.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
       :root { --header-max: 900px; --footer-max: 900px; --footer-pad: 1.5rem; }
@@ -247,26 +248,55 @@
   </head>
   <body>
 
-    <header class="site-header">
-      <div class="header-inner">
-        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
-        <div class="header-text">
-          <h1>Random Password Generator</h1>
-          <p>Changelog</p>
-        </div>
-        <nav class="header-nav">
-          <a href="/docs.html" class="header-link">
-            <span class="mdi mdi-book-open-outline"></span> Docs
-          </a>
-          <a href="/" class="header-link">
-            <span class="mdi mdi-arrow-left"></span> Back to App
-          </a>
-        </nav>
-      </div>
-    </header>
+    <div data-site-header></div>
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.9.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.9.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Dark mode, a settings panel, and one header everywhere</div>
+                <div class="release-summary">Adds light and dark themes with a settings gear on every page, replaces five inconsistent navigations with one, and fixes a set of colour contrast problems — including a &ldquo;copied&rdquo; message that was almost unreadable.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Light and dark themes</strong> — choose Light, Dark, or System from the settings gear. System follows your device and switches live if you change it. Your choice is remembered and applies across every page, and it is applied before the page draws, so switching to dark never flashes white first.</li>
+                    <li><strong>Settings gear</strong> — the same panel on every page, holding the theme, and the history limit on the generator page. Fully keyboard operable: arrow keys move between options, Escape closes it and returns you to the gear.</li>
+                    <li><strong>Full navigation on every page</strong> — Generator, Docs, Changelog, About and Legal are now reachable from anywhere, with the page you are on clearly marked.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The &ldquo;password copied&rdquo; message was hard to read</strong> — in dark mode it was white text on a bright fill, measuring 1.8:1 where 4.5:1 is the readable minimum. Now 9.9:1. The error message had the same problem.</li>
+                    <li><strong>Buttons and other coloured elements</strong> — white text on the main blue measured 2.8:1. The blue is now darker in light mode and the text darkens instead of staying white in dark mode, reaching 5.9:1 and 6.5:1. The same applied to the status colours, the checkbox tick, and the documentation category badges.</li>
+                    <li><strong>Input outlines were too faint</strong> — the border marking a text field measured 1.5:1 against its background, below the 3:1 needed to be seen. Card edges stay subtle; only real controls were strengthened.</li>
+                    <li><strong>Status messages are now announced</strong> to screen readers, which previously got no confirmation that a password had been copied.</li>
+                    <li><strong>Animations respect reduced-motion</strong> preferences.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>One header for the whole site</strong> — the app had a large bespoke header while the other pages hand-rolled a smaller one, so neither could be changed without the other drifting. All five now render the same header, with an optional description line the generator uses for its privacy notice.</li>
+                    <li><strong>The logo follows the theme</strong> — it was a fixed image that could not see the theme, and in light mode it was the exact colour of the header behind it, visible only because of its shadow. It now uses the site's own colours and adapts.</li>
+                    <li><strong>Contrast is now covered by tests</strong> — every colour pair in both themes is checked automatically against the accessibility standard, so a future colour change cannot quietly break readability.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.8.2 -->
         <div class="release">
@@ -794,5 +824,11 @@
       </div>
     </footer>
 
+    <script type="module">
+      import { initTheme } from '/src/theme.js'
+      import { mountSiteHeader } from '/src/site-header.js'
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'))
+    </script>
   </body>
 </html>

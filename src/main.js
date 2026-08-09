@@ -18,6 +18,8 @@ import {
   applyLeet,
   historyKeysIn,
 } from './lib.js'
+import { initTheme } from './theme.js'
+import { mountSiteHeader } from './site-header.js'
 
 const loadSetting = (key, fallback) => {
   try {
@@ -305,7 +307,7 @@ const SimplePassword = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -666,7 +668,7 @@ const AdvancedPassword = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -974,7 +976,7 @@ const WordsPassword = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -1161,7 +1163,7 @@ const NumbersPassword = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -1549,7 +1551,7 @@ const Passphrase = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -1949,7 +1951,7 @@ const WifiWords = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -2350,7 +2352,7 @@ const MadLib = {
           </button>
         </div>
         <HistoryStrip :history="history" :current="password" @select="password = $event" />
-        <div v-if="notification.show" :class="['notification', notification.type]">
+        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
       </div>
@@ -2373,6 +2375,28 @@ const App = {
       { id: 7, name: 'Numbers',    component: NumbersPassword },
     ]
 
+    // The settings panel is plain DOM so that all five pages share one
+    // implementation. History is contributed as an extra section rather than
+    // being known to the panel, with get/set bridging to the Vue ref so the
+    // rest of the app stays reactive.
+    onMounted(() => {
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'), {
+        description:
+          '🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. ' +
+          "Your settings and generation history are stored only in your browser's local storage — history is cleared when " +
+          'you set History to Off, or when you clear your browser data.',
+        settings: {
+          extraSections: [{
+            label: 'History',
+            options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
+            get: () => historyMax.value,
+            set: (v) => { historyMax.value = Number(v) },
+          }],
+        },
+      })
+    })
+
     return {
       activeTab,
       tabs,
@@ -2381,40 +2405,10 @@ const App = {
   },
   template: `
     <div id="app">
-      <header class="header">
-        <div class="container">
-          <div class="header-title-block">
-            <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
-            <div>
-              <h1 class="title">Random Password Generator</h1>
-              <p class="subtitle">Generate secure passwords with multiple customization options</p>
-            </div>
-          </div>
-          <div class="header-meta">
-            <div class="privacy-notice">
-              🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. Your settings and generation history are stored only in your browser's local storage — history is session-local and cleared when you clear your browser data.
-            </div>
-            <div class="header-docs-link">
-              <a href="/docs.html" class="docs-link">
-                <span class="mdi mdi-book-open-outline"></span> Docs
-              </a>
-            </div>
-            <div class="history-max-control">
-              <label class="history-max-label">History</label>
-              <div class="history-max-chips">
-                <button
-                  v-for="n in [0, 5, 10, 20, 50]"
-                  :key="n"
-                  class="history-max-chip"
-                  :class="{ active: historyMax === n }"
-                  @click="historyMax = n"
-                >{{ n === 0 ? 'Off' : n }}</button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </header>
-      
+      <!-- Replaced at mount by the shared header, so the app carries the same
+           title, subtitle and nav bar as every other page. -->
+      <div data-site-header></div>
+
       <main class="main">
         <div class="container">
           <div class="tabs">

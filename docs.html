@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/src/tokens.css" />
     <link rel="stylesheet" href="/src/site-header.css" />
     <link rel="stylesheet" href="/src/site-footer.css" />
+    <link rel="stylesheet" href="/src/settings-panel.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
       :root { --header-max: 1100px; --footer-max: 1100px; --footer-pad: 1.5rem; }
@@ -470,23 +471,7 @@
   </head>
   <body>
 
-    <header class="site-header">
-      <div class="header-inner">
-        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
-        <div class="header-text">
-          <h1>Random Password Generator</h1>
-          <p>Documentation &amp; Reference</p>
-        </div>
-        <nav class="header-nav">
-          <a href="/changelog.html" class="header-link">
-            <span class="mdi mdi-history"></span> Changelog
-          </a>
-          <a href="/" class="header-link">
-            <span class="mdi mdi-arrow-left"></span> Back to App
-          </a>
-        </nav>
-      </div>
-    </header>
+    <div data-site-header></div>
 
     <div class="page">
 
@@ -504,6 +489,7 @@
           <a class="nav-item" href="#madlib"><span class="mdi mdi-theater"></span> Mad Lib</a>
           <a class="nav-item" href="#numbers"><span class="mdi mdi-numeric"></span> Numbers</a>
           <div class="nav-divider"></div>
+          <a class="nav-item" href="#appearance"><span class="mdi mdi-cog-outline"></span> Appearance &amp; Settings</a>
           <a class="nav-item" href="#shared"><span class="mdi mdi-share-variant-outline"></span> Shared Options</a>
           <div class="nav-divider"></div>
           <a class="nav-item" href="#built-with"><span class="mdi mdi-tools"></span> Built With</a>
@@ -1323,13 +1309,14 @@
                 The history strip only appears when there are 2 or more entries.
               </p>
               <p style="font-size:0.875rem;color:var(--text-secondary);">
-                The <strong>History</strong> control in the header sets the global maximum number of entries kept per generator:
+                The <strong>History</strong> control — in the settings gear at the top right — sets the maximum number of entries kept
+                <em>per generator</em>. With all seven in use at the default of 10, that is up to 70 stored passwords.
               </p>
               <table class="value-table" style="margin-top:0.5rem;">
                 <thead><tr><th>Setting</th><th>Effect</th></tr></thead>
                 <tbody>
-                  <tr><td>Off (0)</td><td>History is disabled — no entries are stored. Existing history is cleared immediately.</td></tr>
-                  <tr><td>5 / 10 / 20 / 50</td><td>Keeps up to that many entries. Reducing the limit trims existing history to fit.</td></tr>
+                  <tr><td>Off (0)</td><td>No entries are stored, and every generator's existing history is erased — not only the one currently open.</td></tr>
+                  <tr><td>5 / 10 / 20 / 50</td><td>Keeps up to that many entries per generator. Reducing the limit trims existing history to fit.</td></tr>
                 </tbody>
               </table>
               <br>
@@ -1351,6 +1338,67 @@
         </section>
 
         <!-- ── BUILT WITH ────────────────────────────────────────── -->
+        <section id="appearance" class="section-card">
+          <div class="section-head">
+            <div class="section-icon sky"><span class="mdi mdi-cog-outline"></span></div>
+            <div class="section-title">
+              <h2>Appearance &amp; Settings</h2>
+              <p>The gear at the top right, available on every page.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="option-group">
+              <div class="option-group-label">Theme</div>
+              <div class="option-row">
+                <div class="option-name">Light / Dark / System</div>
+                <div class="option-desc">
+                  <p>
+                    <strong>System</strong> follows your operating system's appearance setting and switches
+                    live if you change it while the page is open. Choosing <strong>Light</strong> or
+                    <strong>Dark</strong> overrides that and stays fixed.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Your choice is saved in <code>localStorage</code> and applies across every page. It is
+                    applied before the page draws, so switching to dark never flashes the light theme first.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">History</div>
+              <div class="option-row">
+                <div class="option-name">Entries per generator</div>
+                <div class="option-desc">
+                  Shown on the generator page only, since the other pages have no history.
+                  See <a href="#shared-history">Generation History</a> for what each setting does.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Keyboard</div>
+              <div class="option-row">
+                <div class="option-name">Operating the panel</div>
+                <div class="option-desc">
+                  <table class="value-table">
+                    <thead><tr><th>Key</th><th>Action</th></tr></thead>
+                    <tbody>
+                      <tr><td>Enter / Space</td><td>Open or close the panel</td></tr>
+                      <tr><td>Arrow keys</td><td>Move between the options in a group</td></tr>
+                      <tr><td>Home / End</td><td>Jump to the first or last option</td></tr>
+                      <tr><td>Escape</td><td>Close the panel and return focus to the gear</td></tr>
+                      <tr><td>Tab</td><td>Leave the panel, which closes it</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
         <section id="built-with" class="section-card">
           <div class="section-head">
             <div class="section-icon slate"><span class="mdi mdi-tools"></span></div>
@@ -1430,5 +1478,11 @@
       </div>
     </footer>
 
+    <script type="module">
+      import { initTheme } from '/src/theme.js'
+      import { mountSiteHeader } from '/src/site-header.js'
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'))
+    </script>
   </body>
 </html>

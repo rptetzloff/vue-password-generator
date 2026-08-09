@@ -31,6 +31,10 @@
   --success: #0e7490;
   --warning: #b45309;
   --error: #dc2626;
+  /* Text sitting on a status fill, e.g. the toast. Same reason --on-primary
+     exists: the dark-theme status colours are bright, so white on them is
+     unreadable (success measured 1.81:1). One token covers all three. */
+  --on-status: #ffffff;
 
   /* Surfaces and text */
   --background: #f8fafc;
@@ -88,6 +92,7 @@
   --success: #22d3ee;
   --warning: #fbbf24;
   --error: #f87171;
+  --on-status: #0f172a;
 
   --background: #0f172a;
   --surface: #1e293b;

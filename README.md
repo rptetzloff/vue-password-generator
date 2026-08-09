@@ -47,6 +47,33 @@ All modes support:
 
 ---
 
+## Appearance
+
+A settings gear in the header opens a small panel, available on every page.
+
+- **Theme** — Light, Dark, or System. System follows your OS setting and updates live if you change it.
+- **History** — the per-generator history limit, on the app page only.
+
+The theme is applied by a blocking inline script before the page paints, so
+switching to dark never shows a flash of the light theme first. Your choice is
+remembered in `localStorage`.
+
+---
+
+## Accessibility
+
+- Every colour pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
+- Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it.
+- The settings panel is keyboard operable: arrow keys move between options, Escape closes and returns focus to the gear.
+- Status messages such as "password copied" are announced to screen readers.
+- The current page is marked with `aria-current` and distinguished by weight and border, not colour alone.
+- Animations respect `prefers-reduced-motion`.
+
+Colour-vision-deficiency palettes and a font-size control are not implemented
+yet — see [ROADMAP.md](ROADMAP.md).
+
+---
+
 ## Settings Persistence
 
 All configuration preferences are automatically saved to `localStorage` and restored on your next visit. This includes password length, character type selections, separators, capitalization, prefix/suffix options, and custom symbol sets across all seven modes.
@@ -100,6 +127,27 @@ Opening `index.html` directly from the filesystem will not work: `src/main.js` i
 an ES module and the wordlists are loaded with `fetch`, both of which require
 `http://` rather than `file://`.
 
+### Tests
+
+```bash
+npm test
+```
+
+Runs on Node's built-in test runner with **no dependencies** — Node 20+ is the
+floor, since the suite uses `globalThis.crypto`. Coverage is the pure logic that
+can be tested without a browser: the CSPRNG (range, uniformity, and that
+rejection sampling actually discards the biased tail), the word and character
+transforms, theme resolution, nav path matching, and WCAG contrast read straight
+out of `src/tokens.css`.
+
+To run the suite automatically before each commit, once per clone:
+
+```bash
+git config core.hooksPath .githooks
+```
+
+CI runs the same suite on Node 20 and 24 for every push and pull request.
+
 ---
 
 ## Deployment
@@ -125,16 +173,38 @@ vue-password-generator/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── wordlist.txt      # EFF large wordlist for Words mode (7,776 words)
 ├── src/
-│   ├── main.js           # All Vue components (Composition API)
-│   └── style.css         # Design system and component styles
+│   ├── main.js           # Vue components for the seven generators
+│   ├── lib.js            # Pure generation helpers (no Vue, no DOM) — unit tested
+│   ├── theme.js          # Light/dark/system runtime
+│   ├── logo.js           # The site mark, inline so it can follow the theme
+│   ├── site-header.js    # Shared header: icon, title, subtitle, nav
+│   ├── site-nav.js       # One list of pages; every nav is generated from it
+│   ├── settings-panel.js # The settings gear popover
+│   ├── tokens.css        # Design tokens — the only place colours are defined
+│   ├── site-header.css   # Shared header styles
+│   ├── site-footer.css   # Shared footer styles
+│   ├── settings-panel.css
+│   ├── prose-page.css    # Layout for the About and Legal pages
+│   └── style.css         # App-specific component styles
+├── test/                 # node --test, zero dependencies
+│   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling
+│   ├── transforms.test.js
+│   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
+│   ├── theme.test.js
+│   └── site-nav.test.js
 ├── vendor/
 │   ├── vue.esm-browser.prod.js   # Vue 3.4.0 runtime
-│   └── mdi/                      # Material Design Icons 7.4.47 (css + woff2)
+│   ├── vue.LICENSE
+│   └── mdi/                      # Material Design Icons 7.4.47 (css + woff2 + LICENSE)
+├── .githooks/pre-commit  # Runs the test suite before each commit
+├── index.html            # The generator
+├── docs.html             # Documentation reference
 ├── changelog.html        # Release history
-├── docs.html             # In-app documentation reference
+├── about.html
+├── legal.html
+├── ROADMAP.md
 ├── render.yaml
-├── package.json
-└── index.html
+└── package.json
 ```
 
 ---

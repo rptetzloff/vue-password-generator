@@ -26,45 +26,6 @@ body {
 }
 
 /* Header */
-.header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 2rem 0;
-  text-align: center;
-  color: white;
-}
-
-.header-title-block {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  margin-bottom: 1rem;
-  text-align: left;
-}
-
-.header-icon {
-  width: 5rem;
-  height: 5rem;
-  flex-shrink: 0;
-  border-radius: 18px;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
-}
-
-.title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.2rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.subtitle {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  font-weight: 400;
-}
-
 /* Main content */
 .main {
   padding: 2rem 0;
@@ -460,7 +421,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
+  color: var(--on-primary);
   font-size: 0.75rem;
   font-weight: bold;
 }
@@ -585,11 +546,18 @@ body {
   right: 1rem;
   padding: 1rem 1.5rem;
   border-radius: var(--radius);
-  color: white;
+  color: var(--on-status);
   font-weight: 500;
   box-shadow: var(--shadow-lg);
   z-index: 1000;
   animation: slideIn 0.3s ease;
+}
+
+/* The toast appears and disappears on its own, so it must be announced.
+   role="status" is polite: it will not interrupt what a screen reader is
+   already saying. Tracked as ROADMAP Epic 3. */
+@media (prefers-reduced-motion: reduce) {
+  .notification { animation: none; }
 }
 
 .notification.success {
@@ -747,14 +715,7 @@ body {
     padding: 0 0.5rem;
   }
   
-  .title {
-    font-size: 2rem;
-  }
 
-  .header-icon {
-    width: 3.75rem;
-    height: 3.75rem;
-  }
   
   .tabs {
     flex-direction: column;
@@ -968,102 +929,6 @@ body {
 
 /* ── Header meta row (privacy notice + history control) ─── */
 
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  margin-top: 1rem;
-  flex-wrap: wrap;
-}
-
-.privacy-notice {
-  flex: 1;
-  min-width: 0;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.header-docs-link {
-  flex-shrink: 0;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.docs-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  border: 1.5px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.docs-link:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.7);
-}
-
-.history-max-control {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-.history-max-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.history-max-chips {
-  display: flex;
-  gap: 0.3rem;
-}
-
-.history-max-chip {
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.history-max-chip:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
-  color: white;
-}
-
-.history-max-chip.active {
-  background: white;
-  border-color: white;
-  color: var(--primary-dark);
-}
-
-@media (max-width: 600px) {
-  .header-meta { flex-direction: column; align-items: stretch; }
-  .history-max-control { flex-direction: row; align-items: center; justify-content: space-between; }
-}
-
 /* ── Word pills (per-word regeneration) ─────────────────── */
 
 .word-pills-row {
@@ -1228,8 +1093,6 @@ body {
 
 /* ── Site footer ────────────────────────────────────────── */
 
-@media (max-width: 560px) {
-}
 /* Alliteration toggle */
 .alliteration-toggle {
   display: inline-flex;

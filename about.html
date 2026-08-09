@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/src/tokens.css" />
     <link rel="stylesheet" href="/src/site-header.css" />
     <link rel="stylesheet" href="/src/site-footer.css" />
+    <link rel="stylesheet" href="/src/settings-panel.css" />
     <link rel="stylesheet" href="/src/prose-page.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
@@ -28,23 +29,7 @@
     </style>
   </head>
   <body>
-    <header class="site-header">
-      <div class="header-inner">
-        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
-        <div class="header-text">
-          <h1>Random Password Generator</h1>
-          <p>About</p>
-        </div>
-        <nav class="header-nav">
-          <a href="/docs.html" class="header-link">
-            <span class="mdi mdi-book-open-outline"></span> Docs
-          </a>
-          <a href="/" class="header-link">
-            <span class="mdi mdi-arrow-left"></span> Back to App
-          </a>
-        </nav>
-      </div>
-    </header>
+    <div data-site-header></div>
 
     <main class="page">
       <article class="prose-card">
@@ -121,5 +106,11 @@
         </div>
       </div>
     </footer>
+    <script type="module">
+      import { initTheme } from '/src/theme.js'
+      import { mountSiteHeader } from '/src/site-header.js'
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'))
+    </script>
   </body>
 </html>
