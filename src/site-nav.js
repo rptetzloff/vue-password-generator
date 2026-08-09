@@ -15,6 +15,7 @@ export const PAGES = [
   { href: '/changelog.html', label: 'Changelog', icon: 'mdi-history', subtitle: 'Release history' },
   { href: '/about.html', label: 'About', icon: 'mdi-information-outline', subtitle: 'What this is and who made it' },
   { href: '/legal.html', label: 'Legal', icon: 'mdi-scale-balance', subtitle: 'Privacy, licence and attributions' },
+  { href: '/roadmap.html', label: 'Roadmap', icon: 'mdi-map-marker-path', subtitle: 'What is planned, and what is only being considered' },
 ]
 
 /** The nav entry for the page being viewed, or null. */

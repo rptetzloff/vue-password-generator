@@ -245,6 +245,8 @@ vue-password-generator/
 │   ├── logo.js           # The site mark, inline so it can follow the theme
 │   ├── site-header.js    # Shared header: icon, title, subtitle, nav
 │   ├── site-nav.js       # One list of pages; every nav is generated from it
+│   ├── site-footer.js    # Shared footer, generated from the same list
+│   ├── markdown.js       # Small Markdown subset renderer, for roadmap.html
 │   ├── settings-panel.js # The settings gear popover
 │   ├── tokens.css        # Design tokens — the only place colours are defined
 │   ├── site-header.css   # Shared header styles

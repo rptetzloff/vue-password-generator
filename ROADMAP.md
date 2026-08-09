@@ -1,10 +1,16 @@
 # Roadmap
 
 Planned work for the password generator, grouped so related items ship together.
-Current release: **v2.7.2**.
 
-Findings below were measured against the codebase at `4a9e1c7` — the numbers are
-real, not estimates.
+This is planning, not a set of promises. Items get added, reordered and
+abandoned, and a ticked box means the work shipped — not that it is perfect.
+Epics 1 and 3 sat here fully implemented but unticked for several releases,
+which nobody noticed until this file was put on the site with a progress count
+beside each epic.
+
+Numbers in here were measured against the codebase rather than estimated, but
+they were true when written. Where a measurement has since changed, the entry
+usually says so rather than being quietly updated — the trail is the point.
 
 ---
 
@@ -20,9 +26,9 @@ files and keeping them in sync by hand.
 | `docs.html` | ✅ (inline `<style>`) |
 | `changelog.html` | ✅ (inline `<style>`) |
 
-- [ ] **Extract one shared stylesheet** for design tokens — colors, spacing, radius, shadows, font stack. `docs.html` and `changelog.html` link it instead of redeclaring.
-- [ ] **Unify the site header.** `docs.html` and `changelog.html` each hand-roll the same `.site-header` / `.header-nav` markup and styles. The app itself has neither — `index.html` is a 15-line shell and the Vue templates never render a site header, so the generator page has no nav back to Docs or Changelog in the same style. Worth reconciling into one header used everywhere.
-- [ ] **Normalize units.** `src/style.css` currently mixes `121` px values against `169` rem values. Anything that should scale with user font size needs to be rem — this is a prerequisite for the zoom/font-size work in Epic 3, not just tidiness.
+- [x] **Extract one shared stylesheet** for design tokens — colors, spacing, radius, shadows, font stack. `docs.html` and `changelog.html` link it instead of redeclaring.
+- [x] **Unify the site header.** `docs.html` and `changelog.html` each hand-roll the same `.site-header` / `.header-nav` markup and styles. The app itself has neither — `index.html` is a 15-line shell and the Vue templates never render a site header, so the generator page has no nav back to Docs or Changelog in the same style. Worth reconciling into one header used everywhere.
+- [x] **Normalize units.** `src/style.css` currently mixes `121` px values against `169` rem values. Anything that should scale with user font size needs to be rem — this is a prerequisite for the zoom/font-size work in Epic 3, not just tidiness.
 
 > Doing this first turns Epics 2 and 3 into single-file changes.
 
@@ -83,21 +89,25 @@ fixing contrast afterward.** Measured ratios against `--surface` (`#ffffff`):
 | `--warning` on surface | 2.15 | ❌ | ❌ |
 | `--error` on surface | 3.76 | ❌ | ✅ |
 
-- [ ] **Fix the primary button contrast — this is a live bug, not a nice-to-have.** `src/style.css:118` and `:308` set `background: var(--primary); color: white`, which is 2.77:1. That's every primary button including **Generate Password**. The hover state at 4.10:1 still fails. Body text is fine; it's the accents that fail.
-- [ ] **Status colors** — `--success`, `--warning`, `--error` all fail AA on white. They carry meaning (the notification toast), so they need both a passing contrast and a non-color cue (icon or text prefix) to satisfy *Use of Color* (1.4.1).
-- [ ] **Announce the notification toast.** `showNotification` (`src/main.js:221`) flips a reactive flag and auto-dismisses after 3s with no `role="status"` / `aria-live`. Screen reader users get no feedback that a password was copied or that validation failed.
-- [ ] **Audit ARIA coverage.** Current state: **63** `<label>` elements (genuinely good), but only **2** `aria-hidden`, **1** `alt`, and **zero** `role=` or `aria-label`. The icon-only buttons (copy, regenerate-word, history) need accessible names.
-- [ ] **Font size / zoom** — anagrimoire sets `font-size` as a percentage on the root; the same control here gives text scaling for free *once units are rem* (Epic 1). Also verify 200% browser zoom and 320px reflow (1.4.10).
+- [x] **Fix the primary button contrast — this is a live bug, not a nice-to-have.** `src/style.css:118` and `:308` set `background: var(--primary); color: white`, which is 2.77:1. That's every primary button including **Generate Password**. The hover state at 4.10:1 still fails. Body text is fine; it's the accents that fail.
+- [x] **Status colors** — `--success`, `--warning`, `--error` all fail AA on white. They carry meaning (the notification toast), so they need both a passing contrast and a non-color cue (icon or text prefix) to satisfy *Use of Color* (1.4.1).
+- [x] **Announce the notification toast.** `showNotification` (`src/main.js:221`) flips a reactive flag and auto-dismisses after 3s with no `role="status"` / `aria-live`. Screen reader users get no feedback that a password was copied or that validation failed.
+- [x] **Audit ARIA coverage.** Current state: **63** `<label>` elements (genuinely good), but only **2** `aria-hidden`, **1** `alt`, and **zero** `role=` or `aria-label`. The icon-only buttons (copy, regenerate-word, history) need accessible names.
+- [x] **Font size / zoom** — anagrimoire sets `font-size` as a percentage on the root; the same control here gives text scaling for free *once units are rem* (Epic 1). Also verify 200% browser zoom and 320px reflow (1.4.10).
 - [x] **Colour-deficiency work** — done, though not as originally written. WCAG does not require colour-blind palettes; it requires (1.4.1) that colour never be the *only* way information is conveyed, which is satisfied because every change group is labelled in text. Making the colours useful rather than merely non-essential is a quality goal, and it is met by measurement: `test/colour-vision.test.js` simulates protanopia, deuteranopia and tritanopia and holds the closest pair above a CIEDE2000 floor. The separation-tuned colours are the default rather than an opt-in palette. Selectable themes moved to Epic 2a, where they belong — that is a preference feature.
-- [ ] **Focus visibility** — verify every control has a visible focus ring meeting 3:1 against its background (2.4.11).
-- [ ] **`prefers-reduced-motion`** — check the toast and any transitions.
-- [ ] **Keyboard traversal** — tab through all seven generators; confirm the tab row exposes arrow-key navigation or is at least fully reachable.
+- [ ] **Focus visibility** — verify every control has a visible focus ring meeting 3:1 against its background (2.4.11). Mostly done, and deliberately still open: **Epic 7b** found that `.slider` sets `outline: none` and so has no focus ring at all. Not ticked until that is fixed.
+- [x] **`prefers-reduced-motion`** — check the toast and any transitions.
+- [x] **Keyboard traversal** — tab through all seven generators; confirm the tab row exposes arrow-key navigation or is at least fully reachable.
 
 ---
 
 ## Epic 4 — Word lists
 
-- [ ] **Consider anagrimoire's dictionary as a source.** It searches **39,098** words and already tiers them **Common / Standard / Full**. This project has two disconnected sources: `data/words.json` (2,440 curated words) and `data/wordlist.txt` (the EFF list). A shared tiering vocabulary across both sites would be coherent.
+- [ ] **Adopt the newer wordlist from anagrimoire.com.** A better list has since been built there; this is now the leading candidate rather than a possibility. Before porting it, settle three things:
+  - **What it is licensed under and where it came from.** The Legal page lists sources per component, and a new list needs the same treatment as the EFF one.
+  - **Whether it replaces one source or both.** This project has two disconnected sources — `data/words.json` (2,440 curated, categorised by part of speech) and `data/wordlist.txt` (the EFF list, flat). Passphrase and Mad Lib need part-of-speech tagging; Words does not. A list without tagging can replace the second but not the first.
+  - **What it does to the entropy claim.** See the EFF item below: the "5 dice rolls per word" figure is only true at exactly 7,776 entries. A different list means different maths, and Epic 6a will be displaying that number.
+- [ ] **Keep the tiering vocabulary shared.** Anagrimoire tiers its words Common / Standard / Full. Matching that here would let the two sites describe difficulty the same way, and would give Words a "common words only" option that trades entropy for memorability — an honest trade if 6b is showing the cost.
 - [ ] **Fix hyphenated entries colliding with the hyphen separator.** The EFF list contains `drop-down`, `felt-tip`, `t-shirt`, `yo-yo`. With the default hyphen separator these produce ambiguous output like `Drop-down-Cat-42` — unclear where the word boundaries are when reading it aloud or retyping it. Either filter them or escape them when the separator is `-`.
 - [ ] **Rebalance `words.json` categories.** Current distribution is lopsided, which skews Passphrase/Mad Lib output:
 
@@ -264,9 +274,8 @@ weakest remaining link in a client-side-only threat model. At minimum an easy
 
 ### Offline / PWA
 
-Now that there's no build step and Vue plus the icon font are self-hosted, the
-site is a service worker away from working fully offline — a natural fit for a
-tool whose pitch is that it never talks to a server.
+Moved to **Epic 8b**, which states it properly as app mode: manifest, service
+worker and the update path, not just "add a service worker".
 
 ---
 
@@ -326,6 +335,59 @@ Buttons visible on a single tab, counted:
 
 - [ ] Copy is the only action that confirms itself. Regenerating a single word, clearing history, and changing a setting all happen silently.
 - [ ] History entries are clickable but do not look it until hover.
+
+---
+
+## Epic 8 — Beyond the page
+
+> The footer was templated as part of 8a. It had been six hand-written copies
+> — five pages plus one inside the Vue template — which had already drifted to
+> five different link lists. Both navigations now come from `PAGES` in
+> `src/site-nav.js`, so adding a page updates the header and the footer at once.
+
+Everything so far assumes the product is one web page. These do not. They are
+listed roughly in order of how far each moves away from that, and the last one
+moves furthest.
+
+### 8a. Publish the roadmap on the site — done
+
+- [x] `roadmap.html` alongside About and Legal, using the shared header, footer and `prose-page.css`.
+- [x] **It renders this file rather than copying it.** `src/markdown.js` is a small Markdown subset renderer — headings, task lists, tables, code, links — written rather than installed, because a build step and a dependency are both things this project does not have. The page fetches `/ROADMAP.md` at load, so it cannot drift.
+- [x] Shipped unedited, including the measured failure ratios and the reasoning. The candour is not a liability; the whole pitch is that you can check the claims.
+- [ ] The renderer handles the subset this file uses. If the roadmap grows a construct it does not know, either add it or stop using it -- do not reach for a library.
+
+### 8b. App mode — implement
+
+Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
+
+- [ ] **Web app manifest.** There is none today. Name, icons, `display: standalone`, theme colour. The theme colour should follow the chosen palette, which is a nice touch and a small amount of work now that `--header-bg` is a real opaque token.
+- [ ] **Service worker.** No build step, no CDN, and Vue and the icon font are already vendored, so the entire site is cacheable with a plain precache list. It should work fully offline on second load.
+- [ ] **This is the strongest fit for the product's pitch.** A generator that never talks to a server has no reason to require a network. Offline is not a feature bolted on, it is the claim made honest.
+- [ ] Watch the update path: a cached service worker that never updates is the classic way to strand users on an old build. Cache-first for assets, but check for a new version on load.
+
+### 8c. Browser extension — explore
+
+- [ ] **This is the mechanism for "add straight to my password manager", not a separate item.** See 8d: the web platform cannot do that from a page, and an extension can. If the handoff matters, this is the work.
+- [ ] A content script can generate into the focused field of whatever site you are on. The site's own form then submits normally, and the manager's existing save prompt fires by itself — no integration with any specific manager required.
+- [ ] Cost is real and ongoing: two stores with two review processes, Manifest V3, and a permissions prompt (`activeTab` at minimum) on a product whose selling point is that it asks for nothing. That last part deserves thought before starting — the extension's permissions are a harder sell than the site's.
+- [ ] The generator logic is already dependency-free and DOM-free in `src/lib.js`, so the core would port unchanged.
+
+### 8d. Hand a password directly to a password manager — explore, and probably blocked
+
+- [ ] **Check this before planning around it.** The obvious API does not do what it sounds like. `navigator.credentials.store(new PasswordCredential(...))` saves a credential **for the current origin only** — this site could save a password for `getrandompassword.net` and nothing else. There is no web API for "save this password for `example.com`", by design: it would be a credential-injection primitive.
+- [ ] Support is also narrow. `PasswordCredential` is Chromium-only; Firefox and Safari never shipped it. So even the same-origin version reaches a fraction of users.
+- [ ] What is actually available from a page is what already exists: copy to clipboard, and letting the manager's own heuristics catch the paste. Everything beyond that needs 8c.
+- [ ] Verify the above against current specs before writing it off — this was checked in a Chromium browser and against the API's design intent, not against a fresh reading of every vendor's docs.
+
+### 8e. Password manager mode — explore, and read the tension first
+
+The biggest lift here, and the one that argues with the product.
+
+- [ ] **State the conflict plainly.** The Legal and About pages both say there are no accounts and nothing leaves your device. A manager that syncs needs identity, and identity means accounts. Shipping that quietly would make existing published claims false, which is worse than not shipping it.
+- [ ] **Separate storage from sync — they are not the same problem.** A local-only vault in IndexedDB, encrypted with a key derived from a passphrase, needs no account and breaks no promise. It is only *sync across devices* that needs identity. If the valuable part is "keep the passwords I generate here", that may be reachable without ever adding a login.
+- [ ] **If sync is genuinely wanted**, the honest form is end-to-end encryption where the server holds ciphertext it cannot read and the account is an opaque sync identifier, not a profile. Note that anagrimoire already has optional accounts for syncing stats — so the shape exists in the family, and the sibling-site framing in Epic 5 already has to explain that difference rather than flatten it.
+- [ ] **Do not start this until 8b and 8c are done.** A manager without offline support is unusable, and one without a browser integration is a vault you have to copy out of by hand. Both are prerequisites, and both are useful on their own even if this is never built.
+- [ ] **Be honest about the competition.** Bitwarden, KeePass and 1Password exist and are audited. The reason to build this would be a specific thing they do not do, and that reason should be written down here before any code is.
 
 ---
 
