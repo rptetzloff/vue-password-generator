@@ -52,9 +52,21 @@ test('randInt rejects the ragged tail instead of taking it modulo', () => {
 })
 
 // Catches gross breakage -- a stuck value, an off-by-one, a truncated pool.
-// The bound is deliberately loose: chi-square above 3x the degrees of freedom
-// has probability ~1e-14, so this will not flake, while a genuinely broken
-// distribution blows well past it.
+//
+// The threshold has to scale with the degrees of freedom properly. A previous
+// version used `3 * df`, which for n=3 (df=2) means 6 -- and chi-square with 2
+// degrees of freedom exceeds 6 about 5% of the time, so the suite failed
+// roughly one run in twenty. Measured: 1 failure in 40 runs, reporting
+// chi2=6.8. A flaky test in CI is worse than no test.
+//
+// Wilson-Hilferty gives a critical value for any df. z = 6 standard deviations
+// puts the false-failure rate near 1e-9, while a genuinely broken distribution
+// produces chi-square in the hundreds or thousands and is still caught.
+const chi2CriticalValue = (df, z = 6) => {
+  const a = 2 / (9 * df)
+  return df * Math.pow(1 - a + z * Math.sqrt(a), 3)
+}
+
 test('randInt is close to uniform', () => {
   for (const n of [3, 10, 26]) {
     const counts = new Array(n).fill(0)
@@ -62,7 +74,11 @@ test('randInt is close to uniform', () => {
     for (let i = 0; i < N; i++) counts[randInt(n)]++
     const expected = N / n
     const chi2 = counts.reduce((s, c) => s + ((c - expected) ** 2) / expected, 0)
-    assert.ok(chi2 < 3 * (n - 1), `chi2=${chi2.toFixed(1)} too high for n=${n}`)
+    const limit = chi2CriticalValue(n - 1)
+    assert.ok(
+      chi2 < limit,
+      `chi2=${chi2.toFixed(1)} exceeds ${limit.toFixed(1)} for n=${n} (df=${n - 1})`,
+    )
   }
 })
 

@@ -13,7 +13,7 @@
 
 body {
   font-family: var(--font-family);
-  background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  background: var(--page-gradient);
   min-height: 100vh;
   color: var(--text);
   line-height: 1.6;
@@ -26,45 +26,6 @@ body {
 }
 
 /* Header */
-.header {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 2rem 0;
-  text-align: center;
-  color: white;
-}
-
-.header-title-block {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1.25rem;
-  margin-bottom: 1rem;
-  text-align: left;
-}
-
-.header-icon {
-  width: 5rem;
-  height: 5rem;
-  flex-shrink: 0;
-  border-radius: 18px;
-  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.25));
-}
-
-.title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  margin-bottom: 0.2rem;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.subtitle {
-  font-size: 1.1rem;
-  opacity: 0.9;
-  font-weight: 400;
-}
-
 /* Main content */
 .main {
   padding: 2rem 0;
@@ -107,7 +68,7 @@ body {
 
 .tab.active {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
   box-shadow: var(--shadow);
 }
 
@@ -138,7 +99,7 @@ body {
 .form-input {
   width: 100%;
   padding: 0.75rem;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: var(--radius);
   font-size: 1rem;
   transition: border-color 0.2s ease;
@@ -200,7 +161,7 @@ body {
   justify-content: center;
   width: 2rem;
   height: 2rem;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: 6px;
   background: var(--surface);
   color: var(--text-secondary);
@@ -297,7 +258,7 @@ body {
 
 .btn-primary {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .btn-primary:hover {
@@ -308,7 +269,7 @@ body {
 
 .btn-secondary {
   background: var(--secondary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .btn-secondary:hover {
@@ -402,7 +363,7 @@ body {
 
 .stepper-btn:hover {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
   border-color: var(--primary);
 }
 
@@ -442,7 +403,7 @@ body {
 .checkbox {
   width: 1.25rem;
   height: 1.25rem;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: 4px;
   cursor: pointer;
   position: relative;
@@ -460,7 +421,7 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: white;
+  color: var(--on-primary);
   font-size: 0.75rem;
   font-weight: bold;
 }
@@ -490,7 +451,7 @@ body {
 .radio {
   width: 1.125rem;
   height: 1.125rem;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: 50%;
   cursor: pointer;
   position: relative;
@@ -524,7 +485,7 @@ body {
   font-size: 1.1rem;
   padding-right: 3rem;
   background: var(--background);
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
 }
 
 .password-input.has-length-pill {
@@ -585,11 +546,18 @@ body {
   right: 1rem;
   padding: 1rem 1.5rem;
   border-radius: var(--radius);
-  color: white;
+  color: var(--on-status);
   font-weight: 500;
   box-shadow: var(--shadow-lg);
   z-index: 1000;
   animation: slideIn 0.3s ease;
+}
+
+/* The toast appears and disappears on its own, so it must be announced.
+   role="status" is polite: it will not interrupt what a screen reader is
+   already saying. Tracked as ROADMAP Epic 3. */
+@media (prefers-reduced-motion: reduce) {
+  .notification { animation: none; }
 }
 
 .notification.success {
@@ -623,7 +591,7 @@ body {
   display: inline-flex;
   align-items: center;
   padding: 0.4rem 0.85rem;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   border-radius: 20px;
   font-size: 0.875rem;
   font-weight: 500;
@@ -643,7 +611,7 @@ body {
 .sep-option.active {
   border-color: var(--primary);
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
 }
 
 .sr-only {
@@ -747,14 +715,7 @@ body {
     padding: 0 0.5rem;
   }
   
-  .title {
-    font-size: 2rem;
-  }
 
-  .header-icon {
-    width: 3.75rem;
-    height: 3.75rem;
-  }
   
   .tabs {
     flex-direction: column;
@@ -968,102 +929,6 @@ body {
 
 /* ── Header meta row (privacy notice + history control) ─── */
 
-.header-meta {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  margin-top: 1rem;
-  flex-wrap: wrap;
-}
-
-.privacy-notice {
-  flex: 1;
-  min-width: 0;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.header-docs-link {
-  flex-shrink: 0;
-  display: flex;
-  gap: 0.5rem;
-}
-
-.docs-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.45rem 0.9rem;
-  border-radius: 6px;
-  border: 1.5px solid rgba(255, 255, 255, 0.45);
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  font-size: 0.875rem;
-  font-weight: 500;
-  text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
-  white-space: nowrap;
-}
-
-.docs-link:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.7);
-}
-
-.history-max-control {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.4rem;
-  flex-shrink: 0;
-}
-
-.history-max-label {
-  font-size: 0.7rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: rgba(255, 255, 255, 0.7);
-}
-
-.history-max-chips {
-  display: flex;
-  gap: 0.3rem;
-}
-
-.history-max-chip {
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  border: 1.5px solid rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
-
-.history-max-chip:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.6);
-  color: white;
-}
-
-.history-max-chip.active {
-  background: white;
-  border-color: white;
-  color: var(--primary-dark);
-}
-
-@media (max-width: 600px) {
-  .header-meta { flex-direction: column; align-items: stretch; }
-  .history-max-control { flex-direction: row; align-items: center; justify-content: space-between; }
-}
-
 /* ── Word pills (per-word regeneration) ─────────────────── */
 
 .word-pills-row {
@@ -1115,7 +980,7 @@ body {
   gap: 0.35rem;
   padding: 0.35rem 0.6rem 0.35rem 0.75rem;
   border-radius: 999px;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-strong);
   background: var(--background);
   color: var(--text);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
@@ -1228,8 +1093,6 @@ body {
 
 /* ── Site footer ────────────────────────────────────────── */
 
-@media (max-width: 560px) {
-}
 /* Alliteration toggle */
 .alliteration-toggle {
   display: inline-flex;
@@ -1255,7 +1118,7 @@ body {
 
 .alliteration-toggle.active {
   background: var(--primary);
-  color: white;
+  color: var(--on-primary);
   border-color: var(--primary);
 }
 

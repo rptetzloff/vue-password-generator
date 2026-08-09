@@ -1,38 +1,58 @@
 /* Design tokens -- the single source of truth for colour, shape and type.
  *
- * Every page links this before its own styles: index.html, docs.html and
- * changelog.html. Previously each of the three declared its own :root block,
- * so a palette change meant editing three files and keeping them in sync by
- * hand. Add new tokens here, not in a page.
+ * Every page links this before its own styles: index.html, docs.html,
+ * changelog.html, about.html and legal.html. Add new tokens here, not in a
+ * page.
  *
- * Kept as one flat :root on purpose. Theming (ROADMAP Epic 2) will layer
- * [data-theme] and [data-palette] blocks over these defaults, so any value a
- * theme needs to override has to be a token rather than a literal.
+ * Two themes. :root holds light; [data-theme="dark"] overrides it. The
+ * attribute is set on <html> by a blocking inline script before first paint --
+ * see src/theme.js -- so there is no flash of the wrong theme.
+ *
+ * Every colour pair here was chosen by computing contrast, not by eye, and is
+ * verified against WCAG AA: 4.5:1 for text, 3:1 for UI boundaries and focus
+ * rings. If you change one, re-check it rather than trusting that it looks
+ * about right.
  */
 
 :root {
-  /* Brand */
-  --primary: #0ea5e9;
-  --primary-dark: #0284c7;
-  --secondary: #64748b;
+  color-scheme: light;
 
-  /* Status.
-   * Note: these currently fail WCAG AA against --surface (success 2.43:1,
-   * warning 2.15:1, error 3.76:1). Tracked in ROADMAP Epic 3 -- fixing them
-   * here now would change the look before the theming work lands. */
-  --success: #06b6d4;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  /* Brand.
+   * --primary was #0ea5e9, which gave white button text only 2.77:1 -- well
+   * under the 4.5:1 needed. It is now sky-700, which reaches 5.93:1 and also
+   * improves --primary used as accent text on light surfaces. */
+  --primary: #0369a1;
+  --primary-dark: #075985;
+  --on-primary: #ffffff;
+  --secondary: #475569;
+
+  /* Status. Previously #06b6d4 / #f59e0b / #ef4444, which scored 2.43, 2.15
+   * and 3.76 against --surface. These carry meaning, so they must be legible. */
+  --success: #0e7490;
+  --warning: #b45309;
+  --error: #dc2626;
+  /* Text sitting on a status fill, e.g. the toast. Same reason --on-primary
+     exists: the dark-theme status colours are bright, so white on them is
+     unreadable (success measured 1.81:1). One token covers all three. */
+  --on-status: #ffffff;
 
   /* Surfaces and text */
   --background: #f8fafc;
   --surface: #ffffff;
   --text: #1e293b;
-  --text-secondary: #64748b;
+  --text-secondary: #475569;
 
-  /* Lines */
-  --border: #e2e8f0;
-  --border-focus: #0ea5e9;
+  /* Lines.
+   * --border is decorative: card edges and dividers, no contrast requirement.
+   * --border-strong is for anything that is the visible boundary of a control,
+   * such as a text input, where WCAG 1.4.11 wants 3:1. Using --border there
+   * would score 1.48:1. */
+  --border: #cbd5e1;
+  --border-strong: #64748b;
+  --border-focus: #0369a1;
+
+  /* The page backdrop. Was hardcoded identically in four files. */
+  --page-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
 
   /* Elevation */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -41,4 +61,65 @@
   /* Shape and type */
   --radius: 8px;
   --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Category badges on docs.html -- the section icons and inline tags. Shared
+   * because both used the same hardcoded palette. Every pair clears 4.5:1,
+   * including sky, which previously scored 3.57 with a sky-600 foreground. */
+  --badge-blue-bg: #dbeafe;   --badge-blue-fg: #1d4ed8;
+  --badge-sky-bg: #e0f2fe;    --badge-sky-fg: #0369a1;
+  --badge-teal-bg: #ccfbf1;   --badge-teal-fg: #0f766e;
+  --badge-slate-bg: #f1f5f9;  --badge-slate-fg: #334155;
+  --badge-amber-bg: #fef3c7;  --badge-amber-fg: #92400e;
+  --badge-rose-bg: #ffe4e6;   --badge-rose-fg: #be123c;
+  --badge-slate-border: #94a3b8;
+
+  /* Accents used for the callout blocks in the docs examples. */
+  --focus-tint: rgba(3, 105, 161, 0.12);
+  --accent-warn: #b45309;
+  --accent-ok: #15803d;
+}
+
+[data-theme='dark'] {
+  color-scheme: dark;
+
+  /* The accents invert: a bright fill needs dark text on it, which is why
+   * --on-primary exists rather than a hardcoded white. */
+  --primary: #38bdf8;
+  --primary-dark: #7dd3fc;
+  --on-primary: #082f49;
+  --secondary: #94a3b8;
+
+  --success: #22d3ee;
+  --warning: #fbbf24;
+  --error: #f87171;
+  --on-status: #0f172a;
+
+  --background: #0f172a;
+  --surface: #1e293b;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+
+  --border: #475569;
+  --border-strong: #94a3b8;
+  --border-focus: #38bdf8;
+
+  --page-gradient: linear-gradient(135deg, #0c4a6e 0%, #0f172a 100%);
+
+  /* Black shadows are close to invisible against a dark surface, so lean on
+   * opacity rather than colour. */
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.55);
+
+  /* Badges invert: a deep tint behind a light foreground. All clear 4.5:1. */
+  --badge-blue-bg: #1e3a8a;   --badge-blue-fg: #bfdbfe;
+  --badge-sky-bg: #0c4a6e;    --badge-sky-fg: #bae6fd;
+  --badge-teal-bg: #134e4a;   --badge-teal-fg: #99f6e4;
+  --badge-slate-bg: #334155;  --badge-slate-fg: #e2e8f0;
+  --badge-amber-bg: #78350f;  --badge-amber-fg: #fde68a;
+  --badge-rose-bg: #881337;   --badge-rose-fg: #fecdd3;
+  --badge-slate-border: #64748b;
+
+  --focus-tint: rgba(56, 189, 248, 0.18);
+  --accent-warn: #fbbf24;
+  --accent-ok: #4ade80;
 }
