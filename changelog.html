@@ -7,8 +7,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Changelog — Random Password Generator</title>
     <link rel="stylesheet" href="/src/tokens.css" />
+    <link rel="stylesheet" href="/src/site-header.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
+      :root { --header-max: 900px; }
+
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
 
@@ -18,75 +21,6 @@
         min-height: 100vh;
         color: var(--text);
         line-height: 1.6;
-      }
-
-      /* ── Header ──────────────────────────────────────────── */
-
-      .site-header {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 1.5rem 0;
-        color: white;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-
-      .header-inner {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-
-      .header-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        flex-shrink: 0;
-        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-      }
-
-      .header-text h1 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        line-height: 1.2;
-      }
-
-      .header-text p {
-        font-size: 0.85rem;
-        opacity: 0.8;
-      }
-
-      .header-nav {
-        margin-left: auto;
-        display: flex;
-        gap: 0.5rem;
-        flex-shrink: 0;
-      }
-
-      .header-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        border: 1.5px solid rgba(255, 255, 255, 0.45);
-        background: rgba(255, 255, 255, 0.12);
-        color: white;
-        font-size: 0.875rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: background 0.15s, border-color 0.15s;
-        white-space: nowrap;
-      }
-
-      .header-link:hover {
-        background: rgba(255, 255, 255, 0.22);
-        border-color: rgba(255, 255, 255, 0.7);
       }
 
       /* ── Page layout ──────────────────────────────────────── */
@@ -294,8 +228,6 @@
         .release-meta::after { display: none; }
         .release-date { margin-top: 0; }
         .release-card { margin-bottom: 1.5rem; }
-        .header-nav { gap: 0.35rem; }
-        .header-link { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
       }
 
       /* ── Footer ─────────────────────────────────────────── */
