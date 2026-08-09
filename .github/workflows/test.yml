@@ -1,0 +1,28 @@
+name: Tests
+
+# The pre-commit hook is local-only and can be bypassed with --no-verify, so
+# this workflow is the authoritative gate.
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # 20 is the floor: the suite needs globalThis.crypto, which landed in
+        # Node 19. 24 is what development currently runs on.
+        node: ['20', '24']
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      # No install step on purpose -- the project has zero dependencies and no
+      # build. If that ever stops being true, this workflow should start failing
+      # loudly rather than quietly growing an npm ci.
+      - name: Run tests
+        run: node --test

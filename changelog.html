@@ -6,22 +6,15 @@
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Changelog — Random Password Generator</title>
+    <link rel="stylesheet" href="/src/tokens.css" />
+    <link rel="stylesheet" href="/src/site-header.css" />
+    <link rel="stylesheet" href="/src/site-footer.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
+      :root { --header-max: 900px; --footer-max: 900px; --footer-pad: 1.5rem; }
+
       * { margin: 0; padding: 0; box-sizing: border-box; }
 
-      :root {
-        --primary: #0ea5e9;
-        --primary-dark: #0284c7;
-        --text: #1e293b;
-        --text-secondary: #64748b;
-        --border: #e2e8f0;
-        --background: #f8fafc;
-        --surface: #ffffff;
-        --radius: 8px;
-        --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-        --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-      }
 
       body {
         font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -29,75 +22,6 @@
         min-height: 100vh;
         color: var(--text);
         line-height: 1.6;
-      }
-
-      /* ── Header ──────────────────────────────────────────── */
-
-      .site-header {
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        padding: 1.5rem 0;
-        color: white;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-      }
-
-      .header-inner {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-      }
-
-      .header-icon {
-        width: 44px;
-        height: 44px;
-        border-radius: 10px;
-        flex-shrink: 0;
-        filter: drop-shadow(0 2px 6px rgba(0,0,0,0.2));
-      }
-
-      .header-text h1 {
-        font-size: 1.25rem;
-        font-weight: 700;
-        line-height: 1.2;
-      }
-
-      .header-text p {
-        font-size: 0.85rem;
-        opacity: 0.8;
-      }
-
-      .header-nav {
-        margin-left: auto;
-        display: flex;
-        gap: 0.5rem;
-        flex-shrink: 0;
-      }
-
-      .header-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        padding: 0.5rem 1rem;
-        border-radius: 6px;
-        border: 1.5px solid rgba(255, 255, 255, 0.45);
-        background: rgba(255, 255, 255, 0.12);
-        color: white;
-        font-size: 0.875rem;
-        font-weight: 500;
-        text-decoration: none;
-        transition: background 0.15s, border-color 0.15s;
-        white-space: nowrap;
-      }
-
-      .header-link:hover {
-        background: rgba(255, 255, 255, 0.22);
-        border-color: rgba(255, 255, 255, 0.7);
       }
 
       /* ── Page layout ──────────────────────────────────────── */
@@ -305,66 +229,8 @@
         .release-meta::after { display: none; }
         .release-date { margin-top: 0; }
         .release-card { margin-bottom: 1.5rem; }
-        .header-nav { gap: 0.35rem; }
-        .header-link { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
       }
 
-      /* ── Footer ─────────────────────────────────────────── */
-
-      .site-footer {
-        background: rgba(0, 0, 0, 0.15);
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        padding: 1.25rem 0;
-        margin-top: 0;
-      }
-
-      .footer-inner {
-        max-width: 900px;
-        margin: 0 auto;
-        padding: 0 1.5rem;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        flex-wrap: wrap;
-      }
-
-      .footer-credit {
-        font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.7);
-      }
-
-      .footer-links {
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-      }
-
-      .footer-link {
-        font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.7);
-        text-decoration: none;
-        transition: color 0.15s;
-      }
-
-      .footer-link:hover { color: white; }
-
-      .footer-link-icon {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-      }
-
-      .github-icon {
-        width: 16px;
-        height: 16px;
-        fill: currentColor;
-        flex-shrink: 0;
-      }
-
-      @media (max-width: 560px) {
-        .footer-inner { flex-direction: column; align-items: flex-start; }
-      }
     </style>
   </head>
   <body>
@@ -389,6 +255,55 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.8.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.8.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">About &amp; Legal pages, and a shared design foundation</div>
+                <div class="release-summary">Added dedicated About and Legal pages and moved the author credit off the footer into About. Behind the scenes, the palette, header and footer are no longer copy-pasted between pages, and sizes that should follow your text size now do.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>About page</strong> — what the tool is, why word-based passwords work, how the randomness is generated, credits, and a pointer to the companion site Anagrimoire.</li>
+                    <li><strong>Legal page</strong> — a plain-English privacy statement, the MIT licence, a no-warranty disclaimer, and attributions for Vue 3.4.0, Material Design Icons 7.4.47 and the EFF wordlist.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>One source of truth for the palette</strong> — the colour, shadow and type tokens were declared three separate times, in <code>style.css</code>, <code>docs.html</code> and <code>changelog.html</code>. They now live once in <code>tokens.css</code>, which is what makes light/dark and colour themes practical to add later.</li>
+                    <li><strong>Shared header and footer</strong> — both were duplicated per page and had quietly drifted: the header link style had two different class names with identical rules, and only the changelog had small-screen sizing, so the docs header never shrank on mobile. Both are now single stylesheets, with per-page width as a variable.</li>
+                    <li><strong>Sizes follow text size</strong> — 36 hard-coded pixel values that should scale with type, including two font sizes that could never scale at all, are now relative units. Physical values such as hairline borders and shadows deliberately stay in pixels. Nothing changes at the default text size; the difference appears when you increase it.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Generator tabs scrolled sideways at middle widths</strong> — the seven tabs need about 920px to sit on one row, but they only stacked vertically below 768px. In the roughly 150px gap between, the strip scrolled horizontally and pushed tabs out of sight. They now wrap onto a second row, so every tab stays visible at every width.</li>
+                    <li><strong>Whole page scrolled sideways on phones</strong> — the site header could not shrink, since the icon and navigation were both fixed-size and the links never wrapped. That forced horizontal scroll on the docs and changelog pages at narrow widths. The header now wraps its navigation onto its own line.</li>
+                    <li><strong>Documentation tables were unreachable on narrow screens</strong> — the docs layout used a grid track that could not shrink below its content, and the wide value tables were then clipped by the card around them, putting columns out of reach. The tables now scroll within their own section rather than clipping or dragging the page sideways.</li>
+                    <li><strong>GitHub icon rendered at zero size on the new pages</strong> — its dimensions were defined separately on each page instead of alongside the footer it belongs to, so it was invisible anywhere that copy was missing. It now ships with the shared footer.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Footer credit line</strong> — “Made by Raymond Tetzloff with assistance from Bolt · Hosted on Render” has moved to the About page. The footer is now a single centred row of links: GitHub, App, Docs, Changelog, About and Legal.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.7.2 -->
         <div class="release">
@@ -801,7 +716,6 @@
 
     <footer class="site-footer">
       <div class="footer-inner">
-        <span class="footer-credit">Made by <a href="https://github.com/rptetzloff" class="footer-link" target="_blank" rel="noopener">Raymond Tetzloff</a> with assistance from <a href="https://bolt.new" class="footer-link" target="_blank" rel="noopener">Bolt</a> &middot; Hosted on <a href="https://render.com" class="footer-link" target="_blank" rel="noopener">Render</a></span>
         <div class="footer-links">
           <a href="https://github.com/rptetzloff/vue-password-generator" class="footer-link footer-link-icon" target="_blank" rel="noopener">
             <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
@@ -809,6 +723,8 @@
           </a>
           <a href="/" class="footer-link">App</a>
           <a href="/docs.html" class="footer-link">Docs</a>
+          <a href="/about.html" class="footer-link">About</a>
+          <a href="/legal.html" class="footer-link">Legal</a>
         </div>
       </div>
     </footer>

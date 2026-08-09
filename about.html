@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>About — Random Password Generator</title>
+    <link rel="stylesheet" href="/src/tokens.css" />
+    <link rel="stylesheet" href="/src/site-header.css" />
+    <link rel="stylesheet" href="/src/site-footer.css" />
+    <link rel="stylesheet" href="/src/prose-page.css" />
+    <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
+    <style>
+      :root { --header-max: 760px; --footer-max: 760px; --footer-pad: 1.5rem; --page-max: 760px; }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="header-inner">
+        <img src="/src/assets/password_generator_icon.svg" class="header-icon" alt="" aria-hidden="true" />
+        <div class="header-text">
+          <h1>Random Password Generator</h1>
+          <p>About</p>
+        </div>
+        <nav class="header-nav">
+          <a href="/docs.html" class="header-link">
+            <span class="mdi mdi-book-open-outline"></span> Docs
+          </a>
+          <a href="/" class="header-link">
+            <span class="mdi mdi-arrow-left"></span> Back to App
+          </a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="page">
+      <article class="prose-card">
+        <h2>What this is</h2>
+        <p>
+          A password generator that runs entirely in your browser. It offers seven
+          ways to build a password — Simple, Advanced, Words, Passphrase, Wireless,
+          Mad&nbsp;Lib and Numbers — from single random characters through to
+          memorable word-based passphrases.
+        </p>
+        <p>
+          Nothing you generate is sent anywhere. There is no account, no server to
+          talk to, and no build step: the site is plain HTML, CSS and ES modules,
+          with its dependencies vendored into the repository. See
+          <a href="/legal.html">Legal</a> for the full privacy statement.
+        </p>
+
+        <h2>Why word-based passwords</h2>
+        <p>
+          A passphrase drawn from a large word list can be far easier to remember
+          than a random string while remaining hard to guess — the strength comes
+          from the size of the pool a word is drawn from, not from how complicated
+          the result looks. The Words mode uses the
+          <a href="https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases" target="_blank" rel="noopener">EFF long wordlist</a>
+          of 7,776 words, the same list designed for physical dice.
+        </p>
+
+        <h2>Randomness</h2>
+        <p>
+          Every random value comes from the browser's
+          <code>crypto.getRandomValues()</code>, drawn with rejection sampling so
+          that each character or word in a pool is equally likely. Earlier releases
+          used <code>Math.random()</code>, which is not cryptographically secure;
+          that changed in v2.7.2. If you generated passwords before then, they are
+          worth regenerating.
+        </p>
+
+        <h2>Credits</h2>
+        <p>
+          Made by
+          <a href="https://github.com/rptetzloff" target="_blank" rel="noopener">Raymond Tetzloff</a>,
+          with assistance from <a href="https://bolt.new" target="_blank" rel="noopener">Bolt</a>
+          and <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a>,
+          and hosted on <a href="https://render.com" target="_blank" rel="noopener">Render</a>.
+        </p>
+        <p>
+          The source is on
+          <a href="https://github.com/rptetzloff/vue-password-generator" target="_blank" rel="noopener">GitHub</a>.
+          Third-party components and their licences are listed on the
+          <a href="/legal.html">Legal</a> page.
+        </p>
+
+        <h2>Elsewhere</h2>
+        <p>
+          <a href="https://anagrimoire.com" target="_blank" rel="noopener">Anagrimoire</a>
+          is a companion set of word-game solvers and daily puzzles by the same
+          author. It shares this site's approach: it works without an account, and
+          nothing you type into a solver leaves your device.
+        </p>
+      </article>
+    </main>
+
+    <footer class="site-footer">
+      <div class="footer-inner">
+        <div class="footer-links">
+          <a href="https://github.com/rptetzloff/vue-password-generator" class="footer-link footer-link-icon" target="_blank" rel="noopener">
+            <svg class="github-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z"/></svg>
+            GitHub
+          </a>
+          <a href="/" class="footer-link">App</a>
+          <a href="/docs.html" class="footer-link">Docs</a>
+          <a href="/changelog.html" class="footer-link">Changelog</a>
+          <a href="/legal.html" class="footer-link">Legal</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

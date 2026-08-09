@@ -1,0 +1,93 @@
+/* Shared site header for the static pages (docs.html, changelog.html).
+ *
+ * Both pages previously carried their own copy of these rules. They had
+ * drifted: the link style was called .header-back on docs and .header-link on
+ * changelog despite having byte-identical declarations, and only changelog had
+ * the small-screen overrides -- so the docs header did not shrink on mobile.
+ * Unified here on the .header-nav / .header-link naming.
+ *
+ * The app (index.html) deliberately does not use this. Its header is a
+ * different component -- a full content header carrying the privacy notice and
+ * history controls -- and converging the two is a visual redesign that belongs
+ * with ROADMAP Epic 2, not this refactor.
+ *
+ * Pages set --header-max to line the header up with their own content column.
+ */
+
+.site-header {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 1.5rem 0;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-inner {
+  max-width: var(--header-max, 1100px);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  /* Wrap the nav onto its own line rather than overflowing. The icon and nav
+     are both flex-shrink: 0 and the links are nowrap, so without this the row
+     could only grow -- which pushed the whole page into horizontal scroll on
+     narrow screens. */
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 10px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+}
+
+.header-text h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.header-text p {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+.header-nav {
+  margin-left: auto;
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1.5px solid rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.header-link:hover {
+  background: rgba(255, 255, 255, 0.22);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+/* Was changelog-only; now applies to both pages. */
+@media (max-width: 640px) {
+  .header-nav { gap: 0.35rem; }
+  .header-link { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
+}
