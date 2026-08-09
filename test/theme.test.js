@@ -68,7 +68,7 @@ test('every page pre-paints the same palette list as the manifest', () => {
   assert.equal(PALETTE_KEY, 'global.palette')
   const expected = PALETTE_VALUES.filter((v) => v !== DEFAULT_PALETTE)
 
-  for (const page of ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html']) {
+  for (const page of ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html', 'roadmap.html']) {
     const html = fs.readFileSync(new URL(`../${page}`, import.meta.url), 'utf8')
     const m = /\[([^\]]*)\]\s*\.indexOf\(pal\)/.exec(html)
     assert.ok(m, `${page} has no palette list in its pre-paint script`)

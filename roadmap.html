@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Roadmap — Random Password Generator</title>
+    <script>
+      /* Set the theme before first paint so dark-mode users never see a white
+         flash. Deliberately inline and non-module: a module script is deferred
+         and would run after the page has already rendered. src/theme.js takes
+         over for changes made at runtime. */
+      try {
+        var c = JSON.parse(localStorage.getItem('global.theme'));
+        if (c !== 'light' && c !== 'dark') c = 'system';
+        var dark = c === 'dark' || (c === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var fs = JSON.parse(localStorage.getItem('global.fontScale'));
+        if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
+        var pal = JSON.parse(localStorage.getItem('global.palette'));
+        if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/src/tokens.css" />
+    <link rel="stylesheet" href="/src/site-header.css" />
+    <link rel="stylesheet" href="/src/site-footer.css" />
+    <link rel="stylesheet" href="/src/settings-panel.css" />
+    <link rel="stylesheet" href="/src/prose-page.css" />
+    <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
+    <style>
+      /* Wider than About and Legal: the roadmap has tables. */
+      :root { --footer-pad: 1.5rem; --page-max: 900px; }
+
+      .roadmap-intro {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        border-left: 3px solid var(--border);
+        padding-left: 0.9rem;
+        margin-bottom: 1.75rem;
+      }
+
+      /* Task list items carry their own marker, so drop the bullet. */
+      .prose-card .task-list { list-style: none; padding-left: 0; }
+      .prose-card .task-list li {
+        display: flex;
+        gap: 0.6rem;
+        align-items: baseline;
+      }
+      .task-box {
+        flex-shrink: 0;
+        font-family: monospace;
+        font-weight: 700;
+        line-height: 1.4;
+      }
+      .task-todo { color: var(--text-secondary); }
+      .task-done { color: var(--accent-ok); }
+      /* Done items recede; the point of the page is what is left. */
+      .task-list li.is-done { color: var(--text-secondary); }
+
+      /* Tables can be wider than the column on a phone. */
+      .table-scroll { overflow-x: auto; }
+      .prose-card table { border-collapse: collapse; width: 100%; font-size: 0.875rem; }
+      .prose-card th, .prose-card td {
+        border: 1px solid var(--border);
+        padding: 0.4rem 0.6rem;
+        text-align: left;
+      }
+      .prose-card th { background: var(--background); font-weight: 700; }
+
+      .prose-card pre {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.8rem;
+        overflow-x: auto;
+        font-size: 0.82rem;
+      }
+
+      .roadmap-status { font-size: 0.875rem; color: var(--text-secondary); }
+
+      /* Contents. Built from the rendered headings, so it is never out of step
+         with the file it describes. */
+      .toc {
+        background: var(--background);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: 1rem 1.25rem;
+        margin-bottom: 2rem;
+      }
+      .toc-heading {
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-secondary);
+        margin: 0 0 0.6rem;
+      }
+      .toc-list { list-style: none; margin: 0; padding: 0; }
+      .toc-list a { text-decoration: none; }
+      .toc-list a:hover { text-decoration: underline; }
+      .toc-section {
+        display: flex;
+        align-items: baseline;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        font-weight: 600;
+        margin-top: 0.5rem;
+      }
+      .toc-section:first-child { margin-top: 0; }
+      .toc-count {
+        font-size: 0.72rem;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+        color: var(--text-secondary);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 0.05rem 0.4rem;
+      }
+      .toc-sub {
+        list-style: none;
+        margin: 0.25rem 0 0;
+        padding: 0 0 0 1rem;
+        width: 100%;
+        font-weight: 400;
+        font-size: 0.875rem;
+      }
+      .toc-sub li { margin: 0.15rem 0; }
+    </style>
+  </head>
+  <body>
+    <div data-site-header></div>
+
+    <main class="page">
+      <article class="prose-card">
+        <p class="roadmap-intro">
+          This is <a href="https://github.com/rptetzloff/vue-password-generator/blob/master/ROADMAP.md">ROADMAP.md</a>
+          from the repository, rendered as you see it there. It is planning notes rather than
+          promises &mdash; items are added, reordered and abandoned. Nothing here is a commitment
+          to ship, and the measurements in it were true when written.
+        </p>
+        <nav id="toc" class="toc" aria-labelledby="toc-heading" hidden>
+          <h2 id="toc-heading" class="toc-heading">Contents</h2>
+          <ol class="toc-list"></ol>
+        </nav>
+        <div id="roadmap" class="roadmap-status">Loading the roadmap&hellip;</div>
+      </article>
+    </main>
+
+    <div data-site-footer></div>
+
+    <script type="module">
+      import { initTheme } from '/src/theme.js'
+      import { mountSiteHeader } from '/src/site-header.js'
+      import { mountSiteFooter } from '/src/site-footer.js'
+      import { renderMarkdown } from '/src/markdown.js'
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'))
+      mountSiteFooter(document.querySelector('[data-site-footer]'))
+
+      /* Contents, built from the rendered headings rather than maintained by
+         hand -- the renderer already gives every heading an id, so a new epic
+         appears here on its own.
+
+         h3 is a top-level section (the file's `##`) and h4 is a subsection.
+         Each epic also shows how many of its task items are ticked, which is
+         the one number a reader of a roadmap actually wants. */
+      function buildToc (root) {
+        const toc = document.getElementById('toc')
+        const list = toc.querySelector('.toc-list')
+        const heads = [...root.querySelectorAll('h3, h4')]
+        if (heads.length < 2) return
+
+        // Tasks belonging to a heading are those before the next heading of
+        // the same or higher rank.
+        const progressFor = (start) => {
+          let done = 0
+          let total = 0
+          for (let el = start.nextElementSibling; el; el = el.nextElementSibling) {
+            if (/^H[123]$/.test(el.tagName)) break
+            if (el.tagName === 'H4' && start.tagName === 'H4') break
+            const items = el.matches?.('.task-list') ? [el] : [...(el.querySelectorAll?.('.task-list') || [])]
+            for (const ul of items) {
+              total += ul.querySelectorAll(':scope > li').length
+              done += ul.querySelectorAll(':scope > li.is-done').length
+            }
+          }
+          return { done, total }
+        }
+
+        let currentSub = null
+        for (const h of heads) {
+          const li = document.createElement('li')
+          const a = document.createElement('a')
+          a.href = `#${h.id}`
+          a.textContent = h.textContent.trim()
+          li.appendChild(a)
+
+          if (h.tagName === 'H3') {
+            const { done, total } = progressFor(h)
+            if (total) {
+              const count = document.createElement('span')
+              count.className = 'toc-count'
+              count.textContent = `${done}/${total}`
+              // The ratio is decoration; the words carry it for a screen reader.
+              a.setAttribute('aria-label', `${a.textContent} — ${done} of ${total} items done`)
+              li.appendChild(count)
+            }
+            li.className = 'toc-section'
+            list.appendChild(li)
+            currentSub = null
+          } else {
+            if (!currentSub) {
+              currentSub = document.createElement('ul')
+              currentSub.className = 'toc-sub'
+              ;(list.lastElementChild || list).appendChild(currentSub)
+            }
+            currentSub.appendChild(li)
+          }
+        }
+        toc.hidden = false
+      }
+
+      /* The roadmap is fetched and rendered rather than copied into this file.
+         A hand-copied version drifts from the source within two releases, and
+         the file is already in the repository being served -- so this costs one
+         request and can never be out of date. */
+      const target = document.getElementById('roadmap')
+      try {
+        const res = await fetch('/ROADMAP.md')
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        target.className = ''
+        target.innerHTML = renderMarkdown(await res.text())
+        buildToc(target)
+      } catch (err) {
+        target.innerHTML =
+          'The roadmap could not be loaded. It is always available on ' +
+          '<a href="https://github.com/rptetzloff/vue-password-generator/blob/master/ROADMAP.md">GitHub</a>.'
+        console.error('roadmap:', err)
+      }
+    </script>
+  </body>
+</html>
