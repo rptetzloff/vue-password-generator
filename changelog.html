@@ -123,7 +123,7 @@
         letter-spacing: 0.06em;
       }
 
-      .badge-major  { background: #0284c7; color: white; }
+      .badge-major  { background: var(--primary); color: var(--on-primary); }
       .badge-minor  { background: rgba(255,255,255,0.2); color: white; }
       .badge-patch  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
 
@@ -183,17 +183,17 @@
         flex-shrink: 0;
       }
 
-      .dot-added    { background: #16a34a; }
-      .dot-improved { background: #0ea5e9; }
-      .dot-fixed    { background: #f59e0b; }
-      .dot-removed  { background: #dc2626; }
-      .dot-security { background: #7c3aed; }
+      .dot-added    { background: var(--group-added); }
+      .dot-improved { background: var(--group-improved); }
+      .dot-fixed    { background: var(--group-fixed); }
+      .dot-removed  { background: var(--group-removed); }
+      .dot-security { background: var(--group-security); }
 
-      .label-added    { color: #16a34a; }
-      .label-improved { color: #0284c7; }
-      .label-fixed    { color: #d97706; }
-      .label-removed  { color: #dc2626; }
-      .label-security { color: #7c3aed; }
+      .label-added    { color: var(--group-added); }
+      .label-improved { color: var(--group-improved); }
+      .label-fixed    { color: var(--group-fixed); }
+      .label-removed  { color: var(--group-removed); }
+      .label-security { color: var(--group-security); }
 
       .change-list {
         list-style: none;
@@ -254,6 +254,47 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.11.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.11.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Readable word slots, and colours measured for colour blindness</div>
+                <div class="release-summary">The part-of-speech boxes in Passphrase and Wireless were close to invisible in dark mode. Fixing them turned up the same underlying cause behind three earlier colour bugs, so that is now caught by tests. The colour-blind palette is no longer a setting — it is simply the colours the site uses.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Word slots were unreadable in dark mode</strong> — the adjective, adverb, noun and verb boxes used pale fills with no text colour set, so light text landed on a light box. Measured at 1.01:1 against the 4.5:1 standard, which is very close to invisible. They now use the same colour pairs as the rest of the site and measure 7.3:1 or better.</li>
+                    <li><strong>The category dropdown inside a word slot</strong> — a translucent white background with themed text made both the control and its option list unreadable in dark mode. Now 11.9:1.</li>
+                    <li><strong>Faint arrows and remove buttons</strong> — the ← → and ✕ controls in each slot were drawn in the browser's own button colour rather than the theme's, and their disabled state stacked two separate fades to roughly 7% opacity.</li>
+                    <li><strong>A warning badge with black text on a themed fill</strong> — the same class of mistake as the others, found by the new checks rather than by eye.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>Colour-blind colours are now the default</strong> — these were an opt-in "Colours" setting. With normal vision the difference is small, which is what made the toggle hard to justify; under simulation it is not. The old dark-theme colours had two change groups that someone with protanopia sees as the same colour, and the more legible set should not be the one you have to go looking for. The setting is gone; the colours stay.</li>
+                    <li><strong>Colour blindness is now measured, not guessed</strong> — the changelog colours are checked by simulating protanopia, deuteranopia and tritanopia and measuring how far apart the closest pair is. This runs on every build. Colour was never the only signal here — each group is labelled in text — but it should still be useful.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Checks that would have caught all of this sooner</strong> — every one of these bugs was a colour written directly into a stylesheet, where the contrast tests could not see it, because those read the design tokens. Colours written that way are now rejected outright, so the tests see everything.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.10.0 -->
         <div class="release">

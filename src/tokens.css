@@ -73,10 +73,51 @@
   --badge-rose-bg: #ffe4e6;   --badge-rose-fg: #be123c;
   --badge-slate-border: #94a3b8;
 
+  /* Subtle overlays for small controls that sit on top of another surface --
+   * the slot arrows, remove buttons and row hovers. These were hardcoded as
+   * translucent black, which assumes a light backdrop: on a dark pill they
+   * vanished. They flip with the theme instead. */
+  --overlay-soft: rgba(0, 0, 0, 0.06);
+  --overlay-strong: rgba(0, 0, 0, 0.14);
+  --surface-hover: rgba(0, 0, 0, 0.04);
+
   /* Accents used for the callout blocks in the docs examples. */
   --focus-tint: rgba(3, 105, 161, 0.12);
   --accent-warn: #b45309;
   --accent-ok: #15803d;
+
+  /* Changelog change-group colours.
+   *
+   * These were hardcoded in changelog.html, so they never followed the theme
+   * and the contrast tests never saw them: seven of the ten theme/group
+   * combinations failed AA, having been chosen for a white card before dark
+   * mode existed.
+   *
+   * These values were picked by simulating protanopia, deuteranopia and
+   * tritanopia and maximising the *weakest* pair, subject to every colour
+   * still clearing AA against --surface. Worst-pair CIEDE2000, measured by
+   * test/colour-vision.test.js:
+   *
+   *              normal  protan  deutan  tritan
+   *   old brand    16.2     8.6     5.8     8.2   (light)
+   *   these        24.1     7.8     8.5    13.7
+   *   old brand    28.0     1.1     6.4     8.5   (dark)
+   *   these        22.4     7.3    11.1    10.8
+   *
+   * The dark protan figure is why this matters. 1.1 is below the threshold of
+   * noticing any difference at all: two change groups that a protanope saw as
+   * one colour. It looked fine, because it looked fine to us.
+   *
+   * This was briefly an opt-in palette behind a Colours setting. It is the
+   * default now -- with normal vision the difference is small enough that the
+   * toggle was not earning its complexity, and the more separable set should
+   * not be the one you have to go looking for. Meaning never rests on colour
+   * either way: every group carries its name as text. */
+  --group-added: #134e4a;
+  --group-improved: #0369a1;
+  --group-fixed: #713f12;
+  --group-removed: #be123c;
+  --group-security: #7c3aed;
 }
 
 /* One focus ring for the whole site.
@@ -146,7 +187,18 @@
   --badge-rose-bg: #881337;   --badge-rose-fg: #fecdd3;
   --badge-slate-border: #64748b;
 
+  --overlay-soft: rgba(255, 255, 255, 0.10);
+  --overlay-strong: rgba(255, 255, 255, 0.20);
+  --surface-hover: rgba(255, 255, 255, 0.06);
+
   --focus-tint: rgba(56, 189, 248, 0.18);
   --accent-warn: #fbbf24;
   --accent-ok: #4ade80;
+
+  /* Same search as the light set, run against the dark surface. */
+  --group-added: #4ade80;
+  --group-improved: #93c5fd;
+  --group-fixed: #fde047;
+  --group-removed: #f97316;
+  --group-security: #e9d5ff;
 }

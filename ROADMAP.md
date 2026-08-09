@@ -39,11 +39,26 @@ same way and you only have to reason about one model:
 <html data-theme="dark" data-palette="default" style="color-scheme: dark; font-size: 100%">
 ```
 
-- [ ] **`data-theme`** — `light` / `dark` / `system`, persisted to `localStorage` alongside the existing settings, with `prefers-color-scheme` as the default. There is currently **no theming of any kind** in the codebase — no `prefers-color-scheme`, no `data-theme`, no dark styles.
-- [ ] **`data-palette`** — the color-variant axis, kept independent of light/dark so every palette works in both. Ship 3–4 to start.
-- [ ] **`color-scheme` on the root** so native form controls, scrollbars, and the range sliders follow the theme. Easy to miss; looks broken without it.
+- [x] **`data-theme`** — `light` / `dark` / `system`, persisted to `localStorage`, applied by a blocking inline script before first paint so there is no flash of the wrong theme.
+- [x] **`color-scheme` on the root** so native form controls, scrollbars, and the range sliders follow the theme. Easy to miss; looks broken without it.
+- [x] **Theme switcher UI** — a settings gear in the shared header, opening a small panel available on every page.
 - [ ] **General aesthetic pass** — the "fix some aesthetics" item. Worth doing *after* the token extraction so changes land in one place. Candidates: the tab row, output field, and slider styling.
-- [ ] **Theme switcher UI** — where does it live? The app has no settings surface today; every control is inline in the generator panel. May want a small header control or a settings sheet.
+
+### 2a. Colour themes — the fun part
+
+A `data-palette` axis briefly existed with exactly one option, `cvd`, and was
+removed: with normal vision it barely differed from the default, so it was a
+setting that asked a question most people could not see the answer to. Those
+colours are now simply the default (see Epic 3).
+
+The version worth building is the one that was actually wanted — pick a colour
+you like:
+
+- [ ] **Ship a set of accent themes** — red / blue / green / purple and so on, as a `data-palette` axis independent of light/dark, so every theme works in both. This is a preference feature, not an accessibility feature; treat it as such.
+- [ ] **Include pre-built colour-blind-friendly themes** in the same list, rather than a separate mechanism. One picker, some entries tuned for protanopia/deuteranopia/tritanopia.
+- [ ] **Label which themes suit which kind of colour vision.** This is the interesting bit and it should be computed, not asserted: `test/helpers/color.js` already simulates all three deficiencies and measures CIEDE2000, so a theme's suitability can be *measured* and the label generated from the measurement. A theme whose weakest pair holds up under deuteranopia can say so honestly.
+- [ ] **Gate new themes on the existing floor.** Every palette has to clear WCAG AA on contrast *and* the CIEDE2000 separation floor before it ships. The tests already do this for the default set; parameterise them over the palette list.
+- [ ] **Watch the combinatorics.** Palettes × light/dark × four vision types is a lot of assertions. Better to iterate over a palette manifest than to hand-write each case.
 
 ---
 
@@ -67,7 +82,7 @@ fixing contrast afterward.** Measured ratios against `--surface` (`#ffffff`):
 - [ ] **Announce the notification toast.** `showNotification` (`src/main.js:221`) flips a reactive flag and auto-dismisses after 3s with no `role="status"` / `aria-live`. Screen reader users get no feedback that a password was copied or that validation failed.
 - [ ] **Audit ARIA coverage.** Current state: **63** `<label>` elements (genuinely good), but only **2** `aria-hidden`, **1** `alt`, and **zero** `role=` or `aria-label`. The icon-only buttons (copy, regenerate-word, history) need accessible names.
 - [ ] **Font size / zoom** — anagrimoire sets `font-size` as a percentage on the root; the same control here gives text scaling for free *once units are rem* (Epic 1). Also verify 200% browser zoom and 320px reflow (1.4.10).
-- [ ] **Color-deficiency modes** — deuteranopia/protanopia/tritanopia-safe palettes. Fits the `data-palette` axis from Epic 2 rather than being a separate mechanism.
+- [x] **Colour-deficiency work** — done, though not as originally written. WCAG does not require colour-blind palettes; it requires (1.4.1) that colour never be the *only* way information is conveyed, which is satisfied because every change group is labelled in text. Making the colours useful rather than merely non-essential is a quality goal, and it is met by measurement: `test/colour-vision.test.js` simulates protanopia, deuteranopia and tritanopia and holds the closest pair above a CIEDE2000 floor. The separation-tuned colours are the default rather than an opt-in palette. Selectable themes moved to Epic 2a, where they belong — that is a preference feature.
 - [ ] **Focus visibility** — verify every control has a visible focus ring meeting 3:1 against its background (2.4.11).
 - [ ] **`prefers-reduced-motion`** — check the toast and any transitions.
 - [ ] **Keyboard traversal** — tab through all seven generators; confirm the tab row exposes arrow-key navigation or is at least fully reachable.

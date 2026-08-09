@@ -71,9 +71,24 @@ remembered in `localStorage`.
 - Status messages such as "password copied" are announced to screen readers.
 - The current page is marked with `aria-current` and distinguished by weight and border, not colour alone.
 - Animations respect `prefers-reduced-motion`.
+- Colour is never the only signal. The changelog's change groups, for example, each print their name as text.
 
-Colour-vision-deficiency palettes are not implemented yet — see
-[ROADMAP.md](ROADMAP.md).
+### Colour vision
+
+The changelog's change-group colours are chosen by simulating protanopia,
+deuteranopia and tritanopia and maximising the *weakest* pair, measured as
+CIEDE2000 in CIE Lab. `test/colour-vision.test.js` re-measures this on every
+run, and pins the CIEDE2000 implementation itself against the reference pairs
+published with the formula.
+
+This started as an opt-in "Colour-blind" palette and is now simply the default.
+With normal vision the difference from the old brand set is small, which is
+what made a toggle hard to justify; under simulation it is not. The old dark
+set had two groups a protanope sees at CIEDE2000 1.1 — below the threshold of
+noticing any difference at all — against 7.3 now.
+
+A floor of 7.0 is not a comfortable margin, and no user-selectable themes
+exist yet. Both are open work; see [ROADMAP.md](ROADMAP.md).
 
 ---
 
@@ -140,8 +155,15 @@ Runs on Node's built-in test runner with **no dependencies** — Node 20+ is the
 floor, since the suite uses `globalThis.crypto`. Coverage is the pure logic that
 can be tested without a browser: the CSPRNG (range, uniformity, and that
 rejection sampling actually discards the biased tail), the word and character
-transforms, theme resolution, nav path matching, and WCAG contrast read straight
-out of `src/tokens.css`.
+transforms, theme resolution, nav path matching, and both WCAG contrast and
+colour-vision separation read straight out of `src/tokens.css`.
+
+Two of those are lints rather than assertions about values, and both exist
+because the same bug shipped repeatedly: a colour hardcoded in a stylesheet is
+invisible to every contrast test, because those read the tokens. So `style.css`
+is required to carry no literal colours at all, and no rule may put a literal
+`color` on a themed fill. `site-header.css` and `site-footer.css` are exempt —
+they sit on the page gradient, which is dark in both themes.
 
 To run the suite automatically before each commit, once per clone:
 
@@ -190,10 +212,14 @@ vue-password-generator/
 │   ├── prose-page.css    # Layout for the About and Legal pages
 │   └── style.css         # App-specific component styles
 ├── test/                 # node --test, zero dependencies
+│   ├── helpers/
+│   │   └── color.js      # CIEDE2000 + colour-vision simulation (test tooling)
 │   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling
 │   ├── transforms.test.js
 │   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
+│   ├── colour-vision.test.js  # Palette separation under protan/deutan/tritan
 │   ├── theme.test.js
+│   ├── site-header.test.js
 │   └── site-nav.test.js
 ├── vendor/
 │   ├── vue.esm-browser.prod.js   # Vue 3.4.0 runtime
