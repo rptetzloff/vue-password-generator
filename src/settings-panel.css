@@ -42,9 +42,16 @@
 .settings-panel {
   position: absolute;
   top: calc(100% + 0.5rem);
+  /* Anchored to the gear's right edge at every width, so it opens leftward
+     into the page. The gear sits at the end of the nav, near the right edge of
+     the viewport, so anchoring left instead pushed the panel off-screen. */
   right: 0;
+  left: auto;
   z-index: 200;
   min-width: 15rem;
+  /* Never wider than the viewport allows, or opening leftward runs off the
+     other side on a narrow screen. */
+  max-width: calc(100vw - 1.5rem);
   padding: 1rem;
   background: var(--surface);
   border: 1px solid var(--border);
@@ -113,11 +120,12 @@
 
 /* On narrow screens the header wraps, so let the panel track the viewport
    rather than overflow it. */
+/* Narrow screens: drop the minimum so the panel can shrink to fit, but keep it
+   anchored right. An earlier version flipped to left: 0 here, which anchored it
+   to the gear's left edge and sent it off the right of the screen. */
 @media (max-width: 480px) {
   .settings-panel {
-    right: auto;
-    left: 0;
     min-width: 0;
-    width: min(17rem, calc(100vw - 3rem));
+    width: min(17rem, calc(100vw - 1.5rem));
   }
 }
