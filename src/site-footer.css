@@ -25,7 +25,8 @@
 }
 
 .footer-inner {
-  max-width: var(--footer-max, none);
+  /* Matches the header, so the chrome lines up top and bottom. */
+  max-width: var(--footer-max, 75rem);
   margin-inline: auto;
   padding-inline: var(--footer-pad, 0);
   display: flex;

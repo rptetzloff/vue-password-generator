@@ -101,6 +101,7 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
   button.type = 'button'
   button.className = 'settings-gear'
   button.setAttribute('aria-label', 'Settings')
+  button.title = 'Settings'
   button.setAttribute('aria-expanded', 'false')
   button.setAttribute('aria-haspopup', 'dialog')
   button.innerHTML = '<span class="mdi mdi-cog-outline" aria-hidden="true"></span>'

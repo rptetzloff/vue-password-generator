@@ -129,10 +129,18 @@ const attachCondense = (header) => {
   spacer.setAttribute('aria-hidden', 'true')
   header.after(spacer)
 
-  // Only measured while expanded, so the spacer always holds the full height
-  // and condensing cannot move the content.
+  /**
+   * Size the spacer to the space the fixed header needs.
+   *
+   * Normally that is the expanded height, held constant so that condensing on
+   * scroll cannot move the content. On small screens the header is condensed
+   * permanently and never expands, so there the spacer must track its real
+   * height -- otherwise it reserves room for an expansion that never comes,
+   * which left a large empty gap above the content on narrow viewports.
+   */
   const syncSpacer = () => {
-    if (condensed) return
+    const permanentlyCondensed = !!(small && small.matches)
+    if (condensed && !permanentlyCondensed) return
     spacer.style.height = `${header.offsetHeight}px`
   }
 
@@ -146,6 +154,9 @@ const attachCondense = (header) => {
     if (next === condensed) return
     condensed = next
     header.classList.toggle('is-condensed', condensed)
+    // Crossing the small-screen boundary changes which height the spacer
+    // should hold, so re-measure after the state settles.
+    syncSpacer()
   }
 
   // Coalesce to one update per frame; scroll fires far more often than that.
@@ -163,6 +174,15 @@ const attachCondense = (header) => {
     new ResizeObserver(syncSpacer).observe(header)
   }
 
-  syncSpacer()
+  // Order matters: settle the condensed state first, then measure. Measuring
+  // first sized the spacer from an expanded header that was about to condense.
   update()
+  syncSpacer()
+
+  // The header grows once the icon font arrives -- it is 403 KB, so that can be
+  // well after mount, and a spacer measured beforehand would be too short.
+  // ResizeObserver above normally catches this; these are cheap insurance for
+  // the case where it does not fire before paint.
+  window.addEventListener('load', syncSpacer, { once: true })
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncSpacer)
 }

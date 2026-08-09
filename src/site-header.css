@@ -1,17 +1,14 @@
-/* Shared site header for the static pages (docs.html, changelog.html).
+/* The shared site header, used by all five pages including the app.
  *
- * Both pages previously carried their own copy of these rules. They had
- * drifted: the link style was called .header-back on docs and .header-link on
- * changelog despite having byte-identical declarations, and only changelog had
- * the small-screen overrides -- so the docs header did not shrink on mobile.
- * Unified here on the .header-nav / .header-link naming.
+ * Every page once hand-rolled its own version and they had drifted: the link
+ * style was called .header-back on docs and .header-link on changelog despite
+ * identical declarations, only changelog had small-screen overrides, and the
+ * app had a wholly separate header of its own. Unified on .header-nav /
+ * .header-link, rendered from src/site-header.js.
  *
- * The app (index.html) deliberately does not use this. Its header is a
- * different component -- a full content header carrying the privacy notice and
- * history controls -- and converging the two is a visual redesign that belongs
- * with ROADMAP Epic 2, not this refactor.
- *
- * Pages set --header-max to line the header up with their own content column.
+ * The chrome is one width on every page. Pages used to set --header-max to
+ * match their own content column, which made the header wrap differently and
+ * condense to a different height on each.
  */
 
 .site-header {
@@ -31,20 +28,22 @@
   z-index: 100;
 }
 
-/* Holds open the space the fixed header would have occupied. Sized from the
-   expanded header and never updated while condensed, so the page never
-   reflows as the header resizes. */
+/* Holds open the space the fixed header would have occupied. Sized in
+   site-header.js from the expanded header, so condensing on scroll never
+   reflows the page. Below the small-screen breakpoint the header is condensed
+   permanently, and there the spacer tracks its real height instead -- holding
+   room for an expansion that never comes left a large gap above the content. */
 .site-header-spacer {
   flex-shrink: 0;
 }
 
 /* Condensed state.
  *
- * The header is sticky, so at full height it follows the reader down the page
- * and eats screen the content needs -- worst on a phone, and worse again at a
- * raised text size. Once scrolled past the top it shrinks to an icon, the title
- * and the nav; the subtitle and description are dropped, since they describe
- * the page rather than help you move around it.
+ * The header is fixed, so at full height it sits over the reader for the whole
+ * page and takes screen the content needs -- worst on a phone, and worse again
+ * at a raised text size. Once scrolled past the top it shrinks to an icon, the
+ * title and the nav; the subtitle and description are dropped, since they
+ * describe the page rather than help you move around it.
  *
  * Applied by site-header.js on scroll, and unconditionally below 640px where
  * the full header would dominate the viewport from the outset.
@@ -62,11 +61,6 @@
   font-size: 0.95rem;
 }
 
-/* Collapse rather than display:none. Toggling display is not animatable, so
-   the header height lurched from one size to the other in a single frame while
-   the icon and title were still easing -- the two halves of the change did not
-   move together. Animating max-height with the vertical spacing lets the whole
-   header shrink as one movement. */
 .site-header.is-condensed .header-text p,
 .site-header.is-condensed .header-description {
   display: none;
@@ -105,7 +99,11 @@
    the links, which is not motion. */
 
 .header-inner {
-  max-width: var(--header-max, 1100px);
+  /* One width for the site chrome on every page. Pages used to set this to
+     match their own content column -- 1100, 900, 760 -- so the header wrapped
+     differently and condensed to a different height on each one. 75rem is the
+     app container width, in rem so it tracks the text-size setting. */
+  max-width: var(--header-max, 75rem);
   margin: 0 auto;
   padding: 0 1.5rem;
   display: flex;

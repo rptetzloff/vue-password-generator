@@ -61,13 +61,15 @@ export const mountSiteNav = (container, pathname = location.pathname) => {
     icon.setAttribute('aria-hidden', 'true')
 
     // The label is wrapped so the condensed header can hide it and leave the
-    // icon. aria-label carries the name regardless, because display:none would
-    // otherwise remove the text from the accessibility tree along with the
-    // link's only name.
+    // icon. Two fallbacks are needed once it is hidden, for different people:
+    // aria-label, because display:none takes the text out of the accessibility
+    // tree along with the link's only name; and title, so a sighted mouse user
+    // gets a tooltip rather than an unlabelled icon they have to guess at.
     const text = document.createElement('span')
     text.className = 'header-link-text'
     text.textContent = p.label
     a.setAttribute('aria-label', p.label)
+    a.title = p.label
 
     a.append(icon, text)
     container.appendChild(a)
