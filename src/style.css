@@ -410,6 +410,13 @@ body {
 }
 
 .checkbox {
+  /* This is a real <input type="checkbox"> that draws its own tick via
+     :checked::after below. Without this the browser keeps drawing the native
+     tick as well, and the two sit on top of each other -- visible as a doubled
+     checkmark. It was there all along; how obvious it looked depended on how
+     the native control happened to render against the fill. */
+  appearance: none;
+  -webkit-appearance: none;
   width: 1.25rem;
   height: 1.25rem;
   border: 2px solid var(--border-strong);
@@ -417,6 +424,8 @@ body {
   cursor: pointer;
   position: relative;
   background: var(--surface);
+  flex-shrink: 0;
+  margin: 0;
 }
 
 .checkbox:checked {
@@ -458,6 +467,12 @@ body {
 }
 
 .radio {
+  /* Same reason as .checkbox. This one has no visible symptom today -- the
+     input carries .sr-only and nothing selects off its checked state, so these
+     visual rules are currently unreachable -- but if it is ever unhidden it
+     would arrive with the doubled indicator already in place. */
+  appearance: none;
+  -webkit-appearance: none;
   width: 1.125rem;
   height: 1.125rem;
   border: 2px solid var(--border-strong);
@@ -487,14 +502,39 @@ body {
 .password-display {
   position: relative;
   margin-bottom: 0;
+  /* Shared by the field and by the controls overlaid on it, so the two cannot
+     drift apart -- see .copy-btn for why that matters once the field wraps. */
+  --pw-pad: 0.75rem;
+  --pw-line: 1.65rem;
 }
 
+/* This was an <input type="text">, which cannot wrap: a password longer than
+   the box simply scrolled out of sight. It is a readonly div now, so a long
+   result breaks onto as many lines as it needs.
+   role="textbox" with aria-readonly keeps it announced as a read-only field
+   rather than as loose text, and tabindex keeps it reachable and selectable
+   from the keyboard. Copying never read the DOM -- it uses the value
+   directly -- so the copy button is unaffected. */
 .password-input {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 1.1rem;
+  padding: var(--pw-pad);
   padding-right: 3rem;
   background: var(--background);
   border: 2px solid var(--border-strong);
+  line-height: var(--pw-line);
+  /* break-all rather than break-word: a password has no word boundaries worth
+     respecting, and any point in it is a legal place to wrap. */
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  /* Keep the height the input had, so an empty field does not collapse. */
+  min-height: calc(var(--pw-pad) * 2 + var(--pw-line) + 4px);
+  cursor: text;
+}
+
+.password-placeholder {
+  color: var(--text-secondary);
 }
 
 .password-input.has-length-pill {
@@ -504,7 +544,7 @@ body {
 .length-pill {
   position: absolute;
   right: 2.75rem;
-  top: 50%;
+  top: calc(var(--pw-pad) + var(--pw-line) / 2);
   transform: translateY(-50%);
   font-size: 0.72rem;
   font-weight: 700;
@@ -519,10 +559,14 @@ body {
   letter-spacing: 0.02em;
 }
 
+/* Centred on the first line, not on the box. These used top: 50%, which was
+   the same thing while the field was always one line tall; now that it wraps,
+   a three-line password would have left the copy button floating in the
+   middle of the block. */
 .copy-btn {
   position: absolute;
   right: 0.5rem;
-  top: 50%;
+  top: calc(var(--pw-pad) + var(--pw-line) / 2);
   transform: translateY(-50%);
   background: none;
   border: none;
@@ -569,8 +613,19 @@ body {
   .notification { animation: none; }
 }
 
+/* The accent, not --success.
+   Status colours deliberately ignore the palette so that a warning or an error
+   stays recognisable, which left this toast cyan on a violet or rose theme.
+   But the only thing that ever raises a "success" here is the copy
+   confirmation -- every other notification is an error -- and confirming the
+   action you just took is not a system status, it is an acknowledgement. So it
+   wears the theme. Errors below keep --error, which is the case the fixed
+   status colours exist for.
+   --on-primary rather than the inherited --on-status: the accent is bright in
+   dark mode, so white on it is unreadable. */
 .notification.success {
-  background: var(--success);
+  background: var(--primary);
+  color: var(--on-primary);
 }
 
 .notification.error {

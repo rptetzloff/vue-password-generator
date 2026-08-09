@@ -18,6 +18,8 @@
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
         var fs = JSON.parse(localStorage.getItem('global.fontScale'));
         if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
+        var pal = JSON.parse(localStorage.getItem('global.palette'));
+        if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
       } catch (e) {}
     </script>
     <link rel="stylesheet" href="/src/tokens.css" />
@@ -63,14 +65,14 @@
         font-weight: 700;
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: rgba(255,255,255,0.6);
+        color: var(--band-text-dim);
         margin-bottom: 0.6rem;
         padding: 0 0.5rem;
       }
 
       .sidebar-nav {
-        background: rgba(255,255,255,0.1);
-        border: 1px solid rgba(255,255,255,0.2);
+        background: var(--header-bg);
+        border: 1px solid var(--header-hairline);
         border-radius: 10px;
         padding: 0.5rem;
         display: flex;
@@ -84,7 +86,7 @@
         gap: 0.55rem;
         padding: 0.5rem 0.75rem;
         border-radius: 6px;
-        color: rgba(255,255,255,0.8);
+        color: var(--band-text);
         text-decoration: none;
         font-size: 0.875rem;
         font-weight: 500;
@@ -92,8 +94,8 @@
       }
 
       .nav-item:hover {
-        background: rgba(255,255,255,0.15);
-        color: white;
+        background: var(--band-control-hover-bg);
+        color: var(--band-text);
       }
 
       .nav-item .mdi {
@@ -111,11 +113,11 @@
       .nav-sub {
         font-size: 0.8rem;
         padding: 0.35rem 0.75rem 0.35rem 2rem;
-        color: rgba(255,255,255,0.6);
+        color: var(--band-text-dim);
       }
 
       .nav-sub:hover {
-        color: rgba(255,255,255,0.9);
+        color: var(--band-text);
       }
 
       /* ── Content ──────────────────────────────────────────── */
@@ -448,16 +450,45 @@
 
       .shared-card-body strong { color: var(--text); }
 
+      /* The section nav collapses on narrow screens only.
+         On desktop the summary is removed from the page rather than styled to
+         look inert. A <details> held open by CSS is still a disclosure widget:
+         focusable, toggleable, and announced as collapsed while its content is
+         plainly visible. The script at the foot of the page owns that state,
+         and the element defaults to open so the page still works without JS. */
+      .nav-collapse > summary[hidden] { display: none; }
+
       /* ── Responsive ───────────────────────────────────────── */
 
       @media (max-width: 820px) {
         .page {
           grid-template-columns: minmax(0, 1fr);
+          /* 2.5rem is the gutter between the sidebar column and the content.
+             Stacked, it becomes the gap above the content instead, which is
+             far too much on top of the nav. */
+          row-gap: 1rem;
         }
+        /* Was display:none, which left this page with no way to jump to a
+           section at all -- the site header only links between pages. It is a
+           collapsed disclosure here instead, so eighteen links do not push the
+           content down. */
         .sidebar {
           position: static;
-          display: none;
+          display: block;
         }
+        .nav-collapse:not([open]) .sidebar-nav { display: none; }
+        /* No --surface fill here: this sits on the page gradient like the
+           rest of the sidebar, and its text is --band-text-dim (white). A
+           surface fill made it white-on-white in light mode -- visible in dark
+           only because --surface happens to be dark there. */
+        .nav-collapse > summary {
+          list-style: revert;
+          cursor: pointer;
+          padding: 0.5rem 0.25rem;
+        }
+        .nav-collapse > summary::marker { content: revert; }
+        .nav-collapse[open] > summary { margin-bottom: 0.5rem; }
+        .sidebar-nav { padding: 0 0.25rem; }
         .option-row {
           grid-template-columns: 1fr;
         }
@@ -469,17 +500,49 @@
         .intro-card { padding: 1.25rem; }
       }
 
+
+      /* Back to top, one per section. A real link to a real target rather
+         than a scroll handler, so it works without JS, is focusable, and
+         announces itself. #top carries tabindex=-1 so focus follows the
+         scroll instead of staying stranded at the bottom of the page. */
+      .to-top {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        margin-top: 1.5rem;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-decoration: none;
+        padding: 0.3rem 0.6rem;
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        transition: color 0.15s, border-color 0.15s;
+      }
+
+      .to-top:hover {
+        color: var(--primary);
+        border-color: var(--primary);
+      }
+
+      html { scroll-behavior: smooth; }
+
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+      }
     </style>
   </head>
   <body>
 
+    <span id="top" tabindex="-1"></span>
     <div data-site-header></div>
 
     <div class="page">
 
       <!-- Sidebar -->
       <aside class="sidebar">
-        <div class="sidebar-label">On this page</div>
+        <details class="nav-collapse" open>
+        <summary class="sidebar-label">On this page</summary>
         <nav class="sidebar-nav">
           <a class="nav-item" href="#overview"><span class="mdi mdi-information-outline"></span> Overview</a>
           <div class="nav-divider"></div>
@@ -491,10 +554,11 @@
           <a class="nav-item" href="#madlib"><span class="mdi mdi-theater"></span> Mad Lib</a>
           <a class="nav-item" href="#numbers"><span class="mdi mdi-numeric"></span> Numbers</a>
           <div class="nav-divider"></div>
-          <a class="nav-item" href="#appearance"><span class="mdi mdi-cog-outline"></span> Appearance &amp; Settings</a>
+          <!-- Order follows the document. The seven sub-items below belong to
+               Shared Options but sat after Built With, so they read as its
+               children, and Appearance came before Shared in the nav while the
+               sections themselves are the other way round. -->
           <a class="nav-item" href="#shared"><span class="mdi mdi-share-variant-outline"></span> Shared Options</a>
-          <div class="nav-divider"></div>
-          <a class="nav-item" href="#built-with"><span class="mdi mdi-tools"></span> Built With</a>
           <a class="nav-sub nav-item" href="#shared-separator">Separator</a>
           <a class="nav-sub nav-item" href="#shared-affix">Prefix &amp; Suffix</a>
           <a class="nav-sub nav-item" href="#shared-caps">Capitalization</a>
@@ -502,7 +566,12 @@
           <a class="nav-sub nav-item" href="#shared-emoji">Emoji</a>
           <a class="nav-sub nav-item" href="#shared-history">History</a>
           <a class="nav-sub nav-item" href="#shared-tab">Active Tab</a>
+          <div class="nav-divider"></div>
+          <a class="nav-item" href="#appearance"><span class="mdi mdi-cog-outline"></span> Appearance &amp; Settings</a>
+          <div class="nav-divider"></div>
+          <a class="nav-item" href="#built-with"><span class="mdi mdi-tools"></span> Built With</a>
         </nav>
+        </details>
       </aside>
 
       <!-- Main content -->
@@ -517,7 +586,8 @@
             history are saved only in your browser's local storage.
           </p>
           <p style="margin-top:0.75rem;">
-            Seven generator types are available, each optimized for a different use case. Click any tile
+            Seven generator types are available, each optimized for a different use case, alongside the
+            options they share, the appearance settings, and what the site is built with. Click any tile
             to jump to its documentation.
           </p>
           <div class="intro-grid">
@@ -555,6 +625,16 @@
               <span class="mdi mdi-numeric"></span>
               <div class="intro-tile-name">Numbers</div>
               <div class="intro-tile-desc">PIN &amp; numeric codes</div>
+            </a>
+            <a class="intro-tile" href="#shared">
+              <span class="mdi mdi-share-variant-outline"></span>
+              <div class="intro-tile-name">Shared Options</div>
+              <div class="intro-tile-desc">Separators, casing, affixes</div>
+            </a>
+            <a class="intro-tile" href="#appearance">
+              <span class="mdi mdi-cog-outline"></span>
+              <div class="intro-tile-name">Appearance</div>
+              <div class="intro-tile-desc">Theme, colours, text size</div>
             </a>
             <a class="intro-tile" href="#built-with">
               <span class="mdi mdi-tools"></span>
@@ -619,6 +699,9 @@
               No placement guarantees are made — to enforce minimums per type, use the <a href="#advanced" style="color:var(--primary);">Advanced</a> generator.
             </p>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -699,6 +782,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -788,6 +874,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -881,6 +970,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -981,6 +1073,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -1079,6 +1174,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -1125,6 +1223,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -1336,6 +1437,9 @@
                 The last generator tab you had open is automatically saved to <code>localStorage</code> (<code>global.activeTab</code>) and restored the next time you visit the app. If no saved tab exists the app defaults to Simple.</p>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -1380,6 +1484,52 @@
               </div>
             </div>
             <div class="option-group">
+              <div class="option-group-label">Colours</div>
+              <div class="option-row">
+                <div class="option-name">Sky / Blue / Indigo / Violet / Fuchsia / Rose / Emerald / Teal / Slate / Mono</div>
+                <div class="option-desc">
+                  <p>
+                    Ten accent themes, independent of Light and Dark &mdash; every one works in both.
+                    A theme changes the accent colour, the focus ring and the page background. In dark
+                    mode it also tints the cards, so a violet theme is violet throughout rather than the
+                    same grey card with a violet button.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>Mono</strong> is a true greyscale theme. It is the only one that also drops
+                    colour from the status messages and the changelog categories, which then tell
+                    themselves apart by lightness instead of hue.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Saved in <code>localStorage</code> and applied before the page draws, like the others.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">The eye marker <span class="mdi mdi-eye-check-outline" aria-hidden="true"></span></div>
+                <div class="option-desc">
+                  <p>
+                    Marks themes whose accent stays clearly distinct from the success, warning and error
+                    colours for every kind of colour blindness &mdash; protanopia, deuteranopia and
+                    tritanopia. <strong>Blue</strong>, <strong>Indigo</strong>, <strong>Violet</strong>,
+                    <strong>Slate</strong> and <strong>Mono</strong> qualify.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    An unmarked theme is not a problem to use. Nothing here depends on colour alone: every
+                    status message and every changelog category is labelled in words. The marker only says
+                    the colour is doing useful work on top of the words.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    It is measured rather than asserted. Each theme is simulated under all three
+                    deficiencies and the colour distances recomputed on every build, so the marker cannot
+                    quietly go out of date. Two candidate themes were rejected by that process: an amber
+                    accent that was identical to the warning colour, and an earlier, brighter red that
+                    made error messages stop standing out.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
               <div class="option-group-label">History</div>
               <div class="option-row">
                 <div class="option-name">Entries per generator</div>
@@ -1409,6 +1559,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -1453,10 +1606,13 @@
             <div style="height:1px;background:var(--border);"></div>
 
             <div class="option-block">
-              <div class="option-name"><span class="mdi mdi-robot-outline" style="color:#0ea5e9;"></span> Bolt (AI-assisted development)</div>
+              <div class="option-name"><span class="mdi mdi-robot-outline" style="color:var(--primary);"></span> AI-assisted development</div>
               <div class="option-desc">
                 Much of this app was built with assistance from <a href="https://bolt.new" target="_blank" rel="noopener">Bolt</a>,
-                an AI-powered coding environment. Bolt accelerated feature development, UI design, and documentation authoring throughout the project.
+                an AI-powered coding environment, which accelerated the initial feature development and UI design.
+                <a href="https://claude.com/claude-code" target="_blank" rel="noopener">Claude Code</a> has handled
+                later work: the move to a cryptographic random source, the design token system and colour themes,
+                the accessibility audit, and the test suite.
               </div>
             </div>
 
@@ -1470,6 +1626,9 @@
               </div>
             </div>
 
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
           </div>
         </section>
 
@@ -1496,6 +1655,37 @@
       import { mountSiteHeader } from '/src/site-header.js'
       initTheme()
       mountSiteHeader(document.querySelector('[data-site-header]'))
+
+      /* The section nav is a disclosure on narrow screens and a plain list on
+         wide ones. Doing that with CSS alone does not work: holding a <details>
+         open with `display` leaves it a disclosure widget, still focusable,
+         still toggleable, and still announced as collapsed while its content is
+         on screen. So the state is set here instead.
+
+         Above the breakpoint the summary is hidden outright, which takes it out
+         of the accessibility tree and the tab order, and the details is forced
+         open. Below it, the summary comes back and the nav starts collapsed so
+         eighteen links do not push the content off the screen.
+
+         The markup ships with `open`, so with no JS the nav is simply visible
+         at every width -- degraded, but never hidden behind a control that is
+         not there. */
+      const sectionNav = document.querySelector('.nav-collapse')
+      if (sectionNav) {
+        const summary = sectionNav.querySelector('summary')
+        const narrow = matchMedia('(max-width: 820px)')
+        let wasNarrow = null
+        const syncNav = () => {
+          if (narrow.matches === wasNarrow) return
+          wasNarrow = narrow.matches
+          summary.hidden = !narrow.matches
+          // Only force the state on a breakpoint change, so a choice made
+          // while narrow survives until the width actually changes.
+          sectionNav.open = !narrow.matches
+        }
+        syncNav()
+        narrow.addEventListener('change', syncNav)
+      }
     </script>
   </body>
 </html>

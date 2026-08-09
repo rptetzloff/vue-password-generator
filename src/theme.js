@@ -9,8 +9,12 @@
 // carries a small blocking inline script in <head> that sets data-theme before
 // anything renders; this module then takes over for changes made at runtime.
 
+import { PALETTE_KEY, DEFAULT_PALETTE, resolvePalette } from './palettes.js'
+
 export const THEME_KEY = 'global.theme'
 export const THEMES = ['light', 'dark', 'system']
+
+export { PALETTE_KEY, resolvePalette }
 
 // Text size, as a percentage applied to the root font size. Everything that
 // should scale is in rem, so this resizes the interface rather than just the
@@ -93,6 +97,35 @@ export const setFontScale = (value) => {
   return applyFontScale(scale)
 }
 
+// Palette is a second axis, independent of light/dark. Every palette is
+// defined for both themes, so the two compose freely. See src/palettes.js for
+// what a palette is allowed to change and why.
+
+export const getPalette = () => {
+  try {
+    return resolvePalette(JSON.parse(localStorage.getItem(PALETTE_KEY)))
+  } catch {
+    return DEFAULT_PALETTE
+  }
+}
+
+export const applyPalette = (value) => {
+  const palette = resolvePalette(value)
+  // The default is the bare :root, so the attribute is only set when something
+  // actually overrides it.
+  if (palette === DEFAULT_PALETTE) document.documentElement.removeAttribute('data-palette')
+  else document.documentElement.setAttribute('data-palette', palette)
+  return palette
+}
+
+export const setPalette = (value) => {
+  const palette = resolvePalette(value)
+  try {
+    localStorage.setItem(PALETTE_KEY, JSON.stringify(palette))
+  } catch {}
+  return applyPalette(palette)
+}
+
 /**
  * Apply the stored choice and keep it in step with the OS while the choice is
  * 'system'. Returns the resolved theme.
@@ -101,6 +134,7 @@ export const initTheme = () => {
   const choice = getThemeChoice()
   const resolved = applyTheme(choice)
   applyFontScale(getFontScale())
+  applyPalette(getPalette())
   if (typeof matchMedia === 'function') {
     matchMedia(DARK_QUERY).addEventListener('change', () => {
       // Only follow the OS while the user has actually asked us to.

@@ -18,6 +18,8 @@
         document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
         var fs = JSON.parse(localStorage.getItem('global.fontScale'));
         if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
+        var pal = JSON.parse(localStorage.getItem('global.palette'));
+        if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
       } catch (e) {}
     </script>
     <link rel="stylesheet" href="/src/tokens.css" />
@@ -254,6 +256,56 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.12.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.12.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Ten colour themes, and a header that was never readable in light mode</div>
+                <div class="release-summary">Pick the colour you want the site to be. Building this turned up a genuine contrast failure in the light-mode header that had been shipping for a while, hidden behind an assumption nothing was checking.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Ten colour themes</strong> — Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate and Mono, in Settings under Colours. Each one changes the accent, the focus ring and the page background, and they combine freely with light and dark.</li>
+                    <li><strong>Dark mode wears the theme</strong> — the cards and page behind them are tinted to match, so a violet theme is violet throughout rather than the same grey card with a violet button. The tints are all at least as dark as the grey they replace, so nothing sitting on them gets harder to read.</li>
+                    <li><strong>Mono, a true grayscale theme</strong> — the only one that also drops colour from the status messages and the changelog groups. Those then have to be told apart by lightness alone, which is a tighter constraint than it sounds: they must all stay dark enough to read on white. It is also the one theme that looks exactly the same to everyone, whatever their colour vision.</li>
+                    <li><strong>Themes labelled for colour blindness</strong> — an eye marker shows which themes keep their accent clearly distinct from the success, warning and error colours for every kind of colour blindness. Blue, Indigo, Violet, Slate and Mono qualify. The marker is recalculated from the actual colours on every build, so it cannot drift out of date.</li>
+                    <li><strong>Documentation for the colour options</strong> — the Appearance &amp; Settings page now covers the themes, what Mono does differently, and what the eye marker means. Shared Options and Appearance also got tiles on the docs overview, and every section has a link back to the top.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The header was unreadable once you scrolled</strong> — the header shrinks and pins to the top as you scroll, but it was see-through, so the white buttons ended up sitting on whatever white card happened to be passing underneath. That measured 1.25:1, where 4.5:1 is the standard — very close to invisible. It now has a solid background of its own and measures 9:1.</li>
+                    <li><strong>The header was hard to read in light mode</strong> — even at the top of the page, white text on the pale blue banner measured 2.5:1, and the navigation buttons failed across the whole banner. The background is deeper now and the header sits slightly recessed into it rather than lifted out of it.</li>
+                    <li><strong>Header buttons now darken on hover instead of lightening</strong> — they carry white text, so the old lightening made them harder to read the moment you pointed at one.</li>
+                    <li><strong>Checkboxes had two checkmarks</strong> — the tick you saw was ours drawn on top of the browser's own, because the native control was never switched off. One tick now. The radio buttons had the same fault, though it was invisible there.</li>
+                    <li><strong>Long passwords no longer run off the end of the box</strong> — the field wraps onto as many lines as it needs and grows to fit, instead of hiding the rest of a long result. The copy button and the length badge stay level with the first line.</li>
+                    <li><strong>The "copied" message now matches your theme</strong> — it was always the same teal, which looked out of place on a violet or rose theme. Warnings and errors keep their own colours, since the point of those is to look the same wherever you see them.</li>
+                    <li><strong>The footer had the same problem</strong> — its text was 70% white on that same pale banner, at 2.6:1. Now 85% white on a deeper background.</li>
+                    <li><strong>Why it went unnoticed</strong> — the contrast checks skipped the header and footer entirely, on the reasoning that they sit on a dark background in both themes. That was true of dark mode and wrong about light. The checks now work out the real colour behind the text instead of taking that on trust, and they cover all ten themes.</li>
+                    <li><strong>The documentation sidebar had the same fault</strong> — its links sat on the page background in faded white, measuring 4.4:1 and its heading 3.2:1. Both are legible now, and the sidebar is reachable on narrow screens instead of disappearing.</li>
+                    <li><strong>Documentation credits</strong> — the docs page still credited only Bolt for the AI-assisted development; Claude Code has been added, as it already was on the About page.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
+                  <ul class="change-list">
+                    <li><strong>An amber theme, and two attempts at a red one</strong> — amber turned out to be indistinguishable from the warning colour, because it was the same colour. Rose went through two revisions: the first was close enough to the error red that a normal button looked like something had gone wrong, and the second still made the error message itself stop standing out. It ships as a deeper burgundy, which is the price of a red theme on a site that uses red to mean something.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.11.0 -->
         <div class="release">

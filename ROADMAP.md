@@ -54,11 +54,17 @@ colours are now simply the default (see Epic 3).
 The version worth building is the one that was actually wanted — pick a colour
 you like:
 
-- [ ] **Ship a set of accent themes** — red / blue / green / purple and so on, as a `data-palette` axis independent of light/dark, so every theme works in both. This is a preference feature, not an accessibility feature; treat it as such.
-- [ ] **Include pre-built colour-blind-friendly themes** in the same list, rather than a separate mechanism. One picker, some entries tuned for protanopia/deuteranopia/tritanopia.
-- [ ] **Label which themes suit which kind of colour vision.** This is the interesting bit and it should be computed, not asserted: `test/helpers/color.js` already simulates all three deficiencies and measures CIEDE2000, so a theme's suitability can be *measured* and the label generated from the measurement. A theme whose weakest pair holds up under deuteranopia can say so honestly.
-- [ ] **Gate new themes on the existing floor.** Every palette has to clear WCAG AA on contrast *and* the CIEDE2000 separation floor before it ships. The tests already do this for the default set; parameterise them over the palette list.
-- [ ] **Watch the combinatorics.** Palettes × light/dark × four vision types is a lot of assertions. Better to iterate over a palette manifest than to hand-write each case.
+- [x] **Ship a set of accent themes** — ten: Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate, Mono. A `data-palette` axis independent of light/dark, so every theme works in both.
+- [x] **Include pre-built colour-blind-friendly themes** in the same list rather than a separate mechanism. Blue, Indigo, Violet, Slate and Mono qualify; they sit in the same picker as the rest.
+- [x] **Label which themes suit which kind of colour vision, by measuring it.** A theme is marked when its accent stays ≥10 (CIEDE2000) from all three status colours under normal/protan/deutan/tritan in both themes. `src/palettes.js` records the flag and `test/colour-vision.test.js` recomputes it from `tokens.css`, failing if the two disagree — so the marker in the UI cannot become a lie.
+- [x] **Gate new themes on the floors.** Every palette clears AA on the accent pairs, on all six badge pairs, on every token pair, and on the change groups, in both themes. Two candidates were rejected by measurement rather than taste: amber at 0.0 from `--warning`, and the first rose at 1.4 from `--error` in dark.
+- [x] **Iterate a manifest rather than hand-writing cases.** The suite went from 63 tests to 244 without hand-writing any of the new ones; `PALETTES` drives all of it. A palette present in `tokens.css` but missing from the manifest now fails a test, so it cannot skip coverage.
+
+Still open in 2a:
+
+- [ ] **Raise the separation floor.** Coloured palettes hold the change groups ≥7.0 apart and monochrome ≥6.0, neither of which is a comfortable margin. Both are near the ceiling of what the current fixed group colours allow, so raising the floor means re-deriving that set, not nudging a constant.
+- [ ] **Light mode does not tint.** Only dark surfaces follow the palette; in light mode every theme is a white card on a coloured gradient. Tinting light surfaces is harder — they have far less headroom before text drops below 4.5:1.
+- [ ] **The accent-vs-status metric is narrow.** It compares one colour against three. It says nothing about the accent against the badge families or the change groups, which is a weaker claim than the eye marker might suggest.
 
 ---
 
@@ -264,6 +270,65 @@ tool whose pitch is that it never talks to a server.
 
 ---
 
+## Epic 7 — Usability: the site is clunky to operate
+
+The visual layer is in good shape; operating it is not. Everything below was
+measured in a browser rather than guessed at, so each item names what is wrong
+rather than asking for it to be nicer.
+
+### 7a. Controls too small to hit — WCAG 2.2 SC 2.5.8, Level AA
+
+Target Size (Minimum) requires 24×24 CSS pixels. Measured today:
+
+| control | size | where |
+|---|---|---|
+| `.slider` thumb | **20×20** | every generator with a length or count |
+| `.slider` track | 617×**6** | the drag target is 6px tall until you find the thumb |
+| `.checkbox` | **20×20** | five of them on Simple |
+| `.slot-arrow` | **22×22** | six on Passphrase, four on Wireless |
+| `.slot-remove` | **22×22** | three on Passphrase, two on Wireless |
+
+- [ ] Bring all of these to 24×24 minimum. The slot arrows are the worst of it: 22px targets, sitting side by side inside a pill, on a control people use repeatedly to reorder words.
+- [ ] The visually hidden separator radio measures 1×1. That is correct for `sr-only` and exempt, but worth a comment so nobody "fixes" it.
+
+### 7b. The sliders specifically
+
+- [ ] **No focus ring.** `.slider` sets `outline: none`. That selector is (0,1,0), the same specificity as the global `:where(...):focus-visible` ring, and `style.css` loads after `tokens.css` — so it wins on source order and the slider gets no visible focus at all. This is a WCAG 2.4.7 failure that the Epic 3 focus audit missed, and the README's claim of "a single 2px focus ring defined site-wide" is wrong until it is fixed.
+- [ ] **Three controls for one number.** Password Length has a slider, a `−`/`+` stepper, and a value readout. Decide which is authoritative and let the others be secondary, or drop one.
+- [ ] **No sense of range.** Min and max (6 and 128) are never shown, so the slider gives no feel for where 20 sits. Consider end labels or tick marks at meaningful points.
+- [ ] **A 122-step range on a 617px track** is roughly 5px per step, so dragging cannot reliably land on a specific value; the stepper is currently the only precise route. Coarse dragging with fine stepping is the usual answer.
+
+### 7c. Option density
+
+Buttons visible on a single tab, counted:
+
+| tab | buttons |
+|---|---|
+| **Advanced** | **66** |
+| Passphrase | 42 |
+| Wireless | 36 |
+| Words | 32 |
+| Mad Lib | 32 |
+| Simple | 14 |
+| Numbers | 12 |
+
+- [ ] Advanced presents sixty-six controls at once with no grouping or progressive disclosure. Prefix & Suffix alone is two columns of eleven chips. This is the main source of the clunk.
+- [ ] Collapse the rarely-changed groups behind a disclosure, remembering state per generator. Leet Speak, Emoji and Prefix/Suffix are all candidates: they are off by default and most people never touch them.
+- [ ] Consider whether Simple and Advanced should be one tab with a "more options" reveal, rather than two tabs that differ mainly in density.
+
+### 7d. Layout and flow
+
+- [ ] **The tab strip wraps to two rows** at desktop width — seven tabs need ~920px but the vertical stack only starts at 768px, so "Numbers" sits alone on a second row. It is honest wrapping rather than a hidden scroll, but it looks accidental.
+- [ ] **Generate sits below the options**, so on Advanced you scroll past sixty-six controls to reach the button, then scroll back for the result. A sticky action bar, or the result adjacent to the button, would cut that.
+- [ ] **No keyboard shortcut to regenerate.** For a tool people hit repeatedly, something like Enter or `R` would save a lot of pointer travel.
+
+### 7e. Feedback
+
+- [ ] Copy is the only action that confirms itself. Regenerating a single word, clearing history, and changing a setting all happen silently.
+- [ ] History entries are clickable but do not look it until hover.
+
+---
+
 ## Suggested order
 
 1. **Epic 1** — unblocks 2 and 3, and is mostly mechanical.
@@ -271,3 +336,8 @@ tool whose pitch is that it never talks to a server.
 3. **Epic 6** — independent of the visual work, so it can run in parallel or slot in anywhere. 6a and 6b are the highest value per unit of effort in the whole roadmap: pure computation over data already in hand, no new dependencies, and 6b corrects a claim the UI currently implies but doesn't deliver.
 4. **Epics 4 + 5 together** — both touch anagrimoire, and 6d feeds the rebalancing.
 5. Remaining suggestions as appetite allows.
+
+**Epic 7 does not wait its turn.** 7b's missing focus ring is a live WCAG 2.4.7
+failure and 7a is a live 2.5.8 failure, both a few lines of CSS. Do those two
+next, ahead of everything else here. The rest of Epic 7 — density, flow,
+feedback — is design work rather than defect work and can slot in wherever.

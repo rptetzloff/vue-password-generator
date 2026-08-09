@@ -51,8 +51,54 @@
   --border-strong: #64748b;
   --border-focus: #0369a1;
 
-  /* The page backdrop. Was hardcoded identically in four files. */
-  --page-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  /* The page backdrop. Was hardcoded identically in four files.
+   *
+   * This used to be sky-500 -> sky-600. The header and footer sit on it in
+   * white text, and at the light end that measured 2.52:1 -- a real AA failure
+   * that survived because the contrast tests exempted both stylesheets on the
+   * grounds that "the gradient is dark in both themes". That was true of dark
+   * and false of light. Now sky-700 -> sky-800, and the test composites over
+   * these stops instead of trusting the exemption. */
+  --page-gradient: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+
+  /* The header background, and it must stay opaque.
+   *
+   * It was a translucent scrim, which reads as "a darker band over the page
+   * gradient" -- true only while the page is at the top. The header is
+   * position: fixed once it condenses on scroll, and then the thing behind it
+   * is whatever content is passing underneath. Over a white card, a 10% black
+   * scrim resolves to #e6e6e6, and the white nav labels on it measured
+   * 1.25:1. Worse than the 2.52:1 gradient bug, and from the same habit of
+   * reasoning about a backdrop rather than measuring one.
+   *
+   * Each value is the old scrim composited over that palette's first gradient
+   * stop, so the band looks as it did at the top of the page but no longer
+   * depends on what is behind it. Every palette is checked at 4.5:1 for white
+   * text, and the test also asserts the token is opaque. */
+  --header-bg: #035f91;
+  --header-hairline: rgba(0, 0, 0, 0.18);
+
+  /* The footer is in normal flow and always sits on the gradient, so a scrim
+   * is still correct there. */
+  --footer-scrim: rgba(0, 0, 0, 0.15);
+  /* Was 70% white, which took the footer to 2.61:1 on the old gradient. */
+  --footer-text: rgba(255, 255, 255, 0.85);
+
+  /* Controls sitting on the header band: the nav links and the settings gear.
+   * Hover darkens rather than lightens. Lightening was the obvious choice and
+   * it does not work -- these carry white text, so any white wash cuts the
+   * contrast, and 0.16 alpha is the most that still clears 4.5:1, which is too
+   * small a step to see. Darkening moves the other way and has room to spare. */
+  /* Text drawn straight onto the page gradient with no scrim to darken it
+     first -- the docs sidebar. 0.90 is the lowest alpha that still clears
+     4.5:1 on every palette gradient; the footer manages 0.85 only because its
+     scrim darkens the backdrop before the text lands on it. The sidebar had
+     0.8 and 0.6, which measured 4.40 and 3.16 against the default. */
+  --band-text: #ffffff;
+  --band-text-dim: rgba(255, 255, 255, 0.90);
+  --band-control-border: rgba(255, 255, 255, 0.70);
+  --band-control-bg: rgba(255, 255, 255, 0.10);
+  --band-control-hover-bg: rgba(0, 0, 0, 0.18);
 
   /* Elevation */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -172,6 +218,10 @@
   --border-focus: #38bdf8;
 
   --page-gradient: linear-gradient(135deg, #0c4a6e 0%, #0f172a 100%);
+  --header-bg: #245c7d;
+
+  /* The dark gradient is genuinely dark, so the band lifts rather than recedes. */
+  --header-hairline: rgba(255, 255, 255, 0.20);
 
   /* Black shadows are close to invisible against a dark surface, so lean on
    * opacity rather than colour. */
@@ -201,4 +251,309 @@
   --group-fixed: #fde047;
   --group-removed: #f97316;
   --group-security: #e9d5ff;
+}
+
+/* Accent palettes.
+ *
+ * A palette swaps the accent family and nothing else. The status colours, the
+ * change-group colours and the badge families all stay put, because those
+ * carry meaning and were tuned for legibility and for separation under colour
+ * vision deficiency -- see src/palettes.js.
+ *
+ * 'sky' is the bare :root above and has no block here, so an unrecognised or
+ * absent data-palette lands on it.
+ *
+ * Every palette below is checked by test/contrast.test.js for AA in both
+ * themes, and by test/colour-vision.test.js for whether its accent stays
+ * distinct from the status colours under each kind of colour vision. Adding a
+ * palette means adding it to src/palettes.js; the tests iterate that list, so
+ * a palette cannot be added here and quietly skipped.
+ */
+
+
+[data-palette='blue'] {
+  --primary: #1d4ed8;
+  --primary-dark: #1e40af;
+  --on-primary: #ffffff;
+  --border-focus: #1d4ed8;
+  --focus-tint: rgba(29, 78, 216, 0.12);
+  --page-gradient: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  --header-bg: #1a46c2;
+}
+
+[data-palette='indigo'] {
+  --primary: #4338ca;
+  --primary-dark: #3730a3;
+  --on-primary: #ffffff;
+  --border-focus: #4338ca;
+  --focus-tint: rgba(67, 56, 202, 0.12);
+  --page-gradient: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
+  --header-bg: #3c32b6;
+}
+
+[data-palette='violet'] {
+  --primary: #6d28d9;
+  --primary-dark: #5b21b6;
+  --on-primary: #ffffff;
+  --border-focus: #6d28d9;
+  --focus-tint: rgba(109, 40, 217, 0.12);
+  --page-gradient: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
+  --header-bg: #6224c3;
+}
+
+[data-palette='fuchsia'] {
+  --primary: #a21caf;
+  --primary-dark: #86198f;
+  --on-primary: #ffffff;
+  --border-focus: #a21caf;
+  --focus-tint: rgba(162, 28, 175, 0.12);
+  --page-gradient: linear-gradient(135deg, #a21caf 0%, #86198f 100%);
+  --header-bg: #92199e;
+}
+
+/* Two steps darker than the 700/800 the other palettes use.
+   rose-700 sat 11.9 from --error at normal vision -- two large red fills that
+   read as the same thing, so an error toast stopped announcing itself on this
+   theme. rose-800 only reached 17.7; rose-900 reaches 22.3, which is where the
+   floor in colour-vision.test.js sits. White on the fill improves from 6.29 to
+   9.57 as a side effect. It reads as a deep burgundy rather than a bright
+   rose, which is the cost of keeping a red theme on a site that uses red to
+   mean something. */
+[data-palette='rose'] {
+  --primary: #881337;
+  --primary-dark: #4c0519;
+  --on-primary: #ffffff;
+  --border-focus: #881337;
+  --focus-tint: rgba(136, 19, 55, 0.12);
+  --page-gradient: linear-gradient(135deg, #881337 0%, #4c0519 100%);
+  --header-bg: #7a1132;
+}
+
+[data-palette='emerald'] {
+  --primary: #047857;
+  --primary-dark: #065f46;
+  --on-primary: #ffffff;
+  --border-focus: #047857;
+  --focus-tint: rgba(4, 120, 87, 0.12);
+  --page-gradient: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  --header-bg: #046c4e;
+}
+
+[data-palette='teal'] {
+  --primary: #0f766e;
+  --primary-dark: #115e59;
+  --on-primary: #ffffff;
+  --border-focus: #0f766e;
+  --focus-tint: rgba(15, 118, 110, 0.12);
+  --page-gradient: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+  --header-bg: #0e6a63;
+}
+
+[data-palette='slate'] {
+  --primary: #334155;
+  --primary-dark: #1e293b;
+  --on-primary: #ffffff;
+  --border-focus: #334155;
+  --focus-tint: rgba(51, 65, 85, 0.12);
+  --page-gradient: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+  --header-bg: #2e3b4d;
+}
+
+
+
+[data-theme='dark'][data-palette='blue'] {
+  --primary: #60a5fa;
+  --primary-dark: #93c5fd;
+  --on-primary: #172554;
+  --border-focus: #60a5fa;
+  --focus-tint: rgba(96, 165, 250, 0.18);
+  --page-gradient: linear-gradient(135deg, #1e3a8a 0%, #131e3f 100%);
+  --header-bg: #354e96;
+  --background: #131e3f;
+  --surface: #1a2749;
+  --border: #354978;
+}
+
+[data-theme='dark'][data-palette='indigo'] {
+  --primary: #818cf8;
+  --primary-dark: #a5b4fc;
+  --on-primary: #1e1b4b;
+  --border-focus: #818cf8;
+  --focus-tint: rgba(129, 140, 248, 0.18);
+  --page-gradient: linear-gradient(135deg, #312e81 0%, #17193b 100%);
+  --header-bg: #46438e;
+  --background: #17193b;
+  --surface: #1e2144;
+  --border: #3d4374;
+}
+
+[data-theme='dark'][data-palette='violet'] {
+  --primary: #a78bfa;
+  --primary-dark: #c4b5fd;
+  --on-primary: #2e1065;
+  --border-focus: #a78bfa;
+  --focus-tint: rgba(167, 139, 250, 0.18);
+  --page-gradient: linear-gradient(135deg, #4c1d95 0%, #1f1448 100%);
+  --header-bg: #5e34a0;
+  --background: #1f1448;
+  --surface: #271b52;
+  --border: #493c7d;
+}
+
+[data-theme='dark'][data-palette='fuchsia'] {
+  --primary: #e879f9;
+  --primary-dark: #f0abfc;
+  --on-primary: #4a044e;
+  --border-focus: #e879f9;
+  --focus-tint: rgba(232, 121, 249, 0.18);
+  --page-gradient: linear-gradient(135deg, #701a75 0%, #2d0e3c 100%);
+  --header-bg: #7e3183;
+  --background: #2d0e3c;
+  --surface: #361545;
+  --border: #593a6e;
+}
+
+/* Rose does not follow the 400/300 pattern the other dark palettes use.
+ * rose-400 is #fb7185 and --error in dark is #f87171: adjacent reds, 1.4 apart
+ * under tritanopia, so a primary button read as an error. rose-300 fixed the
+ * tritan case but still sat 13.4 from --error at normal vision, which is the
+ * distance a large fill is judged at. rose-200 reaches 22.5 and lifts contrast
+ * on the tinted surface from 8.54 to 11.45. */
+[data-theme='dark'][data-palette='rose'] {
+  --primary: #fecdd3;
+  --primary-dark: #ffe4e6;
+  --on-primary: #4c0519;
+  --border-focus: #fecdd3;
+  --focus-tint: rgba(254, 205, 211, 0.18);
+  --page-gradient: linear-gradient(135deg, #881337 0%, #2e0e22 100%);
+  --header-bg: #942b4b;
+  --background: #2e0e22;
+  --surface: #371528;
+  --border: #643753;
+}
+
+[data-theme='dark'][data-palette='emerald'] {
+  --primary: #34d399;
+  --primary-dark: #6ee7b7;
+  --on-primary: #022c22;
+  --border-focus: #34d399;
+  --focus-tint: rgba(52, 211, 153, 0.18);
+  --page-gradient: linear-gradient(135deg, #064e3b 0%, #092226 100%);
+  --header-bg: #1f604f;
+  --background: #092226;
+  --surface: #0f2b2d;
+  --border: #2a5254;
+}
+
+[data-theme='dark'][data-palette='teal'] {
+  --primary: #2dd4bf;
+  --primary-dark: #5eead4;
+  --on-primary: #042f2e;
+  --border-focus: #2dd4bf;
+  --focus-tint: rgba(45, 212, 191, 0.18);
+  --page-gradient: linear-gradient(135deg, #134e4a 0%, #0a232c 100%);
+  --header-bg: #2b605c;
+  --background: #0a232c;
+  --surface: #102c34;
+  --border: #30525b;
+}
+
+/* Slate is the neutral theme, so it keeps the default dark surfaces rather
+   than tinting them. Deriving a tint from slate-950 put its surface at
+   luminance 0.0082 -- nearly black, and 2.7x darker than every other palette. */
+[data-theme='dark'][data-palette='slate'] {
+  --primary: #94a3b8;
+  --primary-dark: #cbd5e1;
+  --on-primary: #020617;
+  --border-focus: #94a3b8;
+  --focus-tint: rgba(148, 163, 184, 0.18);
+}
+
+/* Mono -- a true grayscale theme.
+ *
+ * The only palette that overrides more than the accent. Desaturating the
+ * interface means the colours that normally carry meaning by hue -- the
+ * status trio and the five change groups -- have to separate by lightness
+ * instead, and on white every one of them must still clear 4.5:1. That caps
+ * them in the dark half of the scale, so the five change groups end up 6.3
+ * apart rather than the 7.0 the coloured palettes manage. That is a real
+ * ceiling of grayscale, not a value someone forgot to tune: five AA-legal
+ * steps do not fit in that band any further apart.
+ *
+ * 6.3 is still well above the ~2.3 threshold of noticing a difference, and
+ * every group prints its name as text, so nothing depends on telling two
+ * greys apart. test/colour-vision.test.js holds monochrome palettes to a 6.0
+ * floor and says why.
+ *
+ * Being grayscale, it is the one palette that looks identical under every
+ * kind of colour vision -- there is no hue left to lose.
+ */
+[data-palette='mono'] {
+  --primary: #333333;
+  --primary-dark: #1f1f1f;
+  --on-primary: #ffffff;
+  --secondary: #525252;
+  --border-focus: #333333;
+  --focus-tint: rgba(51, 51, 51, 0.12);
+  --page-gradient: linear-gradient(135deg, #3d3d3d 0%, #242424 100%);
+  --header-bg: #373737;
+  --background: #f7f7f7;
+  --surface: #ffffff;
+  --text: #191919;
+  --text-secondary: #525252;
+  --border: #d6d6d6;
+  --border-strong: #6f6f6f;
+  --success: #1f1f1f;
+  --warning: #444444;
+  --error: #6d6d6d;
+  --on-status: #ffffff;
+  --accent-warn: #444444;
+  --accent-ok: #1f1f1f;
+  --group-added: #1b1b1b;
+  --group-improved: #2f2f2f;
+  --group-fixed: #444444;
+  --group-removed: #5b5b5b;
+  --group-security: #727272;
+  --badge-blue-bg: #f0f0f0;   --badge-blue-fg: #1b1b1b;
+  --badge-sky-bg: #f0f0f0;   --badge-sky-fg: #292929;
+  --badge-teal-bg: #f0f0f0;   --badge-teal-fg: #383838;
+  --badge-slate-bg: #f0f0f0;   --badge-slate-fg: #484848;
+  --badge-amber-bg: #f0f0f0;   --badge-amber-fg: #585858;
+  --badge-rose-bg: #f0f0f0;   --badge-rose-fg: #686868;
+  --badge-slate-border: #8a8a8a;
+}
+
+[data-theme='dark'][data-palette='mono'] {
+  --primary: #c9c9c9;
+  --primary-dark: #e8e8e8;
+  --on-primary: #0a0a0a;
+  --secondary: #a3a3a3;
+  --border-focus: #c9c9c9;
+  --focus-tint: rgba(201, 201, 201, 0.18);
+  --page-gradient: linear-gradient(135deg, #2b2b2b 0%, #0a0a0a 100%);
+  --header-bg: #404040;
+  --background: #0a0a0a;
+  --surface: #141414;
+  --text: #e8e8e8;
+  --text-secondary: #a3a3a3;
+  --border: #3d3d3d;
+  --border-strong: #8f8f8f;
+  --success: #919191;
+  --warning: #bbbbbb;
+  --error: #e8e8e8;
+  --on-status: #0a0a0a;
+  --accent-warn: #bbbbbb;
+  --accent-ok: #919191;
+  --group-added: #818181;
+  --group-improved: #9c9c9c;
+  --group-fixed: #b9b9b9;
+  --group-removed: #d6d6d6;
+  --group-security: #f3f3f3;
+  --badge-blue-bg: #333333;   --badge-blue-fg: #a0a0a0;
+  --badge-sky-bg: #333333;   --badge-sky-fg: #afafaf;
+  --badge-teal-bg: #333333;   --badge-teal-fg: #bfbfbf;
+  --badge-slate-bg: #333333;   --badge-slate-fg: #cecece;
+  --badge-amber-bg: #333333;   --badge-amber-fg: #dedede;
+  --badge-rose-bg: #333333;   --badge-rose-fg: #eeeeee;
+  --badge-slate-border: #868686;
 }
