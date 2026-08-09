@@ -396,13 +396,49 @@ The biggest lift here, and the one that argues with the product.
 
 ## Suggested order
 
-1. **Epic 1** — unblocks 2 and 3, and is mostly mechanical.
-2. **Epics 2 + 3 together** — designing palettes once, against contrast targets, is far less work than retrofitting.
-3. **Epic 6** — independent of the visual work, so it can run in parallel or slot in anywhere. 6a and 6b are the highest value per unit of effort in the whole roadmap: pure computation over data already in hand, no new dependencies, and 6b corrects a claim the UI currently implies but doesn't deliver.
-4. **Epics 4 + 5 together** — both touch anagrimoire, and 6d feeds the rebalancing.
-5. Remaining suggestions as appetite allows.
+Epics 1 and 2 are done, and 3 and 5 are down to one real item each, so the old
+ordering no longer says anything useful. Roughly sixty items remain, and they
+divide by kind: defects, then the things that change the data, then the things
+that change how it feels, then the things that leave the page.
 
-**Epic 7 does not wait its turn.** 7b's missing focus ring is a live WCAG 2.4.7
-failure and 7a is a live 2.5.8 failure, both a few lines of CSS. Do those two
-next, ahead of everything else here. The rest of Epic 7 — density, flow,
-feedback — is design work rather than defect work and can slot in wherever.
+**1. The two live accessibility defects.** Both are CSS, both are AA failures
+shipping right now, and neither should queue behind a feature.
+
+- **7a** — five control types under the 24×24 that WCAG 2.2 SC 2.5.8 requires.
+- **7b's first item** — `.slider` sets `outline: none`, so the sliders have no
+  focus ring at all (2.4.7). **This is the same bug as the one open item in
+  Epic 3.** Fixing it closes both, and Epic 3 is deliberately not ticked until
+  it is. Do not schedule them as two pieces of work.
+
+**2. Epic 4 — the wordlist.** Ahead of Epic 6, and the ordering matters. Epic 6
+displays entropy computed from the word pool; Epic 4 replaces the word pool.
+Doing 6 first means shipping a number, changing the data underneath it, and
+then shipping a different number for the same settings. Epic 4 also feeds 6d
+directly.
+
+**3. Epic 6 — entropy, starting with 6a and 6b.** Still the best value per unit
+of effort here: pure computation over data already in hand, no new dependencies
+and no new UI. 6b is the one with a duty attached — it corrects a claim the
+interface currently implies but does not deliver. 6g (ambiguous characters) is
+independent of the rest and can go any time.
+
+**4. The rest of Epic 7 — the clunkiness.** Density, flow and feedback. This is
+the widest gap between how the site measures and how it feels to use: Advanced
+puts sixty-six controls on one screen. Not a defect, so it sits below the two
+that are, but it is what a returning user actually notices.
+
+**5. Epic 8b — app mode.** Self-contained, and the closest fit to the product's
+own pitch: a generator that never talks to a server has no reason to need a
+network. It is also a prerequisite for 8c and 8e, so it buys optionality.
+
+**6. Epic 2's leftovers.** The aesthetic pass, light-mode tinting, and raising
+the separation floors. Real work, but polish on something that already passes.
+
+**7. Epic 8c, then 8d and 8e as exploration.** 8c is the mechanism for 8d — the
+web platform cannot do 8d from a page at all — so they are one decision rather
+than two. 8e is the biggest lift in the roadmap and argues with a claim the site
+already publishes; read its first bullet before starting anything else in it.
+
+**Not scheduled, because they are not blocked on effort here:** Epic 5's two
+remaining items. One is a change on anagrimoire rather than in this repository;
+the other needs a fact about that site confirmed before this one asserts it.
