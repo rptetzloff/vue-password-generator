@@ -1,15 +1,15 @@
-// Colour maths shared by the contrast and colour-vision tests.
+// Color maths shared by the contrast and color-vision tests.
 //
 // Not part of the shipped app -- this is measurement tooling. It exists because
-// "does this palette work for colour-blind users?" was previously answered by
-// eye, and eye was wrong: the old dark-theme change-group colours contained a
-// pair that a protanope sees as literally the same colour (CIEDE2000 of 1.1,
+// "does this palette work for color-blind users?" was previously answered by
+// eye, and eye was wrong: the old dark-theme change-group colors contained a
+// pair that a protanope sees as literally the same color (CIEDE2000 of 1.1,
 // where 2.3 is the threshold of noticing any difference at all).
 
 /** '#rrggbb' -> [r, g, b] in 0..1, gamma-encoded. */
 export const hex = (h) => {
   const m = /^#([0-9a-f]{6})$/i.exec(h.trim())
-  if (!m) throw new Error(`expected a 6-digit hex colour, got ${JSON.stringify(h)}`)
+  if (!m) throw new Error(`expected a 6-digit hex color, got ${JSON.stringify(h)}`)
   return [0, 2, 4].map((i) => parseInt(m[1].substr(i, 2), 16) / 255)
 }
 
@@ -24,7 +24,7 @@ export const luminance = (h) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 
-/** WCAG contrast ratio between two hex colours. */
+/** WCAG contrast ratio between two hex colors. */
 export const contrast = (a, b) => {
   const l1 = luminance(a)
   const l2 = luminance(b)
@@ -58,19 +58,19 @@ export const lab = (c) => {
   return [116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz)]
 }
 
-/** A hex colour as Lab, optionally as seen with a colour-vision deficiency. */
+/** A hex color as Lab, optionally as seen with a color-vision deficiency. */
 export const seenAs = (h, vision) => {
   const c = lin(h)
   return lab(vision === 'normal' ? c : applyMatrix(CVD[vision], c))
 }
 
 /**
- * CIEDE2000 difference between two Lab colours.
+ * CIEDE2000 difference between two Lab colors.
  *
  * Plain Euclidean distance in Lab badly misjudges saturated blues, which is
  * most of this palette. Roughly: 1 is the smallest difference anyone can see,
  * 2.3 is the usual "just noticeable" threshold, and anything under about 10 is
- * easy to confuse when the two colours are not side by side.
+ * easy to confuse when the two colors are not side by side.
  */
 export const ciede2000 = ([L1, a1, b1], [L2, a2, b2]) => {
   const rad = (d) => (d * Math.PI) / 180
@@ -136,14 +136,14 @@ export const ciede2000 = ([L1, a1, b1], [L2, a2, b2]) => {
 }
 
 /**
- * The closest pair in a set of hex colours, as that vision type sees it.
+ * The closest pair in a set of hex colors, as that vision type sees it.
  * Returns { delta, a, b } using the supplied labels.
  */
-export const closestPair = (colours, labels, vision) => {
-  const seen = colours.map((c) => seenAs(c, vision))
+export const closestPair = (colors, labels, vision) => {
+  const seen = colors.map((c) => seenAs(c, vision))
   let best = { delta: Infinity, a: null, b: null }
-  for (let i = 0; i < colours.length; i++) {
-    for (let j = i + 1; j < colours.length; j++) {
+  for (let i = 0; i < colors.length; i++) {
+    for (let j = i + 1; j < colors.length; j++) {
       const delta = ciede2000(seen[i], seen[j])
       if (delta < best.delta) best = { delta, a: labels[i], b: labels[j] }
     }

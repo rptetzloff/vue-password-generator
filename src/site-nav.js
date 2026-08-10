@@ -14,7 +14,7 @@ export const PAGES = [
   { href: '/docs.html', label: 'Docs', icon: 'mdi-book-open-outline', subtitle: 'Documentation & Reference' },
   { href: '/changelog.html', label: 'Changelog', icon: 'mdi-history', subtitle: 'Release history' },
   { href: '/about.html', label: 'About', icon: 'mdi-information-outline', subtitle: 'What this is and who made it' },
-  { href: '/legal.html', label: 'Legal', icon: 'mdi-scale-balance', subtitle: 'Privacy, licence and attributions' },
+  { href: '/legal.html', label: 'Legal', icon: 'mdi-scale-balance', subtitle: 'Privacy, license and attributions' },
   { href: '/roadmap.html', label: 'Roadmap', icon: 'mdi-map-marker-path', subtitle: 'What is planned, and what is only being considered' },
 ]
 
@@ -33,14 +33,14 @@ export const pageFor = (pathname) =>
  */
 export const isCurrentPage = (href, pathname) => {
   if (typeof href !== 'string' || typeof pathname !== 'string') return false
-  const normalise = (p) => {
+  const normalize = (p) => {
     let out = p.split(/[?#]/)[0]
     out = out.replace(/\.html$/i, '')
     out = out.replace(/\/index$/i, '/')
     if (out.length > 1) out = out.replace(/\/+$/, '')
     return out === '' ? '/' : out
   }
-  return normalise(pathname) === normalise(href)
+  return normalize(pathname) === normalize(href)
 }
 
 /** Render the nav links into `container`, marking the current page. */

@@ -5,12 +5,12 @@
 // and currentColor do not reach it. Inlining is what makes a theme-aware mark
 // possible at all.
 //
-// The artwork only ever used two colours -- a tile blue and white -- so they map
+// The artwork only ever used two colors -- a tile blue and white -- so they map
 // onto --primary and --on-primary. Those are already verified to contrast in
 // both themes (5.93 light, 6.48 dark), which means the key stays legible against
 // its tile for free.
 //
-// Colours are applied by class in site-header.css rather than by attribute:
+// Colors are applied by class in site-header.css rather than by attribute:
 // var() inside a presentation attribute is not reliably supported.
 
 const PATHS = `

@@ -30,7 +30,7 @@ const DARK_QUERY = '(prefers-color-scheme: dark)'
 export const resolveTheme = (choice, prefersDark) =>
   choice === 'dark' || (choice === 'system' && prefersDark) ? 'dark' : 'light'
 
-/** The stored choice, falling back to 'system' for anything unrecognised. */
+/** The stored choice, falling back to 'system' for anything unrecognized. */
 export const getThemeChoice = () => {
   try {
     const v = JSON.parse(localStorage.getItem(THEME_KEY))

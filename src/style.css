@@ -594,7 +594,7 @@ body {
   letter-spacing: 0.02em;
 }
 
-/* Centred on the first line, not on the box. These used top: 50%, which was
+/* Centered on the first line, not on the box. These used top: 50%, which was
    the same thing while the field was always one line tall; now that it wraps,
    a three-line password would have left the copy button floating in the
    middle of the block. */
@@ -649,13 +649,13 @@ body {
 }
 
 /* The accent, not --success.
-   Status colours deliberately ignore the palette so that a warning or an error
+   Status colors deliberately ignore the palette so that a warning or an error
    stays recognisable, which left this toast cyan on a violet or rose theme.
    But the only thing that ever raises a "success" here is the copy
    confirmation -- every other notification is an error -- and confirming the
    action you just took is not a system status, it is an acknowledgement. So it
    wears the theme. Errors below keep --error, which is the case the fixed
-   status colours exist for.
+   status colors exist for.
    --on-primary rather than the inherited --on-status: the accent is bright in
    dark mode, so white on it is unreadable. */
 .notification.success {
@@ -904,13 +904,13 @@ body {
 
 /* Part-of-speech pills.
  *
- * These were hardcoded pale backgrounds with no text colour, so in dark mode
+ * These were hardcoded pale backgrounds with no text color, so in dark mode
  * the inherited light text landed on a light pill: 1.01:1, effectively
- * invisible, and the worst contrast anywhere in the app. Setting the colour
+ * invisible, and the worst contrast anywhere in the app. Setting the color
  * explicitly is the actual fix -- a background is only half a pair.
  *
  * They reuse the docs badge tokens rather than defining a fifth set of
- * category colours: same four hues, already verified in both themes and in
+ * category colors: same four hues, already verified in both themes and in
  * both palettes. */
 .slot-adj  { background: var(--badge-blue-bg);  color: var(--badge-blue-fg);  border-color: var(--badge-blue-fg); }
 .slot-adv  { background: var(--badge-teal-bg);  color: var(--badge-teal-fg);  border-color: var(--badge-teal-fg); }
@@ -935,9 +935,9 @@ body {
 .slot-arrow,
 .slot-remove {
   background: var(--overlay-soft);
-  /* Neither set a colour, so both fell through to the UA's `buttontext`. That
+  /* Neither set a color, so both fell through to the UA's `buttontext`. That
      tracks color-scheme and so looked right in both themes by luck, but it is
-     not the theme's colour and would not follow a palette. */
+     not the theme's color and would not follow a palette. */
   color: var(--text);
   border: none;
   border-radius: 4px;
@@ -954,7 +954,7 @@ body {
 }
 
 /* 0.25 was tuned against the UA's disabled text, which is already translucent;
-   stacking the two left the arrow at roughly 7% alpha. Now that the colour is
+   stacking the two left the arrow at roughly 7% alpha. Now that the color is
    ours, the opacity is the only fade applied. */
 .slot-arrow:disabled { opacity: 0.4; cursor: default; }
 .slot-arrow:not(:disabled):hover,
@@ -966,7 +966,7 @@ body {
   font-size: 0.75rem;
   /* Was a translucent white fill with var(--text) on top. In dark mode that put
      light text on a near-white control, and the browser draws the native option
-     list from these same colours -- so the whole dropdown was unreadable.
+     list from these same colors -- so the whole dropdown was unreadable.
      A solid themed surface fixes the control and the popup together. */
   border: 1px solid var(--border-strong);
   border-radius: 5px;

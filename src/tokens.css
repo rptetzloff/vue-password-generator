@@ -1,4 +1,4 @@
-/* Design tokens -- the single source of truth for colour, shape and type.
+/* Design tokens -- the single source of truth for color, shape and type.
  *
  * Every page links this before its own styles: index.html, docs.html,
  * changelog.html, about.html and legal.html. Add new tokens here, not in a
@@ -8,7 +8,7 @@
  * attribute is set on <html> by a blocking inline script before first paint --
  * see src/theme.js -- so there is no flash of the wrong theme.
  *
- * Every colour pair here was chosen by computing contrast, not by eye, and is
+ * Every color pair here was chosen by computing contrast, not by eye, and is
  * verified against WCAG AA: 4.5:1 for text, 3:1 for UI boundaries and focus
  * rings. If you change one, re-check it rather than trusting that it looks
  * about right.
@@ -32,7 +32,7 @@
   --warning: #b45309;
   --error: #dc2626;
   /* Text sitting on a status fill, e.g. the toast. Same reason --on-primary
-     exists: the dark-theme status colours are bright, so white on them is
+     exists: the dark-theme status colors are bright, so white on them is
      unreadable (success measured 1.81:1). One token covers all three. */
   --on-status: #ffffff;
 
@@ -139,7 +139,7 @@
   --accent-warn: #b45309;
   --accent-ok: #15803d;
 
-  /* Changelog change-group colours.
+  /* Changelog change-group colors.
    *
    * These were hardcoded in changelog.html, so they never followed the theme
    * and the contrast tests never saw them: seven of the ten theme/group
@@ -147,9 +147,9 @@
    * mode existed.
    *
    * These values were picked by simulating protanopia, deuteranopia and
-   * tritanopia and maximising the *weakest* pair, subject to every colour
+   * tritanopia and maximising the *weakest* pair, subject to every color
    * still clearing AA against --surface. Worst-pair CIEDE2000, measured by
-   * test/colour-vision.test.js:
+   * test/color-vision.test.js:
    *
    *              normal  protan  deutan  tritan
    *   old brand    16.2     8.6     5.8     8.2   (light)
@@ -159,12 +159,12 @@
    *
    * The dark protan figure is why this matters. 1.1 is below the threshold of
    * noticing any difference at all: two change groups that a protanope saw as
-   * one colour. It looked fine, because it looked fine to us.
+   * one color. It looked fine, because it looked fine to us.
    *
-   * This was briefly an opt-in palette behind a Colours setting. It is the
+   * This was briefly an opt-in palette behind a Colors setting. It is the
    * default now -- with normal vision the difference is small enough that the
    * toggle was not earning its complexity, and the more separable set should
-   * not be the one you have to go looking for. Meaning never rests on colour
+   * not be the one you have to go looking for. Meaning never rests on color
    * either way: every group carries its name as text. */
   --group-added: #134e4a;
   --group-improved: #0369a1;
@@ -231,7 +231,7 @@
   --header-hairline: rgba(255, 255, 255, 0.20);
 
   /* Black shadows are close to invisible against a dark surface, so lean on
-   * opacity rather than colour. */
+   * opacity rather than color. */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.5), 0 1px 2px -1px rgb(0 0 0 / 0.5);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.55), 0 4px 6px -4px rgb(0 0 0 / 0.55);
 
@@ -262,17 +262,17 @@
 
 /* Accent palettes.
  *
- * A palette swaps the accent family and nothing else. The status colours, the
- * change-group colours and the badge families all stay put, because those
- * carry meaning and were tuned for legibility and for separation under colour
+ * A palette swaps the accent family and nothing else. The status colors, the
+ * change-group colors and the badge families all stay put, because those
+ * carry meaning and were tuned for legibility and for separation under color
  * vision deficiency -- see src/palettes.js.
  *
- * 'sky' is the bare :root above and has no block here, so an unrecognised or
+ * 'sky' is the bare :root above and has no block here, so an unrecognized or
  * absent data-palette lands on it.
  *
  * Every palette below is checked by test/contrast.test.js for AA in both
- * themes, and by test/colour-vision.test.js for whether its accent stays
- * distinct from the status colours under each kind of colour vision. Adding a
+ * themes, and by test/color-vision.test.js for whether its accent stays
+ * distinct from the status colors under each kind of color vision. Adding a
  * palette means adding it to src/palettes.js; the tests iterate that list, so
  * a palette cannot be added here and quietly skipped.
  */
@@ -322,7 +322,7 @@
    rose-700 sat 11.9 from --error at normal vision -- two large red fills that
    read as the same thing, so an error toast stopped announcing itself on this
    theme. rose-800 only reached 17.7; rose-900 reaches 22.3, which is where the
-   floor in colour-vision.test.js sits. White on the fill improves from 6.29 to
+   floor in color-vision.test.js sits. White on the fill improves from 6.29 to
    9.57 as a side effect. It reads as a deep burgundy rather than a bright
    rose, which is the cost of keeping a red theme on a site that uses red to
    mean something. */
@@ -479,21 +479,21 @@
 /* Mono -- a true grayscale theme.
  *
  * The only palette that overrides more than the accent. Desaturating the
- * interface means the colours that normally carry meaning by hue -- the
+ * interface means the colors that normally carry meaning by hue -- the
  * status trio and the five change groups -- have to separate by lightness
  * instead, and on white every one of them must still clear 4.5:1. That caps
  * them in the dark half of the scale, so the five change groups end up 6.3
- * apart rather than the 7.0 the coloured palettes manage. That is a real
+ * apart rather than the 7.0 the colored palettes manage. That is a real
  * ceiling of grayscale, not a value someone forgot to tune: five AA-legal
  * steps do not fit in that band any further apart.
  *
  * 6.3 is still well above the ~2.3 threshold of noticing a difference, and
  * every group prints its name as text, so nothing depends on telling two
- * greys apart. test/colour-vision.test.js holds monochrome palettes to a 6.0
+ * grays apart. test/color-vision.test.js holds monochrome palettes to a 6.0
  * floor and says why.
  *
  * Being grayscale, it is the one palette that looks identical under every
- * kind of colour vision -- there is no hue left to lose.
+ * kind of color vision -- there is no hue left to lose.
  */
 [data-palette='mono'] {
   --primary: #333333;

@@ -715,9 +715,14 @@ const WordsPassword = {
 
     const loadWordList = async () => {
       try {
-        const response = await fetch('./data/wordlist.txt')
+        // Orchard Street Long: 17,576 words (26^3), 14.101 bits each, against
+        // the EFF list's 7,776 and 12.925. It is also uniquely decodable, which
+        // matters here because the separator can be set to None -- concatenated
+        // EFF words could parse more than one way. One word per line, where the
+        // EFF file was comma-separated.
+        const response = await fetch('./data/orchard-street-long.txt')
         const text = await response.text()
-        wordList.value = text.split(',').map(word => word.trim()).filter(word => word.length > 0)
+        wordList.value = text.split(/\r?\n/).map(word => word.trim()).filter(word => word.length > 0)
       } catch (err) {
         console.error('Failed to load word list:', err)
         wordList.value = ['ability', 'account', 'action', 'active', 'address', 'advance', 'agency', 'agent', 'agree', 'allow', 'amount', 'animal', 'answer', 'appear', 'approach', 'area', 'argue', 'around', 'arrive', 'article', 'artist', 'assume', 'attack', 'attempt', 'attend', 'author', 'avoid', 'balance', 'become', 'before', 'begin', 'believe', 'benefit', 'better', 'between', 'beyond', 'budget', 'build', 'business']

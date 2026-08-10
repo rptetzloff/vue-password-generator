@@ -13,7 +13,7 @@ import {
 } from './theme.js'
 import { PALETTES } from './palettes.js'
 
-const CVD_NOTE = 'Stays distinct from the success, warning and error colours for all types of colour blindness'
+const CVD_NOTE = 'Stays distinct from the success, warning and error colors for all types of color blindness'
 
 const THEME_LABELS = { light: 'Light', dark: 'Dark', system: 'System' }
 const THEME_ICONS = {
@@ -117,7 +117,7 @@ const buildChipRow = (label, options, getValue, onSelect, { note } = {}) => {
 }
 
 /**
- * Every palette's accent colour, read from tokens.css rather than duplicated
+ * Every palette's accent color, read from tokens.css rather than duplicated
  * here -- a second copy of eight hex values is exactly the kind of drift these
  * tokens exist to prevent.
  *
@@ -189,8 +189,8 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
     THEMES.map(t => ({ value: t, label: THEME_LABELS[t], icon: THEME_ICONS[t] })),
     getThemeChoice,
     // The accent differs between light and dark, so the swatches below are
-    // stale the moment the theme changes. refreshColours is hoisted.
-    (v) => { setThemeChoice(v); refreshColours() },
+    // stale the moment the theme changes. refreshColors is hoisted.
+    (v) => { setThemeChoice(v); refreshColors() },
   )
   panel.appendChild(theme.row)
   syncers.push(theme.sync)
@@ -204,13 +204,13 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
   panel.appendChild(textSize.row)
   syncers.push(textSize.sync)
 
-  // Swatches are read at mount time, and the accent colours differ between
+  // Swatches are read at mount time, and the accent colors differ between
   // light and dark, so the row is rebuilt whenever the theme changes.
-  let colours = null
-  const buildColours = () => {
+  let colors = null
+  const buildColors = () => {
     const swatches = readSwatches(PALETTES.map(p => p.value))
     return buildChipRow(
-    'Colours',
+    'Colors',
     PALETTES.map(p => ({
       value: p.value,
       label: p.label,
@@ -219,20 +219,20 @@ export const mountSettingsPanel = (container, { extraSections = [] } = {}) => {
       description: p.cvdSafe ? CVD_NOTE : undefined,
     })),
     getPalette,
-    (v) => { setPalette(v); refreshColours() },
-    { note: 'Themes marked with an eye stay distinct from the status colours for all types of colour blindness.' },
+    (v) => { setPalette(v); refreshColors() },
+    { note: 'Themes marked with an eye stay distinct from the status colors for all types of color blindness.' },
     )
   }
-  function refreshColours () {
-    const next = buildColours()
-    panel.replaceChild(next.row, colours.row)
-    const i = syncers.indexOf(colours.sync)
+  function refreshColors () {
+    const next = buildColors()
+    panel.replaceChild(next.row, colors.row)
+    const i = syncers.indexOf(colors.sync)
     if (i !== -1) syncers[i] = next.sync
-    colours = next
+    colors = next
   }
-  colours = buildColours()
-  panel.appendChild(colours.row)
-  syncers.push(colours.sync)
+  colors = buildColors()
+  panel.appendChild(colors.row)
+  syncers.push(colors.sync)
 
   for (const s of extraSections) {
     const built = buildChipRow(s.label, s.options, s.get, s.set)

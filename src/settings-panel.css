@@ -130,7 +130,7 @@
   }
 }
 
-/* The accent swatch on a Colours chip. Decorative -- the palette name sits
+/* The accent swatch on a Colors chip. Decorative -- the palette name sits
    beside it, so the dot is never the only thing identifying an option. The
    ring keeps a pale swatch from disappearing into the chip. */
 .settings-swatch {
@@ -141,7 +141,7 @@
   box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25);
 }
 
-/* Explains the eye marker on colour-blind-friendly themes. */
+/* Explains the eye marker on color-blind-friendly themes. */
 .settings-note {
   margin: 0.4rem 0 0;
   font-size: 0.7rem;

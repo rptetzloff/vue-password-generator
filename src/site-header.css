@@ -95,7 +95,7 @@
 }
 
 /* No prefers-reduced-motion rule here any more: nothing in the header animates
-   position or size. The only remaining transition is a hover colour fade on
+   position or size. The only remaining transition is a hover color fade on
    the links, which is not motion. */
 
 .header-inner {
@@ -124,7 +124,7 @@
   filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
 }
 
-/* The mark follows the theme. Its two colours are the brand pair, so the key
+/* The mark follows the theme. Its two colors are the brand pair, so the key
    is guaranteed legible against its own tile in both themes -- the same
    --primary / --on-primary contrast the buttons rely on.
    Set by class, not by a var() inside a fill attribute, which is not reliably
@@ -209,8 +209,8 @@
 }
 
 /* The page you are on. aria-current carries this for screen readers; this is
-   the visual half. Not colour alone -- the border weight changes too, so the
-   state survives a colour-vision difference (WCAG 1.4.1). */
+   the visual half. Not color alone -- the border weight changes too, so the
+   state survives a color-vision difference (WCAG 1.4.1). */
 .header-link.is-current {
   background: var(--band-control-hover-bg);
   border-color: white;
