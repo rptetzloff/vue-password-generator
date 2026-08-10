@@ -103,22 +103,95 @@ fixing contrast afterward.** Measured ratios against `--surface` (`#ffffff`):
 
 ## Epic 4 — Word lists
 
-- [ ] **Adopt the newer wordlist from anagrimoire.com.** A better list has since been built there; this is now the leading candidate rather than a possibility. Before porting it, settle three things:
-  - **What it is licensed under and where it came from.** The Legal page lists sources per component, and a new list needs the same treatment as the EFF one.
-  - **Whether it replaces one source or both.** This project has two disconnected sources — `data/words.json` (2,440 curated, categorised by part of speech) and `data/wordlist.txt` (the EFF list, flat). Passphrase and Mad Lib need part-of-speech tagging; Words does not. A list without tagging can replace the second but not the first.
-  - **What it does to the entropy claim.** See the EFF item below: the "5 dice rolls per word" figure is only true at exactly 7,776 entries. A different list means different maths, and Epic 6a will be displaying that number.
-- [ ] **Keep the tiering vocabulary shared.** Anagrimoire tiers its words Common / Standard / Full. Matching that here would let the two sites describe difficulty the same way, and would give Words a "common words only" option that trades entropy for memorability — an honest trade if 6b is showing the cost.
-- [ ] **Fix hyphenated entries colliding with the hyphen separator.** The EFF list contains `drop-down`, `felt-tip`, `t-shirt`, `yo-yo`. With the default hyphen separator these produce ambiguous output like `Drop-down-Cat-42` — unclear where the word boundaries are when reading it aloud or retyping it. Either filter them or escape them when the separator is `-`.
-- [ ] **Rebalance `words.json` categories.** Current distribution is lopsided, which skews Passphrase/Mad Lib output:
+**Decided: two files, two sources, kept apart on purpose.**
 
-  | Type | Categories | Words |
-  |---|---|---|
-  | noun | 7 | 1,054 |
-  | adj | 6 | 667 |
-  | verb | 4 | 381 |
-  | adv | 4 | 338 |
+| file | feeds | source | licence |
+|---|---|---|---|
+| the flat list | Words mode | [Orchard Street Long](https://github.com/sts10/orchard-street-wordlists) | CC BY-SA 4.0 |
+| `data/words.json` | Passphrase, Wireless, Mad Lib | curated here, grown from [imsky/wordlists](https://github.com/imsky/wordlists) (MIT) and [verachell's part-of-speech lists](https://github.com/verachell/English-word-lists-parts-of-speech-approximate) (Unlicense) | MIT |
 
-- [ ] **Verify the EFF list stays intact.** It's currently exactly 7,776 entries, 3–9 chars, zero duplicates — that's what makes the "5 dice rolls per word" entropy claim true. Any curation must preserve the count or the entropy math changes.
+They never mix. Orchard Street is ShareAlike, so anything it touches inherits
+that; `words.json` is the one genuinely original asset in this project and stays
+MIT. Blending them would relicense hand-written work to gain words that measured
+badly anyway — see the rejected approach below.
+
+### 4a. Words mode → Orchard Street Long
+
+- [ ] Replace `data/wordlist.txt` (EFF Long, 7,776 words) with Orchard Street Long (17,576).
+- [ ] **Entropy goes 12.925 → 14.101 bits per word.** The "5 dice rolls per word" line in the docs and README dies with the EFF list: 7,776 is 6⁵ and 17,576 is 26³. The new framing is three letters per word, or just the bit count. Epic 6a will display this, so 4a lands first.
+- [ ] **It is uniquely decodable, and that fixes a real hole.** The separator menu offers **None**. With the EFF list, concatenated words can parse more than one way; Orchard Street cannot. Worth saying plainly in the docs rather than leaving as a silent property.
+- [ ] Retires the hyphenated-entries item below: Orchard Street has no `drop-down`, `t-shirt` or `yo-yo`.
+- [ ] Legal needs a new entry: CC BY-SA 4.0, sts10, derived from Wikipedia and Google Books frequency data. Note explicitly that ShareAlike binds that file and not the MIT code.
+- [ ] Consider offering **Orchard Street Medium** (8,192 = 2¹³, exactly 13 bits/word) as a shorter alternative. Cleaner arithmetic, less entropy.
+
+### 4b. Grow `words.json` from curated lists
+
+Measured against imsky/wordlists (MIT), merging into the existing categories:
+
+| slot | now | merged | gain |
+|---|---|---|---|
+| noun.tech | 131 | **506** | +375 |
+| noun.jobs | 135 | **500** | +365 |
+| noun.places | 126 | **343** | +217 |
+| noun.food | 189 | **399** | +210 |
+| noun.nature | 134 | **309** | +175 |
+| noun.animals | 227 | **359** | +132 |
+| noun.vehicles | 112 | **199** | +87 |
+| adj.mood | 129 | **228** | +99 |
+| adj.texture | 117 | **169** | +52 |
+| verb.action | 119 | **216** | +97 |
+| verb.cognition | 82 | **138** | +56 |
+| verb.movement | 96 | **145** | +49 |
+| **total** | **2,440** | **4,469** | **+83%** |
+
+- [ ] Merge with review, not wholesale. imsky is built for name generation, so some entries are poor passphrase material: `tech` contributes *app, bug, code, data, commit*; `colors` contributes *asphalt, camel, chocolate, coal*. Short, generic or noun-as-adjective.
+- [ ] imsky has **78 noun topics, 23 adjective, 25 verb** against the current 7/6/4. Beyond growing existing categories it could add new ones — birds, cheese, minerals, astronomy — which is a Passphrase and Mad Lib feature in itself.
+- [ ] Keep hunting for other permissively licensed topical lists. This is now the only route for slot vocabulary, so the sources matter.
+
+### 4c. Adverbs — sourceable after all, with one filter
+
+This section previously said adverbs had no source, on the evidence of imsky
+(no adverbs directory) and WordNet (4,482 adverb lemmas but exactly **one**
+adverb lexicographer category, so it can say a word is an adverb and nothing
+about what kind). [verachell's lists](https://github.com/verachell/English-word-lists-parts-of-speech-approximate)
+are released under the **Unlicense** — public domain, the most permissive of
+anything considered here — and change that.
+
+- [ ] **Use `ly-adverbs.txt`, not `mostly-adverbs.txt`.** The repository warns its tags are approximate, and that shows: the general adverb file leaks adjectives — *developmental*, *almighty*, *powerful*, *prenatal*, *ninth* all appear. The `-ly` file is 2,033 entries, verified 100% `-ly`-suffixed, and the sample reads clean: *unanimously, abruptly, hastily, intentionally, furiously, generously*.
+- [ ] **`adv.manner` goes 129 → 506** using only the 377 `-ly` adverbs that also appear in Orchard Street, i.e. restricted to reasonably common words. That is 7.01 → 7.98 bits on the slot.
+- [ ] **The other three buckets still need hand-assignment.** `-ly` maps almost entirely onto manner. `intensity` (80), `time` (69) and `place` (60) get nothing automatic — an adverb list gives membership, not which of the four kinds a word is.
+- [ ] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
+- [ ] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Untested here, but the obvious next source for 4b if imsky runs out.
+
+### Rejected: tagging a flat list with WordNet lexnames
+
+Built and measured before being dropped. The pipeline worked — Orchard Street
+tagged by Open English WordNet 2024 gave 8,289 slot words against 2,440 — but
+the output was unusable, because a WordNet lexname reflects *any* sense of a
+word however rare:
+
+```text
+verb.action     shapes, burden, character, beak, sculpture, segment
+verb.cognition  occult, remembers, import, bulletin, correspond
+noun.jobs       sortie, ball, creole, oracle
+```
+
+`beak` and `sculpture` are verbs only in senses nobody uses; `remembers` is an
+inflected form; `sortie` is not a job. Passphrase and Mad Lib exist to produce
+something that reads like language, and this would have read like a thesaurus
+accident. Restricting to each word's *primary* sense (WordNet orders senses by
+frequency, and `cntlist` ships the counts) would cut most of the noise — worth
+revisiting only if 4b's curated sources run dry.
+
+Two side findings from that work, both still true:
+
+- [ ] **32 adjectives and 17 adverbs appear in two categories at once** — `golden` is in colors and weather, `acutely` in manner and intensity. The `random` category does `Object.values(cats).flat()` with no dedupe, so those words are drawn twice as often as the rest. It overstates the adjective pool by about 0.1 bits. Small, but it is exactly the kind of thing **6b** is meant to be honest about.
+- [ ] Ten curated adverbs are longer than 12 characters (*diplomatically*, *unflinchingly*). Only matters if a length cap is ever applied to slot words; noted so it is not discovered by truncation.
+
+### Still open from before
+
+- [ ] **Rebalance `words.json` categories.** Distribution is lopsided, which skews Passphrase and Mad Lib output. 4b changes these numbers, so re-measure after merging rather than working from the old table.
+- [ ] **Verify whatever ships as the flat list stays intact.** The EFF list was exactly 7,776 entries, 3–9 characters, no duplicates, which is what made its entropy claim true. Orchard Street Long is 17,576, 3–15 characters, no duplicates, uniquely decodable. Whichever is in use, the test suite should pin the count and the properties the displayed entropy depends on.
 
 ---
 
