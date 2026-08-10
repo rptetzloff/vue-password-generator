@@ -257,6 +257,40 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.15.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.15.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Twice as many words for Passphrase, Wireless and Mad Lib</div>
+                <div class="release-summary">The word categories behind the slot-based generators have roughly doubled, and there are two new ones. More words per category means a harder password from the same settings.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Music and Sports noun categories</strong> — 194 and 128 words, available anywhere a noun slot appears.</li>
+                    <li><strong>2,440 to 4,812 words overall</strong> — Tech went from 131 to 506, Food 189 to 399, Places 126 to 328, Animals 227 to 359, and Manner adverbs 129 to 588. Every category grew.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>"Random" was not evenly random</strong> — some words belong to more than one category, and choosing Random pooled the categories without noticing the overlap, so those words came up about twice as often as the rest. 193 nouns, 96 adverbs and 51 adjectives were affected.</li>
+                    <li><strong>A word with an accented character</strong> — <em>jalapeño</em> was the only one, and it is awkward to type and rejected outright by some sites. It is now spelled without the tilde.</li>
+                    <li><strong>Five misspellings</strong> inherited from the word lists we drew from, including <em>liason</em> for liaison and <em>corgie</em> for corgi.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.14.0 -->
         <div class="release">
           <div class="release-meta">

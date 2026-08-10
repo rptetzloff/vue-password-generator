@@ -1181,6 +1181,17 @@ const SLOT_TYPES = [
   { type: 'verb', label: 'Verb', color: 'slot-verb' },
 ]
 
+
+/**
+ * Every distinct word across a part of speech.
+ *
+ * Categories overlap by design, so a flat concat would draw a word once per
+ * category it appears in -- 268 nouns, 96 adverbs and 51 adjectives are in
+ * more than one. Dedupe here rather than in the data, so a category keeps
+ * every word that genuinely belongs to it while a random draw stays uniform.
+ */
+const allOf = (cats) => [...new Set(Object.values(cats).flat())]
+
 const CATEGORY_META = {
   noun: [
     { id: 'random',   label: 'Random'   },
@@ -1191,6 +1202,8 @@ const CATEGORY_META = {
     { id: 'nature',   label: 'Nature'   },
     { id: 'tech',     label: 'Tech'     },
     { id: 'jobs',     label: 'Jobs'     },
+    { id: 'music',    label: 'Music'    },
+    { id: 'sports',   label: 'Sports'   },
   ],
   adj: [
     { id: 'random',   label: 'Random'  },
@@ -1266,7 +1279,7 @@ const Passphrase = {
     const pickFrom = (type, catId) => {
       const cats = wordData.value[type]
       if (!cats) return type
-      const pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || allOf(cats))
       return randPick(pool)
     }
 
@@ -1612,7 +1625,7 @@ const WifiWords = {
     const pickFrom = (type, catId, forceLetter = '') => {
       const cats = wordData.value[type]
       if (!cats) return type
-      let pool = catId === 'random' ? Object.values(cats).flat() : (cats[catId] || Object.values(cats).flat())
+      let pool = catId === 'random' ? allOf(cats) : (cats[catId] || allOf(cats))
       pool = pool.filter(w => typeof w === 'string' && w.length > 0)
       if (forceLetter) {
         const filtered = pool.filter(w => w.charAt(0).toLowerCase() === forceLetter)
@@ -1626,7 +1639,7 @@ const WifiWords = {
       const allPools = slots.value.map(s => {
         const cats = wordData.value[s.type]
         if (!cats) return new Set()
-        const pool = s.cat === 'random' ? Object.values(cats).flat() : (cats[s.cat] || Object.values(cats).flat())
+        const pool = s.cat === 'random' ? allOf(cats) : (cats[s.cat] || allOf(cats))
         return new Set(pool.map(w => w.charAt(0).toLowerCase()))
       })
       if (allPools.length === 0) return ''
@@ -2044,7 +2057,7 @@ const MadLib = {
     const pickFrom = (type, catId) => {
       const typeCats = wordData.value[type]
       if (!typeCats) return type
-      const pool = catId === 'random' ? Object.values(typeCats).flat() : (typeCats[catId] || Object.values(typeCats).flat())
+      const pool = catId === 'random' ? allOf(typeCats) : (typeCats[catId] || allOf(typeCats))
       return randPick(pool) || ''
     }
 
