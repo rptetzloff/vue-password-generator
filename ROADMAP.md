@@ -95,7 +95,7 @@ fixing contrast afterward.** Measured ratios against `--surface` (`#ffffff`):
 - [x] **Audit ARIA coverage.** Current state: **63** `<label>` elements (genuinely good), but only **2** `aria-hidden`, **1** `alt`, and **zero** `role=` or `aria-label`. The icon-only buttons (copy, regenerate-word, history) need accessible names.
 - [x] **Font size / zoom** — anagrimoire sets `font-size` as a percentage on the root; the same control here gives text scaling for free *once units are rem* (Epic 1). Also verify 200% browser zoom and 320px reflow (1.4.10).
 - [x] **Colour-deficiency work** — done, though not as originally written. WCAG does not require colour-blind palettes; it requires (1.4.1) that colour never be the *only* way information is conveyed, which is satisfied because every change group is labelled in text. Making the colours useful rather than merely non-essential is a quality goal, and it is met by measurement: `test/colour-vision.test.js` simulates protanopia, deuteranopia and tritanopia and holds the closest pair above a CIEDE2000 floor. The separation-tuned colours are the default rather than an opt-in palette. Selectable themes moved to Epic 2a, where they belong — that is a preference feature.
-- [ ] **Focus visibility** — verify every control has a visible focus ring meeting 3:1 against its background (2.4.11). Mostly done, and deliberately still open: **Epic 7b** found that `.slider` sets `outline: none` and so has no focus ring at all. Not ticked until that is fixed.
+- [x] **Focus visibility** — verify every control has a visible focus ring meeting 3:1 against its background (2.4.11). Mostly done, and deliberately still open: **Epic 7b** found that `.slider` sets `outline: none` and so has no focus ring at all. Not ticked until that is fixed.
 - [x] **`prefers-reduced-motion`** — check the toast and any transitions.
 - [x] **Keyboard traversal** — tab through all seven generators; confirm the tab row exposes arrow-key navigation or is at least fully reachable.
 
@@ -288,9 +288,11 @@ The visual layer is in good shape; operating it is not. Everything below was
 measured in a browser rather than guessed at, so each item names what is wrong
 rather than asking for it to be nicer.
 
-### 7a. Controls too small to hit — WCAG 2.2 SC 2.5.8, Level AA
+### 7a. Controls too small to hit — WCAG 2.2 SC 2.5.8, Level AA — fixed
 
-Target Size (Minimum) requires 24×24 CSS pixels. Measured today:
+Target Size (Minimum) requires 24×24 CSS pixels. All of these now size from
+`--control-min`, so raising that token raises every one of them at once. The
+table is kept as the record of what was measured before the fix:
 
 | control | size | where |
 |---|---|---|
@@ -300,12 +302,17 @@ Target Size (Minimum) requires 24×24 CSS pixels. Measured today:
 | `.slot-arrow` | **22×22** | six on Passphrase, four on Wireless |
 | `.slot-remove` | **22×22** | three on Passphrase, two on Wireless |
 
-- [ ] Bring all of these to 24×24 minimum. The slot arrows are the worst of it: 22px targets, sitting side by side inside a pill, on a control people use repeatedly to reorder words.
-- [ ] The visually hidden separator radio measures 1×1. That is correct for `sr-only` and exempt, but worth a comment so nobody "fixes" it.
+- [x] Bring all of these to 24×24 minimum. The slot arrows are the worst of it: 22px targets, sitting side by side inside a pill, on a control people use repeatedly to reorder words.
+- [x] The visually hidden separator radio measures 1×1. That is correct for `sr-only` and exempt, but worth a comment so nobody "fixes" it. Commented in `src/style.css`.
+- [x] **The slider needed rebuilding, not resizing.** The input *was* the visible bar — 6px tall — so the whole element was the undersized target. It is now `--control-min` tall and transparent, with the thin bar drawn by the track pseudo-element inside it. Same appearance, four times the target.
+Not a task: **footer links are 22px tall**, and were checked rather than
+assumed. They pass under SC 2.5.8's spacing exception — 55px between the
+closest centres, against the 24px the exception requires — so they are left
+alone.
 
 ### 7b. The sliders specifically
 
-- [ ] **No focus ring.** `.slider` sets `outline: none`. That selector is (0,1,0), the same specificity as the global `:where(...):focus-visible` ring, and `style.css` loads after `tokens.css` — so it wins on source order and the slider gets no visible focus at all. This is a WCAG 2.4.7 failure that the Epic 3 focus audit missed, and the README's claim of "a single 2px focus ring defined site-wide" is wrong until it is fixed.
+- [x] **No focus ring — fixed.** `.slider` set `outline: none`. That selector is (0,1,0), the same specificity as the global `:where(...):focus-visible` ring, and `style.css` loads after `tokens.css`, so it won on source order and the sliders had no visible focus at all — a WCAG 2.4.7 failure the Epic 3 audit missed. `.slider:focus-visible` now sets the ring explicitly rather than deleting the offending line and trusting the global rule, so the next person reaching for `outline: none` on a range input sees why it is not there. Verified with a real keyboard focus, not a programmatic one: `.focus()` does not trigger `:focus-visible`, which is part of why this went unnoticed. This also closes the last open item in **Epic 3**.
 - [ ] **Three controls for one number.** Password Length has a slider, a `−`/`+` stepper, and a value readout. Decide which is authoritative and let the others be secondary, or drop one.
 - [ ] **No sense of range.** Min and max (6 and 128) are never shown, so the slider gives no feel for where 20 sits. Consider end labels or tick marks at meaningful points.
 - [ ] **A 122-step range on a 617px track** is roughly 5px per step, so dragging cannot reliably land on a specific value; the stepper is currently the only precise route. Coarse dragging with fine stepping is the usual answer.

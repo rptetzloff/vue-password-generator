@@ -79,7 +79,8 @@ remembered in `localStorage`.
 - Every colour pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
 - Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it. Verified with no horizontal scroll at 320px — the WCAG 1.4.10 reflow width — at both default and 150% text.
 - Every interactive control has an accessible name; icon-only buttons carry contextual labels such as "Decrease min lowercase letters".
-- A single 2px focus ring is defined site-wide rather than relying on browser defaults, which measured as little as 0.67px on some controls.
+- A single 2px focus ring is defined site-wide rather than relying on browser defaults, which measured as little as 0.67px on some controls. This claim was false for a while and is worth naming: `.slider` set `outline: none`, which ties the global rule on specificity and beats it on source order, so the range inputs had no focus indicator at all. Tests now reject any rule that suppresses an outline.
+- Every interactive control is at least **24×24 CSS pixels**, the WCAG 2.2 SC 2.5.8 minimum, sized from a single `--control-min` token. The slider needed rebuilding rather than resizing: the input *was* the visible 6px bar, so the whole hit target was 6px tall. The footer links are 22px and stay that way — they clear the spacing exception with 55px between the closest centres.
 - The settings panel is keyboard operable: arrow keys move between options, Escape closes and returns focus to the gear.
 - Status messages such as "password copied" are announced to screen readers.
 - The current page is marked with `aria-current` and distinguished by weight and border, not colour alone.
@@ -260,6 +261,7 @@ vue-password-generator/
 │   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling
 │   ├── transforms.test.js
 │   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
+│   ├── controls.test.js  # Target size (2.5.8) and focus visibility (2.4.7)
 │   ├── colour-vision.test.js  # Palette separation under protan/deutan/tritan
 │   ├── theme.test.js
 │   ├── site-header.test.js
