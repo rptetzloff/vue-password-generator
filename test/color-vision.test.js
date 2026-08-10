@@ -4,9 +4,9 @@ import fs from 'node:fs'
 import { ciede2000, closestPair, seenAs, VISIONS } from './helpers/color.js'
 import { PALETTES, DEFAULT_PALETTE } from '../src/palettes.js'
 
-// Whether the palette works for colour-blind users used to be answered by eye.
+// Whether the palette works for color-blind users used to be answered by eye.
 // Eye was wrong: the old dark-theme change-group set contained a pair a
-// protanope sees as effectively one colour. These tests answer it by measuring.
+// protanope sees as effectively one color. These tests answer it by measuring.
 
 // ---------------------------------------------------------------------------
 // First, check the instrument.
@@ -46,7 +46,7 @@ test('CIEDE2000 matches the published reference pairs', () => {
   }
 })
 
-test('CIEDE2000 is symmetric and zero for identical colours', () => {
+test('CIEDE2000 is symmetric and zero for identical colors', () => {
   for (const [a, b] of SHARMA) {
     assert.equal(ciede2000(a, a), 0)
     assert.ok(Math.abs(ciede2000(a, b) - ciede2000(b, a)) < 1e-12)
@@ -80,7 +80,7 @@ const GROUPS = ['added', 'improved', 'fixed', 'removed', 'security']
 //   shipping   / dark      22.4     7.3    11.1    10.8
 //
 // The dark protan column is the one that matters: 1.1 means indistinguishable.
-// 7.0 is set just below the current worst (7.3) so this pins today's behaviour
+// 7.0 is set just below the current worst (7.3) so this pins today's behavior
 // and fails loudly on a regression toward the old set. It is a floor, not a
 // target -- raising it is the point of the palette work still to come.
 const FLOOR = 7.0
@@ -89,7 +89,7 @@ const FLOOR = 7.0
 // including the default, so the default-only version that lived here would
 // have been duplicate coverage.
 
-test('every change group colour is defined in both themes', () => {
+test('every change group color is defined in both themes', () => {
   for (const [themeName, tokens] of [['light', light], ['dark', dark]]) {
     for (const g of GROUPS) {
       assert.ok(tokens[`--group-${g}`], `--group-${g} missing in ${themeName}`)
@@ -101,11 +101,11 @@ test('every change group colour is defined in both themes', () => {
 // Palette cvdSafe flags.
 //
 // src/palettes.js records, per accent palette, whether that accent stays
-// clearly distinct from the three status colours under every kind of colour
+// clearly distinct from the three status colors under every kind of color
 // vision. The settings panel shows that as an eye marker, so it is a claim
 // made to users.
 //
-// Recompute it here rather than trusting it. Change a palette's colours and
+// Recompute it here rather than trusting it. Change a palette's colors and
 // this fails with the flag it should now be, instead of the UI quietly
 // telling someone a theme is safe for them when it is not.
 // ---------------------------------------------------------------------------
@@ -142,12 +142,12 @@ for (const { value, label, cvdSafe, monochrome } of PALETTES) {
 
     if (monochrome) {
       // The accent-versus-status measurement is meaningless here and says so
-      // loudly: it initially failed mono at 3.6, because in a grey theme the
-      // accent is of course close to the grey warning colour. But that is the
+      // loudly: it initially failed mono at 3.6, because in a gray theme the
+      // accent is of course close to the gray warning color. But that is the
       // design, not a hazard -- nothing in a monochrome theme is encoded by
       // hue in the first place, so there is no hue for a deficiency to take
       // away. Mono is the one palette that is provably identical for every
-      // kind of colour vision, which is the strongest form of the claim the
+      // kind of color vision, which is the strongest form of the claim the
       // flag makes. So assert that instead.
       assert.equal(cvdSafe, true, `${label} is monochrome and must be marked cvdSafe`)
 
@@ -157,7 +157,7 @@ for (const { value, label, cvdSafe, monochrome } of PALETTES) {
           const [r, g, b] = [1, 3, 5].map((i) => parseInt(v.substr(i, 2), 16))
           assert.ok(
             r === g && g === b,
-            `${label}/${themeName}: ${name} is ${v}, which is not a neutral grey`,
+            `${label}/${themeName}: ${name} is ${v}, which is not a neutral gray`,
           )
         }
       }
@@ -170,7 +170,7 @@ for (const { value, label, cvdSafe, monochrome } of PALETTES) {
             const shift = ciede2000(seenAs(tokens[t], 'normal'), seenAs(tokens[t], vision))
             assert.ok(
               shift < 1,
-              `${label}/${themeName}: ${t} shifts ${shift.toFixed(2)} under ${vision}; a grey should not move`,
+              `${label}/${themeName}: ${t} shifts ${shift.toFixed(2)} under ${vision}; a gray should not move`,
             )
           }
         }
@@ -188,7 +188,7 @@ for (const { value, label, cvdSafe, monochrome } of PALETTES) {
       cvdSafe,
       `${label} is recorded as cvdSafe: ${cvdSafe}, but its accent comes within ` +
         `${worst.delta.toFixed(1)} of ${worst.status} in ${worst.theme}/${worst.vision} ` +
-        `(threshold ${CVD_SAFE_THRESHOLD}). Update the flag in src/palettes.js, or the colours.`,
+        `(threshold ${CVD_SAFE_THRESHOLD}). Update the flag in src/palettes.js, or the colors.`,
     )
   })
 }
@@ -207,8 +207,8 @@ for (const { value, monochrome } of PALETTES) {
     for (const vision of VISIONS) {
       test(`${value}/${theme} change groups stay distinguishable for ${vision} vision`, () => {
         const tokens = tokensFor(value, theme)
-        const colours = GROUPS.map((g) => tokens[`--group-${g}`])
-        const { delta, a, b } = closestPair(colours, GROUPS, vision)
+        const colors = GROUPS.map((g) => tokens[`--group-${g}`])
+        const { delta, a, b } = closestPair(colors, GROUPS, vision)
         assert.ok(
           delta >= floor,
           `${value}/${theme}/${vision}: ${a} and ${b} are only ${delta.toFixed(1)} apart, ` +
@@ -219,17 +219,17 @@ for (const { value, monochrome } of PALETTES) {
   }
 }
 
-test('at least one palette is marked colour-blind friendly', () => {
+test('at least one palette is marked color-blind friendly', () => {
   // The eye marker and its explanatory note are pointless if nothing carries
   // them, and a palette set where nothing qualifies is worth noticing.
   assert.ok(PALETTES.some((p) => p.cvdSafe), 'no palette qualifies as cvdSafe')
 })
 
-test('no palette accent is indistinguishable from a status colour', () => {
+test('no palette accent is indistinguishable from a status color', () => {
   // Distinct from cvdSafe: that flag is advisory, this is a floor.
   //
   // 2.3 is the just-noticeable-difference threshold, so this asserts only that
-  // no accent is *the same colour* as a status signal. It is deliberately not
+  // no accent is *the same color* as a status signal. It is deliberately not
   // higher. A first attempt used 4 and failed the long-standing default: sky
   // sits 3.2 from --success under tritanopia, because --success is cyan-700
   // and tritanopia collapses the blue-yellow axis, so any blue or teal accent
@@ -239,7 +239,7 @@ test('no palette accent is indistinguishable from a status colour', () => {
   // floor, not a finding.
   //
   // What it does catch is the amber case: amber measured 0.0 from --warning,
-  // because it *was* the warning colour, and rose originally sat 1.4 from
+  // because it *was* the warning color, and rose originally sat 1.4 from
   // --error in dark. Both are "this button looks like an alert", and both are
   // caught here rather than by eye.
   const FLOOR = 2.3
@@ -267,15 +267,15 @@ test('no palette accent is indistinguishable from a status colour', () => {
 // The accent must not look like an error.
 //
 // Separate from the 2.3 floor above, and a lesson in what that floor actually
-// measured. 2.3 is the point at which two colours are *distinguishable when
+// measured. 2.3 is the point at which two colors are *distinguishable when
 // compared*, which is the wrong question here: the accent fills buttons and
-// the error fills a toast, both large blocks of solid colour, and two large
+// the error fills a toast, both large blocks of solid color, and two large
 // red fields read as the same thing long before they become impossible to tell
 // apart side by side. Rose passed the 2.3 floor comfortably at 11.9 and still
 // made an error toast stop looking like an error.
 //
 // 20 at normal vision is where the rest of the palettes already sit -- every
-// non-rose colour theme is 33 or higher -- so this pins the property rather
+// non-rose color theme is 33 or higher -- so this pins the property rather
 // than inventing a bar. Deficient vision is held to the lower 2.3 floor
 // instead: under tritanopia a red and an orange genuinely converge, and no
 // choice of accent avoids that.
@@ -284,10 +284,10 @@ const ERROR_SEPARATION = 20
 for (const { value, label, monochrome } of PALETTES) {
   test(`the ${value} accent does not read as an error state`, () => {
     if (monochrome) {
-      // Grayscale has no room for this. The three status greys already use
+      // Grayscale has no room for this. The three status grays already use
       // most of the lightness band that clears 4.5:1, and the accent has to
-      // fit in the same band -- mono's accent sits 7.1 from its error grey and
-      // cannot do much better. In a theme where nothing is colour-coded, that
+      // fit in the same band -- mono's accent sits 7.1 from its error gray and
+      // cannot do much better. In a theme where nothing is color-coded, that
       // is the trade being made rather than a defect: the toast is identified
       // by its words, as it is everywhere else.
       return
@@ -301,15 +301,15 @@ for (const { value, label, monochrome } of PALETTES) {
       assert.ok(
         delta >= ERROR_SEPARATION,
         `${label}/${theme}: the accent is ${delta.toFixed(1)} from --error, below the ` +
-          `${ERROR_SEPARATION} floor. Two large fills this close read as the same colour, ` +
+          `${ERROR_SEPARATION} floor. Two large fills this close read as the same color, ` +
           'so an error stops announcing itself.',
       )
     }
   })
 }
 
-test('every change group is also labelled in text, not colour alone', () => {
-  // WCAG 1.4.1. The measurements above are about making the colours *helpful*;
+test('every change group is also labelled in text, not color alone', () => {
+  // WCAG 1.4.1. The measurements above are about making the colors *helpful*;
   // this is what makes them non-essential, and it is the reason a weak pair is
   // a quality problem rather than an accessibility failure.
   const html = fs.readFileSync(new URL('../changelog.html', import.meta.url), 'utf8')

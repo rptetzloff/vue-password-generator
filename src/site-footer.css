@@ -31,7 +31,7 @@
   padding-inline: var(--footer-pad, 0);
   display: flex;
   align-items: center;
-  /* Centred rather than space-between: the footer now holds a single link row,
+  /* Centered rather than space-between: the footer now holds a single link row,
      since the author credit moved to about.html. With one flex child
      space-between stranded it against the left edge. */
   justify-content: center;

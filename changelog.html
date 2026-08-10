@@ -257,6 +257,40 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.14.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.14.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">A bigger, better word list for Words mode</div>
+                <div class="release-summary">Words mode now draws from a list more than twice the size, so every word you generate is harder to guess. It also fixes a subtle weakness that only showed up if you turned the separator off.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>17,576 words instead of 7,776</strong> — Words mode moves to the Orchard Street Long list. Each word is now worth about 14.1 bits instead of 12.9, so a five-word passphrase gains roughly 6 bits of strength for free. Nothing about how you use it changes.</li>
+                    <li><strong>Words can be safely joined with no separator</strong> — the new list is built so that no run of its words can be read as a different run of words. With the old list, "Separator: None" could in principle produce something ambiguous. This is now checked on every build rather than taken on faith.</li>
+                    <li><strong>No more awkward hyphenated entries</strong> — the old list contained words like <em>drop-down</em> and <em>t-shirt</em>, which read badly when the separator was also a hyphen.</li>
+                    <li><strong>The word list is checked, not assumed</strong> — its size, spelling and the properties the strength figures depend on are verified automatically. The previous list's "five dice rolls per word" claim was only true at exactly 7,776 words, and nothing would have caught it changing.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>Consistent American spelling</strong> — the site had drifted into a mix of "colour" and "color", "licence" and "license". Now consistent throughout.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.13.1 -->
         <div class="release">
           <div class="release-meta">
@@ -335,18 +369,18 @@
           <div>
             <div class="release-card">
               <div class="release-card-head">
-                <div class="release-title">Ten colour themes, and a header that was never readable in light mode</div>
-                <div class="release-summary">Pick the colour you want the site to be. Building this turned up a genuine contrast failure in the light-mode header that had been shipping for a while, hidden behind an assumption nothing was checking.</div>
+                <div class="release-title">Ten color themes, and a header that was never readable in light mode</div>
+                <div class="release-summary">Pick the color you want the site to be. Building this turned up a genuine contrast failure in the light-mode header that had been shipping for a while, hidden behind an assumption nothing was checking.</div>
               </div>
               <div class="change-groups">
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
                   <ul class="change-list">
-                    <li><strong>Ten colour themes</strong> — Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate and Mono, in Settings under Colours. Each one changes the accent, the focus ring and the page background, and they combine freely with light and dark.</li>
-                    <li><strong>Dark mode wears the theme</strong> — the cards and page behind them are tinted to match, so a violet theme is violet throughout rather than the same grey card with a violet button. The tints are all at least as dark as the grey they replace, so nothing sitting on them gets harder to read.</li>
-                    <li><strong>Mono, a true grayscale theme</strong> — the only one that also drops colour from the status messages and the changelog groups. Those then have to be told apart by lightness alone, which is a tighter constraint than it sounds: they must all stay dark enough to read on white. It is also the one theme that looks exactly the same to everyone, whatever their colour vision.</li>
-                    <li><strong>Themes labelled for colour blindness</strong> — an eye marker shows which themes keep their accent clearly distinct from the success, warning and error colours for every kind of colour blindness. Blue, Indigo, Violet, Slate and Mono qualify. The marker is recalculated from the actual colours on every build, so it cannot drift out of date.</li>
-                    <li><strong>Documentation for the colour options</strong> — the Appearance &amp; Settings page now covers the themes, what Mono does differently, and what the eye marker means. Shared Options and Appearance also got tiles on the docs overview, and every section has a link back to the top.</li>
+                    <li><strong>Ten color themes</strong> — Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate and Mono, in Settings under Colors. Each one changes the accent, the focus ring and the page background, and they combine freely with light and dark.</li>
+                    <li><strong>Dark mode wears the theme</strong> — the cards and page behind them are tinted to match, so a violet theme is violet throughout rather than the same gray card with a violet button. The tints are all at least as dark as the gray they replace, so nothing sitting on them gets harder to read.</li>
+                    <li><strong>Mono, a true grayscale theme</strong> — the only one that also drops color from the status messages and the changelog groups. Those then have to be told apart by lightness alone, which is a tighter constraint than it sounds: they must all stay dark enough to read on white. It is also the one theme that looks exactly the same to everyone, whatever their color vision.</li>
+                    <li><strong>Themes labelled for color blindness</strong> — an eye marker shows which themes keep their accent clearly distinct from the success, warning and error colors for every kind of color blindness. Blue, Indigo, Violet, Slate and Mono qualify. The marker is recalculated from the actual colors on every build, so it cannot drift out of date.</li>
+                    <li><strong>Documentation for the color options</strong> — the Appearance &amp; Settings page now covers the themes, what Mono does differently, and what the eye marker means. Shared Options and Appearance also got tiles on the docs overview, and every section has a link back to the top.</li>
                   </ul>
                 </div>
                 <div class="change-group">
@@ -357,9 +391,9 @@
                     <li><strong>Header buttons now darken on hover instead of lightening</strong> — they carry white text, so the old lightening made them harder to read the moment you pointed at one.</li>
                     <li><strong>Checkboxes had two checkmarks</strong> — the tick you saw was ours drawn on top of the browser's own, because the native control was never switched off. One tick now. The radio buttons had the same fault, though it was invisible there.</li>
                     <li><strong>Long passwords no longer run off the end of the box</strong> — the field wraps onto as many lines as it needs and grows to fit, instead of hiding the rest of a long result. The copy button and the length badge stay level with the first line.</li>
-                    <li><strong>The "copied" message now matches your theme</strong> — it was always the same teal, which looked out of place on a violet or rose theme. Warnings and errors keep their own colours, since the point of those is to look the same wherever you see them.</li>
+                    <li><strong>The "copied" message now matches your theme</strong> — it was always the same teal, which looked out of place on a violet or rose theme. Warnings and errors keep their own colors, since the point of those is to look the same wherever you see them.</li>
                     <li><strong>The footer had the same problem</strong> — its text was 70% white on that same pale banner, at 2.6:1. Now 85% white on a deeper background.</li>
-                    <li><strong>Why it went unnoticed</strong> — the contrast checks skipped the header and footer entirely, on the reasoning that they sit on a dark background in both themes. That was true of dark mode and wrong about light. The checks now work out the real colour behind the text instead of taking that on trust, and they cover all ten themes.</li>
+                    <li><strong>Why it went unnoticed</strong> — the contrast checks skipped the header and footer entirely, on the reasoning that they sit on a dark background in both themes. That was true of dark mode and wrong about light. The checks now work out the real color behind the text instead of taking that on trust, and they cover all ten themes.</li>
                     <li><strong>The documentation sidebar had the same fault</strong> — its links sat on the page background in faded white, measuring 4.4:1 and its heading 3.2:1. Both are legible now, and the sidebar is reachable on narrow screens instead of disappearing.</li>
                     <li><strong>Documentation credits</strong> — the docs page still credited only Bolt for the AI-assisted development; Claude Code has been added, as it already was on the About page.</li>
                   </ul>
@@ -367,7 +401,7 @@
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
                   <ul class="change-list">
-                    <li><strong>An amber theme, and two attempts at a red one</strong> — amber turned out to be indistinguishable from the warning colour, because it was the same colour. Rose went through two revisions: the first was close enough to the error red that a normal button looked like something had gone wrong, and the second still made the error message itself stop standing out. It ships as a deeper burgundy, which is the price of a red theme on a site that uses red to mean something.</li>
+                    <li><strong>An amber theme, and two attempts at a red one</strong> — amber turned out to be indistinguishable from the warning color, because it was the same color. Rose went through two revisions: the first was close enough to the error red that a normal button looked like something had gone wrong, and the second still made the error message itself stop standing out. It ships as a deeper burgundy, which is the price of a red theme on a site that uses red to mean something.</li>
                   </ul>
                 </div>
               </div>
@@ -385,30 +419,30 @@
           <div>
             <div class="release-card">
               <div class="release-card-head">
-                <div class="release-title">Readable word slots, and colours measured for colour blindness</div>
-                <div class="release-summary">The part-of-speech boxes in Passphrase and Wireless were close to invisible in dark mode. Fixing them turned up the same underlying cause behind three earlier colour bugs, so that is now caught by tests. The colour-blind palette is no longer a setting — it is simply the colours the site uses.</div>
+                <div class="release-title">Readable word slots, and colors measured for color blindness</div>
+                <div class="release-summary">The part-of-speech boxes in Passphrase and Wireless were close to invisible in dark mode. Fixing them turned up the same underlying cause behind three earlier color bugs, so that is now caught by tests. The color-blind palette is no longer a setting — it is simply the colors the site uses.</div>
               </div>
               <div class="change-groups">
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
                   <ul class="change-list">
-                    <li><strong>Word slots were unreadable in dark mode</strong> — the adjective, adverb, noun and verb boxes used pale fills with no text colour set, so light text landed on a light box. Measured at 1.01:1 against the 4.5:1 standard, which is very close to invisible. They now use the same colour pairs as the rest of the site and measure 7.3:1 or better.</li>
+                    <li><strong>Word slots were unreadable in dark mode</strong> — the adjective, adverb, noun and verb boxes used pale fills with no text color set, so light text landed on a light box. Measured at 1.01:1 against the 4.5:1 standard, which is very close to invisible. They now use the same color pairs as the rest of the site and measure 7.3:1 or better.</li>
                     <li><strong>The category dropdown inside a word slot</strong> — a translucent white background with themed text made both the control and its option list unreadable in dark mode. Now 11.9:1.</li>
-                    <li><strong>Faint arrows and remove buttons</strong> — the ← → and ✕ controls in each slot were drawn in the browser's own button colour rather than the theme's, and their disabled state stacked two separate fades to roughly 7% opacity.</li>
+                    <li><strong>Faint arrows and remove buttons</strong> — the ← → and ✕ controls in each slot were drawn in the browser's own button color rather than the theme's, and their disabled state stacked two separate fades to roughly 7% opacity.</li>
                     <li><strong>A warning badge with black text on a themed fill</strong> — the same class of mistake as the others, found by the new checks rather than by eye.</li>
                   </ul>
                 </div>
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
                   <ul class="change-list">
-                    <li><strong>Colour-blind colours are now the default</strong> — these were an opt-in "Colours" setting. With normal vision the difference is small, which is what made the toggle hard to justify; under simulation it is not. The old dark-theme colours had two change groups that someone with protanopia sees as the same colour, and the more legible set should not be the one you have to go looking for. The setting is gone; the colours stay.</li>
-                    <li><strong>Colour blindness is now measured, not guessed</strong> — the changelog colours are checked by simulating protanopia, deuteranopia and tritanopia and measuring how far apart the closest pair is. This runs on every build. Colour was never the only signal here — each group is labelled in text — but it should still be useful.</li>
+                    <li><strong>Color-blind colors are now the default</strong> — these were an opt-in "Colors" setting. With normal vision the difference is small, which is what made the toggle hard to justify; under simulation it is not. The old dark-theme colors had two change groups that someone with protanopia sees as the same color, and the more legible set should not be the one you have to go looking for. The setting is gone; the colors stay.</li>
+                    <li><strong>Color blindness is now measured, not guessed</strong> — the changelog colors are checked by simulating protanopia, deuteranopia and tritanopia and measuring how far apart the closest pair is. This runs on every build. Color was never the only signal here — each group is labelled in text — but it should still be useful.</li>
                   </ul>
                 </div>
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
                   <ul class="change-list">
-                    <li><strong>Checks that would have caught all of this sooner</strong> — every one of these bugs was a colour written directly into a stylesheet, where the contrast tests could not see it, because those read the design tokens. Colours written that way are now rejected outright, so the tests see everything.</li>
+                    <li><strong>Checks that would have caught all of this sooner</strong> — every one of these bugs was a color written directly into a stylesheet, where the contrast tests could not see it, because those read the design tokens. Colors written that way are now rejected outright, so the tests see everything.</li>
                   </ul>
                 </div>
               </div>
@@ -440,10 +474,10 @@
                   <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
                   <ul class="change-list">
                     <li><strong>Buttons and sliders had no name</strong> — the &minus;/+ steppers, the length sliders and the password field itself were unlabelled, so a screen reader announced them as just &ldquo;button&rdquo; or &ldquo;slider&rdquo; with no indication of what they did. All 55 now describe themselves in context, for example &ldquo;Decrease min lowercase letters&rdquo;. The densest screen went from four unnamed controls to none out of 140.</li>
-                    <li><strong>The keyboard focus outline was inconsistent</strong> — most controls fell back to the browser's own, which measured as little as 0.67 pixels on some and differed between browsers. There is now one 2-pixel outline everywhere, in a colour already verified to stand out against its background.</li>
+                    <li><strong>The keyboard focus outline was inconsistent</strong> — most controls fell back to the browser's own, which measured as little as 0.67 pixels on some and differed between browsers. There is now one 2-pixel outline everywhere, in a color already verified to stand out against its background.</li>
                     <li><strong>Raising the text size left button labels behind</strong> — buttons do not inherit the page's text size by default, so the tab boxes grew while the words inside them stayed small.</li>
                     <li><strong>The page scrolled sideways on narrow screens</strong> — the footer links could not wrap, and at larger text sizes neither could the header navigation. Both now wrap, and there is no sideways scroll at 320&nbsp;pixels wide even at 150% text.</li>
-                    <li><strong>Text fields showed almost no focus indication</strong> — the outline was switched off in favour of a 10%-opacity glow that was also still hardcoded to the old brand colour, so it neither matched the theme nor read clearly.</li>
+                    <li><strong>Text fields showed almost no focus indication</strong> — the outline was switched off in favour of a 10%-opacity glow that was also still hardcoded to the old brand color, so it neither matched the theme nor read clearly.</li>
                   </ul>
                 </div>
               </div>
@@ -462,7 +496,7 @@
             <div class="release-card">
               <div class="release-card-head">
                 <div class="release-title">Dark mode, a settings panel, and one header everywhere</div>
-                <div class="release-summary">Adds light and dark themes with a settings gear on every page, replaces five inconsistent navigations with one, and fixes a set of colour contrast problems — including a &ldquo;copied&rdquo; message that was almost unreadable.</div>
+                <div class="release-summary">Adds light and dark themes with a settings gear on every page, replaces five inconsistent navigations with one, and fixes a set of color contrast problems — including a &ldquo;copied&rdquo; message that was almost unreadable.</div>
               </div>
               <div class="change-groups">
                 <div class="change-group">
@@ -477,7 +511,7 @@
                   <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
                   <ul class="change-list">
                     <li><strong>The &ldquo;password copied&rdquo; message was hard to read</strong> — in dark mode it was white text on a bright fill, measuring 1.8:1 where 4.5:1 is the readable minimum. Now 9.9:1. The error message had the same problem.</li>
-                    <li><strong>Buttons and other coloured elements</strong> — white text on the main blue measured 2.8:1. The blue is now darker in light mode and the text darkens instead of staying white in dark mode, reaching 5.9:1 and 6.5:1. The same applied to the status colours, the checkbox tick, and the documentation category badges.</li>
+                    <li><strong>Buttons and other colored elements</strong> — white text on the main blue measured 2.8:1. The blue is now darker in light mode and the text darkens instead of staying white in dark mode, reaching 5.9:1 and 6.5:1. The same applied to the status colors, the checkbox tick, and the documentation category badges.</li>
                     <li><strong>Input outlines were too faint</strong> — the border marking a text field measured 1.5:1 against its background, below the 3:1 needed to be seen. Card edges stay subtle; only real controls were strengthened.</li>
                     <li><strong>Status messages are now announced</strong> to screen readers, which previously got no confirmation that a password had been copied.</li>
                     <li><strong>Animations respect reduced-motion</strong> preferences.</li>
@@ -487,8 +521,8 @@
                   <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
                   <ul class="change-list">
                     <li><strong>One header for the whole site</strong> — the app had a large bespoke header while the other pages hand-rolled a smaller one, so neither could be changed without the other drifting. All five now render the same header, with an optional description line the generator uses for its privacy notice.</li>
-                    <li><strong>The logo follows the theme</strong> — it was a fixed image that could not see the theme, and in light mode it was the exact colour of the header behind it, visible only because of its shadow. It now uses the site's own colours and adapts.</li>
-                    <li><strong>Contrast is now covered by tests</strong> — every colour pair in both themes is checked automatically against the accessibility standard, so a future colour change cannot quietly break readability.</li>
+                    <li><strong>The logo follows the theme</strong> — it was a fixed image that could not see the theme, and in light mode it was the exact color of the header behind it, visible only because of its shadow. It now uses the site's own colors and adapts.</li>
+                    <li><strong>Contrast is now covered by tests</strong> — every color pair in both themes is checked automatically against the accessibility standard, so a future color change cannot quietly break readability.</li>
                   </ul>
                 </div>
               </div>
@@ -567,13 +601,13 @@
                   <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
                   <ul class="change-list">
                     <li><strong>About page</strong> — what the tool is, why word-based passwords work, how the randomness is generated, credits, and a pointer to the companion site Anagrimoire.</li>
-                    <li><strong>Legal page</strong> — a plain-English privacy statement, the MIT licence, a no-warranty disclaimer, and attributions for Vue 3.4.0, Material Design Icons 7.4.47 and the EFF wordlist.</li>
+                    <li><strong>Legal page</strong> — a plain-English privacy statement, the MIT license, a no-warranty disclaimer, and attributions for Vue 3.4.0, Material Design Icons 7.4.47 and the EFF wordlist.</li>
                   </ul>
                 </div>
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
                   <ul class="change-list">
-                    <li><strong>One source of truth for the palette</strong> — the colour, shadow and type tokens were declared three separate times, in <code>style.css</code>, <code>docs.html</code> and <code>changelog.html</code>. They now live once in <code>tokens.css</code>, which is what makes light/dark and colour themes practical to add later.</li>
+                    <li><strong>One source of truth for the palette</strong> — the color, shadow and type tokens were declared three separate times, in <code>style.css</code>, <code>docs.html</code> and <code>changelog.html</code>. They now live once in <code>tokens.css</code>, which is what makes light/dark and color themes practical to add later.</li>
                     <li><strong>Shared header and footer</strong> — both were duplicated per page and had quietly drifted: the header link style had two different class names with identical rules, and only the changelog had small-screen sizing, so the docs header never shrank on mobile. Both are now single stylesheets, with per-page width as a variable.</li>
                     <li><strong>Sizes follow text size</strong> — 36 hard-coded pixel values that should scale with type, including two font sizes that could never scale at all, are now relative units. Physical values such as hairline borders and shadows deliberately stay in pixels. Nothing changes at the default text size; the difference appears when you increase it.</li>
                   </ul>
@@ -590,7 +624,7 @@
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
                   <ul class="change-list">
-                    <li><strong>Footer credit line</strong> — “Made by Raymond Tetzloff with assistance from Bolt · Hosted on Render” has moved to the About page. The footer is now a single centred row of links: GitHub, App, Docs, Changelog, About and Legal.</li>
+                    <li><strong>Footer credit line</strong> — “Made by Raymond Tetzloff with assistance from Bolt · Hosted on Render” has moved to the About page. The footer is now a single centered row of links: GitHub, App, Docs, Changelog, About and Legal.</li>
                   </ul>
                 </div>
               </div>

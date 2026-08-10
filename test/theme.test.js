@@ -20,11 +20,11 @@ test('resolveTheme follows the OS only when the choice is system', () => {
   assert.equal(resolveTheme('system', false), 'light')
 })
 
-test('resolveTheme falls back to light for anything unrecognised', () => {
+test('resolveTheme falls back to light for anything unrecognized', () => {
   for (const bad of ['', 'Dark', 'blue', null, undefined, 0, {}]) {
     assert.equal(resolveTheme(bad, false), 'light', `${JSON.stringify(bad)} with light OS`)
   }
-  // An unrecognised value must not accidentally inherit the OS preference --
+  // An unrecognized value must not accidentally inherit the OS preference --
   // only 'system' is allowed to do that.
   for (const bad of ['', 'Dark', 'blue', null, undefined, 0, {}]) {
     assert.equal(resolveTheme(bad, true), 'light', `${JSON.stringify(bad)} with dark OS`)

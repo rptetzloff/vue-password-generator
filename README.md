@@ -20,7 +20,7 @@ Quick password generation with toggles for lowercase, uppercase, numbers, and sy
 Fine-grained control over minimum and maximum character counts per type, plus a configurable custom symbol set. The symbol picker includes **All**, **Common** (`!@#$%&*-_+=?`), and **None** presets alongside individual symbol toggles.
 
 ### Words
-Dictionary-based passwords built from a 7,776-word EFF wordlist. Choose word count (2–8), separator, and capitalization scheme. Separator options include hyphens, underscores, dots, numbers, spaces, and custom characters. A **character count pill** next to the copy button shows the total length of the generated password at a glance.
+Dictionary-based passwords built from the 17,576-word [Orchard Street Long list](https://github.com/sts10/orchard-street-wordlists) — 14.1 bits per word. Choose word count (2–8), separator, and capitalization scheme. Separator options include hyphens, underscores, dots, numbers, spaces, and custom characters. A **character count pill** next to the copy button shows the total length of the generated password at a glance.
 
 ### Numbers
 Numeric passwords with configurable length, plus controls to limit repeated and sequential digits.
@@ -53,20 +53,20 @@ A settings gear in the header opens a small panel, available on every page.
 
 - **Theme** — Light, Dark, or System. System follows your OS setting and updates live if you change it.
 - **Text size** — Default, 112%, 125% or 150%. Scales the whole interface, not just the copy, and multiplies your browser's own font size rather than replacing it.
-- **Colours** — ten accent themes: Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate and Mono. Themes marked with an eye are verified to stay distinct from the success, warning and error colours for every kind of colour blindness.
+- **Colors** — ten accent themes: Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate and Mono. Themes marked with an eye are verified to stay distinct from the success, warning and error colors for every kind of color blindness.
 - **History** — the per-generator history limit, on the app page only.
 
 A theme swaps the accent family — primary, hover, focus ring, focus tint and the
 page gradient — and in dark mode it also tints the surfaces, so a violet theme
-gives violet cards rather than the same grey card with a violet button. The
+gives violet cards rather than the same gray card with a violet button. The
 tints are all at or below the neutral slate they replace, so they can only raise
 the contrast of everything sitting on them.
 
 **Mono** is the exception: it is a true grayscale theme and overrides the status
-and change-group colours too. That is the interesting constraint — with no hue,
+and change-group colors too. That is the interesting constraint — with no hue,
 those have to separate by lightness alone, while every one of them still clears
 4.5:1 on white, which pins them into the dark half of the scale. Mono is also
-the only theme that is provably identical for every kind of colour vision.
+the only theme that is provably identical for every kind of color vision.
 
 The theme is applied by a blocking inline script before the page paints, so
 switching to dark never shows a flash of the light theme first. Your choice is
@@ -76,26 +76,26 @@ remembered in `localStorage`.
 
 ## Accessibility
 
-- Every colour pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
+- Every color pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
 - Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it. Verified with no horizontal scroll at 320px — the WCAG 1.4.10 reflow width — at both default and 150% text.
 - Every interactive control has an accessible name; icon-only buttons carry contextual labels such as "Decrease min lowercase letters".
 - A single 2px focus ring is defined site-wide rather than relying on browser defaults, which measured as little as 0.67px on some controls. This claim was false for a while and is worth naming: `.slider` set `outline: none`, which ties the global rule on specificity and beats it on source order, so the range inputs had no focus indicator at all. Tests now reject any rule that suppresses an outline.
-- Every interactive control is at least **24×24 CSS pixels**, the WCAG 2.2 SC 2.5.8 minimum, sized from a single `--control-min` token. The slider needed rebuilding rather than resizing: the input *was* the visible 6px bar, so the whole hit target was 6px tall. The footer links are 22px and stay that way — they clear the spacing exception with 55px between the closest centres.
+- Every interactive control is at least **24×24 CSS pixels**, the WCAG 2.2 SC 2.5.8 minimum, sized from a single `--control-min` token. The slider needed rebuilding rather than resizing: the input *was* the visible 6px bar, so the whole hit target was 6px tall. The footer links are 22px and stay that way — they clear the spacing exception with 55px between the closest centers.
 - The settings panel is keyboard operable: arrow keys move between options, Escape closes and returns focus to the gear.
 - Status messages such as "password copied" are announced to screen readers.
-- The current page is marked with `aria-current` and distinguished by weight and border, not colour alone.
+- The current page is marked with `aria-current` and distinguished by weight and border, not color alone.
 - Animations respect `prefers-reduced-motion`.
-- Colour is never the only signal. The changelog's change groups, for example, each print their name as text.
+- Color is never the only signal. The changelog's change groups, for example, each print their name as text.
 
-### Colour vision
+### Color vision
 
-The changelog's change-group colours are chosen by simulating protanopia,
+The changelog's change-group colors are chosen by simulating protanopia,
 deuteranopia and tritanopia and maximising the *weakest* pair, measured as
-CIEDE2000 in CIE Lab. `test/colour-vision.test.js` re-measures this on every
+CIEDE2000 in CIE Lab. `test/color-vision.test.js` re-measures this on every
 run, and pins the CIEDE2000 implementation itself against the reference pairs
 published with the formula.
 
-This started as an opt-in "Colour-blind" palette and is now simply the default.
+This started as an opt-in "Color-blind" palette and is now simply the default.
 With normal vision the difference from the old brand set is small, which is
 what made a toggle hard to justify; under simulation it is not. The old dark
 set had two groups a protanope sees at CIEDE2000 1.1 — below the threshold of
@@ -103,29 +103,29 @@ noticing any difference at all — against 7.3 now.
 
 The same tooling decides which accent themes get the eye marker in Settings. A
 theme earns it when its accent stays at least 10 (CIEDE2000) from all three
-status colours under normal, protan, deutan and tritan vision, in both themes.
+status colors under normal, protan, deutan and tritan vision, in both themes.
 That flag is recomputed from `tokens.css` on every test run and the suite fails
 if the recorded value disagrees, so the marker cannot quietly become a lie.
 
 A second, stricter floor applies to the accent against `--error` alone: **20**
 at normal vision. This exists because the first floor asked the wrong question.
-2.3 is the point at which two colours can be told apart *when compared*, but
+2.3 is the point at which two colors can be told apart *when compared*, but
 the accent fills buttons and the error fills a toast — two large blocks of
-solid colour — and those read as the same thing long before they become hard
+solid color — and those read as the same thing long before they become hard
 to distinguish side by side. Rose cleared 2.3 comfortably at 11.9 and still
 made an error stop looking like an error.
 
 That reshaped the red theme twice. An amber accent was dropped outright at
-**0.0** from the warning colour, because it *was* the warning colour. Rose went
+**0.0** from the warning color, because it *was* the warning color. Rose went
 from rose-700 (11.9 from `--error`) to rose-900 at 22.3 in light, and from
 rose-400 — 1.4 apart under tritanopia — to rose-200 at 22.5 in dark. It reads
 as a deep burgundy now rather than a bright rose, which is the price of keeping
 a red theme on a site that uses red to mean something.
 
-**Mono is exempt**, and cannot help it. The three status greys already occupy
+**Mono is exempt**, and cannot help it. The three status grays already occupy
 most of the lightness band that clears 4.5:1, and the accent has to fit in the
-same band; it sits 7.1 from its error grey. In a theme where nothing is
-colour-coded that is the trade being made, not a defect — the toast is
+same band; it sits 7.1 from its error gray. In a theme where nothing is
+color-coded that is the trade being made, not a defect — the toast is
 identified by its words, as it is everywhere else.
 
 Neither the 7.0 group floor nor mono's 6.0 is a comfortable margin. Raising
@@ -197,12 +197,12 @@ floor, since the suite uses `globalThis.crypto`. Coverage is the pure logic that
 can be tested without a browser: the CSPRNG (range, uniformity, and that
 rejection sampling actually discards the biased tail), the word and character
 transforms, theme resolution, nav path matching, and both WCAG contrast and
-colour-vision separation read straight out of `src/tokens.css`.
+color-vision separation read straight out of `src/tokens.css`.
 
 Two of those are lints rather than assertions about values, and both exist
-because the same bug shipped repeatedly: a colour hardcoded in a stylesheet is
+because the same bug shipped repeatedly: a color hardcoded in a stylesheet is
 invisible to every contrast test, because those read the tokens. So `style.css`
-is required to carry no literal colours at all, and no rule may put a literal
+is required to carry no literal colors at all, and no rule may put a literal
 `color` on a themed fill. `site-header.css` and `site-footer.css` are exempt —
 they sit on the page gradient, which is dark in both themes.
 
@@ -237,7 +237,7 @@ For any other static host, serve the repository root as-is.
 vue-password-generator/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
-│   └── wordlist.txt      # EFF large wordlist for Words mode (7,776 words)
+│   └── orchard-street-long.txt  # Words mode list (17,576 words, CC BY-SA 4.0)
 ├── src/
 │   ├── main.js           # Vue components for the seven generators
 │   ├── lib.js            # Pure generation helpers (no Vue, no DOM) — unit tested
@@ -249,7 +249,7 @@ vue-password-generator/
 │   ├── site-footer.js    # Shared footer, generated from the same list
 │   ├── markdown.js       # Small Markdown subset renderer, for roadmap.html
 │   ├── settings-panel.js # The settings gear popover
-│   ├── tokens.css        # Design tokens — the only place colours are defined
+│   ├── tokens.css        # Design tokens — the only place colors are defined
 │   ├── site-header.css   # Shared header styles
 │   ├── site-footer.css   # Shared footer styles
 │   ├── settings-panel.css
@@ -257,12 +257,13 @@ vue-password-generator/
 │   └── style.css         # App-specific component styles
 ├── test/                 # node --test, zero dependencies
 │   ├── helpers/
-│   │   └── color.js      # CIEDE2000 + colour-vision simulation (test tooling)
+│   │   └── color.js      # CIEDE2000 + color-vision simulation (test tooling)
 │   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling
 │   ├── transforms.test.js
 │   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
 │   ├── controls.test.js  # Target size (2.5.8) and focus visibility (2.4.7)
-│   ├── colour-vision.test.js  # Palette separation under protan/deutan/tritan
+│   ├── color-vision.test.js  # Palette separation under protan/deutan/tritan
+│   ├── wordlist.test.js  # Word list size, charset and unique decodability
 │   ├── theme.test.js
 │   ├── site-header.test.js
 │   └── site-nav.test.js
@@ -291,7 +292,7 @@ vue-password-generator/
 |---|---|
 | `SimplePassword` | Basic character-type selection |
 | `AdvancedPassword` | Per-type min/max character counts |
-| `WordsPassword` | EFF wordlist-based generation |
+| `WordsPassword` | Orchard Street wordlist-based generation |
 | `NumbersPassword` | Numeric passwords with sequence controls |
 | `Passphrase` | Custom slot-order passphrase builder |
 | `WifiWords` | WiFi-optimized passphrase with alliteration mode |
@@ -321,7 +322,9 @@ Upgrading Vue means replacing `vendor/vue.esm-browser.prod.js` with a newer
 - **adv** — Manner, Intensity, Time, Place
 - **verb** — Movement, Action, Nature, Cognition
 
-`wordlist.txt` is the EFF large wordlist (7,776 words, lengths 3–9), used exclusively by the Words mode for high-entropy dictionary passwords.
+`orchard-street-long.txt` is the [Orchard Street Long list](https://github.com/sts10/orchard-street-wordlists) (17,576 words, lengths 3–15), used exclusively by the Words mode. It gives **14.101 bits per word** against the EFF list's 12.925, and it is *uniquely decodable* — no sequence of its words can be read as a different sequence, which matters because the separator can be set to None.
+
+It is **CC BY-SA 4.0** and deliberately kept as its own file. That license covers the list; the rest of the project stays MIT, and `words.json` is kept clear of it so the share-alike terms never reach the hand-curated data.
 
 ---
 
@@ -355,20 +358,21 @@ MIT — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-- [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — used for Words mode
+- [Orchard Street Wordlists](https://github.com/sts10/orchard-street-wordlists) — Sam Schlinkert, CC BY-SA 4.0, used for Words mode
+- [EFF Large Wordlist](https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases) — used for Words mode until v2.14.0
 - [XKCD #936](https://xkcd.com/936/) — "correct horse battery staple"
 - [Vue.js](https://vuejs.org/)
 - [Render](https://render.com/) — hosting
 - [Bolt](https://bolt.new/) — AI-assisted development
 - [Claude Code](https://claude.com/claude-code) — AI-assisted development
 
-The colour tooling in `test/helpers/color.js` implements two published methods.
+The color tooling in `test/helpers/color.js` implements two published methods.
 Neither is vendored or shipped — it is test-only measurement code written from
 the papers, which is why it is credited here rather than in the third-party
 components on the [Legal page](legal.html):
 
 - **CIEDE2000** — Sharma, Wu & Dalal (2005), *The CIEDE2000 Color-Difference Formula*. The reference pairs published with it are used to verify the implementation.
-- **Colour-vision-deficiency simulation** — Machado, Oliveira & Fernandes (2009), *A Physiologically-based Model for Simulation of Color Vision Deficiency*. The severity-1.0 matrices for protanopia, deuteranopia and tritanopia.
+- **Color-vision-deficiency simulation** — Machado, Oliveira & Fernandes (2009), *A Physiologically-based Model for Simulation of Color Vision Deficiency*. The severity-1.0 matrices for protanopia, deuteranopia and tritanopia.
 
 ---
 

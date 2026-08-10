@@ -11,7 +11,7 @@ import { PALETTES, DEFAULT_PALETTE } from '../src/palettes.js'
 //
 // What this covers: the token pairs the design intends to combine.
 // What it cannot cover: a rule that pairs the wrong two tokens, or a hardcoded
-// colour in a stylesheet. The lint below catches the specific version of that
+// color in a stylesheet. The lint below catches the specific version of that
 // mistake which has already happened twice.
 
 const CSS = fs.readFileSync(new URL('../src/tokens.css', import.meta.url), 'utf8')
@@ -34,7 +34,7 @@ const dark = { ...light, ...readBlock("[data-theme='dark']") }
 
 const hex = (h) => {
   const m = /^#([0-9a-f]{6})$/i.exec(h.trim())
-  assert.ok(m, `expected a 6-digit hex colour, got ${JSON.stringify(h)}`)
+  assert.ok(m, `expected a 6-digit hex color, got ${JSON.stringify(h)}`)
   return [0, 2, 4].map((i) => parseInt(m[1].substr(i, 2), 16))
 }
 const luminance = (c) => {
@@ -65,7 +65,7 @@ const PAIRS = [
   ['--on-primary', '--primary-dark', 4.5],
   ['--primary', '--surface', 4.5],
 
-  // Status colours are used both as accent text and as toast fills.
+  // Status colors are used both as accent text and as toast fills.
   ['--success', '--surface', 4.5],
   ['--warning', '--surface', 4.5],
   ['--error', '--surface', 4.5],
@@ -82,17 +82,17 @@ const PAIRS = [
 const BADGES = ['blue', 'sky', 'teal', 'slate', 'amber', 'rose']
 const GROUPS = ['added', 'improved', 'fixed', 'removed', 'security']
 
-// The changelog change-group colours. These lived hardcoded in changelog.html
+// The changelog change-group colors. These lived hardcoded in changelog.html
 // and so were never covered: seven of the ten theme/group combinations failed
 // AA, having been picked for a white card before dark mode existed.
 //
-// There was briefly a second [data-palette='cvd'] set behind a Colours
+// There was briefly a second [data-palette='cvd'] set behind a Colors
 // setting. The separation-optimised values are simply the default now.
 //
 // Every check below runs against every palette, not just the default, because
 // palettes tint --surface and --background in dark mode. That tinting is what
-// stops each theme rendering as the same grey box, but it also means the group
-// colours, the badges and the body text are all sitting on a different
+// stops each theme rendering as the same gray box, but it also means the group
+// colors, the badges and the body text are all sitting on a different
 // backdrop per palette. Checking only the default would verify one of sixteen
 // combinations and call it done.
 //
@@ -113,7 +113,7 @@ for (const { value } of PALETTES) {
 }
 
 for (const [name, tokens] of CONTEXTS) {
-  test(`changelog group colours meet WCAG AA in ${name}`, () => {
+  test(`changelog group colors meet WCAG AA in ${name}`, () => {
     for (const g of GROUPS) {
       const token = `--group-${g}`
       assert.ok(tokens[token], `${token} missing in ${name}`)
@@ -152,7 +152,7 @@ for (const [name, tokens] of CONTEXTS) {
 }
 
 // Left to the browser, the focus ring was inconsistent -- measured at 0.67px on
-// some controls and 2px on others, in colours that vary by browser. A sub-pixel
+// some controls and 2px on others, in colors that vary by browser. A sub-pixel
 // ring is easy to miss (WCAG 2.4.7). The contrast of --border-focus itself is
 // asserted in the pair table above; this pins the ring's existence and weight.
 test('a global focus ring is defined at a visible weight', () => {
@@ -212,7 +212,7 @@ test('every palette in tokens.css is declared in the manifest', () => {
   }
 })
 
-test('both themes define the same colour tokens', () => {
+test('both themes define the same color tokens', () => {
   // A token defined only in light silently falls back in dark, which is how a
   // theme ends up with an unreadable leftover.
   const darkOnly = readBlock("[data-theme='dark']")
@@ -227,12 +227,12 @@ test('both themes define the same colour tokens', () => {
 // checkbox tick.
 //
 // Matching on line proximity is not enough and gave a false pass here. The
-// toast sets its colour in `.notification` while the background lives in
+// toast sets its color in `.notification` while the background lives in
 // `.notification.success`, and the tick is `.checkbox:checked::after` against
 // `.checkbox:checked` -- in both cases the two declarations are in separate
 // rules. So group rules by their base selector instead: strip pseudo-elements,
 // pseudo-classes and modifier classes, then check whether any rule in that
-// family sets a themed background while another sets a literal colour.
+// family sets a themed background while another sets a literal color.
 const baseSelector = (sel) =>
   sel
     .trim()
@@ -251,7 +251,7 @@ const baseSelector = (sel) =>
 // only as good as its reason, and this one was never checked.
 //
 // So compose the actual stack instead. Both gradient stops are tested, because
-// a 135deg gradient puts different colours behind different parts of the band.
+// a 135deg gradient puts different colors behind different parts of the band.
 const alphaOver = (fg, alpha, bg) => {
   const px = (h) => [1, 3, 5].map((i) => parseInt(h.substr(i, 2), 16))
   const [f, b] = [px(fg), px(bg)]
@@ -275,7 +275,7 @@ const gradientStops = (v) => [...v.matchAll(/#[0-9a-f]{6}/gi)].map((m) => m[0])
 //
 // Asserting the derivation rather than just the contrast matters, because a
 // palette that forgot to declare --header-bg would inherit the default sky
-// value -- a perfectly legible colour that is simply the wrong one. Every
+// value -- a perfectly legible color that is simply the wrong one. Every
 // contrast check would pass while a violet theme wore a blue header. This also
 // catches a gradient edited without updating the header to match.
 const BAND_SCRIM = { light: ['#000000', 0.10], dark: ['#ffffff', 0.10] }
@@ -388,7 +388,7 @@ for (const { value } of PALETTES) {
 // `.checkbox` is an <input type="checkbox"> with a custom tick in
 // `:checked::after`, but it never set `appearance: none`, so the browser drew
 // its tick too and the two overlapped. This is the absence-of-a-declaration
-// class of bug: no colour was wrong, so no contrast check could see it.
+// class of bug: no color was wrong, so no contrast check could see it.
 //
 // `:checked` only ever matches a form control, which makes the rule precise --
 // if a family styles a checked state and paints a pseudo-element indicator, it
@@ -453,16 +453,16 @@ test('the notification toast pairs its fill and text correctly in every palette'
   }
 
   const base = ruleFor('.notification')
-  const baseColour = /(?:^|[;\s])color:\s*var\((--[\w-]+)\)/.exec(base)
-  assert.ok(baseColour, '.notification should set a text colour from a token')
+  const baseColor = /(?:^|[;\s])color:\s*var\((--[\w-]+)\)/.exec(base)
+  assert.ok(baseColor, '.notification should set a text color from a token')
 
   for (const variant of ['success', 'error']) {
     const body = ruleFor(`.notification.${variant}`)
     const bg = /background:\s*var\((--[\w-]+)\)/.exec(body)
     assert.ok(bg, `.notification.${variant} should set its fill from a token`)
-    // An override in the variant wins; otherwise the base colour applies.
+    // An override in the variant wins; otherwise the base color applies.
     const own = /(?:^|[;\s])color:\s*var\((--[\w-]+)\)/.exec(body)
-    const fgToken = (own || baseColour)[1]
+    const fgToken = (own || baseColor)[1]
 
     for (const [name, tokens] of CONTEXTS) {
       const ratio = contrast(tokens[fgToken], tokens[bg[1]])
@@ -475,7 +475,7 @@ test('the notification toast pairs its fill and text correctly in every palette'
   }
 })
 
-test('no stylesheet puts a literal colour on a themed fill', () => {
+test('no stylesheet puts a literal color on a themed fill', () => {
   const sheets = ['../src/style.css', '../src/site-footer.css', '../src/settings-panel.css', '../src/site-header.css']
   const themedBg = /background:\s*var\(--(primary|primary-dark|secondary|success|warning|error)\)/
   // Any literal, not just white: the history warning badge was `color: #000` on
@@ -483,7 +483,7 @@ test('no stylesheet puts a literal colour on a themed fill', () => {
   // walked straight past.
   // Anchored on a declaration boundary rather than a newline: anchoring on `\n`
   // meant a rule written on one line hid its own violation.
-  const literalColour = /(?:^|[\n{;])\s*color:\s*(white|black|#[0-9a-f]{3,8}|rgba?\()/i
+  const literalColor = /(?:^|[\n{;])\s*color:\s*(white|black|#[0-9a-f]{3,8}|rgba?\()/i
 
   const families = new Map() // base selector -> { bg, literalAt }
   for (const rel of sheets) {
@@ -499,7 +499,7 @@ test('no stylesheet puts a literal colour on a themed fill', () => {
       const body = m[3]
       const entry = families.get(base) || { bg: false, literalAt: null }
       if (themedBg.test(body)) entry.bg = true
-      if (literalColour.test(body)) entry.literalAt = `${rel.replace('../', '')} ${m[2].trim()}`
+      if (literalColor.test(body)) entry.literalAt = `${rel.replace('../', '')} ${m[2].trim()}`
       families.set(base, entry)
     }
   }
@@ -511,24 +511,24 @@ test('no stylesheet puts a literal colour on a themed fill', () => {
   assert.deepEqual(
     offenders,
     [],
-    `these sit on a themed fill and need --on-primary / --on-status rather than a literal colour: ${offenders.join(' | ')}`,
+    `these sit on a themed fill and need --on-primary / --on-status rather than a literal color: ${offenders.join(' | ')}`,
   )
 })
 
 // The stronger version of the rule above, and the one that would have caught
 // every wave of this bug at once rather than after a user reported it.
 //
-// A literal colour in style.css cannot follow the theme and is invisible to
+// A literal color in style.css cannot follow the theme and is invisible to
 // every contrast test in this file, because those read tokens.css. That is the
 // entire reason the part-of-speech pills sat at 1.01:1 in dark mode, the
 // changelog groups failed seven of ten combinations, and the toast sat at
-// 1.81:1 -- in each case the colour was real, rendered, and untested.
+// 1.81:1 -- in each case the color was real, rendered, and untested.
 //
 // site-header.css and site-footer.css are deliberately exempt: both sit on
 // --page-gradient, which is dark in both themes, so their translucent whites
 // are correct against a known backdrop rather than an unknown surface. Their
 // contrast is fixed by construction, not by the theme.
-test('style.css carries no literal colours', () => {
+test('style.css carries no literal colors', () => {
   const text = fs
     .readFileSync(new URL('../src/style.css', import.meta.url), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -536,7 +536,7 @@ test('style.css carries no literal colours', () => {
   const offenders = []
   text.split('\n').forEach((line, i) => {
     // Shadows are the one honest exception: a shadow is an alpha wash rather
-    // than a colour choice, and tokens.css already defines the two in use.
+    // than a color choice, and tokens.css already defines the two in use.
     if (/box-shadow|drop-shadow|text-shadow/.test(line)) return
     const m = line.match(/#[0-9a-fA-F]{3,8}\b|\brgba?\([^)]*\)/)
     if (m) offenders.push(`line ${i + 1}: ${line.trim()}`)
@@ -545,7 +545,7 @@ test('style.css carries no literal colours', () => {
   assert.deepEqual(
     offenders,
     [],
-    `every colour in style.css must come from a token in tokens.css, so the ` +
+    `every color in style.css must come from a token in tokens.css, so the ` +
       `theme reaches it and the contrast tests above can see it:\n  ${offenders.join('\n  ')}`,
   )
 })

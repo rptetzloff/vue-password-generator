@@ -56,9 +56,13 @@
           A passphrase drawn from a large word list can be far easier to remember
           than a random string while remaining hard to guess — the strength comes
           from the size of the pool a word is drawn from, not from how complicated
-          the result looks. The Words mode uses the
-          <a href="https://www.eff.org/deeplinks/2016/07/new-wordlists-random-passphrases" target="_blank" rel="noopener">EFF long wordlist</a>
-          of 7,776 words, the same list designed for physical dice.
+          the result looks. The Words mode draws from the
+          <a href="https://github.com/sts10/orchard-street-wordlists" target="_blank" rel="noopener">Orchard Street Long list</a>
+          of 17,576 words &mdash; about 14.1 bits per word, so a five-word
+          passphrase is already past 70 bits. It replaced the 7,776-word EFF
+          list, which was built for physical dice; this one is built for
+          software, and no two combinations of its words can be read as a
+          different set of words, which matters if you turn the separator off.
         </p>
 
         <h2>Randomness</h2>
@@ -82,7 +86,7 @@
         <p>
           The source is on
           <a href="https://github.com/rptetzloff/vue-password-generator" target="_blank" rel="noopener">GitHub</a>.
-          Third-party components and their licences are listed on the
+          Third-party components and their licenses are listed on the
           <a href="/legal.html">Legal</a> page.
         </p>
 
