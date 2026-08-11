@@ -1293,6 +1293,10 @@
               <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Word Separator</h3>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
                 Inserted between each word in word-based generators (Words, Passphrase, Wireless, Mad Lib).
+                Literal separators (Space, Hyphen, …) are priced at <strong>0 bits</strong> and the random ones
+                at their pool's worth — see
+                <a href="#entropy" style="color:var(--primary);">Strength &amp; Entropy — Why a space is 0 bits</a>
+                for the reasoning.
               </p>
               <table class="value-table">
                 <thead>
@@ -1562,6 +1566,34 @@
                   The <strong>how?</strong> link under the meter itemizes every source of randomness. Options that
                   add nothing say so explicitly — a deterministic capitalization pattern, a fixed separator, or leet
                   substitution (a fixed mapping) each show <strong>0 bits</strong> rather than being silently omitted.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Why a space is 0 bits</div>
+                <div class="option-desc">
+                  Pick <strong>Space</strong> as your separator and the picker prices it at 0 bits; pick
+                  <strong>1 Random Symbol</strong> and it says 4.2. Both put one character between every pair
+                  of words — so why does only one of them count?
+                  <br><br>
+                  The bits count the generator's <em>random choices</em>, not the characters in the output.
+                  A fixed separator is chosen once, by you, in settings: every password you generate carries a
+                  space in the same positions, so across all possible outputs there is exactly one way those
+                  positions can read — and log<sub>2</sub> 1 = 0. A random symbol is drawn fresh at generation
+                  time from 18 candidates, so even an attacker who knows your settings must try all 18 —
+                  log<sub>2</sub> 18 ≈ 4.2 bits of real guessing work.
+                  <br><br>
+                  Assuming the attacker knows your settings is the standard, safe assumption — cryptography
+                  calls it Kerckhoffs's principle. Settings make poor secrets: there are only about fifteen
+                  separator choices to sweep, versus 17,576 possibilities per word, and settings are reused
+                  across every password you make while each password's draws are fresh. If an attacker
+                  genuinely doesn't know your settings, every figure shown is an underestimate — the safe
+                  direction to be wrong in. The same rule prices custom text, literal affixes, and leet at
+                  zero: anything you typed or toggled is part of the settings, not part of the draw.
+                  <br><br>
+                  A fixed separator still earns its place — it makes the password readable and typeable — it
+                  just does not make it harder to guess. That is the same trade as Title Case: worth choosing,
+                  and honestly priced at zero.
                 </div>
               </div>
             </div>
