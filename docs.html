@@ -1687,8 +1687,25 @@
                   (bcrypt or argon2, ~10<sup>4</sup>/second), and <strong>online, throttled</strong>
                   (a live login form, ~10/second). A single unqualified number would mislead — the same password
                   is trivial in one scenario and infeasible in another, which is also why the 40-bit weak line is
-                  anchored to the fast-hash case (2<sup>39</sup> guesses ≈ 5 seconds on one rig). Times are
-                  average-case (half the space) and assume the attacker knows your settings.
+                  anchored to the fast-hash case. Times are average-case and assume the attacker knows your settings.
+                  <br><br>
+                  <strong>The math:</strong> <em>N</em> bits means 2<sup><em>N</em></sup> equally likely
+                  possibilities. An attacker sweeping them finds the password, on average, halfway through —
+                  2<sup><em>N</em>−1</sup> guesses — so the displayed time is simply
+                  2<sup><em>N</em>−1</sup> ÷ rate, in seconds.
+                  <br><br>
+                  Worked through for a five-word passphrase at 70.5 bits: 2<sup>69.5</sup> ≈ 8.3 × 10<sup>20</sup>
+                  average guesses. Against the GPU that is 8.3 × 10<sup>20</sup> ÷ 10<sup>11</sup> ≈
+                  8.3 × 10<sup>9</sup> seconds ≈ <strong>264 years</strong>; against bcrypt, the same guesses at
+                  10<sup>4</sup>/second stretch to about 10<sup>9</sup> years; online at 10/second, about
+                  10<sup>12</sup>. And for the weak line: 40 bits is 2<sup>39</sup> ≈ 5.5 × 10<sup>11</sup>
+                  average guesses ÷ 10<sup>11</sup>/second ≈ <strong>5 seconds</strong> on one rig — which is why
+                  40 is where the meter starts calling a password fair.
+                  <br><br>
+                  Because the time is 2 raised to the bit count, every added bit <em>doubles</em> it, and ten
+                  added bits multiply it by about a thousand. That is why one extra word (14.1 bits, ×18,000) or
+                  one extra random character (6.26 bits, ×77) moves the guess time more than any tweak to
+                  capitalization or substitutions ever could.
                 </div>
               </div>
 
