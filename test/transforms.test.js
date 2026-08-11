@@ -4,6 +4,10 @@ import {
   applyCapitalization,
   applyLeet,
   resolveToken,
+  isPerGapSeparator,
+  joinPerGap,
+  PER_GAP_SEPARATORS,
+  SEPARATOR_OPTIONS,
   pickEmoji,
   isHistoryKey,
   historyKeysIn,
@@ -110,6 +114,42 @@ test('resolveToken handles mixed and literal tokens', () => {
   assert.equal(resolveToken(''), '')
 })
 
+test('every per-gap separator is offered in the UI and maps to a real token', () => {
+  const offered = new Set(SEPARATOR_OPTIONS.map(o => o.value))
+  for (const [gapValue, base] of Object.entries(PER_GAP_SEPARATORS)) {
+    assert.ok(offered.has(gapValue), `${gapValue} missing from SEPARATOR_OPTIONS`)
+    assert.ok(isPerGapSeparator(gapValue))
+    // The base token must expand to exactly one character, or joinPerGap's
+    // per-gap pricing (gapCount × one draw) would be wrong.
+    assert.equal(resolveToken(base).length, 1)
+  }
+  assert.ok(!isPerGapSeparator('r1sym'))
+  assert.ok(!isPerGapSeparator(''))
+})
+
+test('resolveToken degrades a per-gap separator to a single draw', () => {
+  for (let i = 0; i < 100; i++) {
+    assert.ok(SPECIAL_CHARS.includes(resolveToken('r1sym-gap')))
+    assert.ok(DIGITS.includes(resolveToken('r1num-gap')))
+  }
+})
+
+test('joinPerGap draws an independent separator at every gap', () => {
+  const words = Array.from({ length: 41 }, (_, i) => 'w' + i)
+  const out = joinPerGap(words, 'r1sym-gap')
+  const seps = out.split(/w\d+/).filter(Boolean)
+  assert.equal(seps.length, 40)
+  for (const s of seps) {
+    assert.equal(s.length, 1)
+    assert.ok(SPECIAL_CHARS.includes(s))
+  }
+  // With 40 independent draws from 18 symbols, all-identical has probability
+  // 18^-39 — if this fails, the separator is being cached, not redrawn.
+  assert.ok(new Set(seps).size > 1, 'every gap got the same separator')
+  assert.equal(joinPerGap(['alone'], 'r1num-gap'), 'alone')
+  assert.equal(joinPerGap([], 'r1num-gap'), '')
+})
+
 test('pickEmoji returns a member of the requested pool', () => {
   for (const cat of ['Animals', 'Food', 'default']) {
     for (let i = 0; i < 200; i++) {
@@ -163,4 +203,15 @@ test('historyKeysIn selects every history store and nothing else', () => {
 // starts failing, the naming convention was broken -- not the sweep.
 test('historyKeysIn covers a hypothetical new generator', () => {
   assert.deepEqual(historyKeysIn(['brandnew.history', 'brandnew.length']), ['brandnew.history'])
+})
+
+test('history entries migrate from strings and reject junk', async () => {
+  const { normalizeHistory } = await import('../src/lib.js')
+  const out = normalizeHistory(['abc', { pw: 'def', bits: 56.4 }, { pw: 'ghi', bits: 'x' }, 7, null, { bits: 3 }])
+  assert.deepEqual(out, [
+    { pw: 'abc', bits: null },
+    { pw: 'def', bits: 56.4 },
+    { pw: 'ghi', bits: null },
+  ])
+  assert.deepEqual(normalizeHistory('not a list'), [])
 })

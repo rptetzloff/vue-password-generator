@@ -41,9 +41,23 @@ export const resolveToken = (value, custom) => {
     case 'r1s1n':  return randChar(SPECIAL_CHARS) + randChar(DIGITS)
     case 'r1n1s':  return randChar(DIGITS) + randChar(SPECIAL_CHARS)
     case 'custom': return custom
-    default:       return value  // literal: '', ' ', '-', '_', '.', '$', etc.
+    default:
+      // Per-gap separators resolve to one draw here so any caller that treats
+      // them as a plain token still gets a sane value; the real per-gap
+      // behavior lives in joinPerGap.
+      if (isPerGapSeparator(value)) return resolveToken(PER_GAP_SEPARATORS[value], custom)
+      return value  // literal: '', ' ', '-', '_', '.', '$', etc.
   }
 }
+
+// A per-gap separator redraws its token at every join point instead of caching
+// one draw for the whole password, so every gap carries its own entropy.
+export const PER_GAP_SEPARATORS = { 'r1sym-gap': 'r1sym', 'r1num-gap': 'r1num' }
+
+export const isPerGapSeparator = (value) => Object.hasOwn(PER_GAP_SEPARATORS, value)
+
+export const joinPerGap = (words, mode) =>
+  words.reduce((acc, w, i) => (i === 0 ? w : acc + resolveToken(PER_GAP_SEPARATORS[mode], '') + w), '')
 
 export const SEPARATOR_OPTIONS = [
   { value: '',       label: 'None' },
@@ -54,8 +68,10 @@ export const SEPARATOR_OPTIONS = [
   { value: '$',      label: 'Dollar  $' },
   { value: 'r1sym',  label: '1 Random Symbol' },
   { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1sym-gap', label: 'New Symbol Each Gap' },
   { value: 'r1num',  label: '1 Random Number' },
   { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1num-gap', label: 'New Number Each Gap' },
   { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
   { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
   { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
@@ -188,3 +204,18 @@ export const isHistoryKey = (key) =>
   typeof key === 'string' && key.endsWith('.history')
 
 export const historyKeysIn = (keys) => keys.filter(isHistoryKey)
+
+// History entries were plain strings until v2.17.0; they are { pw, bits }
+// now, so a recalled password can show the strength it actually had instead
+// of whatever the panel last displayed. Anything unrecognisable is dropped
+// rather than guessed at.
+export const normalizeHistoryEntry = (e) => {
+  if (typeof e === 'string') return { pw: e, bits: null }
+  if (e && typeof e.pw === 'string') {
+    return { pw: e.pw, bits: Number.isFinite(e.bits) ? e.bits : null }
+  }
+  return null
+}
+
+export const normalizeHistory = (list) =>
+  Array.isArray(list) ? list.map(normalizeHistoryEntry).filter(Boolean) : []

@@ -1254,3 +1254,150 @@ body {
   text-align: center;
   letter-spacing: 0.05em;
 }
+
+/* The entropy readout under each password field (ROADMAP 6a/6b).
+   A <details>: the closed summary is the one number that matters, the open
+   state is the per-draw breakdown in which zero-bit options say so out loud. */
+.entropy-panel {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.entropy-summary {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+}
+
+.entropy-total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* The delta and the warning are separate statements, so they are drawn as
+   separate chips -- run together as bare text, "33.1 bits +10.3 low" read as
+   one garbled number. */
+.entropy-delta,
+.entropy-warn {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.entropy-delta.is-up { color: var(--accent-ok); }
+.entropy-delta.is-down { color: var(--warning); }
+
+.entropy-warn { color: var(--warning); }
+
+.entropy-low .entropy-total { color: var(--warning); }
+
+.entropy-how {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entropy-parts {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.entropy-parts li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ep-bits {
+  min-width: 3.2em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Zero-bit rows recede but stay legible: they are the 6b message. */
+.ep-zero .ep-bits,
+.ep-zero .ep-label { opacity: 0.75; }
+
+.ep-note {
+  font-style: italic;
+}
+
+/* Stored strength beside each history entry. Entries saved before v2.17.0
+   have no figure and simply show none. */
+.history-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.history-pw {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-bits {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The strength meter. Color is never the only signal -- the tier word sits
+   beside the bar, the bits are stated, and width alone separates good from
+   strong. Every color is a status token, so the meter follows the palette and
+   stays legible under Mono, where the tokens become distinct grays. */
+.entropy-meter {
+  width: 5rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  /* --background, not --border: the fill must clear 3:1 against the track
+     (1.4.11), and --error on --border measured 2.74:1 in dark sky. A test in
+     contrast.test.js pins this across every palette. */
+  background: var(--background);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.entropy-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.entropy-meter.meter-weak   .entropy-meter-fill { background: var(--error); }
+.entropy-meter.meter-fair   .entropy-meter-fill { background: var(--warning); }
+.entropy-meter.meter-good   .entropy-meter-fill { background: var(--success); }
+.entropy-meter.meter-strong .entropy-meter-fill { background: var(--success); }
+
+.entropy-tier {
+  font-weight: 600;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.entropy-tier.meter-weak   { color: var(--error); }
+.entropy-tier.meter-fair   { color: var(--warning); }
+.entropy-tier.meter-good   { color: var(--success); }
+.entropy-tier.meter-strong { color: var(--success); }
