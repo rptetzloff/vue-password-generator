@@ -283,3 +283,18 @@ export const formatBits = (bits) => `${bits.toFixed(1)} bits`
  * attack margin; the warning is a nudge, not a blocker (6a).
  */
 export const ENTROPY_FLOOR = 40
+
+/**
+ * Tiers for the strength meter. The boundaries are attack-anchored rather
+ * than vibes: under ~40 bits is within reach of an offline fast-hash attack
+ * (ENTROPY_FLOOR, same line the warning uses); 60 is where offline attacks
+ * get expensive; 80+ is comfortable against anything foreseeable. The bar
+ * fills linearly and caps at 100 bits -- past that, more bar is just bragging.
+ */
+export const METER_MAX = 100
+export const entropyTier = (bits) => {
+  if (bits < ENTROPY_FLOOR) return { id: 'weak', label: 'weak' }
+  if (bits < 60) return { id: 'fair', label: 'fair' }
+  if (bits < 80) return { id: 'good', label: 'good' }
+  return { id: 'strong', label: 'strong' }
+}

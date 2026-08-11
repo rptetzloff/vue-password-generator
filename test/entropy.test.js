@@ -187,3 +187,16 @@ test('wireless with alliteration prices the letter, the pools, and names the cos
   const cost = parts.find((p) => p.label === 'alliteration')
   assert.ok(cost && /costs \d+\.\d bits/.test(cost.note), 'the cost must be stated, not implied')
 })
+
+test('meter tiers sit on the attack-anchored boundaries', async () => {
+  const { entropyTier, METER_MAX, ENTROPY_FLOOR } = await import('../src/entropy.js')
+  assert.equal(entropyTier(0).id, 'weak')
+  assert.equal(entropyTier(39.9).id, 'weak')
+  assert.equal(entropyTier(ENTROPY_FLOOR).id, 'fair') // the floor is the weak/fair line
+  assert.equal(entropyTier(59.9).id, 'fair')
+  assert.equal(entropyTier(60).id, 'good')
+  assert.equal(entropyTier(79.9).id, 'good')
+  assert.equal(entropyTier(80).id, 'strong')
+  assert.equal(entropyTier(500).id, 'strong')
+  assert.equal(METER_MAX, 100)
+})

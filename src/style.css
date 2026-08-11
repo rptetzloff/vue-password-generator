@@ -1359,3 +1359,41 @@ body {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
+
+/* The strength meter. Color is never the only signal -- the tier word sits
+   beside the bar, the bits are stated, and width alone separates good from
+   strong. Every color is a status token, so the meter follows the palette and
+   stays legible under Mono, where the tokens become distinct grays. */
+.entropy-meter {
+  width: 5rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.entropy-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.entropy-meter.meter-weak   .entropy-meter-fill { background: var(--error); }
+.entropy-meter.meter-fair   .entropy-meter-fill { background: var(--warning); }
+.entropy-meter.meter-good   .entropy-meter-fill { background: var(--success); }
+.entropy-meter.meter-strong .entropy-meter-fill { background: var(--success); }
+
+.entropy-tier {
+  font-weight: 600;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.entropy-tier.meter-weak   { color: var(--error); }
+.entropy-tier.meter-fair   { color: var(--warning); }
+.entropy-tier.meter-good   { color: var(--success); }
+.entropy-tier.meter-strong { color: var(--success); }

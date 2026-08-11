@@ -19,7 +19,7 @@ import {
   historyKeysIn,
   normalizeHistory,
 } from './lib.js'
-import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR } from './entropy.js'
+import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX } from './entropy.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -162,14 +162,17 @@ const EntropyPanel = {
       // modes, and sub-0.05 wobble in the rest is not worth announcing.
       delta.value = Math.abs(d) >= 0.05 ? d : null
     })
-    return { delta, floor: ENTROPY_FLOOR }
+    const tier = computed(() => props.entropy ? entropyTier(props.entropy.total) : null)
+    const pct = computed(() => props.entropy ? Math.min(100, (props.entropy.total / METER_MAX) * 100) : 0)
+    return { delta, tier, pct, floor: ENTROPY_FLOOR }
   },
   template: `
     <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
       <summary class="entropy-summary">
+        <span class="entropy-meter" :class="'meter-' + tier.id" aria-hidden="true"><span class="entropy-meter-fill" :style="{ width: pct + '%' }"></span></span>
         <span class="entropy-total">{{ entropy.total.toFixed(1) }} bits</span>
+        <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
         <span v-if="delta !== null" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
-        <span v-if="entropy.total < floor" class="entropy-warn" :title="'Below ' + floor + ' bits. Add a word, a character type, or length.'">weak &mdash; under {{ floor }} bits</span>
         <span class="entropy-how" aria-hidden="true">how?</span>
       </summary>
       <ul class="entropy-parts">
