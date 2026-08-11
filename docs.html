@@ -1667,6 +1667,32 @@
               </div>
 
               <div class="option-row">
+                <div class="option-name">Bits per character</div>
+                <div class="option-desc">
+                  The foot of the breakdown states the password's efficiency — total bits divided by length —
+                  next to what <em>random characters at the same length</em> could carry (6.26 bits each, the
+                  Simple four-set figure). A passphrase might read 2.7 bits per character against that ceiling:
+                  the gap is what structure and memorability cost, paid for with length. Slot modes also show
+                  what the same word count drawn from the flat Words list would carry (14.10 bits per word), so
+                  the two passwords that both read as &ldquo;three words&rdquo; stop hiding their difference.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Guess times</div>
+                <div class="option-desc">
+                  The breakdown ends with the average time to find the password in three <em>named</em> attack
+                  scenarios: <strong>offline against a fast hash</strong> (a stolen database of MD5/SHA-1-style
+                  hashes, a GPU rig at ~10<sup>11</sup> guesses/second), <strong>offline against a slow hash</strong>
+                  (bcrypt or argon2, ~10<sup>4</sup>/second), and <strong>online, throttled</strong>
+                  (a live login form, ~10/second). A single unqualified number would mislead — the same password
+                  is trivial in one scenario and infeasible in another, which is also why the 40-bit weak line is
+                  anchored to the fast-hash case (2<sup>39</sup> guesses ≈ 5 seconds on one rig). Times are
+                  average-case (half the space) and assume the attacker knows your settings.
+                </div>
+              </div>
+
+              <div class="option-row">
                 <div class="option-name">Excluding look-alikes</div>
                 <div class="option-desc">
                   With look-alikes excluded, the random pools shrink (lowercase 26 → 25, uppercase 26 → 24,

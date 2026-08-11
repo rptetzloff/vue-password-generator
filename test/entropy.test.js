@@ -281,6 +281,38 @@ test('wireless with alliteration prices the letter, the pools, and names the cos
   assert.ok(cost && /costs \d+\.\d bits/.test(cost.note), 'the cost must be stated, not implied')
 })
 
+test('the comparison anchors are the figures the docs claim', async () => {
+  const { REFERENCE_PER_CHAR, MAIN_LIST_WORD_BITS } = await import('../src/entropy.js')
+  // One Simple character, all four sets: 2 + mean(log2 26, 26, 10, 29).
+  const expected = 2 + (2 * Math.log2(26) + Math.log2(10) + Math.log2(29)) / 4
+  assert.ok(Math.abs(REFERENCE_PER_CHAR - expected) < 1e-12)
+  assert.ok(Math.abs(MAIN_LIST_WORD_BITS - Math.log2(17576)) < 1e-12)
+})
+
+test('crack times are average-case at the named scenario rates', async () => {
+  const { ATTACK_SCENARIOS, crackSeconds } = await import('../src/entropy.js')
+  assert.equal(ATTACK_SCENARIOS.length, 3)
+  const rates = Object.fromEntries(ATTACK_SCENARIOS.map((s) => [s.id, s.rate]))
+  assert.deepEqual(rates, { fast: 1e11, slow: 1e4, online: 10 })
+  // 40 bits vs a GPU: 2^39 / 1e11 ≈ 5.5 seconds — the reason 40 is the floor.
+  assert.ok(Math.abs(crackSeconds(40, 1e11) - 2 ** 39 / 1e11) < 1e-9)
+  assert.ok(crackSeconds(40, 1e11) < 10)
+  // The same 40 bits online: over 870 years. One number would mislead.
+  assert.ok(crackSeconds(40, 10) / 31557600 > 800)
+})
+
+test('guess times format across the whole range', async () => {
+  const { formatGuessTime } = await import('../src/entropy.js')
+  assert.equal(formatGuessTime(0.2), 'under a second')
+  assert.equal(formatGuessTime(5.5), '6 seconds')
+  assert.equal(formatGuessTime(120), '2 minutes')
+  assert.equal(formatGuessTime(7200), '2 hours')
+  assert.equal(formatGuessTime(86400 * 3), '3 days')
+  assert.equal(formatGuessTime(31557600), '1 year')
+  assert.equal(formatGuessTime(31557600 * 250), '250 years')
+  assert.match(formatGuessTime(31557600 * 1e15), /^about 10\^15 years$/)
+})
+
 test('meter tiers sit on the attack-anchored boundaries', async () => {
   const { entropyTier, METER_MAX, ENTROPY_FLOOR } = await import('../src/entropy.js')
   assert.equal(entropyTier(0).id, 'weak')

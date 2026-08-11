@@ -1356,6 +1356,48 @@ body {
   font-style: italic;
 }
 
+/* 6c/6e/6f: comparison anchors, bits-per-character and guess times, shown at
+   the foot of the opened breakdown. */
+.entropy-extras {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.entropy-extra-line {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.entropy-crack-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.entropy-crack-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.crack-time {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 /* Stored strength beside each history entry. Entries saved before v2.17.0
    have no figure and simply show none. */
 .history-item {
