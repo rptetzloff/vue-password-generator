@@ -567,6 +567,8 @@
           <a class="nav-sub nav-item" href="#shared-history">History</a>
           <a class="nav-sub nav-item" href="#shared-tab">Active Tab</a>
           <div class="nav-divider"></div>
+          <a class="nav-item" href="#entropy"><span class="mdi mdi-gauge"></span> Strength &amp; Entropy</a>
+          <div class="nav-divider"></div>
           <a class="nav-item" href="#appearance"><span class="mdi mdi-cog-outline"></span> Appearance &amp; Settings</a>
           <div class="nav-divider"></div>
           <a class="nav-item" href="#built-with"><span class="mdi mdi-tools"></span> Built With</a>
@@ -630,6 +632,11 @@
               <span class="mdi mdi-share-variant-outline"></span>
               <div class="intro-tile-name">Shared Options</div>
               <div class="intro-tile-desc">Separators, casing, affixes</div>
+            </a>
+            <a class="intro-tile" href="#entropy">
+              <span class="mdi mdi-gauge"></span>
+              <div class="intro-tile-name">Strength &amp; Entropy</div>
+              <div class="intro-tile-desc">How the bits are counted</div>
             </a>
             <a class="intro-tile" href="#appearance">
               <span class="mdi mdi-cog-outline"></span>
@@ -1443,7 +1450,141 @@
           </div>
         </section>
 
-        <!-- ── BUILT WITH ────────────────────────────────────────── -->
+        <!-- ── STRENGTH & ENTROPY ──────────────────────────────────── -->
+        <section id="entropy" class="section-card">
+          <div class="section-head">
+            <div class="section-icon amber"><span class="mdi mdi-gauge"></span></div>
+            <div class="section-title">
+              <h2>Strength &amp; Entropy</h2>
+              <p>Every generated password shows its entropy in bits, with a meter and a full breakdown. Here is exactly how those numbers are computed.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="option-group">
+              <div class="option-group-label">What the number means</div>
+              <p style="font-size:0.875rem;color:var(--text-secondary);padding:0.75rem 0;">
+                Entropy measures how unpredictable a password is: <em>N</em> bits means an attacker who knows
+                your exact settings would need, on average, 2<sup><em>N</em>−1</sup> guesses to find it. Each
+                additional bit doubles the work. The figure counts only genuine randomness — the coin flips the
+                generator actually made — never the length or appearance of the result. A long password built
+                from few random choices is still a weak password, and the readout will say so.
+              </p>
+              <div class="option-row">
+                <div class="option-name">Meter tiers</div>
+                <div class="option-desc">
+                  <strong>Weak</strong> under 40 bits, <strong>fair</strong> 40–60, <strong>good</strong> 60–80,
+                  <strong>strong</strong> 80 and up. The 40-bit line is anchored to offline attacks: modern hardware
+                  can try billions of guesses per second against a stolen password database, and 40 bits
+                  (~10<sup>12</sup> possibilities) is roughly where that stops being quick.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Open the breakdown</div>
+                <div class="option-desc">
+                  The <strong>how?</strong> link under the meter itemizes every source of randomness. Options that
+                  add nothing say so explicitly — a deterministic capitalization pattern, a fixed separator, or leet
+                  substitution (a fixed mapping) each show <strong>0 bits</strong> rather than being silently omitted.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Per-generator math</div>
+
+              <div class="option-row">
+                <div class="option-name">Simple</div>
+                <div class="option-desc">
+                  The generator first picks a character <em>type</em> (uniformly among the enabled sets), then a
+                  character from that set. Entropy is therefore
+                  length × (log<sub>2</sub> <em>T</em> + mean of log<sub>2</sub> set sizes) for <em>T</em> enabled types.
+                  This is slightly <em>less</em> than the naive "log<sub>2</sub> of the combined pool" formula most
+                  strength meters use, because equal type weighting makes a digit more likely than any single letter.
+                  We display the honest, smaller number.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Advanced</div>
+                <div class="option-desc">
+                  With a fixed count of each character type, entropy is the arrangement term
+                  (log<sub>2</sub> of the multinomial coefficient — how many ways the types can be ordered) plus
+                  log<sub>2</sub>(set size) for each drawn character. When min/max ranges let the composition itself
+                  vary, the extra randomness in choosing the composition has no closed form, so the figure shown is a
+                  <em>floor</em> — the true entropy is at least what is displayed.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Words</div>
+                <div class="option-desc">
+                  Each word drawn from the Orchard Street list contributes log<sub>2</sub> 17,576 ≈ 14.10 bits,
+                  so the word count dominates. Random separators or affix tokens are priced once per random draw
+                  (an 18-symbol draw adds log<sub>2</sub> 18 ≈ 4.17 bits, a digit 3.32 bits).
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Passphrase &amp; Mad Lib</div>
+                <div class="option-desc">
+                  Each slot contributes log<sub>2</sub> of its pool size — a 359-noun slot adds about 8.5 bits, a
+                  149-adjective slot about 7.2. Grammar templates make phrases memorable, but a predictable structure
+                  means only the pool sizes count.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Wireless</div>
+                <div class="option-desc">
+                  Without alliteration, slots are priced like Passphrase. With alliteration, the shared first letter
+                  is one random draw (log<sub>2</sub> of the usable letters), and each word is then drawn from the
+                  <em>letter-narrowed</em> pool — much smaller than the full list. The breakdown states the cost in
+                  bits versus free word choice, so the memorability trade-off is visible, not hidden.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Numbers</div>
+                <div class="option-desc">
+                  The repeat and sequence limits make some codes impossible and others more likely, so no simple
+                  formula applies. Instead the app replays the generator's own decision process over the finished
+                  code and computes the exact probability it had of producing it — the entropy shown is
+                  −log<sub>2</sub> of that probability. The breakdown reports how many bits the limits cost
+                  versus unrestricted digits.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">What never counts</div>
+                <div class="option-desc">
+                  Deterministic transformations add zero bits and are labeled that way: every capitalization mode
+                  except the two random ones, leet substitution (fixed mapping), fixed separators and affixes, and
+                  mirrored suffixes (a copy of characters already counted). Only <em>new</em> random digits inside a
+                  mirrored suffix are priced.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Tested, not trusted</div>
+              <p style="font-size:0.875rem;color:var(--text-secondary);padding:0.75rem 0;">
+                The math is verified two ways. In the test suite, the Numbers model is proven to be a true
+                probability distribution by enumerating every possible output and checking the probabilities sum
+                to exactly 1, and canary tests fail the build if a generator's code drifts from the entropy model
+                that mirrors it. Against the running app, generated output is collected in bulk and compared to
+                the model statistically — character-type frequencies in Simple match the displayed model (and
+                rule out the naive combined-pool formula), every Numbers output gets a finite, matching surprisal,
+                and Words draws match the word list's own letter distribution.
+              </p>
+            </div>
+
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
+          </div>
+        </section>
+
+        <!-- ── APPEARANCE & SETTINGS ───────────────────────────────── -->
         <section id="appearance" class="section-card">
           <div class="section-head">
             <div class="section-icon sky"><span class="mdi mdi-cog-outline"></span></div>
