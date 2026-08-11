@@ -720,6 +720,12 @@ body {
   margin-left: 0.35rem;
 }
 
+/* With Bit hints off the meta functions return '', and an empty span must
+   not leave its margin behind. */
+.cat-meta:empty {
+  display: none;
+}
+
 /* 6g: the look-alike toggle sits below a grid inside its card. */
 .exclude-ambiguous {
   margin-top: 0.75rem;

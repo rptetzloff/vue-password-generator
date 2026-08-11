@@ -72,9 +72,10 @@ const persistedRef = (key, fallback) => {
 
 
 const historyMax = persistedRef('global.historyMax', 10)
-// The "vs last" chip is a coach, and some people find a coach noisy. The
-// total, tier and breakdown stay — only the comparison is optional.
-const showEntropyDelta = persistedRef('global.showEntropyDelta', true)
+// The "vs last" chip and the per-option price tags are coaching, and some
+// people find a coach noisy. One switch hides all of it; the total, tier,
+// meter and breakdown stay.
+const showBitHints = persistedRef('global.showBitHints', true)
 
 // Tabs render through <component :is> with no <keep-alive>, so only the active
 // generator is mounted and only its useHistory watcher can fire. Turning
@@ -187,7 +188,7 @@ const EntropyPanel = {
     })
     const tier = computed(() => props.entropy ? entropyTier(props.entropy.total) : null)
     const pct = computed(() => props.entropy ? Math.min(100, (props.entropy.total / METER_MAX) * 100) : 0)
-    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showEntropyDelta }
+    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints }
   },
   template: `
     <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
@@ -957,10 +958,10 @@ const WordsPassword = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
-      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
-      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
-      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
-      capMeta: capOptionMeta,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password,
       entropy,
       recallHistory,
@@ -1467,6 +1468,7 @@ const Passphrase = {
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
     const catInfo = (type, catId) => {
+      if (!showBitHints.value) return ''
       const cats = wordData.value[type] || {}
       const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
       if (!pool.length) return ''
@@ -1602,10 +1604,10 @@ const Passphrase = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
-      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
-      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
-      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
-      capMeta: capOptionMeta,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1867,6 +1869,7 @@ const WifiWords = {
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
     const catInfo = (type, catId) => {
+      if (!showBitHints.value) return ''
       const cats = wordData.value[type] || {}
       const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
       if (!pool.length) return ''
@@ -2071,10 +2074,10 @@ const WifiWords = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
-      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
-      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
-      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
-      capMeta: capOptionMeta,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2378,6 +2381,7 @@ const MadLib = {
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
     const catInfo = (type, catId) => {
+      if (!showBitHints.value) return ''
       const cats = wordData.value[type] || {}
       const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
       if (!pool.length) return ''
@@ -2521,10 +2525,10 @@ const MadLib = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
-      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
-      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
-      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
-      capMeta: capOptionMeta,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2786,10 +2790,10 @@ const App = {
             get: () => historyMax.value,
             set: (v) => { historyMax.value = Number(v) },
           }, {
-            label: 'Strength delta',
+            label: 'Bit hints',
             options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-            get: () => (showEntropyDelta.value ? 'on' : 'off'),
-            set: (v) => { showEntropyDelta.value = v === 'on' },
+            get: () => (showBitHints.value ? 'on' : 'off'),
+            set: (v) => { showBitHints.value = v === 'on' },
           }],
         },
       })
