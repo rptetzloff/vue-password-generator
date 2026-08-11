@@ -72,6 +72,9 @@ const persistedRef = (key, fallback) => {
 
 
 const historyMax = persistedRef('global.historyMax', 10)
+// The "vs last" chip is a coach, and some people find a coach noisy. The
+// total, tier and breakdown stay — only the comparison is optional.
+const showEntropyDelta = persistedRef('global.showEntropyDelta', true)
 
 // Tabs render through <component :is> with no <keep-alive>, so only the active
 // generator is mounted and only its useHistory watcher can fire. Turning
@@ -184,7 +187,7 @@ const EntropyPanel = {
     })
     const tier = computed(() => props.entropy ? entropyTier(props.entropy.total) : null)
     const pct = computed(() => props.entropy ? Math.min(100, (props.entropy.total / METER_MAX) * 100) : 0)
-    return { delta, tier, pct, floor: ENTROPY_FLOOR }
+    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showEntropyDelta }
   },
   template: `
     <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
@@ -192,7 +195,7 @@ const EntropyPanel = {
         <span class="entropy-meter" :class="'meter-' + tier.id" aria-hidden="true"><span class="entropy-meter-fill" :style="{ width: pct + '%' }"></span></span>
         <span class="entropy-total">{{ entropy.total.toFixed(1) }} bits</span>
         <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
-        <span v-if="delta !== null" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
+        <span v-if="delta !== null && showDelta" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
         <span class="entropy-how" aria-hidden="true">how?</span>
       </summary>
       <ul class="entropy-parts">
@@ -2782,6 +2785,11 @@ const App = {
             options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
             get: () => historyMax.value,
             set: (v) => { historyMax.value = Number(v) },
+          }, {
+            label: 'Strength delta',
+            options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
+            get: () => (showEntropyDelta.value ? 'on' : 'off'),
+            set: (v) => { showEntropyDelta.value = v === 'on' },
           }],
         },
       })
