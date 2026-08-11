@@ -560,6 +560,7 @@
                sections themselves are the other way round. -->
           <a class="nav-item" href="#shared"><span class="mdi mdi-share-variant-outline"></span> Shared Options</a>
           <a class="nav-sub nav-item" href="#shared-separator">Separator</a>
+          <a class="nav-sub nav-item" href="#shared-lookalikes">Look-alikes</a>
           <a class="nav-sub nav-item" href="#shared-affix">Prefix &amp; Suffix</a>
           <a class="nav-sub nav-item" href="#shared-caps">Capitalization</a>
           <a class="nav-sub nav-item" href="#shared-leet">Leet Speak</a>
@@ -840,6 +841,14 @@
               </div>
 
               <div class="option-row">
+                <div class="option-name">Exclude look-alikes</div>
+                <div class="option-desc">
+                  Keeps <strong>0/O</strong> and <strong>1/l/I/|</strong> out of the random separator, prefix and
+                  suffix draws. See <a href="#shared-lookalikes" style="color:var(--primary);">Shared Options — Look-alikes</a>.
+                </div>
+              </div>
+
+              <div class="option-row">
                 <div class="option-name">Capitalization</div>
                 <div class="option-desc">
                   Controls how each word's letters are cased. See
@@ -966,6 +975,10 @@
                 <div class="option-desc">See <a href="#shared-separator" style="color:var(--primary);">Shared Options — Separator</a>.</div>
               </div>
               <div class="option-row">
+                <div class="option-name">Exclude look-alikes</div>
+                <div class="option-desc">Keeps <strong>0/O</strong> and <strong>1/l/I/|</strong> out of the random separator, prefix and suffix draws. See <a href="#shared-lookalikes" style="color:var(--primary);">Shared Options — Look-alikes</a>.</div>
+              </div>
+              <div class="option-row">
                 <div class="option-name">Capitalization</div>
                 <div class="option-desc">See <a href="#shared-caps" style="color:var(--primary);">Shared Options — Capitalization</a>.</div>
               </div>
@@ -1081,6 +1094,10 @@
                 <div class="option-desc">Identical to Passphrase. Settings are stored independently under the <code>wifi.*</code> namespace in <code>localStorage</code>.</div>
               </div>
               <div class="option-row">
+                <div class="option-name">Exclude look-alikes</div>
+                <div class="option-desc"><strong>On by default here</strong> — WiFi keys get read off a router label and typed on a phone or TV remote, which is exactly where <strong>0/O</strong> and <strong>1/l/I/|</strong> misfire. Filters the random separator, prefix and suffix draws. See <a href="#shared-lookalikes" style="color:var(--primary);">Shared Options — Look-alikes</a>.</div>
+              </div>
+              <div class="option-row">
                 <div class="option-name">Emoji 🎲</div>
                 <div class="option-desc">Same as Passphrase — each word gets a category-matched emoji prepended. Alliteration mode is respected: words are still letter-filtered, and the emoji is drawn from the word's category pool. Toggling immediately rebuilds using current words. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a>.</div>
               </div>
@@ -1164,6 +1181,10 @@
               <div class="option-row">
                 <div class="option-name">Word Separator</div>
                 <div class="option-desc">Joins the filled words (not the literal template words). See <a href="#shared-separator" style="color:var(--primary);">Shared Options — Separator</a>.</div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Exclude look-alikes</div>
+                <div class="option-desc">Keeps <strong>0/O</strong> and <strong>1/l/I/|</strong> out of the random separator, prefix and suffix draws. See <a href="#shared-lookalikes" style="color:var(--primary);">Shared Options — Look-alikes</a>.</div>
               </div>
               <div class="option-row">
                 <div class="option-name">Capitalization</div>
@@ -1297,12 +1318,37 @@
                   <tr><td>Custom…</td><td>Type any literal text to use as the separator (revealed when selected).</td></tr>
                 </tbody>
               </table>
+            </div>
+
+            <div style="height:1px;background:var(--border);"></div>
+
+            <!-- Exclude look-alikes -->
+            <div id="shared-lookalikes">
+              <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Exclude Look-alikes</h3>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                Removes the characters that read alike when a password moves between screens — <strong>0/O</strong>,
+                and the four vertical strokes <strong>1/l/I/|</strong>. The toggle appears in six generators, with a
+                scope that fits each:
+              </p>
+              <table class="value-table">
+                <thead>
+                  <tr><th>Where</th><th>What it filters</th><th>Default</th></tr>
+                </thead>
+                <tbody>
+                  <tr><td><a href="#simple" style="color:var(--primary);">Simple</a></td><td>Every enabled character set.</td><td>Off</td></tr>
+                  <tr><td><a href="#advanced" style="color:var(--primary);">Advanced</a></td><td>Every set, including your chosen symbol set. If stripping would empty the symbol set (only <code>|</code> selected), the set is kept as chosen.</td><td>Off</td></tr>
+                  <tr><td>Words, Passphrase, Mad Lib</td><td>The <em>random</em> separator, prefix and suffix draws only — never the words, and never literal or custom text you typed.</td><td>Off</td></tr>
+                  <tr><td><a href="#wireless" style="color:var(--primary);">Wireless</a></td><td>Same as the other word modes.</td><td><strong>On</strong> — WiFi keys are made to be read off a router label and typed on a phone or TV remote, which is exactly where a misread <code>l</code> bites.</td></tr>
+                  <tr><td><a href="#numbers" style="color:var(--primary);">Numbers</a></td><td>Not offered, on purpose: an all-digit code has no letters for <code>0</code> or <code>1</code> to be confused with, so excluding them would spend entropy buying nothing.</td><td>—</td></tr>
+                </tbody>
+              </table>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:0.75rem;">
-                Each word-based generator also offers <strong>Exclude look-alikes (0/O, 1/l/I/|)</strong> below the
-                separator grid. It filters the <em>random</em> symbol and digit draws — separators, prefixes and
-                suffixes — not the words themselves and not literal or custom text you typed. On by default in
-                <a href="#wireless" style="color:var(--primary);">Wireless</a>, whose keys are made to be read off
-                one screen and typed on another; off elsewhere.
+                The cost is measured and displayed, never hidden: the option pickers reprice live
+                (a random digit drops from 3.3 to 3.0 bits), and the strength breakdown states the total with its
+                remedy — <em>&ldquo;costs 2.6 bits — one more character returns 6.3.&rdquo;</em>
+                These six are the <em>tight</em> set, the confusions that survive most fonts. The wider family
+                (2/Z, 5/S, 8/B, 6/G, o/O) costs more than twice as much for rarer confusions, so it is
+                deliberately not offered.
               </p>
             </div>
 
