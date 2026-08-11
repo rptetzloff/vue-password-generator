@@ -124,31 +124,59 @@ badly anyway — see the rejected approach below.
 - [x] Legal needs a new entry: CC BY-SA 4.0, sts10, derived from Wikipedia and Google Books frequency data. Note explicitly that ShareAlike binds that file and not the MIT code.
 - [ ] Consider offering **Orchard Street Medium** (8,192 = 2¹³, exactly 13 bits/word) as a shorter alternative. Cleaner arithmetic, less entropy.
 
-### 4b. Grow `words.json` from curated lists
+### 4b. Grow `words.json` from curated lists — done
 
-Measured against imsky/wordlists (MIT), merging into the existing categories:
+Shipped. **2,440 → 4,627 words**, and two new categories. Final counts:
 
-| slot | now | merged | gain |
-|---|---|---|---|
-| noun.tech | 131 | **506** | +375 |
-| noun.jobs | 135 | **500** | +365 |
-| noun.places | 126 | **343** | +217 |
-| noun.food | 189 | **399** | +210 |
-| noun.nature | 134 | **309** | +175 |
-| noun.animals | 227 | **359** | +132 |
-| noun.vehicles | 112 | **199** | +87 |
-| adj.mood | 129 | **228** | +99 |
-| adj.texture | 117 | **169** | +52 |
-| verb.action | 119 | **216** | +97 |
-| verb.cognition | 82 | **138** | +56 |
-| verb.movement | 96 | **145** | +49 |
-| **total** | **2,440** | **4,469** | **+83%** |
+| slot | was | now | | slot | was | now |
+|---|---|---|---|---|---|---|
+| noun.tech | 131 | **506** | | adj.mood | 129 | **228** |
+| noun.food | 189 | **399** | | adj.texture | 117 | **169** |
+| noun.animals | 227 | **359** | | adj.colors | 130 | **149** |
+| noun.places | 126 | **327** | | adj.time | 87 | **120** |
+| noun.nature | 134 | **274** | | adj.weather | 104 | **113** |
+| noun.music | — | **194** *(new)* | | adj.size | 100 | **106** |
+| noun.vehicles | 112 | **166** | | verb.action | 119 | **216** |
+| noun.jobs | 135 | **158** | | verb.movement | 96 | **145** |
+| noun.sports | — | **128** *(new)* | | verb.cognition | 82 | **138** |
+| adv.manner | 129 | **339** | | verb.nature | 84 | **120** |
 
-- [ ] Merge with review, not wholesale. imsky is built for name generation, so some entries are poor passphrase material: `tech` contributes *app, bug, code, data, commit*; `colors` contributes *asphalt, camel, chocolate, coal*. Short, generic or noun-as-adjective.
-- [ ] imsky has **78 noun topics, 23 adjective, 25 verb** against the current 7/6/4. Beyond growing existing categories it could add new ones — birds, cheese, minerals, astronomy — which is a Passphrase and Mad Lib feature in itself.
+- [x] Merge with review, not wholesale.
+- [x] Music and Sports added as noun categories, in `CATEGORY_META` and in the data.
+- [x] Words may belong to several categories — *golden* is a color and a weather word — so there is no cross-category dedupe. 193 nouns, 96 adverbs and 51 adjectives are in more than one.
 - [ ] Keep hunting for other permissively licensed topical lists. This is now the only route for slot vocabulary, so the sources matter.
 
-### 4c. Adverbs — sourceable after all, with one filter
+**Reviewing the merge was the part that mattered.** Four of the source mappings
+were wrong, found by reading the files rather than trusting their names:
+
+| imsky file | mapped to | actually contains | fix |
+|---|---|---|---|
+| `nouns/driving` | vehicles | roads — *alley, boulevard, freeway* | → places |
+| `adjectives/quantity` | size | determiners — *all, each, every, few* | dropped |
+| `military_*`, `filmmaking`, `writing` | jobs | equipment and craft jargon — *artillery, bilge, bogey, backstory* | dropped |
+| `nouns/astronomy` | nature | particle physics — *hadron, lepton, flux* | dropped |
+
+Left uncorrected, `jobs` would have been 500 words of which most were not jobs.
+It is 158 now, and they are all occupations.
+
+**Five misspellings came in from upstream** and are corrected on import:
+*liason* → liaison, *corgie* → corgi, *emrasure* → embrasure, *banylus* →
+banyuls, *gallerie* → gallery. Found by checking every added word against
+WordNet, Orchard Street and verachell's noun list, then reading the 105 that
+appeared in none of them — the rest were legitimate specialist vocabulary
+(*barolo*, *provolone*, *voxel*, *vocoder*, *knurled*).
+
+**42 generic additions were kept deliberately** rather than filtered: `tech`
+gains *app, bug, build, code, data, commit*; `verb.action` gains *build, file,
+merge, save*. That is 1.8% of what was added, listed here so it can be pruned
+later if it grates.
+
+Two defects in the existing data, fixed while it was open:
+
+- [x] **`jalapeño`** was the only non-ASCII entry. Awkward to type, and rejected outright by some sites. Now *jalapeno*, and a test rejects anything outside `a-z`.
+- [x] **The `random` option was not uniform.** It flattened the categories without deduping, so a word in two categories was drawn twice as often. `allOf()` in `main.js` dedupes at selection time, which keeps the memberships in the data while making the draw even.
+
+### 4c. Adverbs — sourceable after all, with one filter — done
 
 This section previously said adverbs had no source, on the evidence of imsky
 (no adverbs directory) and WordNet (4,482 adverb lemmas but exactly **one**
@@ -157,10 +185,30 @@ about what kind). [verachell's lists](https://github.com/verachell/English-word-
 are released under the **Unlicense** — public domain, the most permissive of
 anything considered here — and change that.
 
-- [ ] **Use `ly-adverbs.txt`, not `mostly-adverbs.txt`.** The repository warns its tags are approximate, and that shows: the general adverb file leaks adjectives — *developmental*, *almighty*, *powerful*, *prenatal*, *ninth* all appear. The `-ly` file is 2,033 entries, verified 100% `-ly`-suffixed, and the sample reads clean: *unanimously, abruptly, hastily, intentionally, furiously, generously*.
-- [ ] **`adv.manner` goes 129 → 506** using only the 377 `-ly` adverbs that also appear in Orchard Street, i.e. restricted to reasonably common words. That is 7.01 → 7.98 bits on the slot.
-- [ ] **The other three buckets still need hand-assignment.** `-ly` maps almost entirely onto manner. `intensity` (80), `time` (69) and `place` (60) get nothing automatic — an adverb list gives membership, not which of the four kinds a word is.
-- [ ] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
+- [x] **Use `ly-adverbs.txt`, not `mostly-adverbs.txt`.** The repository warns its tags are approximate, and that shows: the general adverb file leaks adjectives — *developmental*, *almighty*, *powerful*, *prenatal*, *ninth* all appear. The `-ly` file is 2,033 entries, verified 100% `-ly`-suffixed, and the sample reads clean: *unanimously, abruptly, hastily, intentionally, furiously, generously*.
+- [x] **`adv.manner` goes 129 -> 339** after the full review below; still 7.01 -> 8.41 bits on the slot.
+- [x] **The other three buckets: partly solved.** WordNet has no adverb categories, but its
+  glosses are formulaic -- a manner adverb is defined as "in a X manner", a degree adverb as
+  "to a X degree" -- so the definitions classify what the lexnames cannot. Two things were
+  needed to make it usable: strip WordNet's example sentences first (they matched on ordinary
+  words like "there" and put *quietly* in place), and treat the result as a shortlist rather
+  than a verdict. At 76% precision it was worth reading all 34 candidates by hand: *brilliantly*
+  and *furiously* are manner definitions that merely contain a degree word, and *newly* ("very
+  recently") is time. 33 words moved -- 30 to intensity, 2 to time, 1 to place.
+- [x] **Then the whole adverb set was reviewed, word by word.** Every entry judged against
+  a functional test (manner = works after an action verb; intensity = modifies an
+  adjective; time = answers when; place = answers where) rather than against WordNet
+  glosses alone. About 130 words re-filed, 16 removed as not adverbs at all -- including
+  *supply*, which is "supple"+ly in a dictionary and the noun everywhere else, and the
+  prepositions *toward* and *beside* that sat in place. Final: manner 339, intensity 123,
+  time 86, place 64. The ~100 stance, focus, link and viewpoint adverbs (*admittedly*,
+  *mostly*, *consequently*, *academically*) were then dropped outright rather than given
+  buckets of their own -- none of them work where a passphrase puts an adverb, and
+  "Crimson-Consequently42" is nobody's password. Twelve genuine duals stay in manner
+  (*clearly*, *honestly*, *oddly*, *strictly*, *similarly*...).
+- [ ] **Recall is still the limit.** 338 of 698 adverbs match no pattern at all, and time and
+  place gained almost nothing. Those two buckets remain essentially hand-written.
+- [x] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
 - [ ] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Untested here, but the obvious next source for 4b if imsky runs out.
 
 ### Rejected: tagging a flat list with WordNet lexnames
@@ -185,7 +233,7 @@ revisiting only if 4b's curated sources run dry.
 
 Two side findings from that work, both still true:
 
-- [ ] **32 adjectives and 17 adverbs appear in two categories at once** — `golden` is in colors and weather, `acutely` in manner and intensity. The `random` category does `Object.values(cats).flat()` with no dedupe, so those words are drawn twice as often as the rest. It overstates the adjective pool by about 0.1 bits. Small, but it is exactly the kind of thing **6b** is meant to be honest about.
+- [x] **32 adjectives and 17 adverbs appear in two categories at once** — `golden` is in colors and weather, `acutely` in manner and intensity. The `random` category does `Object.values(cats).flat()` with no dedupe, so those words are drawn twice as often as the rest. It overstates the adjective pool by about 0.1 bits. Small, but it is exactly the kind of thing **6b** is meant to be honest about.
 - [ ] Ten curated adverbs are longer than 12 characters (*diplomatically*, *unflinchingly*). Only matters if a length cap is ever applied to slot words; noted so it is not discovered by truncation.
 
 ### Still open from before

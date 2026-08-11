@@ -248,6 +248,35 @@
         .release-card { margin-bottom: 1.5rem; }
       }
 
+
+      /* Word-count table in the v2.15.0 entry. The changelog had no table
+         styling before this; keep it compact so 13 rows do not dominate the
+         release card, and let it scroll rather than clip on a phone. */
+      .table-scroll { overflow-x: auto; margin: 0.6rem 0 0.2rem; }
+
+      .count-table {
+        border-collapse: collapse;
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .count-table th,
+      .count-table td {
+        border: 1px solid var(--border);
+        padding: 0.2rem 0.5rem;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .count-table th {
+        background: var(--background);
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      /* The trailing blank cells that pad the shorter column. */
+      .count-table td:empty { border: 0; }
+
     </style>
   </head>
   <body>
@@ -256,6 +285,72 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.15.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.15.0</div>
+            <div class="release-date">2026-08-09</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Twice as many words for Passphrase, Wireless and Mad Lib</div>
+                <div class="release-summary">The word categories behind the slot-based generators have roughly doubled, and there are two new ones. More words per category means a harder password from the same settings.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Music and Sports noun categories</strong> — 194 and 128 words, available anywhere a noun slot appears.</li>
+                    <li>
+                      <strong>2,440 to 4,627 words overall</strong> — every category grew:
+                      <div class="table-scroll">
+                        <table class="count-table">
+                          <thead>
+                            <tr><th>Category</th><th>Before</th><th>Now</th><th>Category</th><th>Before</th><th>Now</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr><td>Noun · Tech</td><td>131</td><td>506</td>       <td>Adj · Mood</td><td>129</td><td>228</td></tr>
+                            <tr><td>Noun · Food</td><td>189</td><td>399</td>       <td>Adj · Texture</td><td>117</td><td>169</td></tr>
+                            <tr><td>Noun · Animals</td><td>227</td><td>359</td>    <td>Adj · Colors</td><td>130</td><td>149</td></tr>
+                            <tr><td>Noun · Places</td><td>126</td><td>327</td>     <td>Adj · Time</td><td>87</td><td>120</td></tr>
+                            <tr><td>Noun · Nature</td><td>134</td><td>274</td>     <td>Adj · Weather</td><td>104</td><td>113</td></tr>
+                            <tr><td>Noun · Music</td><td>—</td><td>194</td>        <td>Adj · Size</td><td>100</td><td>106</td></tr>
+                            <tr><td>Noun · Vehicles</td><td>112</td><td>166</td>   <td>Verb · Action</td><td>119</td><td>216</td></tr>
+                            <tr><td>Noun · Jobs</td><td>135</td><td>158</td>       <td>Verb · Movement</td><td>96</td><td>145</td></tr>
+                            <tr><td>Noun · Sports</td><td>—</td><td>128</td>       <td>Verb · Cognition</td><td>82</td><td>138</td></tr>
+                            <tr><td>Adv · Manner</td><td>129</td><td>339</td>      <td>Verb · Nature</td><td>84</td><td>120</td></tr>
+                            <tr><td>Adv · Intensity</td><td>80</td><td>123</td>     <td></td><td></td><td></td></tr>
+                            <tr><td>Adv · Time</td><td>69</td><td>86</td>          <td></td><td></td><td></td></tr>
+                            <tr><td>Adv · Place</td><td>60</td><td>64</td>         <td></td><td></td><td></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      Adverbs were the hard case: nothing available says which <em>kind</em> of adverb
+                      a word is, so the imported ones landed in Manner first and every one was
+                      then reviewed against a simple test — does it work after an action verb,
+                      or does it answer how-much, when or where? About 130 were re-filed into
+                      Intensity, Time and Place, and roughly 110 were removed entirely: sentence
+                      adverbs like <em>admittedly</em>, connectives like <em>secondly</em>, viewpoint words like
+                      <em>academically</em>, and things that were never adverbs at all (<em>deadly</em>, the
+                      preposition <em>toward</em>). None of them work where a passphrase puts an adverb.
+                    </li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>"Random" was not evenly random</strong> — some words belong to more than one category, and choosing Random pooled the categories without noticing the overlap, so those words came up about twice as often as the rest. 193 nouns, 96 adverbs and 51 adjectives were affected.</li>
+                    <li><strong>A word with an accented character</strong> — <em>jalapeño</em> was the only one, and it is awkward to type and rejected outright by some sites. It is now spelled without the tilde.</li>
+                    <li><strong>Five misspellings</strong> inherited from the word lists we drew from, including <em>liason</em> for liaison and <em>corgie</em> for corgi.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.14.0 -->
         <div class="release">
