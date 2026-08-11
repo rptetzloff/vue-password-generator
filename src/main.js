@@ -23,7 +23,11 @@ import {
   PER_GAP_SEPARATORS,
   stripAmbiguous,
 } from './lib.js'
-import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX, tokenBits, suffixBits } from './entropy.js'
+import {
+  simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits,
+  ENTROPY_FLOOR, entropyTier, METER_MAX, tokenBits, suffixBits,
+  REFERENCE_PER_CHAR, MAIN_LIST_WORD_BITS, ATTACK_SCENARIOS, crackSeconds, formatGuessTime,
+} from './entropy.js'
 
 // 6b, extended to the controls themselves: every option in the separator,
 // affix and capitalization pickers states its worth where it is chosen. The
@@ -176,7 +180,7 @@ const HistoryStrip = {
 // nothing say so -- that zero-line is the 6b feature, not clutter.
 const EntropyPanel = {
   name: 'EntropyPanel',
-  props: { entropy: Object },
+  props: { entropy: Object, password: String, words: Number, mode: String },
   setup(props) {
     const delta = ref(null)
     watch(() => props.entropy, (next, old) => {
@@ -188,7 +192,34 @@ const EntropyPanel = {
     })
     const tier = computed(() => props.entropy ? entropyTier(props.entropy.total) : null)
     const pct = computed(() => props.entropy ? Math.min(100, (props.entropy.total / METER_MAX) * 100) : 0)
-    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints }
+    // 6f: efficiency, and 6c: what the same size would carry elsewhere. Both
+    // live inside the breakdown -- opened deliberately, so not gated by hints.
+    const len = computed(() => (props.password ? [...props.password].length : 0))
+    const perChar = computed(() => (len.value > 0 && props.entropy ? props.entropy.total / len.value : null))
+    const charsRef = computed(() => {
+      if (!len.value || props.mode === 'simple' || props.mode === 'advanced') return null
+      return len.value * REFERENCE_PER_CHAR
+    })
+    const listRef = computed(() => (
+      ['passphrase', 'wireless', 'madlib'].includes(props.mode) && props.words > 0
+        ? props.words * MAIN_LIST_WORD_BITS : null
+    ))
+    // 6e: named scenarios only -- a bare "3 million years" would mislead.
+    const crackRows = computed(() => (props.entropy
+      ? ATTACK_SCENARIOS.map((s) => ({ ...s, time: formatGuessTime(crackSeconds(props.entropy.total, s.rate)) }))
+      : []))
+    // The two ends of that table, always visible: the same password lives in
+    // different worlds depending on where it is attacked, and the spread is
+    // the message -- not something to hide behind "how?".
+    const range = computed(() => {
+      if (!props.entropy) return null
+      const t = (id) => {
+        const s = ATTACK_SCENARIOS.find((x) => x.id === id)
+        return formatGuessTime(crackSeconds(props.entropy.total, s.rate))
+      }
+      return { fast: t('fast'), lockout: t('lockout') }
+    })
+    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints, len, perChar, charsRef, listRef, crackRows, range }
   },
   template: `
     <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
@@ -198,6 +229,7 @@ const EntropyPanel = {
         <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
         <span v-if="delta !== null && showDelta" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
         <span class="entropy-how" aria-hidden="true">how?</span>
+        <span v-if="range" class="entropy-range" title="Average time to guess, assuming the attacker knows your settings. Open the breakdown for all four scenarios.">to guess: leaked database <strong>{{ range.fast }}</strong> &middot; login with lockout <strong>{{ range.lockout }}</strong></span>
       </summary>
       <ul class="entropy-parts">
         <li v-for="p in entropy.parts" :key="p.label" :class="{ 'ep-zero': p.bits === 0 }">
@@ -206,6 +238,20 @@ const EntropyPanel = {
           <span v-if="p.note" class="ep-note">{{ p.note }}</span>
         </li>
       </ul>
+      <div class="entropy-extras">
+        <div v-if="perChar !== null" class="entropy-extra-line">
+          {{ perChar.toFixed(2) }} bits per character across {{ len }} characters<template v-if="charsRef !== null"> — random characters at this length could carry {{ charsRef.toFixed(0) }} bits; the gap is what structure and memorability cost</template>
+        </div>
+        <div v-if="listRef !== null" class="entropy-extra-line">
+          the same {{ words }} words drawn from the flat Words list would carry {{ listRef.toFixed(1) }} bits
+        </div>
+        <div class="entropy-crack">
+          <div class="entropy-crack-title">average time to guess, if attacked knowing your settings:</div>
+          <div v-for="s in crackRows" :key="s.id" class="entropy-crack-row" :title="s.note">
+            <span class="crack-label">{{ s.label }}<span class="crack-rate">{{ s.rateLabel }}</span></span><span class="crack-time">{{ s.time }}</span>
+          </div>
+        </div>
+      </div>
     </details>
   `
 }
@@ -412,7 +458,7 @@ const SimplePassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -814,7 +860,7 @@ const AdvancedPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1160,7 +1206,7 @@ const WordsPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" mode="words" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1359,7 +1405,7 @@ const NumbersPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1815,7 +1861,7 @@ const Passphrase = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2293,7 +2339,7 @@ const WifiWords = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
         <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2747,7 +2793,7 @@ const MadLib = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
-        <EntropyPanel :entropy="entropy" />
+        <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}

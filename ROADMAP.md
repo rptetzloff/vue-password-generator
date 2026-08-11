@@ -307,8 +307,8 @@ The app's own modes differ by orders of magnitude in ways length completely hide
 Two passwords that both read as "three words" differ by **21 bits** — roughly two
 million times harder to guess. Nothing in the interface hints at this.
 
-- [ ] **Comparison bar** showing the current password against the other modes at equivalent settings.
-- [ ] **Per-slot entropy** in Passphrase and Mad Lib, so a weak slot is visible where it happens.
+- [x] **Comparison bar** showing the current password against the other modes at equivalent settings. Delivered as comparison lines at the foot of the breakdown: the same-length random-characters ceiling for every non-character mode, and for slot modes the flat-list figure at the same word count.
+- [x] **Per-slot entropy** in Passphrase and Mad Lib, so a weak slot is visible where it happens. The breakdown itemizes every slot with its pool size and bits.
 
 ### 6d. Word pool transparency
 
@@ -325,11 +325,11 @@ Category sizes drive passphrase strength and are invisible today:
 
 ### 6e. Crack-time estimates — carefully
 
-- [ ] **Only against named attack scenarios**, never a bare "3 million years." Offline fast hash (GPU, ~10¹¹/s), offline slow hash (bcrypt), online throttled. A single unqualified number is misleading, since the same password is trivial in one scenario and infeasible in another.
+- [x] **Only against named attack scenarios**, never a bare "3 million years." Shipped with three scenarios and stated rates; times are average-case and each row names its attack on hover. Offline fast hash (GPU, ~10¹¹/s), offline slow hash (bcrypt), online throttled. A single unqualified number is misleading, since the same password is trivial in one scenario and infeasible in another.
 
 ### 6f. Related transparency items
 
-- [ ] **Bits per character** as an efficiency readout — makes explicit that word modes buy memorability with length.
+- [x] **Bits per character** as an efficiency readout — makes explicit that word modes buy memorability with length. Shown against the same-length random-characters ceiling.
 - [x] **"Show the math"** expander — the "how?" breakdown under each password is exactly this: every random draw priced, per generator.
 
 ### 6g. Exclude ambiguous characters

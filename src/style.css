@@ -1283,12 +1283,26 @@ body {
 }
 
 .entropy-summary {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
   cursor: pointer;
   padding: 0.2rem 0.3rem;
   border-radius: 4px;
+}
+
+/* The scenario spread, always visible: 480 guesses a day is a different world
+   from 10^11 a second, and that contrast should not hide behind "how?". */
+.entropy-range {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.entropy-range strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .entropy-total {
@@ -1354,6 +1368,59 @@ body {
 
 .ep-note {
   font-style: italic;
+}
+
+/* 6c/6e/6f: comparison anchors, bits-per-character and guess times, shown at
+   the foot of the opened breakdown. */
+.entropy-extras {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.entropy-extra-line {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.entropy-crack-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.entropy-crack-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.crack-time {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The guess rate, inline where the scenario is named -- 480/day vs 10^11/sec
+   is the whole point, and a hover-only note undersold it. */
+.crack-rate {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  white-space: nowrap;
 }
 
 /* Stored strength beside each history entry. Entries saved before v2.17.0

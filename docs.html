@@ -1667,6 +1667,57 @@
               </div>
 
               <div class="option-row">
+                <div class="option-name">Bits per character</div>
+                <div class="option-desc">
+                  The foot of the breakdown states the password's efficiency — total bits divided by length —
+                  next to what <em>random characters at the same length</em> could carry (6.26 bits each, the
+                  Simple four-set figure). A passphrase might read 2.7 bits per character against that ceiling:
+                  the gap is what structure and memorability cost, paid for with length. Slot modes also show
+                  what the same word count drawn from the flat Words list would carry (14.10 bits per word), so
+                  the two passwords that both read as &ldquo;three words&rdquo; stop hiding their difference.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Guess times</div>
+                <div class="option-desc">
+                  The breakdown ends with the average time to find the password in four <em>named</em> attack
+                  scenarios: <strong>offline against a fast hash</strong> (a stolen database of MD5/SHA-1-style
+                  hashes, a GPU rig at ~10<sup>11</sup> guesses/second), <strong>offline against a slow hash</strong>
+                  (bcrypt or argon2, ~10<sup>4</sup>/second), <strong>online, throttled</strong>
+                  (a live login form, ~10/second), and <strong>online with a lockout policy</strong> (the classic
+                  domain-account rule: five wrong guesses lock the account for 15 minutes, about 480 tries a day).
+                  A single unqualified number would mislead — the same password is trivial in one scenario and
+                  infeasible in another, which is also why the 40-bit weak line is anchored to the fast-hash case.
+                  The lockout row is the argument at its sharpest: a 6-digit PIN that falls in under a second
+                  offline holds for about <strong>two years</strong> behind the lockout — which is how short PINs
+                  survive online at all, and why the offline rows are the ones that should drive your choices.
+                  Because that spread <em>is</em> the message, the two extremes — leaked database and
+                  lockout login — are shown right under the meter on every password, without opening the
+                  breakdown. 480 guesses a day and 10<sup>11</sup> a second are different worlds.
+                  Times are average-case and assume the attacker knows your settings.
+                  <br><br>
+                  <strong>The math:</strong> <em>N</em> bits means 2<sup><em>N</em></sup> equally likely
+                  possibilities. An attacker sweeping them finds the password, on average, halfway through —
+                  2<sup><em>N</em>−1</sup> guesses — so the displayed time is simply
+                  2<sup><em>N</em>−1</sup> ÷ rate, in seconds.
+                  <br><br>
+                  Worked through for a five-word passphrase at 70.5 bits: 2<sup>69.5</sup> ≈ 8.3 × 10<sup>20</sup>
+                  average guesses. Against the GPU that is 8.3 × 10<sup>20</sup> ÷ 10<sup>11</sup> ≈
+                  8.3 × 10<sup>9</sup> seconds ≈ <strong>264 years</strong>; against bcrypt, the same guesses at
+                  10<sup>4</sup>/second stretch to about 10<sup>9</sup> years; online at 10/second, about
+                  10<sup>12</sup>. And for the weak line: 40 bits is 2<sup>39</sup> ≈ 5.5 × 10<sup>11</sup>
+                  average guesses ÷ 10<sup>11</sup>/second ≈ <strong>5 seconds</strong> on one rig — which is why
+                  40 is where the meter starts calling a password fair.
+                  <br><br>
+                  Because the time is 2 raised to the bit count, every added bit <em>doubles</em> it, and ten
+                  added bits multiply it by about a thousand. That is why one extra word (14.1 bits, ×18,000) or
+                  one extra random character (6.26 bits, ×77) moves the guess time more than any tweak to
+                  capitalization or substitutions ever could.
+                </div>
+              </div>
+
+              <div class="option-row">
                 <div class="option-name">Excluding look-alikes</div>
                 <div class="option-desc">
                   With look-alikes excluded, the random pools shrink (lowercase 26 → 25, uppercase 26 → 24,

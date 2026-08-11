@@ -368,3 +368,46 @@ export const entropyTier = (bits) => {
   if (bits < 80) return { id: 'good', label: 'good' }
   return { id: 'strong', label: 'strong' }
 }
+
+// --- 6c/6e/6f: comparison anchors and guess times ------------------------------
+
+/**
+ * What one character carries in Simple with all four sets on -- the reference
+ * for "random characters at this length" comparisons (6c) and the ceiling the
+ * bits-per-character readout (6f) is measured against.
+ */
+export const REFERENCE_PER_CHAR = simpleBits({ length: 1, setSizes: [26, 26, 10, 29] }).total
+
+/** Bits per word of the flat Words list (Orchard Street Long, 17,576 words). */
+export const MAIN_LIST_WORD_BITS = log2(17576)
+
+/**
+ * 6e: crack times only against NAMED scenarios, never a bare number -- the
+ * same password is trivial in one scenario and infeasible in another. Rates
+ * are order-of-magnitude figures for 2026-era hardware.
+ */
+export const ATTACK_SCENARIOS = [
+  { id: 'fast', label: 'offline, fast hash', rate: 1e11, rateLabel: '10¹¹ guesses/sec', note: 'a stolen database of fast or unsalted hashes (MD5, SHA-1); one GPU rig tries about 10¹¹ guesses per second' },
+  { id: 'slow', label: 'offline, slow hash', rate: 1e4, rateLabel: '10⁴ guesses/sec', note: 'a stolen database hashed with bcrypt or argon2; about 10⁴ guesses per second' },
+  { id: 'online', label: 'online, throttled', rate: 10, rateLabel: '10 guesses/sec', note: 'guessing at a live login form; about 10 guesses per second before rate limits bite harder' },
+  // Five tries, then a 15-minute lockout: 5 guesses per 900 seconds. The
+  // classic domain-account policy, and the reason short PINs survive online.
+  { id: 'lockout', label: 'online, lockout', rate: 5 / 900, rateLabel: '480 guesses/day', note: 'five wrong guesses lock the account for 15 minutes — about 480 tries per day' },
+]
+
+/** Average-case guess time in seconds: half the space at the given rate. */
+export const crackSeconds = (bits, rate) => 2 ** (bits - 1) / rate
+
+const YEAR = 31557600 // Julian year
+const unit = (n, u) => `${n} ${u}${n === 1 ? '' : 's'}`
+export const formatGuessTime = (s) => {
+  if (s < 1) return 'under a second'
+  if (s < 90) return unit(Math.round(s), 'second')
+  if (s < 90 * 60) return unit(Math.round(s / 60), 'minute')
+  if (s < 36 * 3600) return unit(Math.round(s / 3600), 'hour')
+  if (s < YEAR) return unit(Math.round(s / 86400), 'day')
+  const years = s / YEAR
+  if (years < 1000) return unit(Math.round(years), 'year')
+  // Past human scales the mantissa is noise; the exponent is the message.
+  return `about 10^${Math.floor(Math.log10(years))} years`
+}
