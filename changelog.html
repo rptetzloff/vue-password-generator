@@ -309,6 +309,7 @@
                     <li><strong>History remembers strength</strong> &mdash; each history entry now stores the bits it was generated at, shown beside it in the list, and recalling an old password shows its own figure rather than the current one's. Entries saved before this release simply show no figure.</li>
                     <li><strong>The math is tested, not trusted</strong> &mdash; for the digit generator, the tests enumerate every possible output at small sizes and prove the probabilities sum to exactly 1. The running app was also validated statistically: character-type frequencies in Simple match the displayed model and rule out the naive pool formula, all 200 sampled Numbers outputs matched their exact surprisal, and Words draws match the word list&rsquo;s letter distribution.</li>
                     <li><strong>Docs explain the math</strong> &mdash; a new <a href="docs.html#entropy">Strength &amp; Entropy</a> section covers what the bits mean, the per-generator formulas in plain language, what never counts, and how the figures are verified.</li>
+                    <li><strong>Two separators that never repeat</strong> &mdash; New Symbol Each Gap and New Number Each Gap draw independently at every gap instead of reusing one draw, in all four word-based generators. Each gap honestly earns its own bits (4.17 per symbol gap, 3.32 per digit gap), and the breakdown prices them per gap.</li>
                   </ul>
                 </div>
               </div>

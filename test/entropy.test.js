@@ -145,6 +145,32 @@ test('words: random separator counts once, not once per gap', () => {
   assert.ok(Math.abs((withSep.total - base.total) - Math.log2(18)) < 1e-12)
 })
 
+test('words: a per-gap separator counts at every gap', () => {
+  const opts = { wordCount: 6, listSize: 17576, capitalization: 'none', letterCount: 40, prefix: '', suffix: '', emoji: false, leetActive: 0 }
+  const base = wordsBits({ ...opts, separator: '' })
+  const sym = wordsBits({ ...opts, separator: 'r1sym-gap' })
+  const num = wordsBits({ ...opts, separator: 'r1num-gap' })
+  assert.ok(Math.abs((sym.total - base.total) - 5 * Math.log2(18)) < 1e-12)
+  assert.ok(Math.abs((num.total - base.total) - 5 * Math.log2(10)) < 1e-12)
+  const p = sym.parts.find((x) => /separator/.test(x.label))
+  assert.ok(/5 × /.test(p.label), 'the gap count should be visible in the label')
+  assert.ok(/every gap/.test(p.note))
+  // One word has no gaps, so a per-gap separator is honestly worth nothing.
+  const alone = wordsBits({ ...opts, wordCount: 1, separator: 'r1sym-gap' })
+  const aloneBase = wordsBits({ ...opts, wordCount: 1, separator: '' })
+  assert.ok(Math.abs(alone.total - aloneBase.total) < 1e-12)
+})
+
+test('slots: a per-gap separator counts at every gap', () => {
+  const opts = {
+    slots: [{ label: 'adj', poolSize: 149 }, { label: 'noun', poolSize: 359 }, { label: 'verb', poolSize: 200 }],
+    capitalization: 'title', letterCount: 15, prefix: '', suffix: '', emoji: false, leetActive: 0,
+  }
+  const base = slotBits({ ...opts, separator: '-' })
+  const gap = slotBits({ ...opts, separator: 'r1num-gap' })
+  assert.ok(Math.abs((gap.total - base.total) - 2 * Math.log2(10)) < 1e-12)
+})
+
 // --- slots ------------------------------------------------------------------------
 test('slot bits are the sum of log2 pool sizes', () => {
   const { total } = slotBits({

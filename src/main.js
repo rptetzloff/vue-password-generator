@@ -18,6 +18,8 @@ import {
   applyLeet,
   historyKeysIn,
   normalizeHistory,
+  isPerGapSeparator,
+  joinPerGap,
 } from './lib.js'
 import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX } from './entropy.js'
 import { initTheme } from './theme.js'
@@ -838,7 +840,8 @@ const WordsPassword = {
         const cased = applyCapitalization(w, capitalization.value, i, arr.length)
         return useEmoji.value ? pickEmoji('default') + cased : cased
       })
-      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       entropy.value = wordsBits({
         wordCount: rawWords.value.length,
@@ -1427,7 +1430,8 @@ const Passphrase = {
         }
         return cased
       })
-      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       const slotInfos = slots.value.map((s) => {
         const cats = wordData.value[s.type] || {}
@@ -1818,7 +1822,8 @@ const WifiWords = {
         }
         return cased
       })
-      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const assembled = cachedPre.value + joined + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
 
@@ -2283,7 +2288,8 @@ const MadLib = {
         }
         return w
       })
-      const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       // Only the token slots carry entropy -- the template text is a setting.
       const entropySegs = rawSegments.value.filter(s => s.isToken)

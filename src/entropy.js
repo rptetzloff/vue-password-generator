@@ -10,7 +10,7 @@
 // Parts with 0 bits are included on purpose -- showing that Title Case or
 // leet substitution contributes nothing IS the feature (6b), not noise.
 
-import { SPECIAL_CHARS, DIGITS, EMOJI_POOLS } from './lib.js'
+import { SPECIAL_CHARS, DIGITS, EMOJI_POOLS, PER_GAP_SEPARATORS } from './lib.js'
 
 const log2 = Math.log2
 
@@ -38,7 +38,9 @@ const finish = (parts) => ({
 // --- affix / separator tokens ----------------------------------------------
 // resolveToken draws each character uniformly and independently, ONCE per
 // generation (the result is cached and reused for every gap), so a random
-// separator contributes its bits once -- not once per gap.
+// separator contributes its bits once -- not once per gap. The per-gap
+// separator modes are the exception: joinPerGap redraws at every gap, so
+// they are priced gapCount times.
 const SYM = log2(SPECIAL_CHARS.length) // 18 symbols
 const NUM = log2(DIGITS.length)        // 10 digits
 
@@ -58,6 +60,16 @@ export const tokenBits = (value) => {
  * Suffix tokens: 'mirror' copies the prefix (0 new bits); 'mirror-newdig'
  * redraws each digit in the prefix, so its bits depend on the prefix token.
  */
+const separatorPart = (separator, gapCount) => {
+  const base = PER_GAP_SEPARATORS[separator]
+  if (base) {
+    const per = tokenBits(base)
+    return part(`separator (${gapCount} × ${per.toFixed(2)})`, gapCount * per, 'a new draw at every gap')
+  }
+  const bits = tokenBits(separator)
+  return part('separator', bits, bits === 0 ? 'fixed — adds nothing' : 'drawn once, reused between words')
+}
+
 export const suffixBits = (value, prefixValue) => {
   if (value === 'mirror') return 0
   if (value === 'mirror-newdig') {
@@ -128,12 +140,13 @@ export const advancedBits = ({ counts }) => {
 
 // --- Words --------------------------------------------------------------------
 export const wordsBits = ({ wordCount, listSize, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive }) => {
+  const gapCount = Math.max(0, wordCount - 1)
   const parts = [
     part(`words (${wordCount} × ${log2(listSize).toFixed(2)})`, wordCount * log2(listSize)),
     capitalizationBits(capitalization, letterCount, wordCount),
   ]
   if (emoji) parts.push(part(`emoji (${wordCount} × ${log2(EMOJI_POOLS.default.length).toFixed(2)})`, wordCount * log2(EMOJI_POOLS.default.length)))
-  parts.push(part('separator', tokenBits(separator), tokenBits(separator) === 0 ? 'fixed — adds nothing' : 'drawn once, reused between words'))
+  parts.push(separatorPart(separator, gapCount))
   parts.push(part('prefix', tokenBits(prefix), tokenBits(prefix) === 0 ? 'none or fixed' : undefined))
   parts.push(part('suffix', suffixBits(suffix, prefix), suffix === 'mirror' ? 'copies the prefix — adds nothing' : suffixBits(suffix, prefix) === 0 ? 'none or fixed' : undefined))
   parts.push(leetPart(leetActive))
@@ -143,13 +156,14 @@ export const wordsBits = ({ wordCount, listSize, capitalization, letterCount, se
 // --- slot modes (Passphrase, Mad Lib, Wireless) --------------------------------
 /** The draws every word mode shares after its words are chosen. */
 const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive }) => {
+  const gapCount = Math.max(0, slots.length - 1)
   const parts = [capitalizationBits(capitalization, letterCount, slots.length)]
   if (emoji) {
     let bits = 0
     for (const s of slots) bits += log2(s.emojiPoolSize || EMOJI_POOLS.default.length)
     parts.push(part('emoji', bits))
   }
-  parts.push(part('separator', tokenBits(separator), tokenBits(separator) === 0 ? 'fixed — adds nothing' : 'drawn once, reused between words'))
+  parts.push(separatorPart(separator, gapCount))
   parts.push(part('prefix', tokenBits(prefix), tokenBits(prefix) === 0 ? 'none or fixed' : undefined))
   parts.push(part('suffix', suffixBits(suffix, prefix), suffix === 'mirror' ? 'copies the prefix — adds nothing' : suffixBits(suffix, prefix) === 0 ? 'none or fixed' : undefined))
   parts.push(leetPart(leetActive))

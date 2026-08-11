@@ -1266,8 +1266,10 @@
                   <tr><td>Dollar  $</td><td>A literal dollar sign.</td></tr>
                   <tr><td>1 Random Symbol</td><td>One symbol drawn randomly from <code>! # $ % &amp; * + - / : ; = ? @ ^ _ | ~</code> — the same symbol is used for every separator position in that generation.</td></tr>
                   <tr><td>2 Random Symbols</td><td>Two random symbols from the same set, each drawn independently per generation.</td></tr>
+                  <tr><td>New Symbol Each Gap</td><td>Draws an independent random symbol at <em>every</em> gap, so no two gaps need match — each gap adds its own entropy. Redrawn every generation, even when the affix lock is on.</td></tr>
                   <tr><td>1 Random Number</td><td>One random digit (0–9).</td></tr>
                   <tr><td>2 Random Numbers</td><td>Two random digits.</td></tr>
+                  <tr><td>New Number Each Gap</td><td>Draws an independent random digit at every gap, like New Symbol Each Gap.</td></tr>
                   <tr><td>1 Symbol + 1 Number</td><td>One random symbol followed by one random digit.</td></tr>
                   <tr><td>1 Number + 1 Symbol</td><td>One random digit followed by one random symbol.</td></tr>
                   <tr><td>2 Symbols + 2 Numbers</td><td>Two random symbols followed by two random digits.</td></tr>
@@ -1521,8 +1523,10 @@
                 <div class="option-name">Words</div>
                 <div class="option-desc">
                   Each word drawn from the Orchard Street list contributes log<sub>2</sub> 17,576 ≈ 14.10 bits,
-                  so the word count dominates. Random separators or affix tokens are priced once per random draw
-                  (an 18-symbol draw adds log<sub>2</sub> 18 ≈ 4.17 bits, a digit 3.32 bits).
+                  so the word count dominates. A random separator or affix token is drawn once per generation and
+                  reused at every gap, so it is priced once (an 18-symbol draw adds log<sub>2</sub> 18 ≈ 4.17 bits,
+                  a digit 3.32 bits). The New&nbsp;…&nbsp;Each&nbsp;Gap separators are the exception: they redraw at
+                  every gap and are priced per gap.
                 </div>
               </div>
 
