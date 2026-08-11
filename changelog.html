@@ -286,6 +286,33 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.17.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.17.0</div>
+            <div class="release-date">2026-08-11</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">See the price before you pay it</div>
+                <div class="release-summary">Category pickers now state what each pool is worth, and a new toggle removes the characters that read alike — with its cost measured, displayed, and cheaper than one extra character.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Pool sizes in every category picker</strong> &mdash; each option in Passphrase, Wireless and Mad Lib now reads like <em>Colors &mdash; 149 &middot; 7.2 bits</em>, so a narrow category shows its price before you choose it instead of after.</li>
+                    <li><strong>Exclude look-alikes</strong> &mdash; a toggle that removes <code>l I 1 | O 0</code>, the characters that misread when a password moves between screens. In Simple and Advanced it filters every character set (including your custom symbol set); in the word modes it filters the random separator, prefix and suffix draws &mdash; never the words, and never text you typed. On by default in Wireless, whose keys exist to be read off a router label and typed on a TV remote.</li>
+                    <li><strong>The cost is stated, not hidden</strong> &mdash; the strength breakdown prices the exclusion from the reduced pools and says what it costs and what fixes it: &ldquo;costs 2.6 bits &mdash; one more character returns 6.3.&rdquo; Numbers has no toggle on purpose: an all-digit code has no letters to confuse digits with, so the exclusion would spend entropy buying nothing.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.16.0 -->
         <div class="release">
           <div class="release-meta">

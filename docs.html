@@ -699,10 +699,17 @@
                 <div class="option-name">Emoji 🎲</div>
                 <div class="option-desc">When checked, emoji characters are included in the pool as a fifth character type. Each position in the password has an equal chance of being any enabled type, so emoji slots count toward the total length. Off by default. See <a href="#shared-emoji" style="color:var(--primary);">Shared Options — Emoji</a> for the full pool details.</div>
               </div>
+
+              <div class="option-row">
+                <div class="option-name">Exclude look-alikes</div>
+                <div class="option-desc">Removes <strong>l I 1 | O 0</strong> — the characters that read alike when a password moves between screens — from every enabled set. The strength breakdown states the measured cost (about 2.6 bits at 20 characters) and its remedy: one more character returns more than it takes. Off by default.</div>
+              </div>
             </div>
 
             <p style="font-size:0.875rem;color:var(--text-secondary);">
-              Each character is drawn independently and uniformly at random from the combined pool.
+              Each position draws a character <em>type</em> uniformly among the enabled types, then a character from
+              that type — see <a href="#entropy" style="color:var(--primary);">Strength &amp; Entropy</a> for why that
+              is slightly different from a uniform draw over the combined pool.
               No placement guarantees are made — to enforce minimums per type, use the <a href="#advanced" style="color:var(--primary);">Advanced</a> generator.
             </p>
 
@@ -765,6 +772,11 @@
                   <strong>None</strong> — deactivate all but one (at least one must remain).<br><br>
                   Toggle individual chips to fine-tune. At least one symbol must remain active when the Symbols count is non-zero.
                 </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Exclude look-alikes</div>
+                <div class="option-desc">Removes <strong>l I 1 | O 0</strong> from every set, including your chosen symbol set. If stripping would empty the symbol set (only <code>|</code> selected), the set is kept as chosen. The strength breakdown states the measured cost from the counts actually drawn. Off by default.</div>
               </div>
             </div>
 
@@ -1232,6 +1244,12 @@
               </div>
             </div>
 
+            <p style="font-size:0.875rem;color:var(--text-secondary);">
+              Numbers has no look-alike exclusion on purpose: an all-digit code has no letters for
+              <strong>0</strong> or <strong>1</strong> to be confused with, so excluding them would spend
+              entropy (3.32 → 3.00 bits per digit) buying nothing.
+            </p>
+
             <a class="to-top" href="#top">
               <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
             </a>
@@ -1279,6 +1297,13 @@
                   <tr><td>Custom…</td><td>Type any literal text to use as the separator (revealed when selected).</td></tr>
                 </tbody>
               </table>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:0.75rem;">
+                Each word-based generator also offers <strong>Exclude look-alikes (l I 1 | O 0)</strong> below the
+                separator grid. It filters the <em>random</em> symbol and digit draws — separators, prefixes and
+                suffixes — not the words themselves and not literal or custom text you typed. On by default in
+                <a href="#wireless" style="color:var(--primary);">Wireless</a>, whose keys are made to be read off
+                one screen and typed on another; off elsewhere.
+              </p>
             </div>
 
             <div style="height:1px;background:var(--border);"></div>
@@ -1537,7 +1562,8 @@
                 <div class="option-desc">
                   Each slot contributes log<sub>2</sub> of its pool size — a 359-noun slot adds about 8.5 bits, a
                   149-adjective slot about 7.2. Grammar templates make phrases memorable, but a predictable structure
-                  means only the pool sizes count.
+                  means only the pool sizes count. The category pickers state each pool's size and bits up front,
+                  so a narrow category shows its price before you choose it.
                 </div>
               </div>
 
@@ -1559,6 +1585,16 @@
                   code and computes the exact probability it had of producing it — the entropy shown is
                   −log<sub>2</sub> of that probability. The breakdown reports how many bits the limits cost
                   versus unrestricted digits.
+                </div>
+              </div>
+
+              <div class="option-row">
+                <div class="option-name">Excluding look-alikes</div>
+                <div class="option-desc">
+                  With look-alikes excluded, the random pools shrink (lowercase 26 → 25, uppercase 26 → 24,
+                  digits 10 → 8, symbols lose <code>|</code>) and every draw is priced from the reduced pool.
+                  The breakdown states the total cost and its remedy — at typical settings the cost is
+                  around 2–3 bits, less than the ~6 bits one extra character returns.
                 </div>
               </div>
 

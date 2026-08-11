@@ -30,22 +30,31 @@ export const randBool = () => randInt(2) === 1
 
 export const randChar = (str) => str.charAt(randInt(str.length))
 
-export const resolveToken = (value, custom) => {
+// 6g: the tight look-alike set -- l/I/1/| and O/0 read alike in enough fonts
+// to misfire when a password is read off one screen and typed on another.
+// Exclusion filters the RANDOM pools only; literals and custom text are the
+// user's explicit choice and pass through untouched.
+export const AMBIGUOUS_CHARS = 'lI1|O0'
+export const stripAmbiguous = (str) => [...str].filter((c) => !AMBIGUOUS_CHARS.includes(c)).join('')
+
+export const resolveToken = (value, custom, excludeAmbiguous = false) => {
+  const SYMS = excludeAmbiguous ? stripAmbiguous(SPECIAL_CHARS) : SPECIAL_CHARS
+  const NUMS = excludeAmbiguous ? stripAmbiguous(DIGITS) : DIGITS
   switch (value) {
-    case 'r1sym':  return randChar(SPECIAL_CHARS)
-    case 'r2sym':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
-    case 'r1num':  return randChar(DIGITS)
-    case 'r2num':  return randChar(DIGITS) + randChar(DIGITS)
-    case 'r2s2n':  return randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS) + randChar(DIGITS) + randChar(DIGITS)
-    case 'r2n2s':  return randChar(DIGITS) + randChar(DIGITS) + randChar(SPECIAL_CHARS) + randChar(SPECIAL_CHARS)
-    case 'r1s1n':  return randChar(SPECIAL_CHARS) + randChar(DIGITS)
-    case 'r1n1s':  return randChar(DIGITS) + randChar(SPECIAL_CHARS)
+    case 'r1sym':  return randChar(SYMS)
+    case 'r2sym':  return randChar(SYMS) + randChar(SYMS)
+    case 'r1num':  return randChar(NUMS)
+    case 'r2num':  return randChar(NUMS) + randChar(NUMS)
+    case 'r2s2n':  return randChar(SYMS) + randChar(SYMS) + randChar(NUMS) + randChar(NUMS)
+    case 'r2n2s':  return randChar(NUMS) + randChar(NUMS) + randChar(SYMS) + randChar(SYMS)
+    case 'r1s1n':  return randChar(SYMS) + randChar(NUMS)
+    case 'r1n1s':  return randChar(NUMS) + randChar(SYMS)
     case 'custom': return custom
     default:
       // Per-gap separators resolve to one draw here so any caller that treats
       // them as a plain token still gets a sane value; the real per-gap
       // behavior lives in joinPerGap.
-      if (isPerGapSeparator(value)) return resolveToken(PER_GAP_SEPARATORS[value], custom)
+      if (isPerGapSeparator(value)) return resolveToken(PER_GAP_SEPARATORS[value], custom, excludeAmbiguous)
       return value  // literal: '', ' ', '-', '_', '.', '$', etc.
   }
 }
@@ -56,8 +65,8 @@ export const PER_GAP_SEPARATORS = { 'r1sym-gap': 'r1sym', 'r1num-gap': 'r1num' }
 
 export const isPerGapSeparator = (value) => Object.hasOwn(PER_GAP_SEPARATORS, value)
 
-export const joinPerGap = (words, mode) =>
-  words.reduce((acc, w, i) => (i === 0 ? w : acc + resolveToken(PER_GAP_SEPARATORS[mode], '') + w), '')
+export const joinPerGap = (words, mode, excludeAmbiguous = false) =>
+  words.reduce((acc, w, i) => (i === 0 ? w : acc + resolveToken(PER_GAP_SEPARATORS[mode], '', excludeAmbiguous) + w), '')
 
 export const SEPARATOR_OPTIONS = [
   { value: '',       label: 'None' },
@@ -108,19 +117,20 @@ export const SUFFIX_OPTIONS = [
 ]
 
 // Resolves suffix token; 'mirror' and 'mirror-newdig' require the already-resolved prefix string.
-export const resolveSuffixToken = (value, custom, resolvedPrefix) => {
+export const resolveSuffixToken = (value, custom, resolvedPrefix, excludeAmbiguous = false) => {
   if (value === 'mirror') {
     return resolvedPrefix.split('').reverse().join('')
   }
   if (value === 'mirror-newdig') {
     // Keep same symbol characters but replace each digit with a fresh random digit
+    const NUMS = excludeAmbiguous ? stripAmbiguous(DIGITS) : DIGITS
     return resolvedPrefix
       .split('')
       .reverse()
-      .map(c => DIGITS.includes(c) ? randChar(DIGITS) : c)
+      .map(c => DIGITS.includes(c) ? randChar(NUMS) : c)
       .join('')
   }
-  return resolveToken(value, custom)
+  return resolveToken(value, custom, excludeAmbiguous)
 }
 
 export const applyCapitalization = (word, mode, index = 0, total = 1) => {

@@ -4,10 +4,13 @@ import {
   applyCapitalization,
   applyLeet,
   resolveToken,
+  resolveSuffixToken,
   isPerGapSeparator,
   joinPerGap,
   PER_GAP_SEPARATORS,
   SEPARATOR_OPTIONS,
+  AMBIGUOUS_CHARS,
+  stripAmbiguous,
   pickEmoji,
   isHistoryKey,
   historyKeysIn,
@@ -131,6 +134,38 @@ test('resolveToken degrades a per-gap separator to a single draw', () => {
   for (let i = 0; i < 100; i++) {
     assert.ok(SPECIAL_CHARS.includes(resolveToken('r1sym-gap')))
     assert.ok(DIGITS.includes(resolveToken('r1num-gap')))
+  }
+})
+
+test('the ambiguous set is the tight six and stripping removes only those', () => {
+  assert.equal([...AMBIGUOUS_CHARS].sort().join(''), [...'lI1|O0'].sort().join(''))
+  assert.equal(stripAmbiguous('abclO01I|xyz'), 'abcxyz')
+  assert.equal(stripAmbiguous(SPECIAL_CHARS).length, SPECIAL_CHARS.length - 1) // only '|'
+  assert.equal(stripAmbiguous(DIGITS), '23456789')
+})
+
+test('excluding look-alikes filters every random token pool', () => {
+  const SYMS = stripAmbiguous(SPECIAL_CHARS)
+  const NUMS = stripAmbiguous(DIGITS)
+  for (let i = 0; i < 300; i++) {
+    for (const c of resolveToken('r2s2n', '', true)) {
+      assert.ok((SYMS + NUMS).includes(c), `excluded pool produced '${c}'`)
+    }
+    assert.ok(NUMS.includes(resolveToken('r1num', '', true)))
+    assert.ok(SYMS.includes(resolveToken('r1sym-gap', '', true)))
+  }
+  // Literals and custom text are the user's own choice and pass through.
+  assert.equal(resolveToken('custom', 'O0l', true), 'O0l')
+  assert.equal(resolveToken('|', '', true), '|')
+})
+
+test('mirror-newdig redraws digits from the reduced pool when excluding', () => {
+  const NUMS = stripAmbiguous(DIGITS)
+  for (let i = 0; i < 200; i++) {
+    const out = resolveSuffixToken('mirror-newdig', '', '#01', true)
+    assert.equal(out.length, 3)
+    assert.equal(out[2], '#')
+    assert.ok(NUMS.includes(out[0]) && NUMS.includes(out[1]), `kept an ambiguous digit in '${out}'`)
   }
 })
 

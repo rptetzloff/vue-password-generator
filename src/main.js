@@ -20,6 +20,7 @@ import {
   normalizeHistory,
   isPerGapSeparator,
   joinPerGap,
+  stripAmbiguous,
 } from './lib.js'
 import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX } from './entropy.js'
 import { initTheme } from './theme.js'
@@ -237,6 +238,7 @@ const SimplePassword = {
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
     const useEmoji = persistedRef('simple.useEmoji', false)
+    const excludeAmbiguous = persistedRef('simple.excludeAmbiguous', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -264,14 +266,18 @@ const SimplePassword = {
       if (specialChars.value) availableTypes.push('special')
       if (useEmoji.value) availableTypes.push('emoji')
 
+      const sets = excludeAmbiguous.value
+        ? { lower: stripAmbiguous(characterSets.lower), upper: stripAmbiguous(characterSets.upper), digits: stripAmbiguous(characterSets.digits), special: stripAmbiguous(characterSets.special) }
+        : characterSets
+
       let newPassword = ''
       for (let i = 0; i < passwordLength.value; i++) {
         const type = randPick(availableTypes)
         switch (type) {
-          case 'lower':   newPassword += randChar(characterSets.lower); break
-          case 'upper':   newPassword += randChar(characterSets.upper); break
-          case 'digits':  newPassword += randChar(characterSets.digits); break
-          case 'special': newPassword += randChar(characterSets.special); break
+          case 'lower':   newPassword += randChar(sets.lower); break
+          case 'upper':   newPassword += randChar(sets.upper); break
+          case 'digits':  newPassword += randChar(sets.digits); break
+          case 'special': newPassword += randChar(sets.special); break
           case 'emoji':   newPassword += pickEmoji('default'); break
         }
       }
@@ -282,12 +288,16 @@ const SimplePassword = {
       // within it. Characters are NOT uniform over the union pool, so the
       // naive log2(union^length) would overstate -- see simpleBits.
       const setSizes = []
-      if (lowerCase.value) setSizes.push(characterSets.lower.length)
-      if (upperCase.value) setSizes.push(characterSets.upper.length)
-      if (digits.value) setSizes.push(characterSets.digits.length)
-      if (specialChars.value) setSizes.push(characterSets.special.length)
-      if (useEmoji.value) setSizes.push(EMOJI_POOLS.default.length)
-      entropy.value = simpleBits({ length: parseInt(passwordLength.value), setSizes })
+      const fullSizes = []
+      if (lowerCase.value) { setSizes.push(sets.lower.length); fullSizes.push(characterSets.lower.length) }
+      if (upperCase.value) { setSizes.push(sets.upper.length); fullSizes.push(characterSets.upper.length) }
+      if (digits.value) { setSizes.push(sets.digits.length); fullSizes.push(characterSets.digits.length) }
+      if (specialChars.value) { setSizes.push(sets.special.length); fullSizes.push(characterSets.special.length) }
+      if (useEmoji.value) { setSizes.push(EMOJI_POOLS.default.length); fullSizes.push(EMOJI_POOLS.default.length) }
+      entropy.value = simpleBits({
+        length: parseInt(passwordLength.value), setSizes,
+        fullSetSizes: excludeAmbiguous.value ? fullSizes : undefined,
+      })
       pushHistory(newPassword, entropy.value.total)
     }
 
@@ -302,6 +312,7 @@ const SimplePassword = {
       digits,
       specialChars,
       useEmoji,
+      excludeAmbiguous,
       password,
       entropy,
       recallHistory,
@@ -354,6 +365,10 @@ const SimplePassword = {
             <input v-model="useEmoji" type="checkbox" class="checkbox" />
             <span>Emoji 🎲</span>
           </label>
+          <label class="checkbox-item exclude-ambiguous">
+            <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+            <span>Exclude look-alikes (l I 1 | O 0)</span>
+          </label>
         </div>
       </div>
 
@@ -397,6 +412,7 @@ const AdvancedPassword = {
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
     const emojiCount = persistedRef('adv.emojiCount', [0, 0])
+    const excludeAmbiguous = persistedRef('adv.excludeAmbiguous', false)
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -488,13 +504,19 @@ const AdvancedPassword = {
       }
 
       // Generate actual password
+      const sets = excludeAmbiguous.value
+        ? { lower: stripAmbiguous(characterSets.lower), upper: stripAmbiguous(characterSets.upper), digits: stripAmbiguous(characterSets.digits) }
+        : characterSets
+      // If stripping empties a user-picked symbol set (e.g. only '|' selected),
+      // the exclusion cannot apply there; fall back to the set as chosen.
+      const symbols = (excludeAmbiguous.value ? stripAmbiguous(customSymbols.value) : customSymbols.value) || customSymbols.value
       let newPassword = ''
       for (const type of charTypes) {
         switch (type) {
-          case 'lower':   newPassword += randChar(characterSets.lower); break
-          case 'upper':   newPassword += randChar(characterSets.upper); break
-          case 'digits':  newPassword += randChar(characterSets.digits); break
-          case 'special':  newPassword += randChar(customSymbols.value); break
+          case 'lower':   newPassword += randChar(sets.lower); break
+          case 'upper':   newPassword += randChar(sets.upper); break
+          case 'digits':  newPassword += randChar(sets.digits); break
+          case 'special':  newPassword += randChar(symbols); break
           case 'emoji':   newPassword += pickEmoji('default'); break
         }
       }
@@ -506,15 +528,16 @@ const AdvancedPassword = {
       // composition itself carries a little extra entropy with no closed form,
       // so this is a floor -- under-reporting is the safe direction.
       const typeSpecs = [
-        ['lower', 'lowercase', characterSets.lower.length],
-        ['upper', 'uppercase', characterSets.upper.length],
-        ['digits', 'digits', characterSets.digits.length],
-        ['special', 'symbols', Math.max(customSymbols.value.length, 1)],
-        ['emoji', 'emoji', EMOJI_POOLS.default.length],
+        ['lower', 'lowercase', sets.lower.length, characterSets.lower.length],
+        ['upper', 'uppercase', sets.upper.length, characterSets.upper.length],
+        ['digits', 'digits', sets.digits.length, characterSets.digits.length],
+        ['special', 'symbols', Math.max(symbols.length, 1), Math.max(customSymbols.value.length, 1)],
+        ['emoji', 'emoji', EMOJI_POOLS.default.length, EMOJI_POOLS.default.length],
       ]
       entropy.value = advancedBits({
-        counts: typeSpecs.map(([key, label, size]) => ({
+        counts: typeSpecs.map(([key, label, size, fullSize]) => ({
           label, size, count: charTypes.filter((t) => t === key).length,
+          fullSize: excludeAmbiguous.value ? fullSize : undefined,
         })),
       })
       pushHistory(newPassword, entropy.value.total)
@@ -531,6 +554,7 @@ const AdvancedPassword = {
       digits,
       specialChars,
       allSymbols: ALL_SYMBOLS,
+      excludeAmbiguous,
       activeSymbols,
       toggleSymbol,
       selectAllSymbols,
@@ -712,6 +736,10 @@ const AdvancedPassword = {
             >{{ sym }}</button>
           </div>
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (l I 1 | O 0) from every set</span>
+        </label>
       </div>
 
       <div class="card">
@@ -799,6 +827,7 @@ const WordsPassword = {
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('words.lockAffixes', false)
+    const excludeAmbiguous = persistedRef('words.excludeAmbiguous', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -832,9 +861,9 @@ const WordsPassword = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const buildPassword = () => {
@@ -845,7 +874,7 @@ const WordsPassword = {
         const cased = applyCapitalization(w, capitalization.value, i, arr.length)
         return useEmoji.value ? pickEmoji('default') + cased : cased
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       entropy.value = wordsBits({
@@ -859,6 +888,7 @@ const WordsPassword = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -883,6 +913,7 @@ const WordsPassword = {
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordList()
@@ -905,6 +936,7 @@ const WordsPassword = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
       password,
       entropy,
       recallHistory,
@@ -955,6 +987,10 @@ const WordsPassword = {
             placeholder="Type your separator"
           />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -1390,6 +1426,7 @@ const Passphrase = {
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('phrase.lockAffixes', false)
+    const excludeAmbiguous = persistedRef('phrase.excludeAmbiguous', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1401,6 +1438,14 @@ const Passphrase = {
     const { history, pushHistory } = useHistory('phrase.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
+    // 6d: the picker states what a category costs before it is chosen --
+    // pool size and bits per slot, from the same data the generator draws on.
+    const catInfo = (type, catId) => {
+      const cats = wordData.value[type] || {}
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+      if (!pool.length) return ''
+      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+    }
 
     const loadWordData = async () => {
       try {
@@ -1423,9 +1468,9 @@ const Passphrase = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const buildPassword = () => {
@@ -1441,7 +1486,7 @@ const Passphrase = {
         }
         return cased
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       const slotInfos = slots.value.map((s) => {
@@ -1465,6 +1510,7 @@ const Passphrase = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -1505,6 +1551,7 @@ const Passphrase = {
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
@@ -1515,6 +1562,7 @@ const Passphrase = {
       slots,
       slotTypes: SLOT_TYPES,
       categoryMeta: CATEGORY_META,
+      catInfo,
       addSlot, removeSlot, moveSlot,
       separator, customSeparator,
       capitalization,
@@ -1527,6 +1575,7 @@ const Passphrase = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1566,7 +1615,7 @@ const Passphrase = {
               <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
             </div>
             <select class="slot-cat-select" v-model="slot.cat">
-              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}{{ catInfo(slot.type, opt.id) ? ' — ' + catInfo(slot.type, opt.id) : '' }}</option>
             </select>
           </div>
         </div>
@@ -1587,6 +1636,10 @@ const Passphrase = {
         <div v-if="separator === 'custom'" class="custom-sep-row">
           <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -1765,6 +1818,9 @@ const WifiWords = {
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('wifi.lockAffixes', false)
+    // 6g: on by default here -- Wireless keys get read off a screen and typed
+    // on a TV remote, which is exactly where l/1 and O/0 misfire.
+    const excludeAmbiguous = persistedRef('wifi.excludeAmbiguous', true)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1776,6 +1832,14 @@ const WifiWords = {
     const { history, pushHistory } = useHistory('wifi.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'wifi')
     const wordData = ref({})
+    // 6d: the picker states what a category costs before it is chosen --
+    // pool size and bits per slot, from the same data the generator draws on.
+    const catInfo = (type, catId) => {
+      const cats = wordData.value[type] || {}
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+      if (!pool.length) return ''
+      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+    }
     const alliterationMode = persistedRef('wifi.alliterationMode', true)
     const alliterationLetter = ref('')
 
@@ -1819,9 +1883,9 @@ const WifiWords = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const warnSet = ref(new Set())
@@ -1839,7 +1903,7 @@ const WifiWords = {
         }
         return cased
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
@@ -1885,6 +1949,7 @@ const WifiWords = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
     }
 
@@ -1948,6 +2013,7 @@ const WifiWords = {
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
@@ -1958,6 +2024,7 @@ const WifiWords = {
       slots,
       slotTypes: SLOT_TYPES,
       categoryMeta: CATEGORY_META,
+      catInfo,
       addSlot, removeSlot, moveSlot,
       alliterationMode, alliterationLetter,
       separator, customSeparator,
@@ -1971,6 +2038,7 @@ const WifiWords = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2018,7 +2086,7 @@ const WifiWords = {
               <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
             </div>
             <select class="slot-cat-select" v-model="slot.cat">
-              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}{{ catInfo(slot.type, opt.id) ? ' — ' + catInfo(slot.type, opt.id) : '' }}</option>
             </select>
           </div>
         </div>
@@ -2039,6 +2107,10 @@ const WifiWords = {
         <div v-if="separator === 'custom'" class="custom-sep-row">
           <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -2258,12 +2330,21 @@ const MadLib = {
     // rawWords stores the plain words from the template fill (no caps/leet) alongside their token types
     const rawSegments = ref([]) // [{ word, isToken, type? }]
     const lockAffixes = persistedRef('madlib.lockAffixes', false)
+    const excludeAmbiguous = persistedRef('madlib.excludeAmbiguous', false)
     const cachedPre = ref('')
     const cachedSep = ref('')
     const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('madlib.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
+    // 6d: the picker states what a category costs before it is chosen --
+    // pool size and bits per slot, from the same data the generator draws on.
+    const catInfo = (type, catId) => {
+      const cats = wordData.value[type] || {}
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+      if (!pool.length) return ''
+      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+    }
 
     const loadWordData = async () => {
       try {
@@ -2284,9 +2365,9 @@ const MadLib = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const buildPassword = () => {
@@ -2311,7 +2392,7 @@ const MadLib = {
         }
         return w
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       // Only the token slots carry entropy -- the template text is a setting.
@@ -2338,6 +2419,7 @@ const MadLib = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -2374,6 +2456,7 @@ const MadLib = {
     })
 
     watch(useEmoji, () => { if (rawSegments.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawSegments.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
@@ -2387,6 +2470,7 @@ const MadLib = {
       slotCats,
       slotCatRows,
       categoryMeta: CATEGORY_META,
+      catInfo,
       separator, customSeparator,
       capitalization,
       prefixMode, prefixCustom,
@@ -2398,6 +2482,7 @@ const MadLib = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2445,7 +2530,7 @@ const MadLib = {
                 :class="{ active: slotCats[idx].cat === opt.id }"
               >
                 <input v-model="slotCats[idx].cat" :value="opt.id" type="radio" class="sr-only" />
-                <span>{{ opt.label }}</span>
+                <span>{{ opt.label }}</span><span v-if="catInfo(slot.type, opt.id)" class="cat-meta">{{ catInfo(slot.type, opt.id) }}</span>
               </label>
             </div>
           </div>
@@ -2463,6 +2548,10 @@ const MadLib = {
         <div v-if="separator === 'custom'" class="custom-sep-row">
           <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
