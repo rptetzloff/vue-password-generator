@@ -1337,3 +1337,25 @@ body {
 .ep-note {
   font-style: italic;
 }
+
+/* Stored strength beside each history entry. Entries saved before v2.17.0
+   have no figure and simply show none. */
+.history-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.history-pw {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-bits {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}

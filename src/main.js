@@ -17,6 +17,7 @@ import {
   pickEmoji,
   applyLeet,
   historyKeysIn,
+  normalizeHistory,
 } from './lib.js'
 import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR } from './entropy.js'
 import { initTheme } from './theme.js'
@@ -75,15 +76,29 @@ if (historyMax.value === 0) clearStoredHistories()
 
 const useHistory = (key) => {
   const history = persistedRef(key, [])
-  const pushHistory = (pw) => {
+  // Entries were plain strings until v2.17.0; they are { pw, bits } now so a
+  // recalled password can show the strength it actually had. Migrate on read.
+  history.value = normalizeHistory(history.value)
+  const pushHistory = (pw, bits = null) => {
     if (!pw || historyMax.value === 0) { history.value = []; return }
-    const list = history.value.filter(h => h !== pw)
-    history.value = [pw, ...list].slice(0, historyMax.value)
+    const list = history.value.filter(h => h.pw !== pw)
+    history.value = [{ pw, bits }, ...list].slice(0, historyMax.value)
   }
   watch(historyMax, (max) => {
     history.value = max === 0 ? [] : history.value.slice(0, max)
   })
   return { history, pushHistory }
+}
+
+// Restore a history entry: the password, and the bits it was stored with.
+// The full breakdown is deliberately not stored -- one number per entry -- so
+// a recalled password shows its total with a note instead of a stale
+// breakdown from a different password.
+const recallEntry = (entry, password, entropy) => {
+  password.value = entry.pw
+  entropy.value = entry.bits != null
+    ? { total: entry.bits, parts: [{ label: 'recalled from history', bits: entry.bits, note: 'breakdown is not stored' }] }
+    : null
 }
 
 const useNotification = () => {
@@ -119,13 +134,13 @@ const HistoryStrip = {
       <div class="history-label">History</div>
       <div class="history-list">
         <button
-          v-for="(pw, i) in history"
+          v-for="(entry, i) in history"
           :key="i"
           class="history-item"
-          :class="{ 'history-item-active': pw === current, 'history-item-warn': warnSet.has(pw) }"
-          @click="$emit('select', pw)"
-          :title="warnSet.has(pw) ? pw + ' (under 8 characters)' : pw"
-        >{{ pw }}<span v-if="warnSet.has(pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
+          :class="{ 'history-item-active': entry.pw === current, 'history-item-warn': warnSet.has(entry.pw) }"
+          @click="$emit('select', entry)"
+          :title="warnSet.has(entry.pw) ? entry.pw + ' (under 8 characters)' : entry.pw"
+        ><span class="history-pw">{{ entry.pw }}</span><span v-if="entry.bits != null" class="history-bits">{{ entry.bits.toFixed(1) }} bits</span><span v-if="warnSet.has(entry.pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
       </div>
     </div>
   `
@@ -219,6 +234,7 @@ const SimplePassword = {
     const useEmoji = persistedRef('simple.useEmoji', false)
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const { history, pushHistory } = useHistory('simple.history')
 
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
@@ -256,7 +272,6 @@ const SimplePassword = {
       }
 
       password.value = newPassword
-      pushHistory(password.value)
 
       // Bits of the process as written: a type uniformly, then a character
       // within it. Characters are NOT uniform over the union pool, so the
@@ -268,6 +283,7 @@ const SimplePassword = {
       if (specialChars.value) setSizes.push(characterSets.special.length)
       if (useEmoji.value) setSizes.push(EMOJI_POOLS.default.length)
       entropy.value = simpleBits({ length: parseInt(passwordLength.value), setSizes })
+      pushHistory(newPassword, entropy.value.total)
     }
 
     onMounted(() => {
@@ -283,6 +299,7 @@ const SimplePassword = {
       useEmoji,
       password,
       entropy,
+      recallHistory,
       history,
       copied,
       notification,
@@ -355,7 +372,7 @@ const SimplePassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
@@ -393,6 +410,7 @@ const AdvancedPassword = {
     const selectCommonSymbols = () => { activeSymbols.value = new Set(ALL_SYMBOLS.filter(s => COMMON_SYMBOLS.has(s))) }
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const { history, pushHistory } = useHistory('adv.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
 
@@ -477,7 +495,6 @@ const AdvancedPassword = {
       }
 
       password.value = newPassword
-      pushHistory(password.value)
 
       // Bits for the composition that was actually drawn: uniform arrangement
       // of the type multiset plus a uniform character per position. The type
@@ -495,6 +512,7 @@ const AdvancedPassword = {
           label, size, count: charTypes.filter((t) => t === key).length,
         })),
       })
+      pushHistory(newPassword, entropy.value.total)
     }
 
     onMounted(() => {
@@ -516,6 +534,7 @@ const AdvancedPassword = {
       emojiCount,
       password,
       entropy,
+      recallHistory,
       history,
       copied,
       notification,
@@ -742,7 +761,7 @@ const AdvancedPassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
@@ -777,6 +796,7 @@ const WordsPassword = {
     const lockAffixes = persistedRef('words.lockAffixes', false)
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     const rawWords = ref([])
     const cachedPre = ref('')
@@ -817,8 +837,6 @@ const WordsPassword = {
       })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      pushHistory(password.value)
-
       entropy.value = wordsBits({
         wordCount: rawWords.value.length,
         listSize: Math.max(wordList.value.length, 1),
@@ -830,6 +848,7 @@ const WordsPassword = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
       })
+      pushHistory(password.value, entropy.value.total)
     }
 
     const generatePassword = () => {
@@ -876,6 +895,7 @@ const WordsPassword = {
       lockAffixes,
       password,
       entropy,
+      recallHistory,
       rawWords,
       history,
       copied,
@@ -1066,7 +1086,7 @@ const WordsPassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
@@ -1085,6 +1105,7 @@ const NumbersPassword = {
     const maxSequential = persistedRef('nums.maxSequential', 3)
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const { history, pushHistory } = useHistory('nums.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
 
@@ -1161,7 +1182,6 @@ const NumbersPassword = {
       }
       
       password.value = newPassword
-      pushHistory(newPassword)
 
       // Exact: replays the filtered-pool state machine over the password just
       // produced, so the repeat and sequence limits are priced at what they
@@ -1171,6 +1191,7 @@ const NumbersPassword = {
         maxRepeated: parseInt(maxRepeated.value),
         maxSequential: parseInt(maxSequential.value),
       })
+      pushHistory(newPassword, entropy.value.total)
     }
 
     onMounted(() => {
@@ -1183,6 +1204,7 @@ const NumbersPassword = {
       maxSequential,
       password,
       entropy,
+      recallHistory,
       history,
       copied,
       notification,
@@ -1263,7 +1285,7 @@ const NumbersPassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
@@ -1358,6 +1380,7 @@ const Passphrase = {
     const lockAffixes = persistedRef('phrase.lockAffixes', false)
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     const rawWords = ref([])
     const cachedPre = ref('')
@@ -1403,8 +1426,6 @@ const Passphrase = {
       })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      pushHistory(password.value)
-
       const slotInfos = slots.value.map((s) => {
         const cats = wordData.value[s.type] || {}
         const pool = s.cat === 'random' ? allOf(cats) : (cats[s.cat] || allOf(cats))
@@ -1426,6 +1447,7 @@ const Passphrase = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
       })
+      pushHistory(password.value, entropy.value.total)
     }
 
     const generatePassword = () => {
@@ -1486,7 +1508,7 @@ const Passphrase = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
-      password, entropy, rawWords, history, copied, preview, notification,
+      password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword, regenWord, copyPassword
@@ -1688,7 +1710,7 @@ const Passphrase = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
@@ -1726,6 +1748,7 @@ const WifiWords = {
     const lockAffixes = persistedRef('wifi.lockAffixes', false)
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     const rawWords = ref([])
     const cachedPre = ref('')
@@ -1861,7 +1884,7 @@ const WifiWords = {
       if (password.value.length < 8) {
         warnSet.value = new Set([...warnSet.value, password.value])
       }
-      pushHistory(password.value)
+      pushHistory(password.value, entropy.value ? entropy.value.total : null)
     }
 
     const regenWord = (idx, attempt = 0) => {
@@ -1878,7 +1901,7 @@ const WifiWords = {
       if (password.value.length < 8) {
         warnSet.value = new Set([...warnSet.value, password.value])
       }
-      pushHistory(password.value)
+      pushHistory(password.value, entropy.value ? entropy.value.total : null)
     }
 
     const addSlot = (type) => {
@@ -1922,7 +1945,7 @@ const WifiWords = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
-      password, entropy, rawWords, history, warnSet, copied, preview, notification,
+      password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword, regenWord, copyPassword
@@ -2132,7 +2155,7 @@ const WifiWords = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>
@@ -2204,6 +2227,7 @@ const MadLib = {
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const entropy = ref(null)
+    const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     // rawWords stores the plain words from the template fill (no caps/leet) alongside their token types
     const rawSegments = ref([]) // [{ word, isToken, type? }]
@@ -2258,8 +2282,6 @@ const MadLib = {
       })
       const assembled = cachedPre.value + words.join(cachedSep.value) + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      pushHistory(password.value)
-
       // Only the token slots carry entropy -- the template text is a setting.
       const entropySegs = rawSegments.value.filter(s => s.isToken)
       const slotInfos = entropySegs.map((seg) => {
@@ -2284,6 +2306,7 @@ const MadLib = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
       })
+      pushHistory(password.value, entropy.value.total)
     }
 
     const generatePassword = () => {
@@ -2342,7 +2365,7 @@ const MadLib = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
-      password, entropy, rawSegments, history, copied, preview, notification,
+      password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword, regenWord, copyPassword,
@@ -2555,7 +2578,7 @@ const MadLib = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" />
-        <HistoryStrip :history="history" :current="password" @select="password = $event" />
+        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
         </div>

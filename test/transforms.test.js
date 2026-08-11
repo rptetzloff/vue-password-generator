@@ -164,3 +164,14 @@ test('historyKeysIn selects every history store and nothing else', () => {
 test('historyKeysIn covers a hypothetical new generator', () => {
   assert.deepEqual(historyKeysIn(['brandnew.history', 'brandnew.length']), ['brandnew.history'])
 })
+
+test('history entries migrate from strings and reject junk', async () => {
+  const { normalizeHistory } = await import('../src/lib.js')
+  const out = normalizeHistory(['abc', { pw: 'def', bits: 56.4 }, { pw: 'ghi', bits: 'x' }, 7, null, { bits: 3 }])
+  assert.deepEqual(out, [
+    { pw: 'abc', bits: null },
+    { pw: 'def', bits: 56.4 },
+    { pw: 'ghi', bits: null },
+  ])
+  assert.deepEqual(normalizeHistory('not a list'), [])
+})

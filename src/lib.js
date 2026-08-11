@@ -188,3 +188,18 @@ export const isHistoryKey = (key) =>
   typeof key === 'string' && key.endsWith('.history')
 
 export const historyKeysIn = (keys) => keys.filter(isHistoryKey)
+
+// History entries were plain strings until v2.17.0; they are { pw, bits }
+// now, so a recalled password can show the strength it actually had instead
+// of whatever the panel last displayed. Anything unrecognisable is dropped
+// rather than guessed at.
+export const normalizeHistoryEntry = (e) => {
+  if (typeof e === 'string') return { pw: e, bits: null }
+  if (e && typeof e.pw === 'string') {
+    return { pw: e.pw, bits: Number.isFinite(e.bits) ? e.bits : null }
+  }
+  return null
+}
+
+export const normalizeHistory = (list) =>
+  Array.isArray(list) ? list.map(normalizeHistoryEntry).filter(Boolean) : []
