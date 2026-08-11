@@ -286,6 +286,34 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.16.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.16.0</div>
+            <div class="release-date">2026-08-10</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Every password now shows its strength &mdash; honestly</div>
+                <div class="release-summary">Each generator displays its result's entropy in bits, with a breakdown that prices every random choice. The point is not the number; it is that options which add nothing now say so.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>A bits readout under every password</strong> &mdash; the total, a +/&minus; delta when your settings change it, and a quiet warning below 40 bits. Open &ldquo;how?&rdquo; for the full breakdown.</li>
+                    <li><strong>The breakdown names what each option is worth</strong> &mdash; leet substitution is a fixed, public mapping and adds <em>0 bits</em>; eight of the ten capitalization modes are deterministic and add <em>0 bits</em>; Wireless&rsquo;s alliteration toggle states its measured cost (about 10 bits at typical settings). None of these options were removed &mdash; memorability is a legitimate reason to spend bits &mdash; but the trade is now visible.</li>
+                    <li><strong>The numbers reflect what the code actually does.</strong> Simple picks a character type first and a character second, so its figure is the entropy of that two-step draw &mdash; slightly lower than the naive pool arithmetic, which would flatter it. Numbers replays its own repeat/sequence rules to price exactly what they removed. Advanced reports a floor, since part of its process has no closed form; under-reporting is the safe direction.</li>
+                    <li><strong>The math is tested, not trusted</strong> &mdash; for the digit generator, the tests enumerate every possible output at small sizes and prove the probabilities sum to exactly 1.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.15.0 -->
         <div class="release">
           <div class="release-meta">

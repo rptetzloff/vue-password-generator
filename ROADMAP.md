@@ -273,9 +273,9 @@ none of it needs a network call or a new dependency.
 
 ### 6a. Entropy readout
 
-- [ ] **Show bits next to the existing character-count pill.** The pill already exists in the word modes, so this is a natural extension rather than new UI. Character modes are `log2(pool^length)`; word modes are `log2(poolsize) × slots`.
-- [ ] **Live delta as settings change.** Show `+6.2 bits` / `−4.0 bits` as sliders move and toggles flip, so the controls teach what they cost.
-- [ ] **Entropy floor warning** at a configurable threshold — a quiet nudge, not a blocker.
+- [x] **Show bits next to the existing character-count pill.** The pill already exists in the word modes, so this is a natural extension rather than new UI. Character modes are `log2(pool^length)`; word modes are `log2(poolsize) × slots`.
+- [x] **Live delta as settings change.** Show `+6.2 bits` / `−4.0 bits` as sliders move and toggles flip, so the controls teach what they cost.
+- [x] **Entropy floor warning** — shipped as a quiet nudge at a fixed 40 bits. Deliberately not configurable yet; a setting nobody has asked for is clutter, and the threshold lives in one exported constant when someone does.
 
 ### 6b. Truth in advertising — which options actually add entropy
 
@@ -290,8 +290,8 @@ This is the highest-value item in the epic. Measured against the current code:
 | **Advanced min/max** constraints | **negative** | Constraining composition always shrinks the space versus free choice. |
 | **Numbers** repeat/sequence limits | **negative** | Same — each restriction removes candidates. |
 
-- [ ] **Mark each control with its entropy effect** — adds / neutral / costs. Users are entitled to know that the leet toggle is cosmetic.
-- [ ] **Don't remove these options.** Memorability and typeability are legitimate reasons to spend bits. The goal is an informed trade, not a forced one.
+- [x] **Mark each control with its entropy effect** — done in the breakdown panel rather than as per-control badges: every option appears as a line with its bits, zero-bit options carry a plain-words note ("fixed mapping — adds nothing"), and alliteration states its measured cost. One place to look instead of ten scattered markers.
+- [x] **Don't remove these options.** Memorability and typeability are legitimate reasons to spend bits. The goal is an informed trade, not a forced one.
 
 ### 6c. Cross-mode comparison — the "longer looks stronger" illusion
 
@@ -330,7 +330,7 @@ Category sizes drive passphrase strength and are invisible today:
 ### 6f. Related transparency items
 
 - [ ] **Bits per character** as an efficiency readout — makes explicit that word modes buy memorability with length.
-- [ ] **"Show the math"** expander with the actual calculation. Fits the open-source, inspect-it-yourself posture and costs nothing to maintain.
+- [x] **"Show the math"** expander — the "how?" breakdown under each password is exactly this: every random draw priced, per generator.
 
 ### 6g. Exclude ambiguous characters
 

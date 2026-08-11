@@ -44,6 +44,7 @@ All modes support:
 - **Capitalization** — Title Case, lowercase, UPPERCASE, rAndOm LetTerS, AlTeRnAtInG, lasT letteR, FIRST word only, last word ONLY, WORD word alternating, or random per-word
 - **Prefix / Suffix** — add a number, symbol, or custom string before or after the password
 - **Copy to Clipboard** — one-click copy with confirmation
+- **Strength readout** — every generator shows its result's entropy in bits, with a delta when settings change, a warning under 40 bits, and a "how?" breakdown pricing every random draw. Options that add nothing say so: the leet toggle is a fixed public mapping (0 bits), eight of the ten capitalization modes are deterministic (0 bits), and Wireless's alliteration toggle states its measured cost. The numbers reflect what the code actually does — Simple's figure is the entropy of its type-then-character draw, slightly below the naive pool math, and Numbers replays its own repeat/sequence state machine, proven exact by tests that sum the probability of every reachable output to 1.
 
 ---
 
@@ -243,6 +244,7 @@ vue-password-generator/
 │   ├── lib.js            # Pure generation helpers (no Vue, no DOM) — unit tested
 │   ├── theme.js          # Light/dark/system + palette runtime
 │   ├── palettes.js       # The accent palette manifest, incl. cvd-safe flags
+│   ├── entropy.js        # Bits accounting for every generator (6a/6b)
 │   ├── logo.js           # The site mark, inline so it can follow the theme
 │   ├── site-header.js    # Shared header: icon, title, subtitle, nav
 │   ├── site-nav.js       # One list of pages; every nav is generated from it
@@ -265,6 +267,7 @@ vue-password-generator/
 │   ├── color-vision.test.js  # Palette separation under protan/deutan/tritan
 │   ├── wordlist.test.js  # Word list size, charset and unique decodability
 │   ├── words.test.js     # Slot categories: charset, sizes, UI/data agreement
+│   ├── entropy.test.js   # Bits math: distribution proofs, canaries, 6b claims
 │   ├── theme.test.js
 │   ├── site-header.test.js
 │   └── site-nav.test.js
