@@ -1463,13 +1463,15 @@
 
             <div class="option-group">
               <div class="option-group-label">What the number means</div>
-              <p style="font-size:0.875rem;color:var(--text-secondary);padding:0.75rem 0;">
-                Entropy measures how unpredictable a password is: <em>N</em> bits means an attacker who knows
-                your exact settings would need, on average, 2<sup><em>N</em>−1</sup> guesses to find it. Each
-                additional bit doubles the work. The figure counts only genuine randomness — the coin flips the
-                generator actually made — never the length or appearance of the result. A long password built
-                from few random choices is still a weak password, and the readout will say so.
-              </p>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  Entropy measures how unpredictable a password is: <em>N</em> bits means an attacker who knows
+                  your exact settings would need, on average, 2<sup><em>N</em>−1</sup> guesses to find it. Each
+                  additional bit doubles the work. The figure counts only genuine randomness — the coin flips the
+                  generator actually made — never the length or appearance of the result. A long password built
+                  from few random choices is still a weak password, and the readout will say so.
+                </div>
+              </div>
               <div class="option-row">
                 <div class="option-name">Meter tiers</div>
                 <div class="option-desc">
@@ -1567,15 +1569,17 @@
 
             <div class="option-group">
               <div class="option-group-label">Tested, not trusted</div>
-              <p style="font-size:0.875rem;color:var(--text-secondary);padding:0.75rem 0;">
-                The math is verified two ways. In the test suite, the Numbers model is proven to be a true
-                probability distribution by enumerating every possible output and checking the probabilities sum
-                to exactly 1, and canary tests fail the build if a generator's code drifts from the entropy model
-                that mirrors it. Against the running app, generated output is collected in bulk and compared to
-                the model statistically — character-type frequencies in Simple match the displayed model (and
-                rule out the naive combined-pool formula), every Numbers output gets a finite, matching surprisal,
-                and Words draws match the word list's own letter distribution.
-              </p>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  The math is verified two ways. In the test suite, the Numbers model is proven to be a true
+                  probability distribution by enumerating every possible output and checking the probabilities sum
+                  to exactly 1, and canary tests fail the build if a generator's code drifts from the entropy model
+                  that mirrors it. Against the running app, generated output is collected in bulk and compared to
+                  the model statistically — character-type frequencies in Simple match the displayed model (and
+                  rule out the naive combined-pool formula), every Numbers output gets a finite, matching surprisal,
+                  and Words draws match the word list's own letter distribution.
+                </div>
+              </div>
             </div>
 
             <a class="to-top" href="#top">
