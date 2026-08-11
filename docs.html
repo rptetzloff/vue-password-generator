@@ -865,7 +865,9 @@
                   one word you don't like without regenerating the whole password.<br><br>
                   The <strong>lock icon</strong> beside the pills freezes the current prefix, separator, and suffix so
                   that clicking a word pill or the "Generate" button replaces only the words without re-rolling
-                  the affixes.
+                  the affixes. While locked, the strength breakdown prices the held values at 0 bits
+                  (&ldquo;locked — reused, adds nothing&rdquo;) — a value reused across passwords is a constant,
+                  not a secret.
                 </div>
               </div>
             </div>
@@ -1072,7 +1074,7 @@
               </div>
               <div class="option-row">
                 <div class="option-name">Word pills &amp; lock</div>
-                <div class="option-desc">Each generated word appears as a clickable pill. The lock icon freezes prefix/separator/suffix while swapping words. When alliteration is on, swapped words are drawn from the same letter-filtered pool.</div>
+                <div class="option-desc">Each generated word appears as a clickable pill. The lock icon holds prefix/separator/suffix across word swaps and Generate, as in <a href="#words" style="color:var(--primary);">Words</a>. When alliteration is on, swapped words are drawn from the same letter-filtered pool.</div>
               </div>
               <div class="option-row">
                 <div class="option-name">Character count pill</div>
@@ -1300,7 +1302,7 @@
               </table>
               <br>
               <p style="font-size:0.875rem;color:var(--text-secondary);">
-                The <strong>lock icon</strong> in the output area freezes the current prefix, separator, and suffix values so that clicking a word pill regenerates only the words without re-rolling the affixes.
+                The <strong>lock icon</strong> in the output area freezes the current prefix, separator, and suffix values so that clicking a word pill or the Generate button regenerates only the words without re-rolling the affixes. While locked, the strength breakdown prices the held values at 0 bits — reused across passwords, they are constants, not secrets. The New&nbsp;…&nbsp;Each&nbsp;Gap separators are the exception: they redraw every generation even when locked, and keep their per-gap bits.
               </p>
             </div>
 

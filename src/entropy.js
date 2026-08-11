@@ -60,14 +60,34 @@ export const tokenBits = (value) => {
  * Suffix tokens: 'mirror' copies the prefix (0 new bits); 'mirror-newdig'
  * redraws each digit in the prefix, so its bits depend on the prefix token.
  */
-const separatorPart = (separator, gapCount) => {
+// With the affix lock held, the cached prefix/suffix/separator are reused
+// verbatim from an earlier generation -- constants now, so they honestly add
+// nothing. Per-gap separators are the exception: they bypass the cache and
+// redraw every build, locked or not.
+const LOCKED_NOTE = 'locked — reused, adds nothing'
+
+const separatorPart = (separator, gapCount, locked) => {
   const base = PER_GAP_SEPARATORS[separator]
   if (base) {
     const per = tokenBits(base)
     return part(`separator (${gapCount} × ${per.toFixed(2)})`, gapCount * per, 'a new draw at every gap')
   }
   const bits = tokenBits(separator)
+  if (locked && bits > 0) return part('separator', 0, LOCKED_NOTE)
   return part('separator', bits, bits === 0 ? 'fixed — adds nothing' : 'drawn once, reused between words')
+}
+
+const prefixPart = (prefix, locked) => {
+  const bits = tokenBits(prefix)
+  if (locked && bits > 0) return part('prefix', 0, LOCKED_NOTE)
+  return part('prefix', bits, bits === 0 ? 'none or fixed' : undefined)
+}
+
+const suffixPart = (suffix, prefix, locked) => {
+  const bits = suffixBits(suffix, prefix)
+  if (suffix === 'mirror') return part('suffix', 0, 'copies the prefix — adds nothing')
+  if (locked && bits > 0) return part('suffix', 0, LOCKED_NOTE)
+  return part('suffix', bits, bits === 0 ? 'none or fixed' : undefined)
 }
 
 export const suffixBits = (value, prefixValue) => {
@@ -139,23 +159,23 @@ export const advancedBits = ({ counts }) => {
 }
 
 // --- Words --------------------------------------------------------------------
-export const wordsBits = ({ wordCount, listSize, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive }) => {
+export const wordsBits = ({ wordCount, listSize, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive, affixesLocked }) => {
   const gapCount = Math.max(0, wordCount - 1)
   const parts = [
     part(`words (${wordCount} × ${log2(listSize).toFixed(2)})`, wordCount * log2(listSize)),
     capitalizationBits(capitalization, letterCount, wordCount),
   ]
   if (emoji) parts.push(part(`emoji (${wordCount} × ${log2(EMOJI_POOLS.default.length).toFixed(2)})`, wordCount * log2(EMOJI_POOLS.default.length)))
-  parts.push(separatorPart(separator, gapCount))
-  parts.push(part('prefix', tokenBits(prefix), tokenBits(prefix) === 0 ? 'none or fixed' : undefined))
-  parts.push(part('suffix', suffixBits(suffix, prefix), suffix === 'mirror' ? 'copies the prefix — adds nothing' : suffixBits(suffix, prefix) === 0 ? 'none or fixed' : undefined))
+  parts.push(separatorPart(separator, gapCount, affixesLocked))
+  parts.push(prefixPart(prefix, affixesLocked))
+  parts.push(suffixPart(suffix, prefix, affixesLocked))
   parts.push(leetPart(leetActive))
   return finish(parts)
 }
 
 // --- slot modes (Passphrase, Mad Lib, Wireless) --------------------------------
 /** The draws every word mode shares after its words are chosen. */
-const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive }) => {
+const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive, affixesLocked }) => {
   const gapCount = Math.max(0, slots.length - 1)
   const parts = [capitalizationBits(capitalization, letterCount, slots.length)]
   if (emoji) {
@@ -163,9 +183,9 @@ const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suff
     for (const s of slots) bits += log2(s.emojiPoolSize || EMOJI_POOLS.default.length)
     parts.push(part('emoji', bits))
   }
-  parts.push(separatorPart(separator, gapCount))
-  parts.push(part('prefix', tokenBits(prefix), tokenBits(prefix) === 0 ? 'none or fixed' : undefined))
-  parts.push(part('suffix', suffixBits(suffix, prefix), suffix === 'mirror' ? 'copies the prefix — adds nothing' : suffixBits(suffix, prefix) === 0 ? 'none or fixed' : undefined))
+  parts.push(separatorPart(separator, gapCount, affixesLocked))
+  parts.push(prefixPart(prefix, affixesLocked))
+  parts.push(suffixPart(suffix, prefix, affixesLocked))
   parts.push(leetPart(leetActive))
   return parts
 }

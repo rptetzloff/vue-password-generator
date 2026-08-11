@@ -827,14 +827,19 @@ const WordsPassword = {
       }
     }
 
+    // The lock persists across visits but the caches don't, so the first build
+    // of a session must roll even when locked.
+    let affixesRolled = false
     const rollAffixes = () => {
+      affixesRolled = true
       cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
       cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
       cachedSep.value = resolveToken(separator.value, customSeparator.value)
     }
 
-    const buildPassword = (rerollAffixes = false) => {
-      if (rerollAffixes || !lockAffixes.value) rollAffixes()
+    const buildPassword = () => {
+      const rolledAffixes = !lockAffixes.value || !affixesRolled
+      if (rolledAffixes) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
       const words = rawWords.value.map((w, i, arr) => {
         const cased = applyCapitalization(w, capitalization.value, i, arr.length)
@@ -853,6 +858,7 @@ const WordsPassword = {
         suffix: suffixMode.value,
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
+        affixesLocked: !rolledAffixes,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -865,7 +871,7 @@ const WordsPassword = {
       rawWords.value = Array.from({ length: wordCount.value }, () =>
         randPick(wordList.value)
       )
-      buildPassword(true)
+      buildPassword()
     }
 
     const regenWord = (idx) => {
@@ -873,7 +879,7 @@ const WordsPassword = {
       const next = [...rawWords.value]
       next[idx] = randPick(wordList.value)
       rawWords.value = next
-      buildPassword(false)
+      buildPassword()
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
@@ -1072,7 +1078,7 @@ const WordsPassword = {
             class="lock-affixes-btn"
             :class="{ active: lockAffixes }"
             @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
           >
             <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
           </button>
@@ -1412,14 +1418,19 @@ const Passphrase = {
       return randPick(pool)
     }
 
+    // The lock persists across visits but the caches don't, so the first build
+    // of a session must roll even when locked.
+    let affixesRolled = false
     const rollAffixes = () => {
+      affixesRolled = true
       cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
       cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
       cachedSep.value = resolveToken(separator.value, customSeparator.value)
     }
 
-    const buildPassword = (rerollAffixes = false) => {
-      if (rerollAffixes || !lockAffixes.value) rollAffixes()
+    const buildPassword = () => {
+      const rolledAffixes = !lockAffixes.value || !affixesRolled
+      if (rolledAffixes) rollAffixes()
       preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
       const words = rawWords.value.map((w, i, arr) => {
         const cased = applyCapitalization(w, capitalization.value, i, arr.length)
@@ -1453,6 +1464,7 @@ const Passphrase = {
         suffix: suffixMode.value,
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
+        affixesLocked: !rolledAffixes,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -1463,7 +1475,7 @@ const Passphrase = {
         return
       }
       rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
-      buildPassword(true)
+      buildPassword()
     }
 
     const regenWord = (idx) => {
@@ -1472,7 +1484,7 @@ const Passphrase = {
       const next = [...rawWords.value]
       next[idx] = pickFrom(slot.type, slot.cat)
       rawWords.value = next
-      buildPassword(false)
+      buildPassword()
     }
 
     const addSlot = (type) => {
@@ -1697,7 +1709,7 @@ const Passphrase = {
             class="lock-affixes-btn"
             :class="{ active: lockAffixes }"
             @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
           >
             <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
           </button>
@@ -1802,7 +1814,11 @@ const WifiWords = {
       return randPick(common)
     }
 
+    // The lock persists across visits but the caches don't, so the first build
+    // of a session must roll even when locked.
+    let affixesRolled = false
     const rollAffixes = () => {
+      affixesRolled = true
       cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
       cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
       cachedSep.value = resolveToken(separator.value, customSeparator.value)
@@ -1810,8 +1826,9 @@ const WifiWords = {
 
     const warnSet = ref(new Set())
 
-    const buildPassword = (rerollAffixes = false) => {
-      if (rerollAffixes || !lockAffixes.value) rollAffixes()
+    const buildPassword = () => {
+      const rolledAffixes = !lockAffixes.value || !affixesRolled
+      if (rolledAffixes) rollAffixes()
       preview.value = rawWords.value.map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
       const words = rawWords.value.map((w, i, arr) => {
         const cased = applyCapitalization(w || '', capitalization.value, i, arr.length)
@@ -1867,6 +1884,7 @@ const WifiWords = {
         suffix: suffixMode.value,
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
+        affixesLocked: !rolledAffixes,
       })
     }
 
@@ -1884,7 +1902,7 @@ const WifiWords = {
         alliterationLetter.value = ''
         rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
       }
-      buildPassword(true)
+      buildPassword()
       if (password.value.length < 8 && attempt < 10) {
         generatePassword(attempt + 1)
         return
@@ -1901,7 +1919,7 @@ const WifiWords = {
       const next = [...rawWords.value]
       next[idx] = pickFrom(slot.type, slot.cat, alliterationMode.value ? alliterationLetter.value : '')
       rawWords.value = next
-      buildPassword(false)
+      buildPassword()
       if (password.value.length < 8 && attempt < 10) {
         regenWord(idx, attempt + 1)
         return
@@ -2143,7 +2161,7 @@ const WifiWords = {
             class="lock-affixes-btn"
             :class="{ active: lockAffixes }"
             @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
           >
             <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
           </button>
@@ -2261,16 +2279,21 @@ const MadLib = {
       return randPick(pool) || ''
     }
 
+    // The lock persists across visits but the caches don't, so the first build
+    // of a session must roll even when locked.
+    let affixesRolled = false
     const rollAffixes = () => {
+      affixesRolled = true
       cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
       cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
       cachedSep.value = resolveToken(separator.value, customSeparator.value)
     }
 
-    const buildPassword = (rerollAffixes = false) => {
+    const buildPassword = () => {
       const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
       if (!tmpl) return
-      if (rerollAffixes || !lockAffixes.value) rollAffixes()
+      const rolledAffixes = !lockAffixes.value || !affixesRolled
+      if (rolledAffixes) rollAffixes()
       const totalWords = rawSegments.value.filter(s => s.isToken).length
       let wordIndex = 0
       const filledSegments = rawSegments.value.map(seg => {
@@ -2314,6 +2337,7 @@ const MadLib = {
         suffix: suffixMode.value,
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
+        affixesLocked: !rolledAffixes,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -2331,7 +2355,7 @@ const MadLib = {
         const slotEntry = slotCats.value.find(s => s.type === type && s.occurrence === typeOccurrence[type])
         return { word: pickFrom(type, slotEntry?.cat ?? 'random'), isToken: true, type, occurrence: typeOccurrence[type] }
       })
-      buildPassword(true)
+      buildPassword()
     }
 
     const regenWord = (segIdx) => {
@@ -2341,7 +2365,7 @@ const MadLib = {
       const next = [...rawSegments.value]
       next[segIdx] = { ...seg, word: pickFrom(seg.type, slotEntry?.cat ?? 'random') }
       rawSegments.value = next
-      buildPassword(false)
+      buildPassword()
     }
 
     watch(templateId, (newId) => {
@@ -2562,7 +2586,7 @@ const MadLib = {
             class="lock-affixes-btn"
             :class="{ active: lockAffixes }"
             @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — click to unlock' : 'Click to lock prefix/separator/suffix when swapping words'"
+            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
           >
             <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
           </button>

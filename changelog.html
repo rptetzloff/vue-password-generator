@@ -312,6 +312,12 @@
                     <li><strong>Two separators that never repeat</strong> &mdash; New Symbol Each Gap and New Number Each Gap draw independently at every gap instead of reusing one draw, in all four word-based generators. Each gap honestly earns its own bits (4.17 per symbol gap, 3.32 per digit gap), and the breakdown prices them per gap.</li>
                   </ul>
                 </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The affix lock now survives the Generate button</strong> &mdash; it only ever held prefix/separator/suffix through single-word swaps, though the docs promised more. Locked affixes now persist until unlocked, and the strength breakdown prices them honestly at <em>0 bits</em> (&ldquo;locked &mdash; reused, adds nothing&rdquo;) &mdash; a value reused across passwords is a constant, not a secret.</li>
+                  </ul>
+                </div>
               </div>
             </div>
           </div>

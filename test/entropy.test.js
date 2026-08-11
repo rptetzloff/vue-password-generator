@@ -161,6 +161,30 @@ test('words: a per-gap separator counts at every gap', () => {
   assert.ok(Math.abs(alone.total - aloneBase.total) < 1e-12)
 })
 
+test('locked affixes are reused constants and price at zero', () => {
+  const opts = { wordCount: 4, listSize: 17576, capitalization: 'none', letterCount: 25, separator: 'r1sym', prefix: 'r2num', suffix: 'r1sym', emoji: false, leetActive: 0 }
+  const free = wordsBits({ ...opts, affixesLocked: false })
+  const locked = wordsBits({ ...opts, affixesLocked: true })
+  // Unlocked: separator + prefix + suffix all price normally.
+  assert.ok(Math.abs((free.total - locked.total) - (2 * Math.log2(18) + 2 * Math.log2(10))) < 1e-12)
+  for (const label of ['separator', 'prefix', 'suffix']) {
+    const p = locked.parts.find((x) => x.label === label)
+    assert.equal(p.bits, 0, `${label} should price at 0 when locked`)
+    assert.ok(/locked/.test(p.note), `${label} should say why`)
+  }
+  // Options that were already free stay honestly labelled, not "locked".
+  const none = wordsBits({ ...opts, separator: '-', prefix: '', suffix: '', affixesLocked: true })
+  assert.ok(/fixed/.test(none.parts.find((x) => x.label === 'separator').note))
+})
+
+test('a per-gap separator redraws even when the lock is held', () => {
+  const opts = { wordCount: 4, listSize: 17576, capitalization: 'none', letterCount: 25, separator: 'r1sym-gap', prefix: '', suffix: '', emoji: false, leetActive: 0 }
+  const locked = wordsBits({ ...opts, affixesLocked: true })
+  const free = wordsBits({ ...opts, affixesLocked: false })
+  assert.ok(Math.abs(locked.total - free.total) < 1e-12)
+  assert.ok(Math.abs(locked.parts.find((x) => /separator/.test(x.label)).bits - 3 * Math.log2(18)) < 1e-12)
+})
+
 test('slots: a per-gap separator counts at every gap', () => {
   const opts = {
     slots: [{ label: 'adj', poolSize: 149 }, { label: 'noun', poolSize: 359 }, { label: 'verb', poolSize: 200 }],
