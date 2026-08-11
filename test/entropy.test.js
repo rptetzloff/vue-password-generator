@@ -291,14 +291,19 @@ test('the comparison anchors are the figures the docs claim', async () => {
 
 test('crack times are average-case at the named scenario rates', async () => {
   const { ATTACK_SCENARIOS, crackSeconds } = await import('../src/entropy.js')
-  assert.equal(ATTACK_SCENARIOS.length, 3)
+  assert.equal(ATTACK_SCENARIOS.length, 4)
   const rates = Object.fromEntries(ATTACK_SCENARIOS.map((s) => [s.id, s.rate]))
-  assert.deepEqual(rates, { fast: 1e11, slow: 1e4, online: 10 })
+  assert.deepEqual(rates, { fast: 1e11, slow: 1e4, online: 10, lockout: 5 / 900 })
   // 40 bits vs a GPU: 2^39 / 1e11 ≈ 5.5 seconds — the reason 40 is the floor.
   assert.ok(Math.abs(crackSeconds(40, 1e11) - 2 ** 39 / 1e11) < 1e-9)
   assert.ok(crackSeconds(40, 1e11) < 10)
   // The same 40 bits online: over 870 years. One number would mislead.
   assert.ok(crackSeconds(40, 10) / 31557600 > 800)
+  // A 6-digit PIN (~19.6 bits) falls in under a second offline but holds for
+  // about two years behind a five-tries-per-15-minutes lockout.
+  assert.ok(crackSeconds(19.6, 1e11) < 1)
+  const lockoutYears = crackSeconds(19.6, 5 / 900) / 31557600
+  assert.ok(lockoutYears > 1.5 && lockoutYears < 3, `expected ~2 years, got ${lockoutYears}`)
 })
 
 test('guess times format across the whole range', async () => {
