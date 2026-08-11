@@ -248,7 +248,7 @@ const EntropyPanel = {
         <div class="entropy-crack">
           <div class="entropy-crack-title">average time to guess, if attacked knowing your settings:</div>
           <div v-for="s in crackRows" :key="s.id" class="entropy-crack-row" :title="s.note">
-            <span class="crack-label">{{ s.label }}</span><span class="crack-time">{{ s.time }}</span>
+            <span class="crack-label">{{ s.label }}<span class="crack-rate">{{ s.rateLabel }}</span></span><span class="crack-time">{{ s.time }}</span>
           </div>
         </div>
       </div>

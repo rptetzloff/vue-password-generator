@@ -387,12 +387,12 @@ export const MAIN_LIST_WORD_BITS = log2(17576)
  * are order-of-magnitude figures for 2026-era hardware.
  */
 export const ATTACK_SCENARIOS = [
-  { id: 'fast', label: 'offline, fast hash', rate: 1e11, note: 'a stolen database of fast or unsalted hashes (MD5, SHA-1); one GPU rig tries about 10¹¹ guesses per second' },
-  { id: 'slow', label: 'offline, slow hash', rate: 1e4, note: 'a stolen database hashed with bcrypt or argon2; about 10⁴ guesses per second' },
-  { id: 'online', label: 'online, throttled', rate: 10, note: 'guessing at a live login form; about 10 guesses per second before rate limits bite harder' },
+  { id: 'fast', label: 'offline, fast hash', rate: 1e11, rateLabel: '10¹¹ guesses/sec', note: 'a stolen database of fast or unsalted hashes (MD5, SHA-1); one GPU rig tries about 10¹¹ guesses per second' },
+  { id: 'slow', label: 'offline, slow hash', rate: 1e4, rateLabel: '10⁴ guesses/sec', note: 'a stolen database hashed with bcrypt or argon2; about 10⁴ guesses per second' },
+  { id: 'online', label: 'online, throttled', rate: 10, rateLabel: '10 guesses/sec', note: 'guessing at a live login form; about 10 guesses per second before rate limits bite harder' },
   // Five tries, then a 15-minute lockout: 5 guesses per 900 seconds. The
   // classic domain-account policy, and the reason short PINs survive online.
-  { id: 'lockout', label: 'online, lockout', rate: 5 / 900, note: 'five wrong guesses lock the account for 15 minutes — about 480 tries per day' },
+  { id: 'lockout', label: 'online, lockout', rate: 5 / 900, rateLabel: '480 guesses/day', note: 'five wrong guesses lock the account for 15 minutes — about 480 tries per day' },
 ]
 
 /** Average-case guess time in seconds: half the space at the given rate. */

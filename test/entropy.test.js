@@ -294,6 +294,13 @@ test('crack times are average-case at the named scenario rates', async () => {
   assert.equal(ATTACK_SCENARIOS.length, 4)
   const rates = Object.fromEntries(ATTACK_SCENARIOS.map((s) => [s.id, s.rate]))
   assert.deepEqual(rates, { fast: 1e11, slow: 1e4, online: 10, lockout: 5 / 900 })
+  // The visible rate label must not drift from the rate it claims.
+  const labels = Object.fromEntries(ATTACK_SCENARIOS.map((s) => [s.id, s.rateLabel]))
+  assert.deepEqual(labels, {
+    fast: '10¹¹ guesses/sec', slow: '10⁴ guesses/sec',
+    online: '10 guesses/sec', lockout: '480 guesses/day',
+  })
+  assert.ok(Math.abs(5 / 900 * 86400 - 480) < 1e-9, 'the lockout rate really is 480 per day')
   // 40 bits vs a GPU: 2^39 / 1e11 ≈ 5.5 seconds — the reason 40 is the floor.
   assert.ok(Math.abs(crackSeconds(40, 1e11) - 2 ** 39 / 1e11) < 1e-9)
   assert.ok(crackSeconds(40, 1e11) < 10)

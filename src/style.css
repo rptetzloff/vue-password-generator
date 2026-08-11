@@ -1412,6 +1412,17 @@ body {
   text-align: right;
 }
 
+/* The guess rate, inline where the scenario is named -- 480/day vs 10^11/sec
+   is the whole point, and a hover-only note undersold it. */
+.crack-rate {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
 /* Stored strength beside each history entry. Entries saved before v2.17.0
    have no figure and simply show none. */
 .history-item {
