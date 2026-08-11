@@ -133,13 +133,13 @@ Shipped. **2,440 → 4,812 words**, and two new categories. Final counts:
 | noun.tech | 131 | **506** | | adj.mood | 129 | **228** |
 | noun.food | 189 | **399** | | adj.texture | 117 | **169** |
 | noun.animals | 227 | **359** | | adj.colors | 130 | **149** |
-| noun.places | 126 | **328** | | adj.time | 87 | **120** |
+| noun.places | 126 | **327** | | adj.time | 87 | **120** |
 | noun.nature | 134 | **274** | | adj.weather | 104 | **113** |
 | noun.music | — | **194** *(new)* | | adj.size | 100 | **106** |
 | noun.vehicles | 112 | **166** | | verb.action | 119 | **216** |
 | noun.jobs | 135 | **158** | | verb.movement | 96 | **145** |
 | noun.sports | — | **128** *(new)* | | verb.cognition | 82 | **138** |
-| adv.manner | 129 | **588** | | verb.nature | 84 | **120** |
+| adv.manner | 129 | **555** | | verb.nature | 84 | **120** |
 
 - [x] Merge with review, not wholesale.
 - [x] Music and Sports added as noun categories, in `CATEGORY_META` and in the data.
@@ -186,8 +186,17 @@ are released under the **Unlicense** — public domain, the most permissive of
 anything considered here — and change that.
 
 - [x] **Use `ly-adverbs.txt`, not `mostly-adverbs.txt`.** The repository warns its tags are approximate, and that shows: the general adverb file leaks adjectives — *developmental*, *almighty*, *powerful*, *prenatal*, *ninth* all appear. The `-ly` file is 2,033 entries, verified 100% `-ly`-suffixed, and the sample reads clean: *unanimously, abruptly, hastily, intentionally, furiously, generously*.
-- [x] **`adv.manner` goes 129 → 506** using only the 377 `-ly` adverbs that also appear in Orchard Street, i.e. restricted to reasonably common words. That is 7.01 → 7.98 bits on the slot.
-- [ ] **The other three buckets still need hand-assignment.** `-ly` maps almost entirely onto manner. `intensity` (80), `time` (69) and `place` (60) get nothing automatic — an adverb list gives membership, not which of the four kinds a word is.
+- [x] **`adv.manner` goes 129 -> 555**, using the 377 `-ly` adverbs that also appear in Orchard Street. That is 7.01 -> 9.12 bits on the slot.
+- [x] **The other three buckets: partly solved.** WordNet has no adverb categories, but its
+  glosses are formulaic -- a manner adverb is defined as "in a X manner", a degree adverb as
+  "to a X degree" -- so the definitions classify what the lexnames cannot. Two things were
+  needed to make it usable: strip WordNet's example sentences first (they matched on ordinary
+  words like "there" and put *quietly* in place), and treat the result as a shortlist rather
+  than a verdict. At 76% precision it was worth reading all 34 candidates by hand: *brilliantly*
+  and *furiously* are manner definitions that merely contain a degree word, and *newly* ("very
+  recently") is time. 33 words moved -- 30 to intensity, 2 to time, 1 to place.
+- [ ] **Recall is still the limit.** 338 of 698 adverbs match no pattern at all, and time and
+  place gained almost nothing. Those two buckets remain essentially hand-written.
 - [x] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
 - [ ] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Untested here, but the obvious next source for 4b if imsky runs out.
 

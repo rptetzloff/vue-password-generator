@@ -248,6 +248,35 @@
         .release-card { margin-bottom: 1.5rem; }
       }
 
+
+      /* Word-count table in the v2.15.0 entry. The changelog had no table
+         styling before this; keep it compact so 13 rows do not dominate the
+         release card, and let it scroll rather than clip on a phone. */
+      .table-scroll { overflow-x: auto; margin: 0.6rem 0 0.2rem; }
+
+      .count-table {
+        border-collapse: collapse;
+        font-size: 0.78rem;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .count-table th,
+      .count-table td {
+        border: 1px solid var(--border);
+        padding: 0.2rem 0.5rem;
+        text-align: left;
+        white-space: nowrap;
+      }
+
+      .count-table th {
+        background: var(--background);
+        color: var(--text);
+        font-weight: 700;
+      }
+
+      /* The trailing blank cells that pad the shorter column. */
+      .count-table td:empty { border: 0; }
+
     </style>
   </head>
   <body>
@@ -275,7 +304,35 @@
                   <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
                   <ul class="change-list">
                     <li><strong>Music and Sports noun categories</strong> — 194 and 128 words, available anywhere a noun slot appears.</li>
-                    <li><strong>2,440 to 4,812 words overall</strong> — Tech went from 131 to 506, Food 189 to 399, Places 126 to 328, Animals 227 to 359, and Manner adverbs 129 to 588. Every category grew.</li>
+                    <li>
+                      <strong>2,440 to 4,812 words overall</strong> — every category grew:
+                      <div class="table-scroll">
+                        <table class="count-table">
+                          <thead>
+                            <tr><th>Category</th><th>Before</th><th>Now</th><th>Category</th><th>Before</th><th>Now</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr><td>Noun · Tech</td><td>131</td><td>506</td>       <td>Adj · Mood</td><td>129</td><td>228</td></tr>
+                            <tr><td>Noun · Food</td><td>189</td><td>399</td>       <td>Adj · Texture</td><td>117</td><td>169</td></tr>
+                            <tr><td>Noun · Animals</td><td>227</td><td>359</td>    <td>Adj · Colors</td><td>130</td><td>149</td></tr>
+                            <tr><td>Noun · Places</td><td>126</td><td>327</td>     <td>Adj · Time</td><td>87</td><td>120</td></tr>
+                            <tr><td>Noun · Nature</td><td>134</td><td>274</td>     <td>Adj · Weather</td><td>104</td><td>113</td></tr>
+                            <tr><td>Noun · Music</td><td>—</td><td>194</td>        <td>Adj · Size</td><td>100</td><td>106</td></tr>
+                            <tr><td>Noun · Vehicles</td><td>112</td><td>166</td>   <td>Verb · Action</td><td>119</td><td>216</td></tr>
+                            <tr><td>Noun · Jobs</td><td>135</td><td>158</td>       <td>Verb · Movement</td><td>96</td><td>145</td></tr>
+                            <tr><td>Noun · Sports</td><td>—</td><td>128</td>       <td>Verb · Cognition</td><td>82</td><td>138</td></tr>
+                            <tr><td>Adv · Manner</td><td>129</td><td>555</td>      <td>Verb · Nature</td><td>84</td><td>120</td></tr>
+                            <tr><td>Adv · Intensity</td><td>80</td><td>110</td>     <td></td><td></td><td></td></tr>
+                            <tr><td>Adv · Time</td><td>69</td><td>71</td>          <td></td><td></td><td></td></tr>
+                            <tr><td>Adv · Place</td><td>60</td><td>61</td>         <td></td><td></td><td></td></tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      Adverbs were the hard case. Nothing we could find says which <em>kind</em> of
+                      adverb a word is, so the new ones all landed in Manner first and were then
+                      sorted out where a dictionary definition made the answer plain — 33 moved
+                      into Intensity, Time and Place.
+                    </li>
                   </ul>
                 </div>
                 <div class="change-group">
