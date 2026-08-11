@@ -10,7 +10,11 @@
 // Parts with 0 bits are included on purpose -- showing that Title Case or
 // leet substitution contributes nothing IS the feature (6b), not noise.
 
-import { SPECIAL_CHARS, DIGITS, EMOJI_POOLS, PER_GAP_SEPARATORS } from './lib.js'
+import { SPECIAL_CHARS, DIGITS, EMOJI_POOLS, PER_GAP_SEPARATORS, stripAmbiguous } from './lib.js'
+
+// Grouped by what confuses with what, which is easier to read than the raw
+// character list: 0 vs O, and the four vertical strokes.
+export const AMBIGUOUS_LABEL = '0/O, 1/l/I/|'
 
 const log2 = Math.log2
 
@@ -43,15 +47,21 @@ const finish = (parts) => ({
 // they are priced gapCount times.
 const SYM = log2(SPECIAL_CHARS.length) // 18 symbols
 const NUM = log2(DIGITS.length)        // 10 digits
+// 6g: with look-alikes excluded the random pools shrink ('|' leaves the
+// symbols, '0' and '1' the digits) and every draw is worth a little less.
+const SYM_X = log2(stripAmbiguous(SPECIAL_CHARS).length) // 17
+const NUM_X = log2(stripAmbiguous(DIGITS).length)        // 8
 
-export const tokenBits = (value) => {
+export const tokenBits = (value, ambiguousExcluded = false) => {
+  const S = ambiguousExcluded ? SYM_X : SYM
+  const N = ambiguousExcluded ? NUM_X : NUM
   switch (value) {
-    case 'r1sym': return SYM
-    case 'r2sym': return 2 * SYM
-    case 'r1num': return NUM
-    case 'r2num': return 2 * NUM
-    case 'r1s1n': case 'r1n1s': return SYM + NUM
-    case 'r2s2n': case 'r2n2s': return 2 * SYM + 2 * NUM
+    case 'r1sym': return S
+    case 'r2sym': return 2 * S
+    case 'r1num': return N
+    case 'r2num': return 2 * N
+    case 'r1s1n': case 'r1n1s': return S + N
+    case 'r2s2n': case 'r2n2s': return 2 * S + 2 * N
     default: return 0 // literals, custom strings, and '' are constants
   }
 }
@@ -66,37 +76,37 @@ export const tokenBits = (value) => {
 // redraw every build, locked or not.
 const LOCKED_NOTE = 'locked — reused, adds nothing'
 
-const separatorPart = (separator, gapCount, locked) => {
+const separatorPart = (separator, gapCount, locked, excl) => {
   const base = PER_GAP_SEPARATORS[separator]
   if (base) {
-    const per = tokenBits(base)
+    const per = tokenBits(base, excl)
     return part(`separator (${gapCount} × ${per.toFixed(2)})`, gapCount * per, 'a new draw at every gap')
   }
-  const bits = tokenBits(separator)
+  const bits = tokenBits(separator, excl)
   if (locked && bits > 0) return part('separator', 0, LOCKED_NOTE)
   return part('separator', bits, bits === 0 ? 'fixed — adds nothing' : 'drawn once, reused between words')
 }
 
-const prefixPart = (prefix, locked) => {
-  const bits = tokenBits(prefix)
+const prefixPart = (prefix, locked, excl) => {
+  const bits = tokenBits(prefix, excl)
   if (locked && bits > 0) return part('prefix', 0, LOCKED_NOTE)
   return part('prefix', bits, bits === 0 ? 'none or fixed' : undefined)
 }
 
-const suffixPart = (suffix, prefix, locked) => {
-  const bits = suffixBits(suffix, prefix)
+const suffixPart = (suffix, prefix, locked, excl) => {
+  const bits = suffixBits(suffix, prefix, excl)
   if (suffix === 'mirror') return part('suffix', 0, 'copies the prefix — adds nothing')
   if (locked && bits > 0) return part('suffix', 0, LOCKED_NOTE)
   return part('suffix', bits, bits === 0 ? 'none or fixed' : undefined)
 }
 
-export const suffixBits = (value, prefixValue) => {
+export const suffixBits = (value, prefixValue, ambiguousExcluded = false) => {
   if (value === 'mirror') return 0
   if (value === 'mirror-newdig') {
     const digitsInPrefix = { r1num: 1, r2num: 2, r1s1n: 1, r1n1s: 1, r2s2n: 2, r2n2s: 2 }[prefixValue] || 0
-    return digitsInPrefix * NUM
+    return digitsInPrefix * (ambiguousExcluded ? NUM_X : NUM)
   }
-  return tokenBits(value)
+  return tokenBits(value, ambiguousExcluded)
 }
 
 // --- capitalization -----------------------------------------------------------
@@ -125,14 +135,31 @@ export const leetPart = (activeCount) =>
  * the two-step draw: log2(T) + mean of log2(set size). That is slightly BELOW
  * log2(union size); the naive formula would overstate.
  */
-export const simpleBits = ({ length, setSizes }) => {
+export const simpleBits = ({ length, setSizes, fullSetSizes }) => {
   const T = setSizes.length
   if (T === 0 || length === 0) return finish([part('characters', 0)])
   const perChar = log2(T) + setSizes.reduce((s, n) => s + log2(n), 0) / T
-  return finish([
+  const parts = [
     part(`characters (${length} × ${perChar.toFixed(2)})`, length * perChar,
       T > 1 ? 'type then character — slightly below a uniform pool' : undefined),
-  ])
+  ]
+  parts.push(...exclusionCostPart(length * perChar, length, setSizes, fullSetSizes, length))
+  return finish(parts)
+}
+
+/**
+ * 6g: when look-alikes are excluded, state the measured cost and its remedy in
+ * the breakdown -- "costs 2.0 bits" reads as a penalty until you see that one
+ * more character more than pays for it.
+ */
+const exclusionCostPart = (totalBits, drawCount, setSizes, fullSetSizes, length) => {
+  if (!fullSetSizes || fullSetSizes.length !== setSizes.length) return []
+  const delta = setSizes.reduce((s, n, i) => s + (log2(fullSetSizes[i]) - log2(n)), 0) / setSizes.length
+  const cost = drawCount * delta
+  if (cost < 0.005) return []
+  const perChar = totalBits / length
+  return [part(`look-alikes excluded (${AMBIGUOUS_LABEL})`, 0,
+    `costs ${cost.toFixed(1)} bits — one more character returns ${perChar.toFixed(1)}`)]
 }
 
 // --- Advanced -----------------------------------------------------------------
@@ -155,27 +182,36 @@ export const advancedBits = ({ counts }) => {
   for (const c of active) {
     parts.push(part(`${c.label} (${c.count} × ${log2(c.size).toFixed(2)})`, c.count * log2(c.size)))
   }
+  // 6g: fullSize carries what each set would be without the exclusion, so the
+  // cost can be stated rather than silently absorbed into smaller draws.
+  const cost = active.reduce((s, c) => s + (c.fullSize && c.fullSize > c.size ? c.count * (log2(c.fullSize) - log2(c.size)) : 0), 0)
+  if (cost >= 0.005) {
+    const length = active.reduce((s, c) => s + c.count, 0)
+    const total = arrangement + active.reduce((s, c) => s + c.count * log2(c.size), 0)
+    parts.push(part(`look-alikes excluded (${AMBIGUOUS_LABEL})`, 0,
+      `costs ${cost.toFixed(1)} bits — one more character returns ${(total / length).toFixed(1)}`))
+  }
   return finish(parts)
 }
 
 // --- Words --------------------------------------------------------------------
-export const wordsBits = ({ wordCount, listSize, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive, affixesLocked }) => {
+export const wordsBits = ({ wordCount, listSize, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive, affixesLocked, ambiguousExcluded }) => {
   const gapCount = Math.max(0, wordCount - 1)
   const parts = [
     part(`words (${wordCount} × ${log2(listSize).toFixed(2)})`, wordCount * log2(listSize)),
     capitalizationBits(capitalization, letterCount, wordCount),
   ]
   if (emoji) parts.push(part(`emoji (${wordCount} × ${log2(EMOJI_POOLS.default.length).toFixed(2)})`, wordCount * log2(EMOJI_POOLS.default.length)))
-  parts.push(separatorPart(separator, gapCount, affixesLocked))
-  parts.push(prefixPart(prefix, affixesLocked))
-  parts.push(suffixPart(suffix, prefix, affixesLocked))
+  parts.push(separatorPart(separator, gapCount, affixesLocked, ambiguousExcluded))
+  parts.push(prefixPart(prefix, affixesLocked, ambiguousExcluded))
+  parts.push(suffixPart(suffix, prefix, affixesLocked, ambiguousExcluded))
   parts.push(leetPart(leetActive))
   return finish(parts)
 }
 
 // --- slot modes (Passphrase, Mad Lib, Wireless) --------------------------------
 /** The draws every word mode shares after its words are chosen. */
-const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive, affixesLocked }) => {
+const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suffix, emoji, leetActive, affixesLocked, ambiguousExcluded }) => {
   const gapCount = Math.max(0, slots.length - 1)
   const parts = [capitalizationBits(capitalization, letterCount, slots.length)]
   if (emoji) {
@@ -183,9 +219,9 @@ const tailParts = ({ slots, capitalization, letterCount, separator, prefix, suff
     for (const s of slots) bits += log2(s.emojiPoolSize || EMOJI_POOLS.default.length)
     parts.push(part('emoji', bits))
   }
-  parts.push(separatorPart(separator, gapCount, affixesLocked))
-  parts.push(prefixPart(prefix, affixesLocked))
-  parts.push(suffixPart(suffix, prefix, affixesLocked))
+  parts.push(separatorPart(separator, gapCount, affixesLocked, ambiguousExcluded))
+  parts.push(prefixPart(prefix, affixesLocked, ambiguousExcluded))
+  parts.push(suffixPart(suffix, prefix, affixesLocked, ambiguousExcluded))
   parts.push(leetPart(leetActive))
   return parts
 }

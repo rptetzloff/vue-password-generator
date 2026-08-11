@@ -320,7 +320,7 @@ Category sizes drive passphrase strength and are invisible today:
 | `noun/animals` (largest) | 227 | 7.83 |
 | `adv/place` (smallest) | 60 | **5.91** |
 
-- [ ] **Show pool size and bits/slot** in each category picker. Choosing `adv/place` over the EFF list costs 7 bits *per word*.
+- [x] **Show pool size and bits/slot** in each category picker. Done — every picker option reads like *Colors — 149 · 7.2 bits*. Choosing `adv/place` over the EFF list costs 7 bits *per word*.
 - [ ] Ties directly into the Epic 4 rebalancing work.
 
 ### 6e. Crack-time estimates — carefully
@@ -355,11 +355,11 @@ less than the ~6.5 bits a single extra character buys — so lengthening by one
 more than pays for it. That's the framing to put in the UI: not "this weakens
 your password," but "costs 2 bits, and +1 character returns 6.5."
 
-- [ ] **Add the toggle**, defaulting to the tight set. Suggest **on by default for Wireless**, off elsewhere.
-- [ ] **Show the cost live** using the 6a readout, with the "+1 character covers it" hint.
-- [ ] **Handle Numbers mode separately — the wide set would gut it.** Excluding `0 1` leaves 8 digits (3.00 bits each, tolerable); the wide set leaves only `3 4 7 9`, collapsing a digit from 3.32 bits to 2.00 — a 40% loss per character. Either restrict Numbers to the tight set or exclude it from the option entirely.
-- [ ] **Decide the scope for word modes.** Ambiguity there comes from the separators, digit suffixes, and any leet substitutions rather than the words, so the option should apply to those inserted characters, not filter the vocabulary.
-- [ ] **Apply to the custom symbol set too** — Advanced lets users supply their own symbols, where `|` is the usual offender.
+- [x] **Add the toggle**, defaulting to the tight set. Done — on by default for Wireless, off elsewhere.
+- [x] **Show the cost live** using the 6a readout, with the "+1 character covers it" hint. Done — the breakdown line reads *costs 2.6 bits — one more character returns 6.3*.
+- [x] **Handle Numbers mode separately — the wide set would gut it.** Resolved by excluding Numbers entirely: an all-digit code has no letters for 0/1 to be confused with, so the exclusion would cost bits and buy nothing. Docs say so. Excluding `0 1` leaves 8 digits (3.00 bits each, tolerable); the wide set leaves only `3 4 7 9`, collapsing a digit from 3.32 bits to 2.00 — a 40% loss per character. Either restrict Numbers to the tight set or exclude it from the option entirely.
+- [x] **Decide the scope for word modes.** Decided: the option filters the random separator/prefix/suffix draws only. The vocabulary passes through (it is the words' job to be words), as do literals and custom text (typed on purpose). Leet also passes through — its substitutions are per-character opt-in already. Ambiguity there comes from the separators, digit suffixes, and any leet substitutions rather than the words, so the option should apply to those inserted characters, not filter the vocabulary.
+- [x] **Apply to the custom symbol set too** — Advanced lets users supply their own symbols, where `|` is the usual offender.
 
 > Explicitly *not* proposed: any breach-corpus check (e.g. Have I Been Pwned).
 > Even with k-anonymity it means a network request, which would break the

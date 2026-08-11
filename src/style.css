@@ -713,6 +713,24 @@ body {
   color: var(--on-primary);
 }
 
+/* 6d: pool size + bits shown inside a category pill; inherits the pill's
+   color in every state so it never falls below the pill's own contrast. */
+.cat-meta {
+  font-size: 0.72rem;
+  margin-left: 0.35rem;
+}
+
+/* With Bit hints off the meta functions return '', and an empty span must
+   not leave its margin behind. */
+.cat-meta:empty {
+  display: none;
+}
+
+/* 6g: the look-alike toggle sits below a grid inside its card. */
+.exclude-ambiguous {
+  margin-top: 0.75rem;
+}
+
 .sr-only {
   position: absolute;
   width: 1px;

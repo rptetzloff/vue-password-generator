@@ -20,8 +20,26 @@ import {
   normalizeHistory,
   isPerGapSeparator,
   joinPerGap,
+  PER_GAP_SEPARATORS,
+  stripAmbiguous,
 } from './lib.js'
-import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX } from './entropy.js'
+import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX, tokenBits, suffixBits } from './entropy.js'
+
+// 6b, extended to the controls themselves: every option in the separator,
+// affix and capitalization pickers states its worth where it is chosen. The
+// separator/affix figures follow the look-alike toggle, since exclusion
+// shrinks the pools they draw from.
+const fmtBits = (b) => (b === 0 ? '0 bits' : `${b.toFixed(1)} bits`)
+const sepOptionMeta = (value, excl) => {
+  if (isPerGapSeparator(value)) return `${tokenBits(PER_GAP_SEPARATORS[value], excl).toFixed(1)} bits/gap`
+  return fmtBits(tokenBits(value, excl))
+}
+const affixOptionMeta = (value, excl) => fmtBits(tokenBits(value, excl))
+const suffixOptionMeta = (value, prefixValue, excl) => {
+  if (value === 'mirror') return '0 bits'
+  return fmtBits(suffixBits(value, prefixValue, excl))
+}
+const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -54,6 +72,10 @@ const persistedRef = (key, fallback) => {
 
 
 const historyMax = persistedRef('global.historyMax', 10)
+// The "vs last" chip and the per-option price tags are coaching, and some
+// people find a coach noisy. One switch hides all of it; the total, tier,
+// meter and breakdown stay.
+const showBitHints = persistedRef('global.showBitHints', true)
 
 // Tabs render through <component :is> with no <keep-alive>, so only the active
 // generator is mounted and only its useHistory watcher can fire. Turning
@@ -166,7 +188,7 @@ const EntropyPanel = {
     })
     const tier = computed(() => props.entropy ? entropyTier(props.entropy.total) : null)
     const pct = computed(() => props.entropy ? Math.min(100, (props.entropy.total / METER_MAX) * 100) : 0)
-    return { delta, tier, pct, floor: ENTROPY_FLOOR }
+    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints }
   },
   template: `
     <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
@@ -174,7 +196,7 @@ const EntropyPanel = {
         <span class="entropy-meter" :class="'meter-' + tier.id" aria-hidden="true"><span class="entropy-meter-fill" :style="{ width: pct + '%' }"></span></span>
         <span class="entropy-total">{{ entropy.total.toFixed(1) }} bits</span>
         <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
-        <span v-if="delta !== null" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
+        <span v-if="delta !== null && showDelta" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
         <span class="entropy-how" aria-hidden="true">how?</span>
       </summary>
       <ul class="entropy-parts">
@@ -191,7 +213,7 @@ const EntropyPanel = {
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
 const AffixPicker = {
   name: 'AffixPicker',
-  props: { label: String, modelValue: String, customValue: String, options: { default: () => AFFIX_OPTIONS } },
+  props: { label: String, modelValue: String, customValue: String, options: { default: () => AFFIX_OPTIONS }, meta: Function },
   emits: ['update:modelValue', 'update:customValue'],
   setup(props, { emit }) {
     return {
@@ -210,7 +232,7 @@ const AffixPicker = {
           :class="{ active: modelValue === opt.value }"
         >
           <input :value="opt.value" :checked="modelValue === opt.value" @change="onMode(opt.value)" type="radio" class="sr-only" />
-          <span>{{ opt.label }}</span>
+          <span>{{ opt.label }}</span><span v-if="meta" class="cat-meta">{{ meta(opt.value) }}</span>
         </label>
       </div>
       <div v-if="modelValue === 'custom'" class="custom-sep-row">
@@ -237,6 +259,7 @@ const SimplePassword = {
     const digits = persistedRef('simple.digits', true)
     const specialChars = persistedRef('simple.specialChars', true)
     const useEmoji = persistedRef('simple.useEmoji', false)
+    const excludeAmbiguous = persistedRef('simple.excludeAmbiguous', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -264,14 +287,18 @@ const SimplePassword = {
       if (specialChars.value) availableTypes.push('special')
       if (useEmoji.value) availableTypes.push('emoji')
 
+      const sets = excludeAmbiguous.value
+        ? { lower: stripAmbiguous(characterSets.lower), upper: stripAmbiguous(characterSets.upper), digits: stripAmbiguous(characterSets.digits), special: stripAmbiguous(characterSets.special) }
+        : characterSets
+
       let newPassword = ''
       for (let i = 0; i < passwordLength.value; i++) {
         const type = randPick(availableTypes)
         switch (type) {
-          case 'lower':   newPassword += randChar(characterSets.lower); break
-          case 'upper':   newPassword += randChar(characterSets.upper); break
-          case 'digits':  newPassword += randChar(characterSets.digits); break
-          case 'special': newPassword += randChar(characterSets.special); break
+          case 'lower':   newPassword += randChar(sets.lower); break
+          case 'upper':   newPassword += randChar(sets.upper); break
+          case 'digits':  newPassword += randChar(sets.digits); break
+          case 'special': newPassword += randChar(sets.special); break
           case 'emoji':   newPassword += pickEmoji('default'); break
         }
       }
@@ -282,12 +309,16 @@ const SimplePassword = {
       // within it. Characters are NOT uniform over the union pool, so the
       // naive log2(union^length) would overstate -- see simpleBits.
       const setSizes = []
-      if (lowerCase.value) setSizes.push(characterSets.lower.length)
-      if (upperCase.value) setSizes.push(characterSets.upper.length)
-      if (digits.value) setSizes.push(characterSets.digits.length)
-      if (specialChars.value) setSizes.push(characterSets.special.length)
-      if (useEmoji.value) setSizes.push(EMOJI_POOLS.default.length)
-      entropy.value = simpleBits({ length: parseInt(passwordLength.value), setSizes })
+      const fullSizes = []
+      if (lowerCase.value) { setSizes.push(sets.lower.length); fullSizes.push(characterSets.lower.length) }
+      if (upperCase.value) { setSizes.push(sets.upper.length); fullSizes.push(characterSets.upper.length) }
+      if (digits.value) { setSizes.push(sets.digits.length); fullSizes.push(characterSets.digits.length) }
+      if (specialChars.value) { setSizes.push(sets.special.length); fullSizes.push(characterSets.special.length) }
+      if (useEmoji.value) { setSizes.push(EMOJI_POOLS.default.length); fullSizes.push(EMOJI_POOLS.default.length) }
+      entropy.value = simpleBits({
+        length: parseInt(passwordLength.value), setSizes,
+        fullSetSizes: excludeAmbiguous.value ? fullSizes : undefined,
+      })
       pushHistory(newPassword, entropy.value.total)
     }
 
@@ -302,6 +333,7 @@ const SimplePassword = {
       digits,
       specialChars,
       useEmoji,
+      excludeAmbiguous,
       password,
       entropy,
       recallHistory,
@@ -354,6 +386,10 @@ const SimplePassword = {
             <input v-model="useEmoji" type="checkbox" class="checkbox" />
             <span>Emoji 🎲</span>
           </label>
+          <label class="checkbox-item exclude-ambiguous">
+            <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+            <span>Exclude look-alikes (0/O, 1/l/I/|)</span>
+          </label>
         </div>
       </div>
 
@@ -397,6 +433,7 @@ const AdvancedPassword = {
     const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
     const emojiCount = persistedRef('adv.emojiCount', [0, 0])
+    const excludeAmbiguous = persistedRef('adv.excludeAmbiguous', false)
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -488,13 +525,19 @@ const AdvancedPassword = {
       }
 
       // Generate actual password
+      const sets = excludeAmbiguous.value
+        ? { lower: stripAmbiguous(characterSets.lower), upper: stripAmbiguous(characterSets.upper), digits: stripAmbiguous(characterSets.digits) }
+        : characterSets
+      // If stripping empties a user-picked symbol set (e.g. only '|' selected),
+      // the exclusion cannot apply there; fall back to the set as chosen.
+      const symbols = (excludeAmbiguous.value ? stripAmbiguous(customSymbols.value) : customSymbols.value) || customSymbols.value
       let newPassword = ''
       for (const type of charTypes) {
         switch (type) {
-          case 'lower':   newPassword += randChar(characterSets.lower); break
-          case 'upper':   newPassword += randChar(characterSets.upper); break
-          case 'digits':  newPassword += randChar(characterSets.digits); break
-          case 'special':  newPassword += randChar(customSymbols.value); break
+          case 'lower':   newPassword += randChar(sets.lower); break
+          case 'upper':   newPassword += randChar(sets.upper); break
+          case 'digits':  newPassword += randChar(sets.digits); break
+          case 'special':  newPassword += randChar(symbols); break
           case 'emoji':   newPassword += pickEmoji('default'); break
         }
       }
@@ -506,15 +549,16 @@ const AdvancedPassword = {
       // composition itself carries a little extra entropy with no closed form,
       // so this is a floor -- under-reporting is the safe direction.
       const typeSpecs = [
-        ['lower', 'lowercase', characterSets.lower.length],
-        ['upper', 'uppercase', characterSets.upper.length],
-        ['digits', 'digits', characterSets.digits.length],
-        ['special', 'symbols', Math.max(customSymbols.value.length, 1)],
-        ['emoji', 'emoji', EMOJI_POOLS.default.length],
+        ['lower', 'lowercase', sets.lower.length, characterSets.lower.length],
+        ['upper', 'uppercase', sets.upper.length, characterSets.upper.length],
+        ['digits', 'digits', sets.digits.length, characterSets.digits.length],
+        ['special', 'symbols', Math.max(symbols.length, 1), Math.max(customSymbols.value.length, 1)],
+        ['emoji', 'emoji', EMOJI_POOLS.default.length, EMOJI_POOLS.default.length],
       ]
       entropy.value = advancedBits({
-        counts: typeSpecs.map(([key, label, size]) => ({
+        counts: typeSpecs.map(([key, label, size, fullSize]) => ({
           label, size, count: charTypes.filter((t) => t === key).length,
+          fullSize: excludeAmbiguous.value ? fullSize : undefined,
         })),
       })
       pushHistory(newPassword, entropy.value.total)
@@ -531,6 +575,7 @@ const AdvancedPassword = {
       digits,
       specialChars,
       allSymbols: ALL_SYMBOLS,
+      excludeAmbiguous,
       activeSymbols,
       toggleSymbol,
       selectAllSymbols,
@@ -712,6 +757,10 @@ const AdvancedPassword = {
             >{{ sym }}</button>
           </div>
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from every set</span>
+        </label>
       </div>
 
       <div class="card">
@@ -799,6 +848,7 @@ const WordsPassword = {
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('words.lockAffixes', false)
+    const excludeAmbiguous = persistedRef('words.excludeAmbiguous', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -832,9 +882,9 @@ const WordsPassword = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const buildPassword = () => {
@@ -845,7 +895,7 @@ const WordsPassword = {
         const cased = applyCapitalization(w, capitalization.value, i, arr.length)
         return useEmoji.value ? pickEmoji('default') + cased : cased
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       entropy.value = wordsBits({
@@ -859,6 +909,7 @@ const WordsPassword = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -883,6 +934,7 @@ const WordsPassword = {
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordList()
@@ -905,6 +957,11 @@ const WordsPassword = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password,
       entropy,
       recallHistory,
@@ -944,7 +1001,7 @@ const WordsPassword = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
@@ -955,6 +1012,10 @@ const WordsPassword = {
             placeholder="Type your separator"
           />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -962,43 +1023,43 @@ const WordsPassword = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -1010,6 +1071,7 @@ const WordsPassword = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -1019,6 +1081,7 @@ const WordsPassword = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1390,6 +1453,7 @@ const Passphrase = {
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('phrase.lockAffixes', false)
+    const excludeAmbiguous = persistedRef('phrase.excludeAmbiguous', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1401,6 +1465,15 @@ const Passphrase = {
     const { history, pushHistory } = useHistory('phrase.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
+    // 6d: the picker states what a category costs before it is chosen --
+    // pool size and bits per slot, from the same data the generator draws on.
+    const catInfo = (type, catId) => {
+      if (!showBitHints.value) return ''
+      const cats = wordData.value[type] || {}
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+      if (!pool.length) return ''
+      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+    }
 
     const loadWordData = async () => {
       try {
@@ -1423,9 +1496,9 @@ const Passphrase = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const buildPassword = () => {
@@ -1441,7 +1514,7 @@ const Passphrase = {
         }
         return cased
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       const slotInfos = slots.value.map((s) => {
@@ -1465,6 +1538,7 @@ const Passphrase = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -1505,6 +1579,7 @@ const Passphrase = {
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
@@ -1515,6 +1590,7 @@ const Passphrase = {
       slots,
       slotTypes: SLOT_TYPES,
       categoryMeta: CATEGORY_META,
+      catInfo,
       addSlot, removeSlot, moveSlot,
       separator, customSeparator,
       capitalization,
@@ -1527,6 +1603,11 @@ const Passphrase = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1566,7 +1647,7 @@ const Passphrase = {
               <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
             </div>
             <select class="slot-cat-select" v-model="slot.cat">
-              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}{{ catInfo(slot.type, opt.id) ? ' — ' + catInfo(slot.type, opt.id) : '' }}</option>
             </select>
           </div>
         </div>
@@ -1581,12 +1662,16 @@ const Passphrase = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
           <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -1594,43 +1679,43 @@ const Passphrase = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -1642,6 +1727,7 @@ const Passphrase = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -1651,6 +1737,7 @@ const Passphrase = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1765,6 +1852,9 @@ const WifiWords = {
     const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('wifi.lockAffixes', false)
+    // 6g: on by default here -- Wireless keys get read off a screen and typed
+    // on a TV remote, which is exactly where l/1 and O/0 misfire.
+    const excludeAmbiguous = persistedRef('wifi.excludeAmbiguous', true)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1776,6 +1866,15 @@ const WifiWords = {
     const { history, pushHistory } = useHistory('wifi.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'wifi')
     const wordData = ref({})
+    // 6d: the picker states what a category costs before it is chosen --
+    // pool size and bits per slot, from the same data the generator draws on.
+    const catInfo = (type, catId) => {
+      if (!showBitHints.value) return ''
+      const cats = wordData.value[type] || {}
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+      if (!pool.length) return ''
+      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+    }
     const alliterationMode = persistedRef('wifi.alliterationMode', true)
     const alliterationLetter = ref('')
 
@@ -1819,9 +1918,9 @@ const WifiWords = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const warnSet = ref(new Set())
@@ -1839,7 +1938,7 @@ const WifiWords = {
         }
         return cased
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       password.value = result
@@ -1885,6 +1984,7 @@ const WifiWords = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
     }
 
@@ -1948,6 +2048,7 @@ const WifiWords = {
     }
 
     watch(useEmoji, () => { if (rawWords.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
@@ -1958,6 +2059,7 @@ const WifiWords = {
       slots,
       slotTypes: SLOT_TYPES,
       categoryMeta: CATEGORY_META,
+      catInfo,
       addSlot, removeSlot, moveSlot,
       alliterationMode, alliterationLetter,
       separator, customSeparator,
@@ -1971,6 +2073,11 @@ const WifiWords = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2018,7 +2125,7 @@ const WifiWords = {
               <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
             </div>
             <select class="slot-cat-select" v-model="slot.cat">
-              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}</option>
+              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}{{ catInfo(slot.type, opt.id) ? ' — ' + catInfo(slot.type, opt.id) : '' }}</option>
             </select>
           </div>
         </div>
@@ -2033,12 +2140,16 @@ const WifiWords = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
           <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -2046,43 +2157,43 @@ const WifiWords = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -2094,6 +2205,7 @@ const WifiWords = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -2103,6 +2215,7 @@ const WifiWords = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -2258,12 +2371,22 @@ const MadLib = {
     // rawWords stores the plain words from the template fill (no caps/leet) alongside their token types
     const rawSegments = ref([]) // [{ word, isToken, type? }]
     const lockAffixes = persistedRef('madlib.lockAffixes', false)
+    const excludeAmbiguous = persistedRef('madlib.excludeAmbiguous', false)
     const cachedPre = ref('')
     const cachedSep = ref('')
     const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('madlib.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
+    // 6d: the picker states what a category costs before it is chosen --
+    // pool size and bits per slot, from the same data the generator draws on.
+    const catInfo = (type, catId) => {
+      if (!showBitHints.value) return ''
+      const cats = wordData.value[type] || {}
+      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+      if (!pool.length) return ''
+      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+    }
 
     const loadWordData = async () => {
       try {
@@ -2284,9 +2407,9 @@ const MadLib = {
     let affixesRolled = false
     const rollAffixes = () => {
       affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value)
+      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
+      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
+      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
     }
 
     const buildPassword = () => {
@@ -2311,7 +2434,7 @@ const MadLib = {
         }
         return w
       })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value) : words.join(cachedSep.value)
+      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
       const assembled = cachedPre.value + joined + cachedSuf.value
       password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
       // Only the token slots carry entropy -- the template text is a setting.
@@ -2338,6 +2461,7 @@ const MadLib = {
         emoji: useEmoji.value,
         leetActive: activeLeet.value.size,
         affixesLocked: !rolledAffixes,
+        ambiguousExcluded: excludeAmbiguous.value,
       })
       pushHistory(password.value, entropy.value.total)
     }
@@ -2374,6 +2498,7 @@ const MadLib = {
     })
 
     watch(useEmoji, () => { if (rawSegments.value.length) buildPassword() })
+    watch(excludeAmbiguous, () => { if (rawSegments.value.length) buildPassword() })
 
     onMounted(async () => {
       await loadWordData()
@@ -2387,6 +2512,7 @@ const MadLib = {
       slotCats,
       slotCatRows,
       categoryMeta: CATEGORY_META,
+      catInfo,
       separator, customSeparator,
       capitalization,
       prefixMode, prefixCustom,
@@ -2398,6 +2524,11 @@ const MadLib = {
       selectNoLeet,
       useEmoji,
       lockAffixes,
+      excludeAmbiguous,
+      sepMeta: (v) => (showBitHints.value ? sepOptionMeta(v, excludeAmbiguous.value) : ''),
+      prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
+      suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
+      capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2445,7 +2576,7 @@ const MadLib = {
                 :class="{ active: slotCats[idx].cat === opt.id }"
               >
                 <input v-model="slotCats[idx].cat" :value="opt.id" type="radio" class="sr-only" />
-                <span>{{ opt.label }}</span>
+                <span>{{ opt.label }}</span><span v-if="catInfo(slot.type, opt.id)" class="cat-meta">{{ catInfo(slot.type, opt.id) }}</span>
               </label>
             </div>
           </div>
@@ -2457,12 +2588,16 @@ const MadLib = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
           <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
         </div>
+        <label class="checkbox-item exclude-ambiguous">
+          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
+        </label>
       </div>
 
       <div class="card">
@@ -2470,43 +2605,43 @@ const MadLib = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -2518,6 +2653,7 @@ const MadLib = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -2527,6 +2663,7 @@ const MadLib = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -2652,6 +2789,11 @@ const App = {
             options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
             get: () => historyMax.value,
             set: (v) => { historyMax.value = Number(v) },
+          }, {
+            label: 'Bit hints',
+            options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
+            get: () => (showBitHints.value ? 'on' : 'off'),
+            set: (v) => { showBitHints.value = v === 'on' },
           }],
         },
       })

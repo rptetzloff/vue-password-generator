@@ -217,6 +217,49 @@ test('alliteration parts price the letter and the narrowed pools', () => {
   assert.ok(Math.abs(total - (Math.log2(21) + Math.log2(9) + Math.log2(14))) < 1e-12)
 })
 
+test('excluding look-alikes shrinks token bits to the reduced pools', () => {
+  assert.ok(Math.abs(tokenBits('r1sym', true) - Math.log2(17)) < 1e-12)
+  assert.ok(Math.abs(tokenBits('r1num', true) - Math.log2(8)) < 1e-12)
+  assert.ok(Math.abs(tokenBits('r2s2n', true) - (2 * Math.log2(17) + 2 * Math.log2(8))) < 1e-12)
+  assert.ok(Math.abs(suffixBits('mirror-newdig', 'r2num', true) - 2 * Math.log2(8)) < 1e-12)
+  // Threaded through the word modes: separator, prefix, suffix all reprice.
+  const opts = { wordCount: 4, listSize: 17576, capitalization: 'none', letterCount: 25, separator: 'r1sym', prefix: 'r1num', suffix: 'r1sym', emoji: false, leetActive: 0 }
+  const full = wordsBits(opts)
+  const excl = wordsBits({ ...opts, ambiguousExcluded: true })
+  const expected = (Math.log2(18) - Math.log2(17)) * 2 + (Math.log2(10) - Math.log2(8))
+  assert.ok(Math.abs((full.total - excl.total) - expected) < 1e-12)
+})
+
+test('simple states the exclusion cost and its remedy', () => {
+  // 4 sets: lower 25, upper 24, digits 8, special 28 (from 26/26/10/29).
+  const { total, parts } = simpleBits({
+    length: 20, setSizes: [25, 24, 8, 28], fullSetSizes: [26, 26, 10, 29],
+  })
+  const p = parts.find((x) => /look-alikes excluded/.test(x.label))
+  assert.ok(p, 'the exclusion must appear in the breakdown')
+  assert.equal(p.bits, 0)
+  assert.ok(/costs \d+\.\d bits — one more character returns \d+\.\d/.test(p.note))
+  const fullTotal = simpleBits({ length: 20, setSizes: [26, 26, 10, 29] }).total
+  const cost = parseFloat(p.note.match(/costs (\d+\.\d)/)[1])
+  assert.ok(Math.abs((fullTotal - total) - cost) < 0.05, 'the stated cost must be the measured cost')
+  // And without exclusion there is no such line.
+  assert.ok(!simpleBits({ length: 20, setSizes: [26, 26, 10, 29] }).parts.some((x) => /look-alikes/.test(x.label)))
+})
+
+test('advanced states the exclusion cost from the realized counts', () => {
+  const { parts } = advancedBits({
+    counts: [
+      { label: 'lowercase', count: 10, size: 25, fullSize: 26 },
+      { label: 'digits', count: 10, size: 8, fullSize: 10 },
+    ],
+  })
+  const p = parts.find((x) => /look-alikes excluded/.test(x.label))
+  assert.ok(p && p.bits === 0)
+  const expected = 10 * (Math.log2(26) - Math.log2(25)) + 10 * (Math.log2(10) - Math.log2(8))
+  const stated = parseFloat(p.note.match(/costs (\d+\.\d)/)[1])
+  assert.ok(Math.abs(stated - expected) < 0.05)
+})
+
 test('the floor is where the roadmap put it', () => {
   assert.equal(ENTROPY_FLOOR, 40)
 })
