@@ -208,7 +208,18 @@ const EntropyPanel = {
     const crackRows = computed(() => (props.entropy
       ? ATTACK_SCENARIOS.map((s) => ({ ...s, time: formatGuessTime(crackSeconds(props.entropy.total, s.rate)) }))
       : []))
-    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints, len, perChar, charsRef, listRef, crackRows }
+    // The two ends of that table, always visible: the same password lives in
+    // different worlds depending on where it is attacked, and the spread is
+    // the message -- not something to hide behind "how?".
+    const range = computed(() => {
+      if (!props.entropy) return null
+      const t = (id) => {
+        const s = ATTACK_SCENARIOS.find((x) => x.id === id)
+        return formatGuessTime(crackSeconds(props.entropy.total, s.rate))
+      }
+      return { fast: t('fast'), lockout: t('lockout') }
+    })
+    return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints, len, perChar, charsRef, listRef, crackRows, range }
   },
   template: `
     <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
@@ -218,6 +229,7 @@ const EntropyPanel = {
         <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
         <span v-if="delta !== null && showDelta" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
         <span class="entropy-how" aria-hidden="true">how?</span>
+        <span v-if="range" class="entropy-range" title="Average time to guess, assuming the attacker knows your settings. Open the breakdown for all four scenarios.">to guess: leaked database <strong>{{ range.fast }}</strong> &middot; login with lockout <strong>{{ range.lockout }}</strong></span>
       </summary>
       <ul class="entropy-parts">
         <li v-for="p in entropy.parts" :key="p.label" :class="{ 'ep-zero': p.bits === 0 }">

@@ -1283,12 +1283,26 @@ body {
 }
 
 .entropy-summary {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
   cursor: pointer;
   padding: 0.2rem 0.3rem;
   border-radius: 4px;
+}
+
+/* The scenario spread, always visible: 480 guesses a day is a different world
+   from 10^11 a second, and that contrast should not hide behind "how?". */
+.entropy-range {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.entropy-range strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
 }
 
 .entropy-total {
