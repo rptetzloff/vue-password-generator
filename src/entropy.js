@@ -10,7 +10,11 @@
 // Parts with 0 bits are included on purpose -- showing that Title Case or
 // leet substitution contributes nothing IS the feature (6b), not noise.
 
-import { SPECIAL_CHARS, DIGITS, EMOJI_POOLS, PER_GAP_SEPARATORS, stripAmbiguous, AMBIGUOUS_CHARS } from './lib.js'
+import { SPECIAL_CHARS, DIGITS, EMOJI_POOLS, PER_GAP_SEPARATORS, stripAmbiguous } from './lib.js'
+
+// Grouped by what confuses with what, which is easier to read than the raw
+// character list: 0 vs O, and the four vertical strokes.
+export const AMBIGUOUS_LABEL = '0/O, 1/l/I/|'
 
 const log2 = Math.log2
 
@@ -154,7 +158,7 @@ const exclusionCostPart = (totalBits, drawCount, setSizes, fullSetSizes, length)
   const cost = drawCount * delta
   if (cost < 0.005) return []
   const perChar = totalBits / length
-  return [part(`look-alikes excluded (${[...AMBIGUOUS_CHARS].join(' ')})`, 0,
+  return [part(`look-alikes excluded (${AMBIGUOUS_LABEL})`, 0,
     `costs ${cost.toFixed(1)} bits — one more character returns ${perChar.toFixed(1)}`)]
 }
 
@@ -184,7 +188,7 @@ export const advancedBits = ({ counts }) => {
   if (cost >= 0.005) {
     const length = active.reduce((s, c) => s + c.count, 0)
     const total = arrangement + active.reduce((s, c) => s + c.count * log2(c.size), 0)
-    parts.push(part(`look-alikes excluded (${[...AMBIGUOUS_CHARS].join(' ')})`, 0,
+    parts.push(part(`look-alikes excluded (${AMBIGUOUS_LABEL})`, 0,
       `costs ${cost.toFixed(1)} bits — one more character returns ${(total / length).toFixed(1)}`))
   }
   return finish(parts)

@@ -702,7 +702,7 @@
 
               <div class="option-row">
                 <div class="option-name">Exclude look-alikes</div>
-                <div class="option-desc">Removes <strong>l I 1 | O 0</strong> — the characters that read alike when a password moves between screens — from every enabled set. The strength breakdown states the measured cost (about 2.6 bits at 20 characters) and its remedy: one more character returns more than it takes. Off by default.</div>
+                <div class="option-desc">Removes the characters that read alike when a password moves between screens — <strong>0/O</strong> and the four vertical strokes <strong>1/l/I/|</strong> — from every enabled set. The strength breakdown states the measured cost (about 2.6 bits at 20 characters) and its remedy: one more character returns more than it takes. Off by default. These six are the <em>tight</em> set, the confusions that survive most fonts; the wider family (2/Z, 5/S, 8/B, 6/G, o/O) costs more than twice as much for rarer confusions and is deliberately not offered.</div>
               </div>
             </div>
 
@@ -776,7 +776,7 @@
 
               <div class="option-row">
                 <div class="option-name">Exclude look-alikes</div>
-                <div class="option-desc">Removes <strong>l I 1 | O 0</strong> from every set, including your chosen symbol set. If stripping would empty the symbol set (only <code>|</code> selected), the set is kept as chosen. The strength breakdown states the measured cost from the counts actually drawn. Off by default.</div>
+                <div class="option-desc">Removes <strong>0/O</strong> and <strong>1/l/I/|</strong> from every set, including your chosen symbol set. If stripping would empty the symbol set (only <code>|</code> selected), the set is kept as chosen. The strength breakdown states the measured cost from the counts actually drawn. Off by default.</div>
               </div>
             </div>
 
@@ -1298,7 +1298,7 @@
                 </tbody>
               </table>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-top:0.75rem;">
-                Each word-based generator also offers <strong>Exclude look-alikes (l I 1 | O 0)</strong> below the
+                Each word-based generator also offers <strong>Exclude look-alikes (0/O, 1/l/I/|)</strong> below the
                 separator grid. It filters the <em>random</em> symbol and digit draws — separators, prefixes and
                 suffixes — not the words themselves and not literal or custom text you typed. On by default in
                 <a href="#wireless" style="color:var(--primary);">Wireless</a>, whose keys are made to be read off

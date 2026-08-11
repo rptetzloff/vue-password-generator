@@ -20,9 +20,26 @@ import {
   normalizeHistory,
   isPerGapSeparator,
   joinPerGap,
+  PER_GAP_SEPARATORS,
   stripAmbiguous,
 } from './lib.js'
-import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX } from './entropy.js'
+import { simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits, ENTROPY_FLOOR, entropyTier, METER_MAX, tokenBits, suffixBits } from './entropy.js'
+
+// 6b, extended to the controls themselves: every option in the separator,
+// affix and capitalization pickers states its worth where it is chosen. The
+// separator/affix figures follow the look-alike toggle, since exclusion
+// shrinks the pools they draw from.
+const fmtBits = (b) => (b === 0 ? '0 bits' : `${b.toFixed(1)} bits`)
+const sepOptionMeta = (value, excl) => {
+  if (isPerGapSeparator(value)) return `${tokenBits(PER_GAP_SEPARATORS[value], excl).toFixed(1)} bits/gap`
+  return fmtBits(tokenBits(value, excl))
+}
+const affixOptionMeta = (value, excl) => fmtBits(tokenBits(value, excl))
+const suffixOptionMeta = (value, prefixValue, excl) => {
+  if (value === 'mirror') return '0 bits'
+  return fmtBits(suffixBits(value, prefixValue, excl))
+}
+const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -192,7 +209,7 @@ const EntropyPanel = {
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
 const AffixPicker = {
   name: 'AffixPicker',
-  props: { label: String, modelValue: String, customValue: String, options: { default: () => AFFIX_OPTIONS } },
+  props: { label: String, modelValue: String, customValue: String, options: { default: () => AFFIX_OPTIONS }, meta: Function },
   emits: ['update:modelValue', 'update:customValue'],
   setup(props, { emit }) {
     return {
@@ -211,7 +228,7 @@ const AffixPicker = {
           :class="{ active: modelValue === opt.value }"
         >
           <input :value="opt.value" :checked="modelValue === opt.value" @change="onMode(opt.value)" type="radio" class="sr-only" />
-          <span>{{ opt.label }}</span>
+          <span>{{ opt.label }}</span><span v-if="meta" class="cat-meta">{{ meta(opt.value) }}</span>
         </label>
       </div>
       <div v-if="modelValue === 'custom'" class="custom-sep-row">
@@ -367,7 +384,7 @@ const SimplePassword = {
           </label>
           <label class="checkbox-item exclude-ambiguous">
             <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-            <span>Exclude look-alikes (l I 1 | O 0)</span>
+            <span>Exclude look-alikes (0/O, 1/l/I/|)</span>
           </label>
         </div>
       </div>
@@ -738,7 +755,7 @@ const AdvancedPassword = {
         </div>
         <label class="checkbox-item exclude-ambiguous">
           <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (l I 1 | O 0) from every set</span>
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from every set</span>
         </label>
       </div>
 
@@ -937,6 +954,10 @@ const WordsPassword = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
+      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
+      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
+      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
+      capMeta: capOptionMeta,
       password,
       entropy,
       recallHistory,
@@ -976,7 +997,7 @@ const WordsPassword = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
@@ -989,7 +1010,7 @@ const WordsPassword = {
         </div>
         <label class="checkbox-item exclude-ambiguous">
           <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
         </label>
       </div>
 
@@ -998,43 +1019,43 @@ const WordsPassword = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -1046,6 +1067,7 @@ const WordsPassword = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -1055,6 +1077,7 @@ const WordsPassword = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -1576,6 +1599,10 @@ const Passphrase = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
+      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
+      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
+      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
+      capMeta: capOptionMeta,
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1630,7 +1657,7 @@ const Passphrase = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
@@ -1638,7 +1665,7 @@ const Passphrase = {
         </div>
         <label class="checkbox-item exclude-ambiguous">
           <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
         </label>
       </div>
 
@@ -1647,43 +1674,43 @@ const Passphrase = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -1695,6 +1722,7 @@ const Passphrase = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -1704,6 +1732,7 @@ const Passphrase = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -2039,6 +2068,10 @@ const WifiWords = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
+      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
+      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
+      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
+      capMeta: capOptionMeta,
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2101,7 +2134,7 @@ const WifiWords = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
@@ -2109,7 +2142,7 @@ const WifiWords = {
         </div>
         <label class="checkbox-item exclude-ambiguous">
           <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
         </label>
       </div>
 
@@ -2118,43 +2151,43 @@ const WifiWords = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -2166,6 +2199,7 @@ const WifiWords = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -2175,6 +2209,7 @@ const WifiWords = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
@@ -2483,6 +2518,10 @@ const MadLib = {
       useEmoji,
       lockAffixes,
       excludeAmbiguous,
+      sepMeta: (v) => sepOptionMeta(v, excludeAmbiguous.value),
+      prefixMeta: (v) => affixOptionMeta(v, excludeAmbiguous.value),
+      suffixMeta: (v) => suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value),
+      capMeta: capOptionMeta,
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2542,7 +2581,7 @@ const MadLib = {
         <div class="separator-grid">
           <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
             <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span>
+            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
           </label>
         </div>
         <div v-if="separator === 'custom'" class="custom-sep-row">
@@ -2550,7 +2589,7 @@ const MadLib = {
         </div>
         <label class="checkbox-item exclude-ambiguous">
           <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (l I 1 | O 0) from separators &amp; affixes</span>
+          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
         </label>
       </div>
 
@@ -2559,43 +2598,43 @@ const MadLib = {
         <div class="separator-grid">
           <label class="sep-option" :class="{ active: capitalization === 'title' }">
             <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span>
+            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'none' }">
             <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span>
+            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'upper' }">
             <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span>
+            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'random' }">
             <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span>
+            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
             <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span>
+            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
             <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span>
+            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
             <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span>
+            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
             <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span>
+            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
             <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span>
+            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
           </label>
           <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
             <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span>
+            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
           </label>
         </div>
       </div>
@@ -2607,6 +2646,7 @@ const MadLib = {
             label="Prefix"
             :modelValue="prefixMode"
             :customValue="prefixCustom"
+            :meta="prefixMeta"
             @update:modelValue="prefixMode = $event"
             @update:customValue="prefixCustom = $event"
           />
@@ -2616,6 +2656,7 @@ const MadLib = {
             :modelValue="suffixMode"
             :customValue="suffixCustom"
             :options="suffixOptions"
+            :meta="suffixMeta"
             @update:modelValue="suffixMode = $event"
             @update:customValue="suffixCustom = $event"
           />
