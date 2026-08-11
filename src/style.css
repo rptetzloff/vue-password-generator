@@ -61,6 +61,17 @@ body {
   white-space: nowrap;
 }
 
+/* 7d: between the stacked-mobile layout and the ~920px seven tabs need at
+   their comfortable minimum, shrink the tabs instead of wrapping "Numbers"
+   onto a lonely second row. After the base rule, so it wins on source order. */
+@media (min-width: 769px) and (max-width: 960px) {
+  .tab {
+    min-width: 0;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
 .tab:hover {
   background: var(--background);
   color: var(--text);
@@ -77,7 +88,10 @@ body {
   background: var(--surface);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
-  overflow: hidden;
+  /* clip, not hidden: both trim card corners to the container radius, but
+     hidden makes this a scroll container, which silently disables the sticky
+     Generate card. clip clips without capturing sticky descendants. */
+  overflow: clip;
 }
 
 .tab-content > * > .card:last-child {
@@ -292,6 +306,54 @@ body {
   padding: 1.5rem;
   box-shadow: var(--shadow);
   margin-bottom: 1rem;
+}
+
+/* 7d: the Generate card sticks to the viewport bottom while the options above
+   it scroll, so sixty controls never separate the button from your thumb. */
+.card-generate {
+  position: sticky;
+  bottom: 0.75rem;
+  z-index: 5;
+  border: 1px solid var(--border);
+}
+
+/* 7c: rarely-changed groups collapse behind their header. */
+details.card-collapse > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+details.card-collapse > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.card-collapse:not([open]) > summary {
+  margin-bottom: 0;
+}
+
+.collapse-chevron {
+  margin-left: auto;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+details[open].card-collapse > summary .collapse-chevron {
+  transform: rotate(180deg);
+}
+
+/* Collapsed is not hidden: the header says when the group is doing something. */
+.collapse-inuse {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  color: var(--primary);
 }
 
 .card-header {
@@ -729,6 +791,29 @@ body {
 /* 6g: the look-alike toggle sits below a grid inside its card. */
 .exclude-ambiguous {
   margin-top: 0.75rem;
+}
+
+/* 7b: the slider's range, visible at its ends instead of nowhere. */
+.slider-end {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* 7e: regeneration confirms itself with a brief tint on the fresh value. */
+@keyframes password-flash {
+  from { background-color: var(--focus-tint); }
+}
+
+.password-input {
+  animation: password-flash 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .password-input {
+    animation: none;
+  }
 }
 
 .sr-only {
@@ -1186,8 +1271,9 @@ body {
   text-align: left;
   padding: 0.4rem 0.65rem;
   border-radius: 6px;
-  border: 1px solid transparent;
-  background: none;
+  /* 7e: rests looking like the button it is, not like inert text. */
+  border: 1px solid var(--border);
+  background: var(--background);
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.82rem;
   color: var(--text-secondary);
@@ -1200,7 +1286,7 @@ body {
 
 .history-item:hover {
   background: var(--background);
-  border-color: var(--border);
+  border-color: var(--primary);
   color: var(--text);
 }
 
