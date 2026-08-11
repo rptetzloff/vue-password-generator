@@ -126,7 +126,7 @@ badly anyway — see the rejected approach below.
 
 ### 4b. Grow `words.json` from curated lists — done
 
-Shipped. **2,440 → 4,720 words**, and two new categories. Final counts:
+Shipped. **2,440 → 4,627 words**, and two new categories. Final counts:
 
 | slot | was | now | | slot | was | now |
 |---|---|---|---|---|---|---|
@@ -139,7 +139,7 @@ Shipped. **2,440 → 4,720 words**, and two new categories. Final counts:
 | noun.vehicles | 112 | **166** | | verb.action | 119 | **216** |
 | noun.jobs | 135 | **158** | | verb.movement | 96 | **145** |
 | noun.sports | — | **128** *(new)* | | verb.cognition | 82 | **138** |
-| adv.manner | 129 | **431** | | verb.nature | 84 | **120** |
+| adv.manner | 129 | **339** | | verb.nature | 84 | **120** |
 
 - [x] Merge with review, not wholesale.
 - [x] Music and Sports added as noun categories, in `CATEGORY_META` and in the data.
@@ -186,7 +186,7 @@ are released under the **Unlicense** — public domain, the most permissive of
 anything considered here — and change that.
 
 - [x] **Use `ly-adverbs.txt`, not `mostly-adverbs.txt`.** The repository warns its tags are approximate, and that shows: the general adverb file leaks adjectives — *developmental*, *almighty*, *powerful*, *prenatal*, *ninth* all appear. The `-ly` file is 2,033 entries, verified 100% `-ly`-suffixed, and the sample reads clean: *unanimously, abruptly, hastily, intentionally, furiously, generously*.
-- [x] **`adv.manner` goes 129 -> 431** after the full review below; still 7.01 -> 8.75 bits on the slot.
+- [x] **`adv.manner` goes 129 -> 339** after the full review below; still 7.01 -> 8.41 bits on the slot.
 - [x] **The other three buckets: partly solved.** WordNet has no adverb categories, but its
   glosses are formulaic -- a manner adverb is defined as "in a X manner", a degree adverb as
   "to a X degree" -- so the definitions classify what the lexnames cannot. Two things were
@@ -200,10 +200,12 @@ anything considered here — and change that.
   adjective; time = answers when; place = answers where) rather than against WordNet
   glosses alone. About 130 words re-filed, 16 removed as not adverbs at all -- including
   *supply*, which is "supple"+ly in a dictionary and the noun everywhere else, and the
-  prepositions *toward* and *beside* that sat in place. Final: manner 431, intensity 124,
-  time 86, place 64. Roughly 100 stance/focus/linking adverbs (*admittedly*, *mostly*,
-  *consequently*) remain in manner, flagged but left pending a decision on whether they
-  deserve buckets of their own.
+  prepositions *toward* and *beside* that sat in place. Final: manner 339, intensity 123,
+  time 86, place 64. The ~100 stance, focus, link and viewpoint adverbs (*admittedly*,
+  *mostly*, *consequently*, *academically*) were then dropped outright rather than given
+  buckets of their own -- none of them work where a passphrase puts an adverb, and
+  "Crimson-Consequently42" is nobody's password. Twelve genuine duals stay in manner
+  (*clearly*, *honestly*, *oddly*, *strictly*, *similarly*...).
 - [ ] **Recall is still the limit.** 338 of 698 adverbs match no pattern at all, and time and
   place gained almost nothing. Those two buckets remain essentially hand-written.
 - [x] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
