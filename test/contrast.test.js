@@ -549,3 +549,27 @@ test('style.css carries no literal colors', () => {
       `theme reaches it and the contrast tests above can see it:\n  ${offenders.join('\n  ')}`,
   )
 })
+
+// The strength meter's fill sits on a --background track. 1.4.11 wants 3:1
+// for meaningful graphics; the first draft used --border as the track and
+// --error measured 2.74:1 on it in dark sky. Pin the working combination
+// across every palette so a tint change cannot quietly sink it again.
+test('the strength meter fill clears 3:1 against its track in every palette', () => {
+  for (const [name, tokens] of CONTEXTS) {
+    for (const tok of ['--error', '--warning', '--success']) {
+      const ratio = contrast(tokens[tok], tokens['--background'])
+      assert.ok(
+        ratio >= 3,
+        `${name}: meter fill ${tok} on --background is ${ratio.toFixed(2)}:1, needs 3:1`,
+      )
+    }
+  }
+})
+
+test('the meter CSS actually uses --background as its track', () => {
+  const css = fs.readFileSync(new URL('../src/style.css', import.meta.url), 'utf8')
+  const rule = /\.entropy-meter \{[^}]*\}/.exec(css)
+  assert.ok(rule, '.entropy-meter rule missing')
+  assert.match(rule[0], /background: var\(--background\)/,
+    'the meter track must be --background — --error on --border fails 3:1 in dark')
+})

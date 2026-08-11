@@ -1368,7 +1368,11 @@ body {
   width: 5rem;
   height: 0.4rem;
   border-radius: 999px;
-  background: var(--border);
+  /* --background, not --border: the fill must clear 3:1 against the track
+     (1.4.11), and --error on --border measured 2.74:1 in dark sky. A test in
+     contrast.test.js pins this across every palette. */
+  background: var(--background);
+  border: 1px solid var(--border);
   overflow: hidden;
   flex-shrink: 0;
   align-self: center;
