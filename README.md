@@ -169,8 +169,8 @@ needs Node.js 18+, but nothing in the project itself depends on Node.
 ### Quick Start
 
 ```bash
-git clone https://github.com/rptetzloff/vue-password-generator.git
-cd vue-password-generator
+git clone https://github.com/rptetzloff/wordlock.git
+cd wordlock
 npm run dev
 ```
 
@@ -235,7 +235,7 @@ For any other static host, serve the repository root as-is.
 ## Project Structure
 
 ```
-vue-password-generator/
+wordlock/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── orchard-street-long.txt  # Words mode list (17,576 words, CC BY-SA 4.0)
