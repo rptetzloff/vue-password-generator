@@ -1515,7 +1515,15 @@
               </table>
               <br>
               <p style="font-size:0.875rem;color:var(--text-secondary);">
-                History is stored in browser local storage. It persists across sessions but is cleared when you clear site data for this page.
+                History is <strong>encrypted at rest</strong>: entries are stored in browser local storage as
+                AES-GCM ciphertext, and the key — generated in your browser, marked non-extractable — lives in
+                IndexedDB on your device. Pre-existing plaintext history is encrypted automatically on the first
+                visit, across all seven generators at once. What that honestly buys: the history is shielded from
+                casual inspection and from anything that scrapes <code>localStorage</code> off disk; it is
+                <em>not</em> protected against someone with full control of your browser profile, because the
+                browser must be able to use the key to show you the history. If the browser cannot encrypt,
+                history stays in memory for the session and is never written to disk. It persists across sessions
+                and is cleared when you clear site data for this page.
               </p>
             </div>
 
@@ -1873,6 +1881,21 @@
                   Some people find the running commentary useful; others find it noisy. Turning it off hides
                   only the coaching: the total, the tier, the meter and the &ldquo;how?&rdquo; breakdown all
                   stay. See <a href="#entropy" style="color:var(--primary);">Strength &amp; Entropy</a>.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Clear clipboard</div>
+              <div class="option-row">
+                <div class="option-name">Keep / 30s / 60s / 2 min</div>
+                <div class="option-desc">
+                  Shown on the generator page only. After you copy a password, the clipboard is wiped once the
+                  chosen delay passes. The wipe is deliberately blunt: it overwrites whatever is in the clipboard
+                  at the deadline — including something else you copied in the meantime — because checking first
+                  would mean asking permission to <em>read</em> your clipboard, which this site has no business
+                  requesting. A page that isn't focused can't touch the clipboard, so if you've switched away the
+                  wipe waits and fires the moment you return. Off (&ldquo;Keep&rdquo;) by default.
                 </div>
               </div>
             </div>

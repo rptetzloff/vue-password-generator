@@ -44,6 +44,7 @@ const suffixOptionMeta = (value, prefixValue, excl) => {
   return fmtBits(suffixBits(value, prefixValue, excl))
 }
 const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
+import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -76,6 +77,28 @@ const persistedRef = (key, fallback) => {
 
 
 const historyMax = persistedRef('global.historyMax', 10)
+// Copy is the primary action, and a copied password otherwise sits in the
+// clipboard indefinitely. 0 = keep; otherwise seconds until it is wiped.
+const clipboardClear = persistedRef('global.clipboardClear', 0)
+
+// The wipe is blunt on purpose: it writes '' over whatever is in the
+// clipboard at the deadline, even if that is no longer the password --
+// checking first would mean asking to READ the clipboard, a permission this
+// site has no business requesting. An unfocused page cannot write to the
+// clipboard, so the wipe waits for focus if it must.
+let clipboardTimer = null
+const scheduleClipboardClear = (notify) => {
+  clearTimeout(clipboardTimer)
+  if (!clipboardClear.value) return
+  clipboardTimer = setTimeout(() => {
+    const wipe = () => navigator.clipboard.writeText('')
+      .then(() => notify('Clipboard cleared', 'success'))
+      .catch(() => {})
+    if (document.hasFocus()) { wipe(); return }
+    const onFocus = () => { window.removeEventListener('focus', onFocus); wipe() }
+    window.addEventListener('focus', onFocus)
+  }, clipboardClear.value * 1000)
+}
 // The "vs last" chip and the per-option price tags are coaching, and some
 // people find a coach noisy. One switch hides all of it; the total, tier,
 // meter and breakdown stay.
@@ -102,16 +125,74 @@ watch(historyMax, (max) => {
 // startup so that clears itself.
 if (historyMax.value === 0) clearStoredHistories()
 
+// Same lesson for the v2.20.0 encryption migration: only the mounted
+// generator's useHistory runs, so per-component migration would leave the
+// other six stores in plaintext indefinitely. Sweep them all at startup --
+// and if the browser cannot encrypt, remove them, because after v2.20.0
+// plaintext history does not stay on disk.
+;(async () => {
+  const plaintextKeys = () => historyKeysIn(Object.keys(localStorage))
+    .filter((k) => Array.isArray(loadSetting(k, null)))
+  try {
+    const keys = plaintextKeys()
+    if (!keys.length) return
+    const cryptoKey = await getHistoryKey()
+    for (const k of keys) {
+      saveSetting(k, await encryptJSON(cryptoKey, normalizeHistory(loadSetting(k, []))))
+    }
+  } catch {
+    try { plaintextKeys().forEach((k) => localStorage.removeItem(k)) } catch {}
+  }
+})()
+
 const useHistory = (key) => {
-  const history = persistedRef(key, [])
-  // Entries were plain strings until v2.17.0; they are { pw, bits } now so a
-  // recalled password can show the strength it actually had. Migrate on read.
-  history.value = normalizeHistory(history.value)
+  // Encrypted at rest since v2.20.0 (see history-crypto.js): only ciphertext
+  // touches localStorage, and the key never leaves the browser. Loading is
+  // therefore async -- the strip fills a beat after mount.
+  const history = ref([])
+  let ready = false
+  let touched = false
+  const persist = async () => {
+    try {
+      const k = await getHistoryKey()
+      saveSetting(key, await encryptJSON(k, history.value))
+    } catch {
+      // No usable WebCrypto/IndexedDB: history stays in memory for the
+      // session. Plaintext never goes back to disk.
+      try { localStorage.removeItem(key) } catch {}
+    }
+  }
+  ;(async () => {
+    let list = []
+    let migrate = false
+    try {
+      const raw = loadSetting(key, [])
+      if (isEncryptedEnvelope(raw)) {
+        list = await decryptJSON(await getHistoryKey(), raw)
+      } else if (Array.isArray(raw) && raw.length) {
+        // Pre-v2.20.0 plaintext (strings before v2.17.0, {pw, bits} after):
+        // take it, then immediately re-save encrypted over the plaintext.
+        list = raw
+        migrate = true
+      }
+    } catch { list = [] }
+    ready = true
+    const stored = normalizeHistory(list)
+    if (touched) {
+      // A generation landed before the load resolved; it stays on top.
+      const seen = new Set(history.value.map((h) => h.pw))
+      history.value = [...history.value, ...stored.filter((h) => !seen.has(h.pw))].slice(0, historyMax.value)
+    } else {
+      history.value = stored.slice(0, historyMax.value)
+    }
+    if (migrate) persist()
+  })()
   const pushHistory = (pw, bits = null) => {
     if (!pw || historyMax.value === 0) { history.value = []; return }
     const list = history.value.filter(h => h.pw !== pw)
     history.value = [{ pw, bits }, ...list].slice(0, historyMax.value)
   }
+  watch(history, () => { touched = true; if (ready) persist() }, { deep: true })
   watch(historyMax, (max) => {
     history.value = max === 0 ? [] : history.value.slice(0, max)
   })
@@ -148,6 +229,7 @@ const useCopyPassword = (password, label = 'password') => {
       showNotification(`${label.charAt(0).toUpperCase() + label.slice(1)} copied to clipboard!`, 'success')
       copied.value = true
       setTimeout(() => { copied.value = false }, 1500)
+      scheduleClipboardClear(showNotification)
     } catch { showNotification(`Failed to copy ${label}`, 'error') }
   }
   return { copied, notification, showNotification, copyPassword }
@@ -2891,6 +2973,16 @@ const App = {
             options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
             get: () => (showBitHints.value ? 'on' : 'off'),
             set: (v) => { showBitHints.value = v === 'on' },
+          }, {
+            label: 'Clear clipboard',
+            options: [
+              { value: 0, label: 'Keep' },
+              { value: 30, label: '30s' },
+              { value: 60, label: '60s' },
+              { value: 120, label: '2 min' },
+            ],
+            get: () => clipboardClear.value,
+            set: (v) => { clipboardClear.value = Number(v) },
           }],
         },
       })

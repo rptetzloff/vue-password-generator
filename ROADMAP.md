@@ -384,17 +384,24 @@ dependencies. Highest-value first tests: each generator returns non-empty output
 for default settings, `randInt` stays uniform and in range, and Advanced honors
 its min/max constraints.
 
-### Auto-clear the clipboard
+### Auto-clear the clipboard — done
 
-Copy is the primary action, and a copied password sits in the clipboard
-indefinitely. An optional "clear after 30s" would match the local-only posture.
+Shipped in v2.20.0 as a gear setting (Keep / 30s / 60s / 2 min, off by
+default). The wipe is blunt by design: it overwrites whatever is in the
+clipboard at the deadline rather than asking permission to read it first, and
+it waits for focus if the page is backgrounded, since an unfocused page
+cannot touch the clipboard.
 
-### Revisit plaintext history in `localStorage`
+### Revisit plaintext history in `localStorage` — done
 
-Each tab keeps its last 10 passwords in `localStorage` unencrypted, surviving
-browser restarts. It's documented, and it's a real convenience — but it's the
-weakest remaining link in a client-side-only threat model. At minimum an easy
-"clear history" control; possibly session-only as an option.
+Encrypted at rest in v2.20.0: AES-GCM ciphertext in localStorage under a
+non-extractable key kept in IndexedDB, with a startup sweep that migrates all
+seven generators' plaintext stores at once (the clearStoredHistories lesson).
+Threat model stated honestly in docs and legal: shields against casual
+inspection and disk scraping, not against full control of the browser
+profile. If WebCrypto is unavailable, history is memory-only — plaintext
+never goes back to disk. The "clear history" control already existed
+(History → Off).
 
 ### Offline / PWA
 

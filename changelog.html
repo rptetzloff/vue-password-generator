@@ -286,6 +286,32 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v2.20.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.20.0</div>
+            <div class="release-date">2026-08-11</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Locking the local doors</div>
+                <div class="release-summary">The two weakest links in the client-side story close: history is encrypted at rest, and a copied password can be set to leave the clipboard on a timer.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong>History is encrypted at rest</strong> &mdash; entries are now AES-GCM ciphertext in <code>localStorage</code>, under a non-extractable key generated in your browser and kept in IndexedDB. Existing plaintext history is encrypted automatically on first visit, across all seven generators at once. Stated honestly: this shields the history from casual inspection and from anything that scrapes local storage off disk &mdash; it cannot stop someone with full control of your browser profile, because the browser must be able to use the key to show you the list. If the browser cannot encrypt, history stays in memory and is never written to disk at all.</li>
+                    <li><strong>Clear clipboard</strong> &mdash; an optional timer (30s / 60s / 2 min) wipes a copied password from the clipboard. Blunt on purpose: it overwrites whatever is there at the deadline rather than asking permission to read your clipboard first. If you've switched away, the wipe waits for your return &mdash; an unfocused page can't touch the clipboard. Off by default.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.19.0 -->
         <div class="release">
           <div class="release-meta">
