@@ -254,7 +254,7 @@ should not be made here until it is verified there.
 - [x] **Lead with the shared privacy stance.** The About page's *Elsewhere* section does this rather than offering a bare link: "it works without an account, and nothing you type into a solver leaves your device."
 - [x] **Describe the account model accurately — the two sites differ here.** Anagrimoire has optional accounts, used for syncing (stats, streaks, boards) across devices; everything works without signing in. This project has no accounts and, per the owner, **should stay that way**. About uses "works without an account", which is the true shared claim; "no accounts" would have been false of anagrimoire. The distinction matters again in Epic 8e.
 - [x] **Reciprocal link** from anagrimoire — done on the other site (confirmed 2026-08-12). The pair now reads as one family: each links the other, and both say the same true thing about staying client-side.
-- [ ] **State that both are dependency-free**, if it is true of anagrimoire. About currently claims only the client-side and no-account parts, which are the two that were known to hold. Worth adding, but not worth asserting on this site until confirmed of the other.
+- [x] **State that both are dependency-free** — resolved by not stating it. Confirmed 2026-08-12: anagrimoire leans on CDNs, as its kind of site reasonably does, so the shared claim would be false. About already asserts only what holds for both — client-side solving and no account required — and that is exactly where it stays. Asserting only what is verified was the point of leaving this open.
 
 **Decided against: accounts / cross-device sync for this project.** Recorded so it
 doesn't get re-proposed. It also settles adjacent questions — no server-side
