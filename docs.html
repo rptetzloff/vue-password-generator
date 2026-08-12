@@ -58,6 +58,12 @@
       .sidebar {
         position: sticky;
         top: 88px;
+        /* The nav can be taller than the viewport (at 897px it measured 895px
+           of links), which left the bottom entries clipped with no way to
+           reach them while stuck. The sidebar scrolls itself instead, and the
+           scrollspy below keeps the current section's link in view. */
+        max-height: calc(100vh - 88px - 1.5rem);
+        overflow-y: auto;
       }
 
       .sidebar-label {
@@ -94,6 +100,13 @@
       }
 
       .nav-item:hover {
+        background: var(--band-control-hover-bg);
+        color: var(--band-text);
+      }
+
+      /* Scrollspy: the section under the reading line. Same treatment as
+         hover so it reads as "you are here", not as a different control. */
+      .nav-item.is-current {
         background: var(--band-control-hover-bg);
         color: var(--band-text);
       }
@@ -1515,7 +1528,15 @@
               </table>
               <br>
               <p style="font-size:0.875rem;color:var(--text-secondary);">
-                History is stored in browser local storage. It persists across sessions but is cleared when you clear site data for this page.
+                History is <strong>encrypted at rest</strong>: entries are stored in browser local storage as
+                AES-GCM ciphertext, and the key — generated in your browser, marked non-extractable — lives in
+                IndexedDB on your device. Pre-existing plaintext history is encrypted automatically on the first
+                visit, across all seven generators at once. What that honestly buys: the history is shielded from
+                casual inspection and from anything that scrapes <code>localStorage</code> off disk; it is
+                <em>not</em> protected against someone with full control of your browser profile, because the
+                browser must be able to use the key to show you the history. If the browser cannot encrypt,
+                history stays in memory for the session and is never written to disk. It persists across sessions
+                and is cleared when you clear site data for this page.
               </p>
             </div>
 
@@ -1846,6 +1867,15 @@
                     accent that was identical to the warning color, and an earlier, brighter red that
                     made error messages stop standing out.
                   </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>What the marker deliberately does not cover:</strong> the accent's distance
+                    from the changelog category colors and the docs badge colors. Those were measured too,
+                    and several accents sit close to — or exactly on — a family color, by design: the Sky
+                    accent <em>is</em> the sky badge color. That is reuse, not confusion. Status colors
+                    are signals that must be tellable apart from an interactive accent; categories and
+                    badges always carry their names in text, so hue never bears their meaning alone. A
+                    floor that failed a palette for matching its own badge would be a badly chosen floor.
+                  </p>
                 </div>
               </div>
             </div>
@@ -1873,6 +1903,23 @@
                   Some people find the running commentary useful; others find it noisy. Turning it off hides
                   only the coaching: the total, the tier, the meter and the &ldquo;how?&rdquo; breakdown all
                   stay. See <a href="#entropy" style="color:var(--primary);">Strength &amp; Entropy</a>.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Clear clipboard</div>
+              <div class="option-row">
+                <div class="option-name">Keep / 30s / 60s / 2 min</div>
+                <div class="option-desc">
+                  Shown on the generator page only. After you copy a password, the clipboard is wiped once the
+                  chosen delay passes. The wipe is deliberately blunt: it overwrites whatever is in the clipboard
+                  at the deadline — including something else you copied in the meantime — because checking first
+                  would mean asking permission to <em>read</em> your clipboard, which this site has no business
+                  requesting. It also never triggers a permission prompt of its own: where the browser allows
+                  silent clipboard writes the wipe fires right at the deadline, and everywhere else (Edge prompts
+                  for gesture-less writes) it waits for your next click or keypress, which lets the write through
+                  without asking. Off (&ldquo;Keep&rdquo;) by default.
                 </div>
               </div>
             </div>
@@ -2024,6 +2071,41 @@
         syncNav()
         narrow.addEventListener('change', syncNav)
       }
+
+      // Scrollspy: the sidebar tracks the section under the reading line and
+      // keeps that link visible inside its own scroll area, so the nav is
+      // useful mid-page instead of only at the top.
+      const links = [...document.querySelectorAll('.sidebar-nav a[href^="#"]')]
+      const byId = new Map(links.map((a) => [a.getAttribute('href').slice(1), a]))
+      const targets = [...byId.keys()].map((id) => document.getElementById(id)).filter(Boolean)
+      const scroller = document.querySelector('.sidebar')
+      let current = null
+      const setCurrent = (id) => {
+        const link = byId.get(id)
+        if (!link || link === current) return
+        if (current) current.classList.remove('is-current')
+        current = link
+        link.classList.add('is-current')
+        // Scroll the sidebar only -- scrollIntoView would tug the page too.
+        const lr = link.getBoundingClientRect()
+        const sr = scroller.getBoundingClientRect()
+        if (lr.top < sr.top) scroller.scrollTop += lr.top - sr.top
+        else if (lr.bottom > sr.bottom) scroller.scrollTop += lr.bottom - sr.bottom
+      }
+      const pick = () => {
+        const line = 140 // just under the condensed header
+        let active = targets[0]
+        for (const t of targets) {
+          if (t.getBoundingClientRect().top <= line) active = t
+        }
+        if (active) setCurrent(active.id)
+      }
+      let raf = null
+      addEventListener('scroll', () => {
+        if (raf) return
+        raf = requestAnimationFrame(() => { raf = null; pick() })
+      }, { passive: true })
+      pick()
     </script>
   </body>
 </html>

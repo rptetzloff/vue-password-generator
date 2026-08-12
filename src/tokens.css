@@ -37,8 +37,14 @@
   --on-status: #ffffff;
 
   /* Surfaces and text */
-  --background: #f8fafc;
-  --surface: #ffffff;
+  /* Light mode wears the theme too (Epic 2 stretch): the page and cards carry
+   * a measured tint of the accent, the way dark mode has since 2a. The tint
+   * budget is set by the tightest AA pair -- --error on --surface had only
+   * 0.33 of headroom -- so surfaces stay above ~0.93 relative luminance and
+   * every AA pair in the suite still clears with margin. Mono overrides both
+   * with true neutrals; each palette block carries its own pair. */
+  --background: #dbe9f1;
+  --surface: #f5f9fb;
   --text: #1e293b;
   --text-secondary: #475569;
 
@@ -148,29 +154,38 @@
    *
    * These values were picked by simulating protanopia, deuteranopia and
    * tritanopia and maximising the *weakest* pair, subject to every color
-   * still clearing AA against --surface. Worst-pair CIEDE2000, measured by
-   * test/color-vision.test.js:
+   * clearing AA against every palette's --surface (the light surfaces are
+   * tinted per palette since the Epic 2 stretch work), staying within its
+   * group's semantic hue window (added reads green, removed reads red...),
+   * and reading as a COLOR: Lab chroma >= 28 and CIEDE2000 >= 15 from the
+   * theme's body text, so a label never passes for prose. Worst-pair
+   * CIEDE2000, measured by test/color-vision.test.js:
    *
    *              normal  protan  deutan  tritan
    *   old brand    16.2     8.6     5.8     8.2   (light)
-   *   these        24.1     7.8     8.5    13.7
+   *   v1 search    24.1     7.8     8.5    13.7
+   *   these        23.8    16.4    16.1    16.0
    *   old brand    28.0     1.1     6.4     8.5   (dark)
-   *   these        22.4     7.3    11.1    10.8
+   *   v1 search    22.4     7.3    11.1    10.8
+   *   these        23.6    16.7    16.9    16.4
    *
    * The dark protan figure is why this matters. 1.1 is below the threshold of
    * noticing any difference at all: two change groups that a protanope saw as
-   * one color. It looked fine, because it looked fine to us.
+   * one color. It looked fine, because it looked fine to us. The v2 search
+   * roughly doubled the v1 floor by widening the constraint set instead of
+   * hand-tuning: the weakest pair for ANY vision is now ~16, comfortably past
+   * the ~10 at which colors stop being confusable side by side.
    *
    * This was briefly an opt-in palette behind a Colors setting. It is the
    * default now -- with normal vision the difference is small enough that the
    * toggle was not earning its complexity, and the more separable set should
    * not be the one you have to go looking for. Meaning never rests on color
    * either way: every group carries its name as text. */
-  --group-added: #134e4a;
-  --group-improved: #0369a1;
-  --group-fixed: #713f12;
-  --group-removed: #be123c;
-  --group-security: #7c3aed;
+  --group-added: #125e4a;
+  --group-improved: #0276be;
+  --group-fixed: #996729;
+  --group-removed: #801d04;
+  --group-security: #5a3070;
 }
 
 /* One focus ring for the whole site.
@@ -252,12 +267,12 @@
   --accent-warn: #fbbf24;
   --accent-ok: #4ade80;
 
-  /* Same search as the light set, run against the dark surface. */
-  --group-added: #4ade80;
-  --group-improved: #93c5fd;
-  --group-fixed: #fde047;
-  --group-removed: #f97316;
-  --group-security: #e9d5ff;
+  /* Same search as the light set, run against every palette's dark surface. */
+  --group-added: #95fada;
+  --group-improved: #808cff;
+  --group-fixed: #f4ac34;
+  --group-removed: #ff5d7d;
+  --group-security: #debae9;
 }
 
 /* Accent palettes.
@@ -286,6 +301,8 @@
   --focus-tint: rgba(29, 78, 216, 0.12);
   --page-gradient: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
   --header-bg: #1a46c2;
+  --background: #dee5f8;
+  --surface: #f7f9fe;
 }
 
 [data-palette='indigo'] {
@@ -296,6 +313,8 @@
   --focus-tint: rgba(67, 56, 202, 0.12);
   --page-gradient: linear-gradient(135deg, #4338ca 0%, #3730a3 100%);
   --header-bg: #3c32b6;
+  --background: #e2e3f6;
+  --surface: #f8f8fd;
 }
 
 [data-palette='violet'] {
@@ -306,6 +325,8 @@
   --focus-tint: rgba(109, 40, 217, 0.12);
   --page-gradient: linear-gradient(135deg, #6d28d9 0%, #5b21b6 100%);
   --header-bg: #6224c3;
+  --background: #e7e1f8;
+  --surface: #faf7fe;
 }
 
 [data-palette='fuchsia'] {
@@ -316,6 +337,8 @@
   --focus-tint: rgba(162, 28, 175, 0.12);
   --page-gradient: linear-gradient(135deg, #a21caf 0%, #86198f 100%);
   --header-bg: #92199e;
+  --background: #eedff3;
+  --surface: #fcf7fc;
 }
 
 /* Two steps darker than the 700/800 the other palettes use.
@@ -334,6 +357,8 @@
   --focus-tint: rgba(136, 19, 55, 0.12);
   --page-gradient: linear-gradient(135deg, #881337 0%, #4c0519 100%);
   --header-bg: #7a1132;
+  --background: #ebdee4;
+  --surface: #fbf8f9;
 }
 
 [data-palette='emerald'] {
@@ -344,6 +369,8 @@
   --focus-tint: rgba(4, 120, 87, 0.12);
   --page-gradient: linear-gradient(135deg, #047857 0%, #065f46 100%);
   --header-bg: #046c4e;
+  --background: #dbeae8;
+  --surface: #f5faf8;
 }
 
 [data-palette='teal'] {
@@ -354,6 +381,8 @@
   --focus-tint: rgba(15, 118, 110, 0.12);
   --page-gradient: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
   --header-bg: #0e6a63;
+  --background: #dceaeb;
+  --surface: #f5faf9;
 }
 
 [data-palette='slate'] {
@@ -364,6 +393,8 @@
   --focus-tint: rgba(51, 65, 85, 0.12);
   --page-gradient: linear-gradient(135deg, #334155 0%, #1e293b 100%);
   --header-bg: #2e3b4d;
+  --background: #e0e4e8;
+  --surface: #f8f8f9;
 }
 
 

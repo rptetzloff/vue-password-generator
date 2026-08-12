@@ -309,12 +309,63 @@ body {
 }
 
 /* 7d: the Generate card sticks to the viewport bottom while the options above
-   it scroll, so sixty controls never separate the button from your thumb. */
+   it scroll, so sixty controls never separate the button from your thumb. The
+   password display lives in the same bar -- a floating button whose result
+   appears off-screen would defeat the point. */
 .card-generate {
   position: sticky;
   bottom: 0.75rem;
   z-index: 5;
   border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.card-generate .btn-primary {
+  flex-shrink: 0;
+}
+
+/* The display grows to fill the bar and drops below the button when narrow. */
+.card-generate .password-display {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+/* The strength readout takes the bar's second row: meter, bits, tier and the
+   guess-time spread at a glance, with "how?" expanding in place. */
+.card-generate .entropy-panel {
+  flex-basis: 100%;
+}
+
+/* The pin puts the bar back into normal flow for anyone who finds the
+   floating version in the way. relative, not static: it stays in flow (no
+   more sticking) but keeps being the pin button's containing block. */
+.card-generate.bar-unstuck {
+  position: relative;
+  bottom: auto;
+}
+
+.bar-pin {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: var(--control-min);
+  height: var(--control-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bar-pin:hover {
+  background: var(--overlay-soft);
+  color: var(--text);
 }
 
 /* 7c: rarely-changed groups collapse behind their header. */

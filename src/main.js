@@ -44,6 +44,7 @@ const suffixOptionMeta = (value, prefixValue, excl) => {
   return fmtBits(suffixBits(value, prefixValue, excl))
 }
 const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
+import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -76,6 +77,47 @@ const persistedRef = (key, fallback) => {
 
 
 const historyMax = persistedRef('global.historyMax', 10)
+// Copy is the primary action, and a copied password otherwise sits in the
+// clipboard indefinitely. 0 = keep; otherwise seconds until it is wiped.
+const clipboardClear = persistedRef('global.clipboardClear', 0)
+
+// The Generate bar floats at the viewport bottom by default; the pin on the
+// bar itself puts it back into normal flow for anyone who finds the floating
+// version in the way. One setting for all seven generators.
+const floatBar = persistedRef('global.floatBar', true)
+
+// The wipe is blunt on purpose: it writes '' over whatever is in the
+// clipboard at the deadline, even if that is no longer the password --
+// checking first would mean asking to READ the clipboard, a permission this
+// site has no business requesting. And it must never cause a permission
+// prompt of its own: Edge treats a clipboard write with no user gesture as
+// prompt-worthy, so the wipe fires silently only where clipboard-write is
+// already granted; everywhere else it waits for the next real click or
+// keypress, because a write under transient user activation needs no
+// permission in any engine.
+let clipboardTimer = null
+const scheduleClipboardClear = (notify) => {
+  clearTimeout(clipboardTimer)
+  if (!clipboardClear.value) return
+  clipboardTimer = setTimeout(async () => {
+    const wipe = () => navigator.clipboard.writeText('')
+      .then(() => notify('Clipboard cleared', 'success'))
+      .catch(() => {})
+    let granted = false
+    try {
+      const p = await navigator.permissions.query({ name: 'clipboard-write' })
+      granted = p.state === 'granted'
+    } catch { /* engines without a queryable clipboard-write permission */ }
+    if (granted && document.hasFocus()) { wipe(); return }
+    const onGesture = () => {
+      window.removeEventListener('pointerdown', onGesture, true)
+      window.removeEventListener('keydown', onGesture, true)
+      wipe()
+    }
+    window.addEventListener('pointerdown', onGesture, true)
+    window.addEventListener('keydown', onGesture, true)
+  }, clipboardClear.value * 1000)
+}
 // The "vs last" chip and the per-option price tags are coaching, and some
 // people find a coach noisy. One switch hides all of it; the total, tier,
 // meter and breakdown stay.
@@ -102,16 +144,74 @@ watch(historyMax, (max) => {
 // startup so that clears itself.
 if (historyMax.value === 0) clearStoredHistories()
 
+// Same lesson for the v2.20.0 encryption migration: only the mounted
+// generator's useHistory runs, so per-component migration would leave the
+// other six stores in plaintext indefinitely. Sweep them all at startup --
+// and if the browser cannot encrypt, remove them, because after v2.20.0
+// plaintext history does not stay on disk.
+;(async () => {
+  const plaintextKeys = () => historyKeysIn(Object.keys(localStorage))
+    .filter((k) => Array.isArray(loadSetting(k, null)))
+  try {
+    const keys = plaintextKeys()
+    if (!keys.length) return
+    const cryptoKey = await getHistoryKey()
+    for (const k of keys) {
+      saveSetting(k, await encryptJSON(cryptoKey, normalizeHistory(loadSetting(k, []))))
+    }
+  } catch {
+    try { plaintextKeys().forEach((k) => localStorage.removeItem(k)) } catch {}
+  }
+})()
+
 const useHistory = (key) => {
-  const history = persistedRef(key, [])
-  // Entries were plain strings until v2.17.0; they are { pw, bits } now so a
-  // recalled password can show the strength it actually had. Migrate on read.
-  history.value = normalizeHistory(history.value)
+  // Encrypted at rest since v2.20.0 (see history-crypto.js): only ciphertext
+  // touches localStorage, and the key never leaves the browser. Loading is
+  // therefore async -- the strip fills a beat after mount.
+  const history = ref([])
+  let ready = false
+  let touched = false
+  const persist = async () => {
+    try {
+      const k = await getHistoryKey()
+      saveSetting(key, await encryptJSON(k, history.value))
+    } catch {
+      // No usable WebCrypto/IndexedDB: history stays in memory for the
+      // session. Plaintext never goes back to disk.
+      try { localStorage.removeItem(key) } catch {}
+    }
+  }
+  ;(async () => {
+    let list = []
+    let migrate = false
+    try {
+      const raw = loadSetting(key, [])
+      if (isEncryptedEnvelope(raw)) {
+        list = await decryptJSON(await getHistoryKey(), raw)
+      } else if (Array.isArray(raw) && raw.length) {
+        // Pre-v2.20.0 plaintext (strings before v2.17.0, {pw, bits} after):
+        // take it, then immediately re-save encrypted over the plaintext.
+        list = raw
+        migrate = true
+      }
+    } catch { list = [] }
+    ready = true
+    const stored = normalizeHistory(list)
+    if (touched) {
+      // A generation landed before the load resolved; it stays on top.
+      const seen = new Set(history.value.map((h) => h.pw))
+      history.value = [...history.value, ...stored.filter((h) => !seen.has(h.pw))].slice(0, historyMax.value)
+    } else {
+      history.value = stored.slice(0, historyMax.value)
+    }
+    if (migrate) persist()
+  })()
   const pushHistory = (pw, bits = null) => {
     if (!pw || historyMax.value === 0) { history.value = []; return }
     const list = history.value.filter(h => h.pw !== pw)
     history.value = [{ pw, bits }, ...list].slice(0, historyMax.value)
   }
+  watch(history, () => { touched = true; if (ready) persist() }, { deep: true })
   watch(historyMax, (max) => {
     history.value = max === 0 ? [] : history.value.slice(0, max)
   })
@@ -148,6 +248,7 @@ const useCopyPassword = (password, label = 'password') => {
       showNotification(`${label.charAt(0).toUpperCase() + label.slice(1)} copied to clipboard!`, 'success')
       copied.value = true
       setTimeout(() => { copied.value = false }, 1500)
+      scheduleClipboardClear(showNotification)
     } catch { showNotification(`Failed to copy ${label}`, 'error') }
   }
   return { copied, notification, showNotification, copyPassword }
@@ -387,6 +488,7 @@ const SimplePassword = {
       copied,
       notification,
       generatePassword,
+      floatBar,
       copyPassword
     }
   },
@@ -441,13 +543,14 @@ const SimplePassword = {
         </div>
       </div>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
 
-      <div class="card">
         <div class="password-display">
           <div
             :key="password"
@@ -462,6 +565,10 @@ const SimplePassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
+      </div>
+
+      <div class="card">
+
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -640,6 +747,7 @@ const AdvancedPassword = {
       copied,
       notification,
       generatePassword,
+      floatBar,
       copyPassword
     }
   },
@@ -848,13 +956,14 @@ const AdvancedPassword = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
 
-      <div class="card">
         <div class="password-display">
           <div
             :key="password"
@@ -869,6 +978,10 @@ const AdvancedPassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
+      </div>
+
+      <div class="card">
+
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1033,6 +1146,7 @@ const WordsPassword = {
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword,
+      floatBar,
       regenWord,
       copyPassword
     }
@@ -1180,10 +1294,28 @@ const WordsPassword = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <EntropyPanel :entropy="entropy" :password="password" mode="words" />
       </div>
 
       <div class="card">
@@ -1210,20 +1342,6 @@ const WordsPassword = {
           </button>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" mode="words" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1347,6 +1465,7 @@ const NumbersPassword = {
       copied,
       notification,
       generatePassword,
+      floatBar,
       copyPassword
     }
   },
@@ -1409,13 +1528,14 @@ const NumbersPassword = {
         </div>
       </div>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
 
-      <div class="card">
         <div class="password-display">
           <div
             :key="password"
@@ -1430,6 +1550,10 @@ const NumbersPassword = {
           </button>
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
+      </div>
+
+      <div class="card">
+
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1685,6 +1809,7 @@ const Passphrase = {
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
+      floatBar,
       generatePassword, regenWord, copyPassword
     }
   },
@@ -1848,8 +1973,26 @@ const Passphrase = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Passphrase</button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
       </div>
 
       <div class="card">
@@ -1877,20 +2020,6 @@ const Passphrase = {
           </button>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2160,6 +2289,7 @@ const WifiWords = {
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
+      floatBar,
       generatePassword, regenWord, copyPassword
     }
   },
@@ -2331,8 +2461,26 @@ const WifiWords = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-wifi"></span> Generate WiFi Password</button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
       </div>
 
       <div class="card">
@@ -2360,20 +2508,6 @@ const WifiWords = {
           </button>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
         <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2616,6 +2750,7 @@ const MadLib = {
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
+      floatBar,
       generatePassword, regenWord, copyPassword,
     }
   },
@@ -2784,8 +2919,26 @@ const MadLib = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Mad Lib</button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
+        <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
       </div>
 
       <div class="card">
@@ -2819,20 +2972,6 @@ const MadLib = {
           <div class="madlib-preview-phrase">{{ preview }}</div>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2891,6 +3030,16 @@ const App = {
             options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
             get: () => (showBitHints.value ? 'on' : 'off'),
             set: (v) => { showBitHints.value = v === 'on' },
+          }, {
+            label: 'Clear clipboard',
+            options: [
+              { value: 0, label: 'Keep' },
+              { value: 30, label: '30s' },
+              { value: 60, label: '60s' },
+              { value: 120, label: '2 min' },
+            ],
+            get: () => clipboardClear.value,
+            set: (v) => { clipboardClear.value = Number(v) },
           }],
         },
       })

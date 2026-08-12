@@ -80,10 +80,13 @@ const GROUPS = ['added', 'improved', 'fixed', 'removed', 'security']
 //   shipping   / dark      22.4     7.3    11.1    10.8
 //
 // The dark protan column is the one that matters: 1.1 means indistinguishable.
-// 7.0 is set just below the current worst (7.3) so this pins today's behavior
-// and fails loudly on a regression toward the old set. It is a floor, not a
-// target -- raising it is the point of the palette work still to come.
-const FLOOR = 7.0
+// The floor sat at 7.0 while the shipping set's worst pair was 7.3; the Epic 2
+// stretch re-derivation pushed the worst pair for ANY vision to ~16 (semantic
+// hue windows, AA on every palette surface, and a reads-as-a-color constraint
+// -- see the search notes in tokens.css). 15.5 pins that: comfortably past the
+// ~10 at which colors stop being confusable side by side, and a loud failure
+// on any regression.
+const FLOOR = 15.5
 
 // The per-palette loop further down covers every palette in both themes,
 // including the default, so the default-only version that lived here would
@@ -218,6 +221,24 @@ for (const { value, monochrome } of PALETTES) {
     }
   }
 }
+
+test('the eye marker claims exactly what the metric measures', () => {
+  // Epic 2 stretch: the accent-vs-status metric compares one color against
+  // three, and the accent's distance to the badge families and change groups
+  // was measured separately -- several accents sit ON a family color by
+  // design (the sky accent IS the sky badge foreground), which is reuse, not
+  // confusion, because categories and badges always carry text labels. The
+  // honest fix is scope, not a wider floor: the marker's tooltip must name
+  // the status colors and nothing broader, so the claim never outruns the
+  // measurement.
+  const panel = fs.readFileSync(new URL('../src/settings-panel.js', import.meta.url), 'utf8')
+  const m = /CVD_NOTE = '([^']+)'/.exec(panel)
+  assert.ok(m, 'settings-panel.js no longer defines CVD_NOTE')
+  assert.match(m[1], /success, warning and error colors/,
+    'the tooltip must name the exact colors the metric measures')
+  assert.ok(!/badge|category|group/i.test(m[1]),
+    'the tooltip must not claim families the metric does not measure')
+})
 
 test('at least one palette is marked color-blind friendly', () => {
   // The eye marker and its explanatory note are pointless if nothing carries
