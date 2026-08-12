@@ -68,9 +68,9 @@ you like:
 
 Still open in 2a:
 
-- [ ] **Raise the separation floor.** Colored palettes hold the change groups ≥7.0 apart and monochrome ≥6.0, neither of which is a comfortable margin. Both are near the ceiling of what the current fixed group colors allow, so raising the floor means re-deriving that set, not nudging a constant.
-- [ ] **Light mode does not tint.** Only dark surfaces follow the palette; in light mode every theme is a white card on a colored gradient. Tinting light surfaces is harder — they have far less headroom before text drops below 4.5:1.
-- [ ] **The accent-vs-status metric is narrow.** It compares one color against three. It says nothing about the accent against the badge families or the change groups, which is a weaker claim than the eye marker might suggest.
+- [x] **Raise the separation floor.** Re-derived both group sets with a wider search: semantic hue windows (added reads green, removed reads red), AA against every palette surface, and a reads-as-a-color constraint (Lab chroma ≥ 28, ΔE ≥ 15 from body text). The weakest pair for any vision went from 7.3 to ~16 — past the ~10 at which side-by-side colors stop being confusable — and the test floor now pins 15.5. Monochrome stays at 6.0: that is the ceiling of five AA-legal grays, not slack.
+- [x] **Light mode does not tint.** It does now: every colored palette carries a measured tint of its accent in --surface and --background, budgeted by the tightest AA pair (--error on --surface had 0.33 of headroom, so surfaces stay above ~0.93 relative luminance). All twenty palette/theme contexts still clear every AA pair in the suite. Mono keeps true neutrals.
+- [x] **The accent-vs-status metric is narrow.** Measured the wider families and resolved it as scope, not a wider floor. Several accents sit near or exactly on a badge or group color by design — the sky accent IS the sky badge foreground (ΔE 0.0) — which is reuse, not confusion: categories and badges always carry text labels, so hue never bears their meaning alone, while status colors are signals and keep the floor. A test now pins the eye marker tooltip to naming exactly the status colors, so the claim can never outrun the measurement, and docs state what the marker deliberately does not cover.
 
 ---
 
