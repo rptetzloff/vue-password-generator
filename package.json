@@ -1,11 +1,11 @@
 {
   "name": "vue-password-generator",
-  "version": "2.20.0",
+  "version": "2.21.0",
   "description": "A modern password generator built with Vue 3",
   "author": "Raymond Tetzloff <ray@raytetzloff.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/rptetzloff/vue-password-generator.git"
+    "url": "https://github.com/rptetzloff/wordlock.git"
   },
   "keywords": [
     "password",
@@ -17,9 +17,9 @@
   ],
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/rptetzloff/vue-password-generator/issues"
+    "url": "https://github.com/rptetzloff/wordlock/issues"
   },
-  "homepage": "https://github.com/rptetzloff/vue-password-generator",
+  "homepage": "https://wordlock.net",
   "type": "module",
   "scripts": {
     "dev": "npx --yes serve . --listen 5173",

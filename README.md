@@ -1,13 +1,13 @@
-# Vue Password Generator
+# WordLock
 
-A modern, secure password generator built with Vue 3. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
+WordLock is a modern, secure password generator built with Vue 3. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
 
 No build step, no dependencies, and no third-party CDNs: the site runs exactly as
 it appears in this repository.
 
 ## Live Demo
 
-**[Try it now at getrandompassword.net](https://getrandompassword.net)**
+**[Try it now at wordlock.net](https://wordlock.net)**
 
 ---
 
@@ -169,8 +169,8 @@ needs Node.js 18+, but nothing in the project itself depends on Node.
 ### Quick Start
 
 ```bash
-git clone https://github.com/rptetzloff/vue-password-generator.git
-cd vue-password-generator
+git clone https://github.com/rptetzloff/wordlock.git
+cd wordlock
 npm run dev
 ```
 
@@ -235,7 +235,7 @@ For any other static host, serve the repository root as-is.
 ## Project Structure
 
 ```
-vue-password-generator/
+wordlock/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── orchard-street-long.txt  # Words mode list (17,576 words, CC BY-SA 4.0)

@@ -4,8 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>About — Random Password Generator</title>
+    <title>About — WordLock</title>
     <script>
       /* Set the theme before first paint so dark-mode users never see a white
          flash. Deliberately inline and non-module: a module script is deferred
@@ -39,7 +48,7 @@
       <article class="prose-card">
         <h2>What this is</h2>
         <p>
-          A password generator that runs entirely in your browser. It offers seven
+          <strong>WordLock</strong> is a password generator that runs entirely in your browser. It offers seven
           ways to build a password — Simple, Advanced, Words, Passphrase, Wireless,
           Mad&nbsp;Lib and Numbers — from single random characters through to
           memorable word-based passphrases.
@@ -85,7 +94,7 @@
         </p>
         <p>
           The source is on
-          <a href="https://github.com/rptetzloff/vue-password-generator" target="_blank" rel="noopener">GitHub</a>.
+          <a href="https://github.com/rptetzloff/wordlock" target="_blank" rel="noopener">GitHub</a>.
           Third-party components and their licenses are listed on the
           <a href="/legal.html">Legal</a> page.
         </p>

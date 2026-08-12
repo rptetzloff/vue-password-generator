@@ -43,10 +43,24 @@ export const getThemeChoice = () => {
 const prefersDark = () =>
   typeof matchMedia === 'function' && matchMedia(DARK_QUERY).matches
 
+/**
+ * Keep the browser/OS chrome (the installed-app title bar, the mobile status
+ * bar) on the palette's header color. Reads the computed token, so it always
+ * matches whatever theme x palette just resolved -- the roadmap's "theme
+ * color should follow the chosen palette" (8b).
+ */
+const syncThemeColor = () => {
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (!meta) return
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--header-bg').trim()
+  if (bg) meta.setAttribute('content', bg)
+}
+
 /** Write the resolved theme onto <html>. */
 export const applyTheme = (choice) => {
   const resolved = resolveTheme(choice, prefersDark())
   document.documentElement.setAttribute('data-theme', resolved)
+  syncThemeColor()
   return resolved
 }
 
@@ -115,6 +129,7 @@ export const applyPalette = (value) => {
   // actually overrides it.
   if (palette === DEFAULT_PALETTE) document.documentElement.removeAttribute('data-palette')
   else document.documentElement.setAttribute('data-palette', palette)
+  syncThemeColor()
   return palette
 }
 

@@ -4,8 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Legal — Random Password Generator</title>
+    <title>Legal — WordLock</title>
     <script>
       /* Set the theme before first paint so dark-mode users never see a white
          flash. Deliberately inline and non-module: a module script is deferred
@@ -127,7 +136,7 @@
         <p>
           The source code is released under the MIT License, Copyright &copy; 2019
           Ray Tetzloff. The full text is in the
-          <a href="https://github.com/rptetzloff/vue-password-generator/blob/master/LICENSE" target="_blank" rel="noopener">LICENSE</a>
+          <a href="https://github.com/rptetzloff/wordlock/blob/master/LICENSE" target="_blank" rel="noopener">LICENSE</a>
           file in the repository. In short: you may use, copy, modify and
           distribute it, including commercially, provided the copyright notice and
           license text are retained.
@@ -208,7 +217,7 @@
 
         <p class="prose-updated">
           Questions about any of the above can be raised as an
-          <a href="https://github.com/rptetzloff/vue-password-generator/issues" target="_blank" rel="noopener">issue on GitHub</a>.
+          <a href="https://github.com/rptetzloff/wordlock/issues" target="_blank" rel="noopener">issue on GitHub</a>.
         </p>
       </article>
     </main>

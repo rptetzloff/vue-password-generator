@@ -4,8 +4,17 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Roadmap — Random Password Generator</title>
+    <title>Roadmap — WordLock</title>
     <script>
       /* Set the theme before first paint so dark-mode users never see a white
          flash. Deliberately inline and non-module: a module script is deferred
@@ -134,7 +143,7 @@
     <main class="page">
       <article class="prose-card">
         <p class="roadmap-intro">
-          This is <a href="https://github.com/rptetzloff/vue-password-generator/blob/master/ROADMAP.md">ROADMAP.md</a>
+          This is <a href="https://github.com/rptetzloff/wordlock/blob/master/ROADMAP.md">ROADMAP.md</a>
           from the repository, rendered as you see it there. It is planning notes rather than
           promises &mdash; items are added, reordered and abandoned. Nothing here is a commitment
           to ship, and the measurements in it were true when written.
@@ -235,7 +244,7 @@
       } catch (err) {
         target.innerHTML =
           'The roadmap could not be loaded. It is always available on ' +
-          '<a href="https://github.com/rptetzloff/vue-password-generator/blob/master/ROADMAP.md">GitHub</a>.'
+          '<a href="https://github.com/rptetzloff/wordlock/blob/master/ROADMAP.md">GitHub</a>.'
         console.error('roadmap:', err)
       }
     </script>
