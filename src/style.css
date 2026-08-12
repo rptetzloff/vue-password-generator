@@ -32,43 +32,68 @@ body {
 }
 
 /* Tabs */
+/* The generator switcher: a grid of tiles, each carrying an icon, the mode's
+   name, and its one-line description -- the docs intro-tile pattern promoted
+   to the app's main nav, so a mode says what it is before you commit to it.
+   Seven across on a wide screen, four then two as the width comes down; no
+   width ever hides a tab or its description. */
 .tabs {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
   background: var(--surface);
   border-radius: var(--radius);
-  padding: 0.25rem;
+  padding: 0.4rem;
   margin-bottom: 2rem;
   box-shadow: var(--shadow);
-  /* Wrap rather than scroll. Seven tabs at their 7.5rem minimum need ~920px of
-     viewport, but the vertical stack below only kicks in at 768px -- which left
-     a ~150px dead zone where the strip scrolled horizontally and hid tabs
-     entirely. Wrapping keeps every tab visible at every width. */
-  flex-wrap: wrap;
-  gap: 0.25rem;
+  gap: 0.4rem;
 }
 
 .tab {
-  flex: 1;
-  min-width: 7.5rem;
-  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.6rem 0.4rem;
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-weight: 500;
   border-radius: calc(var(--radius) - 2px);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tab .mdi {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.tab-name {
+  font-weight: 600;
+  font-size: 0.85rem;
   white-space: nowrap;
 }
 
-/* 7d: between the stacked-mobile layout and the ~920px seven tabs need at
-   their comfortable minimum, shrink the tabs instead of wrapping "Numbers"
-   onto a lonely second row. After the base rule, so it wins on source order. */
-@media (min-width: 769px) and (max-width: 960px) {
-  .tab {
-    min-width: 0;
-    padding: 0.75rem 0.5rem;
-    font-size: 0.85rem;
+/* Same color as the name so the description never falls below the tile's own
+   contrast; the size difference does the hierarchy. */
+.tab-desc {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .tabs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  /* Seven tiles in two columns leaves one hanging; let it take the row. */
+  .tab:last-child:nth-child(odd) {
+    grid-column: span 2;
   }
 }
 
@@ -992,14 +1017,6 @@ details[open].card-collapse > summary .collapse-chevron {
   }
   
 
-  
-  .tabs {
-    flex-direction: column;
-  }
-  
-  .tab {
-    flex: none;
-  }
   
   .radio-group {
     grid-template-columns: 1fr;

@@ -2987,13 +2987,15 @@ const App = {
   setup() {
     const activeTab = persistedRef('global.activeTab', 0)
     const tabs = [
-      { id: 1, name: 'Simple',     component: SimplePassword },
-      { id: 2, name: 'Advanced',   component: AdvancedPassword },
-      { id: 3, name: 'Words',      component: WordsPassword },
-      { id: 4, name: 'Passphrase', component: Passphrase },
-      { id: 5, name: 'Wireless',   component: WifiWords },
-      { id: 6, name: 'Mad Lib',    component: MadLib },
-      { id: 7, name: 'Numbers',    component: NumbersPassword },
+      // Icons and descriptions mirror the docs intro tiles, so the switcher
+      // and the reference describe each mode in the same words.
+      { id: 1, name: 'Simple',     icon: 'mdi-key-outline',           desc: 'Classic random characters', component: SimplePassword },
+      { id: 2, name: 'Advanced',   icon: 'mdi-tune',                  desc: 'Per-type min/max control',  component: AdvancedPassword },
+      { id: 3, name: 'Words',      icon: 'mdi-text',                  desc: 'Random word strings',       component: WordsPassword },
+      { id: 4, name: 'Passphrase', icon: 'mdi-format-list-bulleted',  desc: 'Grammar-aware phrases',     component: Passphrase },
+      { id: 5, name: 'Wireless',   icon: 'mdi-wifi',                  desc: 'WiFi-friendly passphrases', component: WifiWords },
+      { id: 6, name: 'Mad Lib',    icon: 'mdi-theater',               desc: 'Sentence-template phrases', component: MadLib },
+      { id: 7, name: 'Numbers',    icon: 'mdi-numeric',               desc: 'PIN & numeric codes',       component: NumbersPassword },
     ]
 
     // The settings panel is plain DOM so that all five pages share one
@@ -3060,13 +3062,16 @@ const App = {
       <main class="main">
         <div class="container">
           <div class="tabs">
-            <button 
-              v-for="(tab, index) in tabs" 
+            <button
+              v-for="(tab, index) in tabs"
               :key="tab.id"
               :class="['tab', { active: activeTab === index }]"
+              :aria-pressed="activeTab === index ? 'true' : 'false'"
               @click="activeTab = index"
             >
-              {{ tab.name }}
+              <span :class="['mdi', tab.icon]" aria-hidden="true"></span>
+              <span class="tab-name">{{ tab.name }}</span>
+              <span class="tab-desc">{{ tab.desc }}</span>
             </button>
           </div>
           
