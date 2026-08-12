@@ -5,7 +5,7 @@
 // and the app offered only Docs. Generating them from one list means every page
 // reaches every other page, and a new page is added in exactly one place.
 //
-// Nothing runs at import time -- call mountSiteNav() explicitly.
+// Nothing runs at import time.
 
 // `subtitle` is the line under the site title in the shared header, so a page's
 // nav entry and its header identity stay in one place.
@@ -41,40 +41,4 @@ export const isCurrentPage = (href, pathname) => {
     return out === '' ? '/' : out
   }
   return normalize(pathname) === normalize(href)
-}
-
-/** Render the nav links into `container`, marking the current page. */
-export const mountSiteNav = (container, pathname = location.pathname) => {
-  if (!container) return null
-  const links = PAGES.map((p) => {
-    const a = document.createElement('a')
-    a.className = 'header-link'
-    a.href = p.href
-    const current = isCurrentPage(p.href, pathname)
-    if (current) {
-      // aria-current is what tells a screen reader which page you are on;
-      // the class is only the visual counterpart.
-      a.setAttribute('aria-current', 'page')
-      a.classList.add('is-current')
-    }
-    const icon = document.createElement('span')
-    icon.className = `mdi ${p.icon}`
-    icon.setAttribute('aria-hidden', 'true')
-
-    // The label is wrapped so the condensed header can hide it and leave the
-    // icon. Two fallbacks are needed once it is hidden, for different people:
-    // aria-label, because display:none takes the text out of the accessibility
-    // tree along with the link's only name; and title, so a sighted mouse user
-    // gets a tooltip rather than an unlabelled icon they have to guess at.
-    const text = document.createElement('span')
-    text.className = 'header-link-text'
-    text.textContent = p.label
-    a.setAttribute('aria-label', p.label)
-    a.title = p.label
-
-    a.append(icon, text)
-    container.appendChild(a)
-    return a
-  })
-  return { links }
 }

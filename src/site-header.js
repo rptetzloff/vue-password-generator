@@ -1,17 +1,16 @@
-// The shared site header: icon, title, subtitle, and the nav bar.
+// The shared site header: icon, title and subtitle -- identity only.
 //
 // Every page renders the same header from this one function, including the
-// app. Previously the app had a large bespoke header while the four static
-// pages hand-rolled a compact one, so "the header" meant two different things
-// and neither could be changed without touching the other.
+// app. The navigation and the settings gear used to live here too; they moved
+// into the floating footer bar (src/site-footer.js), which puts them in thumb
+// range on a phone and leaves the header its one job: saying where you are.
 //
 // The subtitle comes from the page's own entry in PAGES, so a page's nav label
 // and its header identity live together.
 //
 // Nothing runs at import time -- call mountSiteHeader() explicitly.
 
-import { pageFor, mountSiteNav } from './site-nav.js'
-import { mountSettingsPanel } from './settings-panel.js'
+import { pageFor } from './site-nav.js'
 import { createLogo } from './logo.js'
 
 export const SITE_TITLE = 'WordLock'
@@ -23,10 +22,11 @@ export const SITE_TITLE = 'WordLock'
  * width -- the app uses it for the privacy notice. Pass a string, or an
  * element if it needs markup. Pages that omit it simply do not get the row.
  *
- * settings.extraSections is handed straight to the settings panel, which is how
- * the app contributes its History control without this module knowing about it.
+ * `settings` is accepted for backward compatibility and forwarded nowhere:
+ * the gear lives in the floating footer bar now -- pass extraSections to
+ * mountSiteFooter instead.
  */
-export const mountSiteHeader = (container, { pathname = location.pathname, settings = {}, description = null } = {}) => {
+export const mountSiteHeader = (container, { pathname = location.pathname, description = null } = {}) => {
   if (!container) return null
 
   const page = pageFor(pathname)
@@ -51,11 +51,7 @@ export const mountSiteHeader = (container, { pathname = location.pathname, setti
     text.appendChild(p)
   }
 
-  const nav = document.createElement('nav')
-  nav.className = 'header-nav'
-  nav.setAttribute('aria-label', 'Site')
-
-  inner.append(icon, text, nav)
+  inner.append(icon, text)
 
   if (description) {
     const desc = document.createElement('div')
@@ -68,12 +64,9 @@ export const mountSiteHeader = (container, { pathname = location.pathname, setti
   header.appendChild(inner)
   container.replaceWith(header)
 
-  mountSiteNav(nav, pathname)
-  mountSettingsPanel(nav, settings)
-
   attachCondense(header)
 
-  return { header, nav }
+  return { header }
 }
 
 /**

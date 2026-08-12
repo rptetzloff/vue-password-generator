@@ -258,15 +258,21 @@
       }
 
 
-      /* Word-count table in the v2.15.0 entry. The changelog had no table
-         styling before this; keep it compact so 13 rows do not dominate the
-         release card, and let it scroll rather than clip on a phone. */
-      .table-scroll { overflow-x: auto; margin: 0.6rem 0 0.2rem; }
+      /* Word-count table in the v2.15.0 entry. Two three-column halves that
+         sit side by side where there is room and stack on a phone -- taller
+         beats wider there; a sideways scroll made the whole page feel wide. */
+      .count-tables {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem 1.25rem;
+        margin: 0.6rem 0 0.2rem;
+      }
 
       .count-table {
         border-collapse: collapse;
         font-size: 0.78rem;
         font-variant-numeric: tabular-nums;
+        align-self: flex-start;
       }
 
       .count-table th,
@@ -283,8 +289,6 @@
         font-weight: 700;
       }
 
-      /* The trailing blank cells that pad the shorter column. */
-      .count-table td:empty { border: 0; }
 
     </style>
   </head>
@@ -294,6 +298,38 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.22.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.22.0</div>
+            <div class="release-date">2026-08-12</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">One navigation, where your thumbs are</div>
+                <div class="release-summary">The footer becomes a floating bar at the bottom of the viewport and takes over as the site's only navigation; the generator switcher becomes labelled tiles; the header keeps to its one job.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>The footer is now the navigation</strong> &mdash; a floating pill docked at the bottom of the viewport on every page: Generator, Docs, an <strong>About</strong> menu holding About, Changelog, Legal and Roadmap, a <strong>Links</strong> menu holding GitHub and Anagrimoire, and the settings gear &mdash; now the one round thing in the bar. Thumb range on a phone, always in reach on desktop. The header's copy of the links is gone &mdash; two navigations was one too many &mdash; and the header slims to the identity it always carried: mark, title, subtitle, privacy note. On narrow screens the bar goes icons-only (every link keeps its accessible name and tooltip), menus and the settings panel open upward, and the current page is marked rather than omitted &mdash; even when it sits inside a menu, the menu's button carries the mark.</li>
+                    <li><strong>The generator switcher is now tiles</strong> &mdash; each mode carries an icon, its name and its one-line description (the same words the docs use), so a mode says what it is before you commit to it. Seven across on a wide screen, four at tablet widths &mdash; and on a phone the grid breaks down to a compact icon-and-name bar, with the active mode's description on a single line beneath it, so the description stays visible without every tile paying for it.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The changelog no longer scrolls sideways on a phone</strong> &mdash; the v2.15.0 word-count table was six columns wide and dragged the whole page with it. It is two three-column halves now: side by side where there is room, stacked where there is not. Taller beats wider.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.21.0 -->
         <div class="release">
@@ -506,25 +542,42 @@
                     <li><strong>Music and Sports noun categories</strong> — 194 and 128 words, available anywhere a noun slot appears.</li>
                     <li>
                       <strong>2,440 to 4,627 words overall</strong> — every category grew:
-                      <div class="table-scroll">
+                      <div class="count-tables">
                         <table class="count-table">
                           <thead>
-                            <tr><th>Category</th><th>Before</th><th>Now</th><th>Category</th><th>Before</th><th>Now</th></tr>
+                            <tr><th>Category</th><th>Before</th><th>Now</th></tr>
                           </thead>
                           <tbody>
-                            <tr><td>Noun · Tech</td><td>131</td><td>506</td>       <td>Adj · Mood</td><td>129</td><td>228</td></tr>
-                            <tr><td>Noun · Food</td><td>189</td><td>399</td>       <td>Adj · Texture</td><td>117</td><td>169</td></tr>
-                            <tr><td>Noun · Animals</td><td>227</td><td>359</td>    <td>Adj · Colors</td><td>130</td><td>149</td></tr>
-                            <tr><td>Noun · Places</td><td>126</td><td>327</td>     <td>Adj · Time</td><td>87</td><td>120</td></tr>
-                            <tr><td>Noun · Nature</td><td>134</td><td>274</td>     <td>Adj · Weather</td><td>104</td><td>113</td></tr>
-                            <tr><td>Noun · Music</td><td>—</td><td>194</td>        <td>Adj · Size</td><td>100</td><td>106</td></tr>
-                            <tr><td>Noun · Vehicles</td><td>112</td><td>166</td>   <td>Verb · Action</td><td>119</td><td>216</td></tr>
-                            <tr><td>Noun · Jobs</td><td>135</td><td>158</td>       <td>Verb · Movement</td><td>96</td><td>145</td></tr>
-                            <tr><td>Noun · Sports</td><td>—</td><td>128</td>       <td>Verb · Cognition</td><td>82</td><td>138</td></tr>
-                            <tr><td>Adv · Manner</td><td>129</td><td>339</td>      <td>Verb · Nature</td><td>84</td><td>120</td></tr>
-                            <tr><td>Adv · Intensity</td><td>80</td><td>123</td>     <td></td><td></td><td></td></tr>
-                            <tr><td>Adv · Time</td><td>69</td><td>86</td>          <td></td><td></td><td></td></tr>
-                            <tr><td>Adv · Place</td><td>60</td><td>64</td>         <td></td><td></td><td></td></tr>
+                            <tr><td>Noun · Tech</td><td>131</td><td>506</td></tr>
+                            <tr><td>Noun · Food</td><td>189</td><td>399</td></tr>
+                            <tr><td>Noun · Animals</td><td>227</td><td>359</td></tr>
+                            <tr><td>Noun · Places</td><td>126</td><td>327</td></tr>
+                            <tr><td>Noun · Nature</td><td>134</td><td>274</td></tr>
+                            <tr><td>Noun · Music</td><td>—</td><td>194</td></tr>
+                            <tr><td>Noun · Vehicles</td><td>112</td><td>166</td></tr>
+                            <tr><td>Noun · Jobs</td><td>135</td><td>158</td></tr>
+                            <tr><td>Noun · Sports</td><td>—</td><td>128</td></tr>
+                            <tr><td>Adv · Manner</td><td>129</td><td>339</td></tr>
+                            <tr><td>Adv · Intensity</td><td>80</td><td>123</td></tr>
+                            <tr><td>Adv · Time</td><td>69</td><td>86</td></tr>
+                            <tr><td>Adv · Place</td><td>60</td><td>64</td></tr>
+                          </tbody>
+                        </table>
+                        <table class="count-table">
+                          <thead>
+                            <tr><th>Category</th><th>Before</th><th>Now</th></tr>
+                          </thead>
+                          <tbody>
+                            <tr><td>Adj · Mood</td><td>129</td><td>228</td></tr>
+                            <tr><td>Adj · Texture</td><td>117</td><td>169</td></tr>
+                            <tr><td>Adj · Colors</td><td>130</td><td>149</td></tr>
+                            <tr><td>Adj · Time</td><td>87</td><td>120</td></tr>
+                            <tr><td>Adj · Weather</td><td>104</td><td>113</td></tr>
+                            <tr><td>Adj · Size</td><td>100</td><td>106</td></tr>
+                            <tr><td>Verb · Action</td><td>119</td><td>216</td></tr>
+                            <tr><td>Verb · Movement</td><td>96</td><td>145</td></tr>
+                            <tr><td>Verb · Cognition</td><td>82</td><td>138</td></tr>
+                            <tr><td>Verb · Nature</td><td>84</td><td>120</td></tr>
                           </tbody>
                         </table>
                       </div>

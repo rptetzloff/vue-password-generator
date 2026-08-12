@@ -2987,13 +2987,15 @@ const App = {
   setup() {
     const activeTab = persistedRef('global.activeTab', 0)
     const tabs = [
-      { id: 1, name: 'Simple',     component: SimplePassword },
-      { id: 2, name: 'Advanced',   component: AdvancedPassword },
-      { id: 3, name: 'Words',      component: WordsPassword },
-      { id: 4, name: 'Passphrase', component: Passphrase },
-      { id: 5, name: 'Wireless',   component: WifiWords },
-      { id: 6, name: 'Mad Lib',    component: MadLib },
-      { id: 7, name: 'Numbers',    component: NumbersPassword },
+      // Icons and descriptions mirror the docs intro tiles, so the switcher
+      // and the reference describe each mode in the same words.
+      { id: 1, name: 'Simple',     icon: 'mdi-key-outline',           desc: 'Classic random characters', component: SimplePassword },
+      { id: 2, name: 'Advanced',   icon: 'mdi-tune',                  desc: 'Per-type min/max control',  component: AdvancedPassword },
+      { id: 3, name: 'Words',      icon: 'mdi-text',                  desc: 'Random word strings',       component: WordsPassword },
+      { id: 4, name: 'Passphrase', icon: 'mdi-format-list-bulleted',  desc: 'Grammar-aware phrases',     component: Passphrase },
+      { id: 5, name: 'Wireless',   icon: 'mdi-wifi',                  desc: 'WiFi-friendly passphrases', component: WifiWords },
+      { id: 6, name: 'Mad Lib',    icon: 'mdi-theater',               desc: 'Sentence-template phrases', component: MadLib },
+      { id: 7, name: 'Numbers',    icon: 'mdi-numeric',               desc: 'PIN & numeric codes',       component: NumbersPassword },
     ]
 
     // The settings panel is plain DOM so that all five pages share one
@@ -3019,29 +3021,6 @@ const App = {
           '🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. ' +
           "Your settings and generation history are stored only in your browser's local storage — history is cleared when " +
           'you set History to Off, or when you clear your browser data.',
-        settings: {
-          extraSections: [{
-            label: 'History',
-            options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
-            get: () => historyMax.value,
-            set: (v) => { historyMax.value = Number(v) },
-          }, {
-            label: 'Bit hints',
-            options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-            get: () => (showBitHints.value ? 'on' : 'off'),
-            set: (v) => { showBitHints.value = v === 'on' },
-          }, {
-            label: 'Clear clipboard',
-            options: [
-              { value: 0, label: 'Keep' },
-              { value: 30, label: '30s' },
-              { value: 60, label: '60s' },
-              { value: 120, label: '2 min' },
-            ],
-            get: () => clipboardClear.value,
-            set: (v) => { clipboardClear.value = Number(v) },
-          }],
-        },
       })
     })
 
@@ -3060,15 +3039,19 @@ const App = {
       <main class="main">
         <div class="container">
           <div class="tabs">
-            <button 
-              v-for="(tab, index) in tabs" 
+            <button
+              v-for="(tab, index) in tabs"
               :key="tab.id"
               :class="['tab', { active: activeTab === index }]"
+              :aria-pressed="activeTab === index ? 'true' : 'false'"
               @click="activeTab = index"
             >
-              {{ tab.name }}
+              <span :class="['mdi', tab.icon]" aria-hidden="true"></span>
+              <span class="tab-name">{{ tab.name }}</span>
+              <span class="tab-desc">{{ tab.desc }}</span>
             </button>
           </div>
+          <p class="tabs-desc">{{ tabs[activeTab].desc }}</p>
           
           <div class="tab-content">
             <component :is="tabs[activeTab].component" />
@@ -3083,8 +3066,31 @@ const App = {
 
 createApp(App).mount('#app')
 
-// The footer markup used to live in the template above -- a sixth copy of the
-// same links. It comes from the shared module now, like the header, so adding
-// a page updates every navigation at once. wrap: true keeps the .container
-// width limiter this page needs and the standalone pages do not.
-mountSiteFooter(document.querySelector('[data-site-footer]'), { wrap: true })
+// The footer is the floating navigation bar, and the settings gear rides in
+// it -- so the app's extra settings rows are contributed here rather than
+// through the header. The get/set closures reach the module-scope refs above.
+mountSiteFooter(document.querySelector('[data-site-footer]'), {
+  settings: {
+    extraSections: [{
+      label: 'History',
+      options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
+      get: () => historyMax.value,
+      set: (v) => { historyMax.value = Number(v) },
+    }, {
+      label: 'Bit hints',
+      options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
+      get: () => (showBitHints.value ? 'on' : 'off'),
+      set: (v) => { showBitHints.value = v === 'on' },
+    }, {
+      label: 'Clear clipboard',
+      options: [
+        { value: 0, label: 'Keep' },
+        { value: 30, label: '30s' },
+        { value: 60, label: '60s' },
+        { value: 120, label: '2 min' },
+      ],
+      get: () => clipboardClear.value,
+      set: (v) => { clipboardClear.value = Number(v) },
+    }],
+  },
+})

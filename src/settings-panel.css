@@ -39,6 +39,12 @@
   outline-offset: 2px;
 }
 
+/* In the floating footer bar the panel opens upward instead. */
+.site-footer .settings-panel {
+  top: auto;
+  bottom: calc(100% + 0.6rem);
+}
+
 .settings-panel {
   position: absolute;
   top: calc(100% + 0.5rem);
