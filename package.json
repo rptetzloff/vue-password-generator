@@ -19,7 +19,7 @@
   "bugs": {
     "url": "https://github.com/rptetzloff/wordlock/issues"
   },
-  "homepage": "https://github.com/rptetzloff/wordlock",
+  "homepage": "https://wordlock.net",
   "type": "module",
   "scripts": {
     "dev": "npx --yes serve . --listen 5173",

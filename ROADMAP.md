@@ -512,7 +512,7 @@ Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
 
 ### 8d. Hand a password directly to a password manager — explore, and probably blocked
 
-- [ ] **Check this before planning around it.** The obvious API does not do what it sounds like. `navigator.credentials.store(new PasswordCredential(...))` saves a credential **for the current origin only** — this site could save a password for `getrandompassword.net` and nothing else. There is no web API for "save this password for `example.com`", by design: it would be a credential-injection primitive.
+- [ ] **Check this before planning around it.** The obvious API does not do what it sounds like. `navigator.credentials.store(new PasswordCredential(...))` saves a credential **for the current origin only** — this site could save a password for `wordlock.net` and nothing else. There is no web API for "save this password for `example.com`", by design: it would be a credential-injection primitive.
 - [ ] Support is also narrow. `PasswordCredential` is Chromium-only; Firefox and Safari never shipped it. So even the same-origin version reaches a fraction of users.
 - [ ] What is actually available from a page is what already exists: copy to clipboard, and letting the manager's own heuristics catch the paste. Everything beyond that needs 8c.
 - [ ] Verify the above against current specs before writing it off — this was checked in a Chromium browser and against the API's design intent, not against a fresh reading of every vendor's docs.

@@ -7,7 +7,7 @@ it appears in this repository.
 
 ## Live Demo
 
-**[Try it now at getrandompassword.net](https://getrandompassword.net)**
+**[Try it now at wordlock.net](https://wordlock.net)**
 
 ---
 
