@@ -89,19 +89,33 @@ const floatBar = persistedRef('global.floatBar', true)
 // The wipe is blunt on purpose: it writes '' over whatever is in the
 // clipboard at the deadline, even if that is no longer the password --
 // checking first would mean asking to READ the clipboard, a permission this
-// site has no business requesting. An unfocused page cannot write to the
-// clipboard, so the wipe waits for focus if it must.
+// site has no business requesting. And it must never cause a permission
+// prompt of its own: Edge treats a clipboard write with no user gesture as
+// prompt-worthy, so the wipe fires silently only where clipboard-write is
+// already granted; everywhere else it waits for the next real click or
+// keypress, because a write under transient user activation needs no
+// permission in any engine.
 let clipboardTimer = null
 const scheduleClipboardClear = (notify) => {
   clearTimeout(clipboardTimer)
   if (!clipboardClear.value) return
-  clipboardTimer = setTimeout(() => {
+  clipboardTimer = setTimeout(async () => {
     const wipe = () => navigator.clipboard.writeText('')
       .then(() => notify('Clipboard cleared', 'success'))
       .catch(() => {})
-    if (document.hasFocus()) { wipe(); return }
-    const onFocus = () => { window.removeEventListener('focus', onFocus); wipe() }
-    window.addEventListener('focus', onFocus)
+    let granted = false
+    try {
+      const p = await navigator.permissions.query({ name: 'clipboard-write' })
+      granted = p.state === 'granted'
+    } catch { /* engines without a queryable clipboard-write permission */ }
+    if (granted && document.hasFocus()) { wipe(); return }
+    const onGesture = () => {
+      window.removeEventListener('pointerdown', onGesture, true)
+      window.removeEventListener('keydown', onGesture, true)
+      wipe()
+    }
+    window.addEventListener('pointerdown', onGesture, true)
+    window.addEventListener('keydown', onGesture, true)
   }, clipboardClear.value * 1000)
 }
 // The "vs last" chip and the per-option price tags are coaching, and some
