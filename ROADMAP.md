@@ -466,7 +466,7 @@ Buttons visible on a single tab, counted:
 ### 7d. Layout and flow
 
 - [x] **The tab strip wraps to two rows** — fixed: between 769px and 960px the tabs shrink (padding and font) instead of wrapping, so all seven stay on one row at every width above the mobile stack.
-- [x] **Generate sits below the options** — the Generate card is now position: sticky at the viewport bottom, so it stays under your thumb while the options scroll past, and its natural position still puts the result directly beneath it.
+- [x] **Generate sits below the options** — the Generate card is now position: sticky at the viewport bottom, so it stays under your thumb while the options scroll past -- and since v2.20.0 the password box and copy button ride in the same bar, so the result is visible where the button is.
 - [x] **No keyboard shortcut to regenerate.** `R` regenerates on whichever tab is active, suppressed while any form control has focus so typing a custom separator never fires it. Enter was rejected: it already means "activate the focused control".
 
 ### 7e. Feedback

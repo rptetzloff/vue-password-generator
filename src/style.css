@@ -309,12 +309,28 @@ body {
 }
 
 /* 7d: the Generate card sticks to the viewport bottom while the options above
-   it scroll, so sixty controls never separate the button from your thumb. */
+   it scroll, so sixty controls never separate the button from your thumb. The
+   password display lives in the same bar -- a floating button whose result
+   appears off-screen would defeat the point. */
 .card-generate {
   position: sticky;
   bottom: 0.75rem;
   z-index: 5;
   border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.card-generate .btn-primary {
+  flex-shrink: 0;
+}
+
+/* The display grows to fill the bar and drops below the button when narrow. */
+.card-generate .password-display {
+  flex: 1 1 16rem;
+  margin: 0;
 }
 
 /* 7c: rarely-changed groups collapse behind their header. */

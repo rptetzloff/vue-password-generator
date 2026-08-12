@@ -527,9 +527,7 @@ const SimplePassword = {
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
 
-      <div class="card">
         <div class="password-display">
           <div
             :key="password"
@@ -543,6 +541,10 @@ const SimplePassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+      </div>
+
+      <div class="card">
+
         <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
@@ -934,9 +936,7 @@ const AdvancedPassword = {
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
 
-      <div class="card">
         <div class="password-display">
           <div
             :key="password"
@@ -950,6 +950,10 @@ const AdvancedPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+      </div>
+
+      <div class="card">
+
         <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
@@ -1266,6 +1270,20 @@ const WordsPassword = {
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -1292,19 +1310,6 @@ const WordsPassword = {
           </button>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="words" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
@@ -1495,9 +1500,7 @@ const NumbersPassword = {
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
-      </div>
 
-      <div class="card">
         <div class="password-display">
           <div
             :key="password"
@@ -1511,6 +1514,10 @@ const NumbersPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+      </div>
+
+      <div class="card">
+
         <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
@@ -1932,6 +1939,20 @@ const Passphrase = {
 
       <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Passphrase</button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -1959,19 +1980,6 @@ const Passphrase = {
           </button>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
         <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
@@ -2415,6 +2423,20 @@ const WifiWords = {
 
       <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-wifi"></span> Generate WiFi Password</button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -2442,19 +2464,6 @@ const WifiWords = {
           </button>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
         <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
         <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
@@ -2868,6 +2877,20 @@ const MadLib = {
 
       <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Mad Lib</button>
+
+        <div class="password-display">
+          <div
+            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
+            role="textbox"
+            aria-readonly="true"
+            aria-label="Generated password"
+            tabindex="0"
+          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
+          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
+          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
+            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
+          </button>
+        </div>
       </div>
 
       <div class="card">
@@ -2901,19 +2924,6 @@ const MadLib = {
           <div class="madlib-preview-phrase">{{ preview }}</div>
         </div>
 
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-        </div>
         <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
