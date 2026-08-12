@@ -434,9 +434,9 @@ alone.
 ### 7b. The sliders specifically
 
 - [x] **No focus ring — fixed.** `.slider` set `outline: none`. That selector is (0,1,0), the same specificity as the global `:where(...):focus-visible` ring, and `style.css` loads after `tokens.css`, so it won on source order and the sliders had no visible focus at all — a WCAG 2.4.7 failure the Epic 3 audit missed. `.slider:focus-visible` now sets the ring explicitly rather than deleting the offending line and trusting the global rule, so the next person reaching for `outline: none` on a range input sees why it is not there. Verified with a real keyboard focus, not a programmatic one: `.focus()` does not trigger `:focus-visible`, which is part of why this went unnoticed. This also closes the last open item in **Epic 3**.
-- [ ] **Three controls for one number.** Password Length has a slider, a `−`/`+` stepper, and a value readout. Decide which is authoritative and let the others be secondary, or drop one.
-- [ ] **No sense of range.** Min and max (6 and 128) are never shown, so the slider gives no feel for where 20 sits. Consider end labels or tick marks at meaningful points.
-- [ ] **A 122-step range on a 617px track** is roughly 5px per step, so dragging cannot reliably land on a specific value; the stepper is currently the only precise route. Coarse dragging with fine stepping is the usual answer.
+- [x] **Three controls for one number.** Decided: all three stay, each with one job — the slider is the coarse control, the stepper is the fine one, the readout displays. Dropping any of them removes a real path (touch drags, keyboard steps, glance).
+- [x] **No sense of range.** End labels now flank every standalone slider — 6…128, 2…20, 4…32, 2…5 — so the thumb position reads as a value, not a vibe.
+- [x] **A 122-step range on a 617px track** — resolved as the design rather than despite it: coarse dragging with fine stepping is the answer, the split above makes it deliberate, and the end labels make the coarseness legible.
 
 ### 7c. Option density
 
@@ -452,20 +452,20 @@ Buttons visible on a single tab, counted:
 | Simple | 14 |
 | Numbers | 12 |
 
-- [ ] Advanced presents sixty-six controls at once with no grouping or progressive disclosure. Prefix & Suffix alone is two columns of eleven chips. This is the main source of the clunk.
-- [ ] Collapse the rarely-changed groups behind a disclosure, remembering state per generator. Leet Speak, Emoji and Prefix/Suffix are all candidates: they are off by default and most people never touch them.
-- [ ] Consider whether Simple and Advanced should be one tab with a "more options" reveal, rather than two tabs that differ mainly in density.
+- [x] Advanced presents sixty-six controls at once — addressed by the disclosure work below plus the sticky Generate bar; the min/max grid itself stays visible because per-type control IS what the Advanced tab is for.
+- [x] Collapse the rarely-changed groups behind a disclosure, remembering state per generator. Prefix & Suffix and Leet Speak & Emoji collapse in all four word modes, Emoji in Advanced; open state persists per generator, and a collapsed group that is doing something says **in use** on its header.
+- [x] Considered and rejected: merging Simple into Advanced buries the one tab whose whole value is having nothing to learn. The density complaint is answered by disclosure and the sticky bar instead.
 
 ### 7d. Layout and flow
 
-- [ ] **The tab strip wraps to two rows** at desktop width — seven tabs need ~920px but the vertical stack only starts at 768px, so "Numbers" sits alone on a second row. It is honest wrapping rather than a hidden scroll, but it looks accidental.
-- [ ] **Generate sits below the options**, so on Advanced you scroll past sixty-six controls to reach the button, then scroll back for the result. A sticky action bar, or the result adjacent to the button, would cut that.
-- [ ] **No keyboard shortcut to regenerate.** For a tool people hit repeatedly, something like Enter or `R` would save a lot of pointer travel.
+- [x] **The tab strip wraps to two rows** — fixed: between 769px and 960px the tabs shrink (padding and font) instead of wrapping, so all seven stay on one row at every width above the mobile stack.
+- [x] **Generate sits below the options** — the Generate card is now position: sticky at the viewport bottom, so it stays under your thumb while the options scroll past, and its natural position still puts the result directly beneath it.
+- [x] **No keyboard shortcut to regenerate.** `R` regenerates on whichever tab is active, suppressed while any form control has focus so typing a custom separator never fires it. Enter was rejected: it already means "activate the focused control".
 
 ### 7e. Feedback
 
-- [ ] Copy is the only action that confirms itself. Regenerating a single word, clearing history, and changing a setting all happen silently.
-- [ ] History entries are clickable but do not look it until hover.
+- [x] Copy is the only action that confirms itself — every regeneration (full or single-word swap) now flashes a brief tint on the fresh value, disabled under prefers-reduced-motion. Toasts for ordinary setting changes were considered and rejected as noise: the password rebuilding is the confirmation.
+- [x] History entries are clickable but do not look it until hover — they now rest with a visible border and background like the buttons they are, and the border answers in the accent color on hover.
 
 ---
 

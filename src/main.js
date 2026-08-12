@@ -396,6 +396,7 @@ const SimplePassword = {
         <div class="card-header">Password Length</div>
         <div class="slider-container">
           <button class="stepper-btn" aria-label="Decrease password length" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
+          <span class="slider-end" aria-hidden="true">6</span>
           <input
             v-model="passwordLength"
             type="range"
@@ -404,6 +405,7 @@ const SimplePassword = {
             max="128"
             class="slider"
           />
+          <span class="slider-end" aria-hidden="true">128</span>
           <button class="stepper-btn" aria-label="Increase password length" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
@@ -439,7 +441,7 @@ const SimplePassword = {
         </div>
       </div>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -448,6 +450,7 @@ const SimplePassword = {
       <div class="card">
         <div class="password-display">
           <div
+            :key="password"
             class="form-input password-input"
             role="textbox"
             aria-readonly="true"
@@ -480,6 +483,7 @@ const AdvancedPassword = {
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
     const emojiCount = persistedRef('adv.emojiCount', [0, 0])
     const excludeAmbiguous = persistedRef('adv.excludeAmbiguous', false)
+    const emojiOpen = persistedRef('adv.ui.emojiOpen', false)
     const customSymbols = computed(() =>
       ALL_SYMBOLS.filter(s => activeSymbols.value.has(s)).join('')
     )
@@ -622,6 +626,7 @@ const AdvancedPassword = {
       specialChars,
       allSymbols: ALL_SYMBOLS,
       excludeAmbiguous,
+      emojiOpen,
       activeSymbols,
       toggleSymbol,
       selectAllSymbols,
@@ -644,6 +649,7 @@ const AdvancedPassword = {
         <div class="card-header">Password Length</div>
         <div class="slider-container">
           <button class="stepper-btn" aria-label="Decrease password length" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
+          <span class="slider-end" aria-hidden="true">6</span>
           <input
             v-model="passwordLength"
             type="range"
@@ -652,6 +658,7 @@ const AdvancedPassword = {
             max="128"
             class="slider"
           />
+          <span class="slider-end" aria-hidden="true">128</span>
           <button class="stepper-btn" aria-label="Increase password length" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
@@ -809,8 +816,8 @@ const AdvancedPassword = {
         </label>
       </div>
 
-      <div class="card">
-        <div class="card-header">Emoji 🎲</div>
+      <details class="card card-collapse" :open="emojiOpen" @toggle="emojiOpen = $event.target.open">
+        <summary class="card-header">Emoji 🎲<span v-if="emojiCount[0] > 0 || emojiCount[1] > 0" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="slider-container">
           <div class="stepper-label">
             <button class="stepper-btn" aria-label="Decrease min emoji 🎲" @click="emojiCount[0] = Math.max(0, emojiCount[0] - 1)"><span class="mdi mdi-minus"></span></button>
@@ -839,9 +846,9 @@ const AdvancedPassword = {
             <button class="stepper-btn" aria-label="Increase max emoji 🎲" @click="emojiCount[1] = Math.min(passwordLength, emojiCount[1] + 1)"><span class="mdi mdi-plus"></span></button>
           </div>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -850,6 +857,7 @@ const AdvancedPassword = {
       <div class="card">
         <div class="password-display">
           <div
+            :key="password"
             class="form-input password-input"
             role="textbox"
             aria-readonly="true"
@@ -895,6 +903,10 @@ const WordsPassword = {
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('words.lockAffixes', false)
     const excludeAmbiguous = persistedRef('words.excludeAmbiguous', false)
+    // 7c: rarely-changed groups start collapsed; the open state is remembered
+    // per generator so a person who uses affixes daily never re-opens them.
+    const affixOpen = persistedRef('words.ui.affixOpen', false)
+    const extrasOpen = persistedRef('words.ui.extrasOpen', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1008,6 +1020,8 @@ const WordsPassword = {
       prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
       suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
       capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
+      affixOpen,
+      extrasOpen,
       password,
       entropy,
       recallHistory,
@@ -1029,6 +1043,7 @@ const WordsPassword = {
         <div class="card-header">Number of Words</div>
         <div class="slider-container">
           <button class="stepper-btn" aria-label="Decrease number of words" @click="wordCount = Math.max(2, wordCount - 1)"><span class="mdi mdi-minus"></span></button>
+          <span class="slider-end" aria-hidden="true">2</span>
           <input
             v-model="wordCount"
             type="range"
@@ -1037,6 +1052,7 @@ const WordsPassword = {
             max="20"
             class="slider"
           />
+          <span class="slider-end" aria-hidden="true">20</span>
           <button class="stepper-btn" aria-label="Increase number of words" @click="wordCount = Math.min(20, wordCount + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ wordCount }}</div>
         </div>
@@ -1110,8 +1126,8 @@ const WordsPassword = {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">Prefix &amp; Suffix</div>
+      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
+        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="affix-pair">
           <AffixPicker
             label="Prefix"
@@ -1132,9 +1148,10 @@ const WordsPassword = {
             @update:customValue="suffixCustom = $event"
           />
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
+        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="form-group">
           <div class="symbol-chips-header">
             <label class="form-label">Leet Speak Substitutions</label>
@@ -1161,9 +1178,9 @@ const WordsPassword = {
             <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
           </button>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -1339,6 +1356,7 @@ const NumbersPassword = {
         <div class="card-header">Number of Digits</div>
         <div class="slider-container">
           <button class="stepper-btn" aria-label="Decrease number of digits" @click="passwordLength = Math.max(4, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
+          <span class="slider-end" aria-hidden="true">4</span>
           <input
             v-model="passwordLength"
             type="range"
@@ -1347,6 +1365,7 @@ const NumbersPassword = {
             max="32"
             class="slider"
           />
+          <span class="slider-end" aria-hidden="true">32</span>
           <button class="stepper-btn" aria-label="Increase number of digits" @click="passwordLength = Math.min(32, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ passwordLength }}</div>
         </div>
@@ -1356,6 +1375,7 @@ const NumbersPassword = {
         <div class="card-header">Maximum Repeated Digits</div>
         <div class="slider-container">
           <button class="stepper-btn" aria-label="Decrease maximum repeated digits" @click="maxRepeated = Math.max(2, maxRepeated - 1)"><span class="mdi mdi-minus"></span></button>
+          <span class="slider-end" aria-hidden="true">2</span>
           <input
             v-model="maxRepeated"
             type="range"
@@ -1364,6 +1384,7 @@ const NumbersPassword = {
             max="5"
             class="slider"
           />
+          <span class="slider-end" aria-hidden="true">5</span>
           <button class="stepper-btn" aria-label="Increase maximum repeated digits" @click="maxRepeated = Math.min(5, maxRepeated + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ maxRepeated }}</div>
         </div>
@@ -1373,6 +1394,7 @@ const NumbersPassword = {
         <div class="card-header">Maximum Sequential Digits</div>
         <div class="slider-container">
           <button class="stepper-btn" aria-label="Decrease maximum sequential digits" @click="maxSequential = Math.max(2, maxSequential - 1)"><span class="mdi mdi-minus"></span></button>
+          <span class="slider-end" aria-hidden="true">2</span>
           <input
             v-model="maxSequential"
             type="range"
@@ -1381,12 +1403,13 @@ const NumbersPassword = {
             max="5"
             class="slider"
           />
+          <span class="slider-end" aria-hidden="true">5</span>
           <button class="stepper-btn" aria-label="Increase maximum sequential digits" @click="maxSequential = Math.min(5, maxSequential + 1)"><span class="mdi mdi-plus"></span></button>
           <div class="slider-value">{{ maxSequential }}</div>
         </div>
       </div>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -1395,6 +1418,7 @@ const NumbersPassword = {
       <div class="card">
         <div class="password-display">
           <div
+            :key="password"
             class="form-input password-input"
             role="textbox"
             aria-readonly="true"
@@ -1500,6 +1524,8 @@ const Passphrase = {
     const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('phrase.lockAffixes', false)
     const excludeAmbiguous = persistedRef('phrase.excludeAmbiguous', false)
+    const affixOpen = persistedRef('phrase.ui.affixOpen', false)
+    const extrasOpen = persistedRef('phrase.ui.extrasOpen', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1654,6 +1680,8 @@ const Passphrase = {
       prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
       suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
       capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
+      affixOpen,
+      extrasOpen,
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -1766,8 +1794,8 @@ const Passphrase = {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">Prefix &amp; Suffix</div>
+      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
+        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="affix-pair">
           <AffixPicker
             label="Prefix"
@@ -1788,9 +1816,10 @@ const Passphrase = {
             @update:customValue="suffixCustom = $event"
           />
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
+        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="form-group">
           <div class="symbol-chips-header">
             <label class="form-label">Leet Speak Substitutions</label>
@@ -1817,9 +1846,9 @@ const Passphrase = {
             <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
           </button>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Passphrase</button>
       </div>
 
@@ -1901,6 +1930,8 @@ const WifiWords = {
     // 6g: on by default here -- Wireless keys get read off a screen and typed
     // on a TV remote, which is exactly where l/1 and O/0 misfire.
     const excludeAmbiguous = persistedRef('wifi.excludeAmbiguous', true)
+    const affixOpen = persistedRef('wifi.ui.affixOpen', false)
+    const extrasOpen = persistedRef('wifi.ui.extrasOpen', false)
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -2124,6 +2155,8 @@ const WifiWords = {
       prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
       suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
       capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
+      affixOpen,
+      extrasOpen,
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2244,8 +2277,8 @@ const WifiWords = {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">Prefix &amp; Suffix</div>
+      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
+        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="affix-pair">
           <AffixPicker
             label="Prefix"
@@ -2266,9 +2299,10 @@ const WifiWords = {
             @update:customValue="suffixCustom = $event"
           />
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
+        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="form-group">
           <div class="symbol-chips-header">
             <label class="form-label">Leet Speak Substitutions</label>
@@ -2295,9 +2329,9 @@ const WifiWords = {
             <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
           </button>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-wifi"></span> Generate WiFi Password</button>
       </div>
 
@@ -2418,6 +2452,8 @@ const MadLib = {
     const rawSegments = ref([]) // [{ word, isToken, type? }]
     const lockAffixes = persistedRef('madlib.lockAffixes', false)
     const excludeAmbiguous = persistedRef('madlib.excludeAmbiguous', false)
+    const affixOpen = persistedRef('madlib.ui.affixOpen', false)
+    const extrasOpen = persistedRef('madlib.ui.extrasOpen', false)
     const cachedPre = ref('')
     const cachedSep = ref('')
     const cachedSuf = ref('')
@@ -2575,6 +2611,8 @@ const MadLib = {
       prefixMeta: (v) => (showBitHints.value ? affixOptionMeta(v, excludeAmbiguous.value) : ''),
       suffixMeta: (v) => (showBitHints.value ? suffixOptionMeta(v, prefixMode.value, excludeAmbiguous.value) : ''),
       capMeta: (m) => (showBitHints.value ? capOptionMeta(m) : ''),
+      affixOpen,
+      extrasOpen,
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
@@ -2692,8 +2730,8 @@ const MadLib = {
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">Prefix &amp; Suffix</div>
+      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
+        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="affix-pair">
           <AffixPicker
             label="Prefix"
@@ -2714,9 +2752,10 @@ const MadLib = {
             @update:customValue="suffixCustom = $event"
           />
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
+        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
         <div class="form-group">
           <div class="symbol-chips-header">
             <label class="form-label">Leet Speak Substitutions</label>
@@ -2743,9 +2782,9 @@ const MadLib = {
             <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
           </button>
         </div>
-      </div>
+      </details>
 
-      <div class="card">
+      <div class="card card-generate">
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Mad Lib</button>
       </div>
 
@@ -2823,6 +2862,18 @@ const App = {
     // being known to the panel, with get/set bridging to the Vue ref so the
     // rest of the app stays reactive.
     onMounted(() => {
+      // 7d: R regenerates. One listener at the root, driving whichever
+      // generator is mounted -- the primary button in the tab content is
+      // always the active tab's Generate. Skipped while a form control has
+      // focus so typing in a custom field never fires it.
+      window.addEventListener('keydown', (e) => {
+        if (e.key !== 'r' && e.key !== 'R') return
+        if (e.ctrlKey || e.metaKey || e.altKey) return
+        const t = e.target
+        if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable)) return
+        const btn = document.querySelector('.tab-content .btn.btn-primary')
+        if (btn) { e.preventDefault(); btn.click() }
+      })
       initTheme()
       mountSiteHeader(document.querySelector('[data-site-header]'), {
         description:

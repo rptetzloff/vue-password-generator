@@ -1362,6 +1362,11 @@
             <div id="shared-affix">
               <h3 style="font-size:1rem;font-weight:700;color:var(--text);margin-bottom:0.75rem;">Prefix &amp; Suffix</h3>
               <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
+                This group (like Leet Speak &amp; Emoji) starts collapsed — most passwords never touch it. Click
+                the header to open it; the open state is remembered per generator, and a collapsed group that is
+                doing something shows an <strong>in use</strong> badge on its header.
+              </p>
+              <p style="font-size:0.875rem;color:var(--text-secondary);margin-bottom:0.75rem;">
                 Optional characters added to the very beginning (prefix) or very end (suffix) of the assembled password.
                 Prefix and suffix are independent — either or both can be set.
               </p>
@@ -1868,6 +1873,18 @@
                   Some people find the running commentary useful; others find it noisy. Turning it off hides
                   only the coaching: the total, the tier, the meter and the &ldquo;how?&rdquo; breakdown all
                   stay. See <a href="#entropy" style="color:var(--primary);">Strength &amp; Entropy</a>.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Generator shortcuts</div>
+              <div class="option-row">
+                <div class="option-name">Regenerate</div>
+                <div class="option-desc">
+                  On the generator page, pressing <strong>R</strong> generates a new password on whichever tab
+                  is active. It stays out of the way while any form control has focus, so typing an
+                  <code>r</code> into a custom separator or prefix never fires it.
                 </div>
               </div>
             </div>
