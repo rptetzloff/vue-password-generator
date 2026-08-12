@@ -339,6 +339,35 @@ body {
   flex-basis: 100%;
 }
 
+/* The pin puts the bar back into normal flow for anyone who finds the
+   floating version in the way. relative, not static: it stays in flow (no
+   more sticking) but keeps being the pin button's containing block. */
+.card-generate.bar-unstuck {
+  position: relative;
+  bottom: auto;
+}
+
+.bar-pin {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: var(--control-min);
+  height: var(--control-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bar-pin:hover {
+  background: var(--overlay-soft);
+  color: var(--text);
+}
+
 /* 7c: rarely-changed groups collapse behind their header. */
 details.card-collapse > summary {
   cursor: pointer;

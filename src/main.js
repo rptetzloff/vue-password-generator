@@ -81,6 +81,11 @@ const historyMax = persistedRef('global.historyMax', 10)
 // clipboard indefinitely. 0 = keep; otherwise seconds until it is wiped.
 const clipboardClear = persistedRef('global.clipboardClear', 0)
 
+// The Generate bar floats at the viewport bottom by default; the pin on the
+// bar itself puts it back into normal flow for anyone who finds the floating
+// version in the way. One setting for all seven generators.
+const floatBar = persistedRef('global.floatBar', true)
+
 // The wipe is blunt on purpose: it writes '' over whatever is in the
 // clipboard at the deadline, even if that is no longer the password --
 // checking first would mean asking to READ the clipboard, a permission this
@@ -469,6 +474,7 @@ const SimplePassword = {
       copied,
       notification,
       generatePassword,
+      floatBar,
       copyPassword
     }
   },
@@ -523,7 +529,10 @@ const SimplePassword = {
         </div>
       </div>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -724,6 +733,7 @@ const AdvancedPassword = {
       copied,
       notification,
       generatePassword,
+      floatBar,
       copyPassword
     }
   },
@@ -932,7 +942,10 @@ const AdvancedPassword = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -1119,6 +1132,7 @@ const WordsPassword = {
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
       generatePassword,
+      floatBar,
       regenWord,
       copyPassword
     }
@@ -1266,7 +1280,10 @@ const WordsPassword = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -1434,6 +1451,7 @@ const NumbersPassword = {
       copied,
       notification,
       generatePassword,
+      floatBar,
       copyPassword
     }
   },
@@ -1496,7 +1514,10 @@ const NumbersPassword = {
         </div>
       </div>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary">
           <span class="mdi mdi-shuffle-variant"></span> Generate Password
         </button>
@@ -1774,6 +1795,7 @@ const Passphrase = {
       password, entropy, recallHistory, rawWords, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
+      floatBar,
       generatePassword, regenWord, copyPassword
     }
   },
@@ -1937,7 +1959,10 @@ const Passphrase = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Passphrase</button>
 
         <div class="password-display">
@@ -2250,6 +2275,7 @@ const WifiWords = {
       password, entropy, recallHistory, rawWords, history, warnSet, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
+      floatBar,
       generatePassword, regenWord, copyPassword
     }
   },
@@ -2421,7 +2447,10 @@ const WifiWords = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-wifi"></span> Generate WiFi Password</button>
 
         <div class="password-display">
@@ -2707,6 +2736,7 @@ const MadLib = {
       password, entropy, recallHistory, rawSegments, history, copied, preview, notification,
       separatorOptions: SEPARATOR_OPTIONS,
       suffixOptions: SUFFIX_OPTIONS,
+      floatBar,
       generatePassword, regenWord, copyPassword,
     }
   },
@@ -2875,7 +2905,10 @@ const MadLib = {
         </div>
       </details>
 
-      <div class="card card-generate">
+      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
+        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
+          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
+        </button>
         <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Mad Lib</button>
 
         <div class="password-display">
