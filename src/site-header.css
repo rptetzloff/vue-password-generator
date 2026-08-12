@@ -71,6 +71,36 @@
   font-size: 0.8rem;
 }
 
+/* Small screens are permanently condensed, but "condensed" was tuned as a
+   scrolled-away desktop band. As the only header a phone ever sees it read
+   like an afterthought, so it gets its presence back: a bigger mark, a
+   bigger name, and the subtitle stays. The spacer resizes itself via the
+   ResizeObserver in site-header.js. */
+@media (max-width: 640px) {
+  .site-header.is-condensed {
+    padding: 0.85rem 0;
+  }
+  /* Mark and text share the row; the long subtitle wraps beside the mark
+     instead of pushing the whole text block underneath it. */
+  .site-header.is-condensed .header-inner {
+    flex-wrap: nowrap;
+  }
+  .site-header.is-condensed .header-text {
+    min-width: 0;
+  }
+  .site-header.is-condensed .header-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+  .site-header.is-condensed .header-text h1 {
+    font-size: 1.2rem;
+  }
+  .site-header.is-condensed .header-text p {
+    display: block;
+    font-size: 0.76rem;
+  }
+}
+
 /* The size change is deliberately not animated.
  *
  * Condensing alters padding, width, height, font-size and the spacing around
