@@ -14,7 +14,7 @@
       }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Changelog — Random Password Generator</title>
+    <title>Changelog — WordLock</title>
     <script>
       /* Set the theme before first paint so dark-mode users never see a white
          flash. Deliberately inline and non-module: a module script is deferred
@@ -312,6 +312,7 @@
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
                   <ul class="change-list">
+                    <li><strong>The site has a name: WordLock</strong> &mdash; installing an app is what exposes namelessness, since something has to sit under the icon. A wordlock is a padlock that opens on words instead of digits, which is more or less exactly what this builds. The header, page titles, manifest and README all carry it now; &ldquo;random password generator&rdquo; stays alongside as the descriptor.</li>
                     <li><strong>Install as an app</strong> &mdash; a web app manifest makes the site installable from your browser (standalone window, its own icon), and the title-bar color follows whichever palette and theme you chose.</li>
                     <li><strong>Works fully offline</strong> &mdash; a service worker precaches every page, script, wordlist and vendored asset on first visit; from the second load onward nothing needs a network. Nothing here is a CDN or a build artifact, so the whole site fits in one plain, auditable list &mdash; and a test walks the filesystem to prove the list covers everything the site serves, which caught three files that would have quietly 404'd offline before this ever shipped.</li>
                     <li><strong>The update path is guarded</strong> &mdash; the offline cache is named after the release version, and a test pins that version to the package version, so a release cannot forget the bump that lets installed copies pick up the new build. Old caches are dropped on activation.</li>

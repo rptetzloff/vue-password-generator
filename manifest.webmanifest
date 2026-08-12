@@ -1,6 +1,6 @@
 {
-  "name": "Random Password Generator",
-  "short_name": "Passwords",
+  "name": "WordLock",
+  "short_name": "WordLock",
   "description": "Generate secure passwords entirely in your browser — nothing is ever transmitted, and once installed it works fully offline.",
   "start_url": "/",
   "scope": "/",

@@ -14,7 +14,7 @@ import { pageFor, mountSiteNav } from './site-nav.js'
 import { mountSettingsPanel } from './settings-panel.js'
 import { createLogo } from './logo.js'
 
-export const SITE_TITLE = 'Random Password Generator'
+export const SITE_TITLE = 'WordLock'
 
 /**
  * Replace `container` with the shared header.
