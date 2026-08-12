@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Changelog — Random Password Generator</title>
     <script>
@@ -285,6 +294,33 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v2.21.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v2.21.0</div>
+            <div class="release-date">2026-08-11</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">The claim, made honest: install it, unplug it</div>
+                <div class="release-summary">A generator that never talks to a server has no reason to require a network. The site is now an installable web app that works fully offline.</div>
+              </div>
+              <div class="change-groups">
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Install as an app</strong> &mdash; a web app manifest makes the site installable from your browser (standalone window, its own icon), and the title-bar color follows whichever palette and theme you chose.</li>
+                    <li><strong>Works fully offline</strong> &mdash; a service worker precaches every page, script, wordlist and vendored asset on first visit; from the second load onward nothing needs a network. Nothing here is a CDN or a build artifact, so the whole site fits in one plain, auditable list &mdash; and a test walks the filesystem to prove the list covers everything the site serves, which caught three files that would have quietly 404'd offline before this ever shipped.</li>
+                    <li><strong>The update path is guarded</strong> &mdash; the offline cache is named after the release version, and a test pins that version to the package version, so a release cannot forget the bump that lets installed copies pick up the new build. Old caches are dropped on activation.</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v2.20.0 -->
         <div class="release">

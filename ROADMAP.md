@@ -498,10 +498,10 @@ moves furthest.
 
 Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
 
-- [ ] **Web app manifest.** There is none today. Name, icons, `display: standalone`, theme color. The theme color should follow the chosen palette, which is a nice touch and a small amount of work now that `--header-bg` is a real opaque token.
-- [ ] **Service worker.** No build step, no CDN, and Vue and the icon font are already vendored, so the entire site is cacheable with a plain precache list. It should work fully offline on second load.
-- [ ] **This is the strongest fit for the product's pitch.** A generator that never talks to a server has no reason to require a network. Offline is not a feature bolted on, it is the claim made honest.
-- [ ] Watch the update path: a cached service worker that never updates is the classic way to strand users on an old build. Cache-first for assets, but check for a new version on load.
+- [x] **Web app manifest.** Shipped: name, both icons (SVG any-size plus the 200px mark), `display: standalone`, and the theme color follows the chosen palette — theme.js syncs the theme-color meta from the computed `--header-bg` on every theme or palette change.
+- [x] **Service worker.** Shipped: a plain precache list covering every page, script, stylesheet, wordlist and vendored asset. Fully offline on second load. A test walks the filesystem both ways — everything listed exists, everything servable is listed — and caught three files that would have 404d offline before the first commit.
+- [x] **This is the strongest fit for the product's pitch.** A generator that never talks to a server has no reason to require a network. Offline is not a feature bolted on, it is the claim made honest.
+- [x] Watch the update path: the cache is named after the version, the version is pinned to package.json by a test (so bumping it is part of the release, not a thing to remember), the browser refetches sw.js on navigation, and activate() drops old caches. Cache-first within a version, never across versions.
 
 ### 8c. Browser extension — explore
 

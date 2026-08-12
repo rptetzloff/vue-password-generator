@@ -4,6 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
     <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Documentation — Random Password Generator</title>
     <script>
@@ -605,6 +614,11 @@
             Seven generator types are available, each optimized for a different use case, alongside the
             options they share, the appearance settings, and what the site is built with. Click any tile
             to jump to its documentation.
+          </p>
+          <p style="margin-top:0.75rem;">
+            The site is also an <strong>installable web app</strong>: install it from your browser's menu
+            and it runs in its own window and works fully offline — a generator that never talks to a
+            server has no reason to require a network.
           </p>
           <div class="intro-grid">
             <a class="intro-tile" href="#simple">

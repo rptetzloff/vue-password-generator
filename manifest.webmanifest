@@ -1,0 +1,14 @@
+{
+  "name": "Random Password Generator",
+  "short_name": "Passwords",
+  "description": "Generate secure passwords entirely in your browser — nothing is ever transmitted, and once installed it works fully offline.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f5f9fb",
+  "theme_color": "#035f91",
+  "icons": [
+    { "src": "/src/assets/password_generator_icon.svg", "type": "image/svg+xml", "sizes": "any" },
+    { "src": "/src/assets/logo.png", "type": "image/png", "sizes": "200x200" }
+  ]
+}
