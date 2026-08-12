@@ -745,6 +745,12 @@ details[open].card-collapse > summary .collapse-chevron {
 .password-input {
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 1.1rem;
+  /* A password is read character by character; a little air keeps rn from
+     reading as m and cl from reading as d. */
+  letter-spacing: 0.045em;
+  /* One click selects the whole value -- manual selection of a password
+     almost never wants less, and partial drags kept grabbing fragments. */
+  user-select: all;
   padding: var(--pw-pad);
   padding-right: 3rem;
   background: var(--background);

@@ -48,7 +48,7 @@ same way and you only have to reason about one model:
 - [x] **`data-theme`** — `light` / `dark` / `system`, persisted to `localStorage`, applied by a blocking inline script before first paint so there is no flash of the wrong theme.
 - [x] **`color-scheme` on the root** so native form controls, scrollbars, and the range sliders follow the theme. Easy to miss; looks broken without it.
 - [x] **Theme switcher UI** — a settings gear in the shared header, opening a small panel available on every page.
-- [ ] **General aesthetic pass** — the "fix some aesthetics" item. Worth doing *after* the token extraction so changes land in one place. Candidates: the tab row, output field, and slider styling.
+- [x] **General aesthetic pass** — largely superseded by later work: the tab row became the tile switcher (v2.21.1), the sliders got end labels, hover halos and a real focus ring (7b), and the output field got its final touches in v2.23.0 — letter-spacing so rn never reads as m, and user-select: all so one click grabs the whole password.
 
 ### 2a. Color themes — the fun part
 
@@ -122,7 +122,7 @@ badly anyway — see the rejected approach below.
 - [x] **It is uniquely decodable, and that fixes a real hole.** The separator menu offers **None**. With the EFF list, concatenated words could parse more than one way; Orchard Street cannot. Said plainly on About and in the README rather than left as a silent property — and **verified rather than quoted**: `test/wordlist.test.js` runs Sardinas–Patterson over the list on every build, so the claim is checked rather than inherited from the upstream README. The naive form of that check took 9.5s, longer than the entire rest of the suite; indexing by prefix brought it to 32ms.
 - [x] Retires the hyphenated-entries item below: Orchard Street has no `drop-down`, `t-shirt` or `yo-yo`.
 - [x] Legal needs a new entry: CC BY-SA 4.0, sts10, derived from Wikipedia and Google Books frequency data. Note explicitly that ShareAlike binds that file and not the MIT code.
-- [ ] Consider offering **Orchard Street Medium** (8,192 = 2¹³, exactly 13 bits/word) as a shorter alternative. Cleaner arithmetic, less entropy.
+- [x] Consider offering **Orchard Street Medium** — rejected. Trading 1.1 bits per word for rounder arithmetic optimizes the wrong thing: the user never does the arithmetic (the entropy panel does), and Long's unique decodability claim is what the tests actually pin. One list, the stronger one.
 
 ### 4b. Grow `words.json` from curated lists — done
 
@@ -238,8 +238,8 @@ Two side findings from that work, both still true:
 
 ### Still open from before
 
-- [ ] **Rebalance `words.json` categories.** Distribution is lopsided, which skews Passphrase and Mad Lib output. 4b changes these numbers, so re-measure after merging rather than working from the old table.
-- [ ] **Verify whatever ships as the flat list stays intact.** The EFF list was exactly 7,776 entries, 3–9 characters, no duplicates, which is what made its entropy claim true. Orchard Street Long is 17,576, 3–15 characters, no duplicates, uniquely decodable. Whichever is in use, the test suite should pin the count and the properties the displayed entropy depends on.
+- [x] **Rebalance `words.json` categories.** Done in v2.23.0: +185 hand-curated words across the eight thinnest categories, validated by the 4c semantic tests and deduped type-wide. The floor rose most where it mattered — adv/place 64 → 115 (5.9 → 6.8 bits/slot), verb/nature 120 → 155, adv/intensity 123 → 154. imsky was measured first and found exhausted (its leftovers were determiners and geometry jargon).
+- [x] **Verify whatever ships as the flat list stays intact.** Already true: test/wordlist.test.js pins the count (exactly 17,576), the 14.101 bits/word the site claims, the a–z/3–15/no-duplicates properties, separator safety, and unique decodability via Sardinas–Patterson. Ticked on inspection rather than new work.
 
 ---
 
