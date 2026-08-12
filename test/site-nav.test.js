@@ -2,7 +2,6 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { isCurrentPage, PAGES } from '../src/site-nav.js'
-import { footerPages } from '../src/site-footer.js'
 
 const PAGE_FILES = ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html', 'roadmap.html']
 
@@ -78,18 +77,23 @@ test('every page mounts the shared footer rather than hand-rolling one', () => {
   assert.doesNotMatch(main, /class="footer-link/, 'the app template hand-rolls footer links')
 })
 
-test('the footer links to every page except the one being viewed', () => {
-  for (const p of PAGES) {
-    const shown = footerPages(p.href).map((x) => x.href)
-    assert.ok(!shown.includes(p.href), `${p.href} should not link to itself in its own footer`)
-    assert.equal(shown.length, PAGES.length - 1, `${p.href} footer should list every other page`)
-  }
-})
+test('the floating bar is the only navigation, and it carries everything', () => {
+  // The footer became the site navigation in v2.22.0: every page link plus
+  // GitHub, Anagrimoire and the settings gear, with the current page marked
+  // via aria-current rather than omitted -- a nav that hides where you are
+  // would be strange in a way a footer that did was not. The header holds no
+  // links at all; one navigation, one place to maintain it.
+  const footerSrc = fs.readFileSync(new URL('../src/site-footer.js', import.meta.url), 'utf8')
+  assert.match(footerSrc, /for \(const page of PAGES\)/, 'the bar must render every page, current included')
+  assert.match(footerSrc, /aria-current/, 'the current page must be marked, not omitted')
+  assert.match(footerSrc, /GITHUB_URL/, 'the GitHub link belongs in the bar')
+  assert.match(footerSrc, /ANAGRIMOIRE_URL/, 'the Anagrimoire link belongs in the bar')
+  assert.match(footerSrc, /mountSettingsPanel/, 'the settings gear rides in the bar')
 
-test('the footer calls the root "App" and the header calls it "Generator"', () => {
-  // Two different words for one destination, deliberately: the header lists
-  // sections, the footer lists destinations. Pinned so a rename does not
-  // silently unify them.
+  const headerSrc = fs.readFileSync(new URL('../src/site-header.js', import.meta.url), 'utf8')
+  assert.doesNotMatch(headerSrc, /mountSiteNav|mountSettingsPanel/,
+    'the header must not mount a second navigation or gear')
+
+  // One name for the one destination list, now that there is one list.
   assert.equal(PAGES.find((p) => p.href === '/').label, 'Generator')
-  assert.equal(footerPages('/docs.html').find((p) => p.href === '/').label, 'App')
 })

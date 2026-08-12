@@ -87,13 +87,43 @@ body {
   }
 }
 
+/* Small screens: the tile grid breaks down to a compact icon-and-name bar --
+   full tiles with descriptions were most of a phone screen. The active mode's
+   description moves to the one-line strip below (.tabs-desc), so it stays
+   visible without every tile paying for it. */
 @media (max-width: 640px) {
   .tabs {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+    padding: 0.3rem;
+    margin-bottom: 0.5rem;
   }
-  /* Seven tiles in two columns leaves one hanging; let it take the row. */
-  .tab:last-child:nth-child(odd) {
-    grid-column: span 2;
+  .tab {
+    padding: 0.45rem 0.15rem;
+    gap: 0.15rem;
+  }
+  .tab .mdi {
+    font-size: 1.1rem;
+  }
+  .tab-name {
+    font-size: 0.7rem;
+  }
+  .tab-desc {
+    display: none;
+  }
+}
+
+.tabs-desc {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .tabs-desc {
+    display: block;
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    margin: 0 0 1.1rem;
   }
 }
 
@@ -339,7 +369,8 @@ body {
    appears off-screen would defeat the point. */
 .card-generate {
   position: sticky;
-  bottom: 0.75rem;
+  /* Clears the floating bottom nav, which owns the last ~4rem of viewport. */
+  bottom: 4.75rem;
   z-index: 5;
   border: 1px solid var(--border);
   display: flex;

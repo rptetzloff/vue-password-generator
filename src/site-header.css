@@ -150,19 +150,6 @@
   opacity: 0.8;
 }
 
-.header-nav {
-  margin-left: auto;
-  display: flex;
-  gap: 0.5rem;
-  align-items: stretch;
-  /* Five links plus the gear overflow once the text size is raised. The wrap on
-     .header-inner only moves the nav as a block, so the nav has to wrap
-     internally too -- and it can only do that if it is allowed to shrink below
-     its single-line width, which flex-shrink: 0 previously prevented. */
-  flex-wrap: wrap;
-  justify-content: flex-end;
-}
-
 /* Optional full-width row below the title, for pages that need to say
    something before the content starts. The app uses it for the privacy
    notice. flex-basis: 100% makes it take its own line in the wrapping

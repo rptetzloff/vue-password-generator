@@ -299,24 +299,25 @@
     <div class="page">
       <div class="timeline">
 
-        <!-- v2.21.1 -->
+        <!-- v2.22.0 -->
         <div class="release">
           <div class="release-meta">
-            <div class="release-version">v2.21.1</div>
+            <div class="release-version">v2.22.0</div>
             <div class="release-date">2026-08-12</div>
-            <span class="release-badge badge-patch">Patch</span>
+            <span class="release-badge badge-minor">Minor</span>
           </div>
           <div>
             <div class="release-card">
               <div class="release-card-head">
-                <div class="release-title">Tiles and tables</div>
-                <div class="release-summary">The generator switcher becomes a grid of labelled tiles, and the one table on this page learns to stack on a phone.</div>
+                <div class="release-title">One navigation, where your thumbs are</div>
+                <div class="release-summary">The footer becomes a floating bar at the bottom of the viewport and takes over as the site's only navigation; the generator switcher becomes labelled tiles; the header keeps to its one job.</div>
               </div>
               <div class="change-groups">
                 <div class="change-group">
                   <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
                   <ul class="change-list">
-                    <li><strong>The generator switcher is now tiles</strong> &mdash; each mode carries an icon, its name and its one-line description (the same words the docs use), so a mode says what it is before you commit to it. Seven across on a wide screen, four then two as the width comes down; every tab and every description stays visible at every width.</li>
+                    <li><strong>The footer is now the navigation</strong> &mdash; a floating pill docked at the bottom of the viewport on every page: Generator, Docs, an <strong>About</strong> menu holding About, Changelog, Legal and Roadmap, a <strong>Links</strong> menu holding GitHub and Anagrimoire, and the settings gear &mdash; now the one round thing in the bar. Thumb range on a phone, always in reach on desktop. The header's copy of the links is gone &mdash; two navigations was one too many &mdash; and the header slims to the identity it always carried: mark, title, subtitle, privacy note. On narrow screens the bar goes icons-only (every link keeps its accessible name and tooltip), menus and the settings panel open upward, and the current page is marked rather than omitted &mdash; even when it sits inside a menu, the menu's button carries the mark.</li>
+                    <li><strong>The generator switcher is now tiles</strong> &mdash; each mode carries an icon, its name and its one-line description (the same words the docs use), so a mode says what it is before you commit to it. Seven across on a wide screen, four at tablet widths &mdash; and on a phone the grid breaks down to a compact icon-and-name bar, with the active mode's description on a single line beneath it, so the description stays visible without every tile paying for it.</li>
                   </ul>
                 </div>
                 <div class="change-group">

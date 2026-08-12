@@ -1,74 +1,68 @@
-/* Shared site footer, used by every page: the app, docs, changelog, about and
- * legal.
+/* The site footer -- which, since v2.22.0, IS the site navigation: a floating
+ * pill docked at the bottom of the viewport on every page, carrying the page
+ * links, GitHub, Anagrimoire and the settings gear. The header's copy of the
+ * nav is gone; one navigation, where your thumbs are.
  *
- * These rules were previously triplicated across src/style.css, docs.html and
- * changelog.html. Five of the eight rules were already byte-identical; adding
- * the about and legal pages would have made it five copies.
- *
- * Unlike the header, this genuinely is the same component everywhere, so the
- * app uses it too. The three real differences are variables rather than
- * duplicated rules:
- *
- *   --footer-max  content width. The app leaves it unset because its own
- *                 .container already constrains width; docs sets 1100px and
- *                 changelog 900px to match their columns.
- *   --footer-pad  inline padding. Unset for the app, again supplied by
- *                 .container; 1.5rem on the standalone pages.
- *   --footer-gap  space above the footer. 2rem in the app, 0 elsewhere.
+ * Band styling throughout: the bar sits on --header-bg, so the links keep the
+ * same measured white-on-band contrast the header nav had.
  */
 
 .site-footer {
-  background: var(--footer-scrim);
-  border-top: 1px solid var(--header-hairline);
-  padding: 1.25rem 0;
-  margin-top: var(--footer-gap, 0);
+  position: fixed;
+  bottom: 0.75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+  padding: 0.4rem;
+  background: var(--header-bg);
+  border: 1px solid var(--header-hairline);
+  border-radius: 999px;
+  box-shadow: var(--shadow-lg);
+  max-width: calc(100vw - 0.75rem);
 }
 
-.footer-inner {
-  /* Matches the header, so the chrome lines up top and bottom. */
-  max-width: var(--footer-max, 75rem);
-  margin-inline: auto;
-  padding-inline: var(--footer-pad, 0);
-  display: flex;
-  align-items: center;
-  /* Centered rather than space-between: the footer now holds a single link row,
-     since the author credit moved to about.html. With one flex child
-     space-between stranded it against the left edge. */
-  justify-content: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.footer-links {
-  display: flex;
-  align-items: center;
-  gap: 1.25rem;
-  /* Five links do not fit on one line at 320px, the WCAG 1.4.10 reflow width,
-     and without wrapping they pushed the page into horizontal scroll. */
-  flex-wrap: wrap;
-  justify-content: center;
+/* Room for the bar, so the last of the content can scroll clear of it. */
+body.has-bottom-nav {
+  padding-bottom: 4.75rem;
 }
 
 .footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--band-control-border);
+  background: var(--band-control-bg);
+  color: white;
   font-size: 0.875rem;
-  color: var(--footer-text);
+  font-weight: 500;
   text-decoration: none;
-  transition: color 0.15s;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
 }
 
 .footer-link:hover {
-  color: white;
+  background: var(--band-control-hover-bg);
 }
 
-.footer-link-icon {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
+.footer-link:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
 }
 
-/* Part of the footer, so it lives here rather than per page. It was previously
-   defined separately in style.css, docs.html and changelog.html, which meant
-   about.html and legal.html rendered the icon at 0x0 -- invisible. */
+/* The page you are on. aria-current carries this for screen readers; this is
+   the visual half. Not color alone -- the border weight changes too, so the
+   state survives a color-vision difference (WCAG 1.4.1). */
+.footer-link.is-current {
+  background: var(--band-control-hover-bg);
+  border-color: white;
+  font-weight: 700;
+}
+
 .github-icon {
   width: 1rem;
   height: 1rem;
@@ -76,8 +70,106 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 560px) {
-  .footer-inner {
-    flex-direction: column;
+/* Submenus: a bar button opening a small panel of links upward. */
+.footer-menu {
+  position: relative;
+  display: flex;
+}
+
+.footer-menu-btn {
+  font: inherit;
+  cursor: pointer;
+}
+
+.footer-menu-chevron {
+  font-size: 0.85rem;
+  opacity: 0.8;
+  transition: transform 0.15s ease;
+}
+
+.footer-menu-btn[aria-expanded='true'] .footer-menu-chevron {
+  transform: rotate(180deg);
+}
+
+/* display: flex would silently defeat the hidden attribute, whose UA rule is
+   only display: none at zero specificity. State first, layout second. */
+.footer-menu-panel[hidden] {
+  display: none;
+}
+
+.footer-menu-panel {
+  position: absolute;
+  bottom: calc(100% + 0.6rem);
+  right: 0;
+  z-index: 150;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 11rem;
+  padding: 0.35rem;
+  background: var(--header-bg);
+  border: 1px solid var(--header-hairline);
+  border-radius: 14px;
+  box-shadow: var(--shadow-lg);
+}
+
+.footer-menu-item {
+  border-radius: 9px;
+  border-color: transparent;
+}
+
+/* Menu items always show their labels, even while the bar itself is
+   icons-only on a phone. */
+.footer-menu-panel .footer-link-text {
+  display: inline;
+}
+
+/* The gear is the one round thing in the bar: a dial among destinations. */
+.site-footer .settings-gear {
+  align-self: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  padding: 0;
+  border-radius: 50%;
+}
+
+/* Narrow screens: icons carry the bar. Every link has an aria-label and a
+   title for exactly this state. */
+@media (max-width: 900px) {
+  .footer-link-text {
+    display: none;
+  }
+  .footer-link {
+    padding: 0.5rem 0.6rem;
+  }
+  .footer-link .mdi {
+    font-size: 1.15rem;
+    line-height: 1;
+  }
+}
+
+/* Phones: with the submenus the bar is five items, but keep it snug. The
+   menu-item override above wins on specificity, so panel labels survive. */
+@media (max-width: 480px) {
+  .site-footer {
+    gap: 0.2rem;
+    padding: 0.3rem;
+  }
+  .footer-link {
+    padding: 0.45rem 0.5rem;
+    border-width: 1px;
+  }
+  .footer-link .mdi {
+    font-size: 1.05rem;
+  }
+  .footer-menu-chevron {
+    display: none;
+  }
+  .footer-menu-panel .footer-menu-chevron {
+    display: inline;
+  }
+  .site-footer .settings-gear {
+    width: 2.1rem;
+    height: 2.1rem;
   }
 }

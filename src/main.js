@@ -3021,29 +3021,6 @@ const App = {
           '🔒 <strong>Privacy Notice:</strong> All passwords are generated locally in your browser and never transmitted. ' +
           "Your settings and generation history are stored only in your browser's local storage — history is cleared when " +
           'you set History to Off, or when you clear your browser data.',
-        settings: {
-          extraSections: [{
-            label: 'History',
-            options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
-            get: () => historyMax.value,
-            set: (v) => { historyMax.value = Number(v) },
-          }, {
-            label: 'Bit hints',
-            options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
-            get: () => (showBitHints.value ? 'on' : 'off'),
-            set: (v) => { showBitHints.value = v === 'on' },
-          }, {
-            label: 'Clear clipboard',
-            options: [
-              { value: 0, label: 'Keep' },
-              { value: 30, label: '30s' },
-              { value: 60, label: '60s' },
-              { value: 120, label: '2 min' },
-            ],
-            get: () => clipboardClear.value,
-            set: (v) => { clipboardClear.value = Number(v) },
-          }],
-        },
       })
     })
 
@@ -3074,6 +3051,7 @@ const App = {
               <span class="tab-desc">{{ tab.desc }}</span>
             </button>
           </div>
+          <p class="tabs-desc">{{ tabs[activeTab].desc }}</p>
           
           <div class="tab-content">
             <component :is="tabs[activeTab].component" />
@@ -3088,8 +3066,31 @@ const App = {
 
 createApp(App).mount('#app')
 
-// The footer markup used to live in the template above -- a sixth copy of the
-// same links. It comes from the shared module now, like the header, so adding
-// a page updates every navigation at once. wrap: true keeps the .container
-// width limiter this page needs and the standalone pages do not.
-mountSiteFooter(document.querySelector('[data-site-footer]'), { wrap: true })
+// The footer is the floating navigation bar, and the settings gear rides in
+// it -- so the app's extra settings rows are contributed here rather than
+// through the header. The get/set closures reach the module-scope refs above.
+mountSiteFooter(document.querySelector('[data-site-footer]'), {
+  settings: {
+    extraSections: [{
+      label: 'History',
+      options: [0, 5, 10, 20, 50].map(n => ({ value: n, label: n === 0 ? 'Off' : String(n) })),
+      get: () => historyMax.value,
+      set: (v) => { historyMax.value = Number(v) },
+    }, {
+      label: 'Bit hints',
+      options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
+      get: () => (showBitHints.value ? 'on' : 'off'),
+      set: (v) => { showBitHints.value = v === 'on' },
+    }, {
+      label: 'Clear clipboard',
+      options: [
+        { value: 0, label: 'Keep' },
+        { value: 30, label: '30s' },
+        { value: 60, label: '60s' },
+        { value: 120, label: '2 min' },
+      ],
+      get: () => clipboardClear.value,
+      set: (v) => { clipboardClear.value = Number(v) },
+    }],
+  },
+})
