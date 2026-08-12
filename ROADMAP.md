@@ -209,7 +209,7 @@ anything considered here — and change that.
 - [ ] **Recall is still the limit.** 338 of 698 adverbs match no pattern at all, and time and
   place gained almost nothing. Those two buckets remain essentially hand-written.
 - [x] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
-- [ ] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Untested here, but the obvious next source for 4b if imsky runs out.
+- [x] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Mined in v2.24.0, with the list used as the voucher rather than the shovel: broad hand-written topic vocabularies were intersected against it (own POS list, then the union, then a short explicit override list for real words the 2019-era source lacks), yielding +371 across nine categories — jobs 158 → 215, music 194 → 257, movement 145 → 207. Total slot vocabulary: 5,183.
 
 ### Rejected: tagging a flat list with WordNet lexnames
 
@@ -253,8 +253,8 @@ should not be made here until it is verified there.
 - [x] **Link to anagrimoire.com** from the header or footer. In the footer, on every page, from `src/site-footer.js`.
 - [x] **Lead with the shared privacy stance.** The About page's *Elsewhere* section does this rather than offering a bare link: "it works without an account, and nothing you type into a solver leaves your device."
 - [x] **Describe the account model accurately — the two sites differ here.** Anagrimoire has optional accounts, used for syncing (stats, streaks, boards) across devices; everything works without signing in. This project has no accounts and, per the owner, **should stay that way**. About uses "works without an account", which is the true shared claim; "no accounts" would have been false of anagrimoire. The distinction matters again in Epic 8e.
-- [ ] **Reciprocal link** from anagrimoire, if you want the pair to read as one family of tools. Not in this repository — it is a change on the other site.
-- [ ] **State that both are dependency-free**, if it is true of anagrimoire. About currently claims only the client-side and no-account parts, which are the two that were known to hold. Worth adding, but not worth asserting on this site until confirmed of the other.
+- [x] **Reciprocal link** from anagrimoire — done on the other site (confirmed 2026-08-12). The pair now reads as one family: each links the other, and both say the same true thing about staying client-side.
+- [x] **State that both are dependency-free** — resolved by not stating it. Confirmed 2026-08-12: anagrimoire leans on CDNs, as its kind of site reasonably does, so the shared claim would be false. About already asserts only what holds for both — client-side solving and no account required — and that is exactly where it stays. Asserting only what is verified was the point of leaving this open.
 
 **Decided against: accounts / cross-device sync for this project.** Recorded so it
 doesn't get re-proposed. It also settles adjacent questions — no server-side
@@ -321,7 +321,7 @@ Category sizes drive passphrase strength and are invisible today:
 | `adv/place` (smallest) | 60 | **5.91** |
 
 - [x] **Show pool size and bits/slot** in each category picker. Done — every picker option reads like *Colors — 149 · 7.2 bits*. Choosing `adv/place` over the EFF list costs 7 bits *per word*.
-- [ ] Ties directly into the Epic 4 rebalancing work.
+- [x] Ties directly into the Epic 4 rebalancing work — which happened: v2.23.0 and v2.24.0 rebalanced and grew the pools the pickers price.
 
 ### 6e. Crack-time estimates — carefully
 
