@@ -209,7 +209,7 @@ anything considered here — and change that.
 - [ ] **Recall is still the limit.** 338 of 698 adverbs match no pattern at all, and time and
   place gained almost nothing. Those two buckets remain essentially hand-written.
 - [x] Confidence check that the list is sane: **289 of the current 321 curated adverbs already appear in it**, a 90% overlap with a list built independently.
-- [ ] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Untested here, but the obvious next source for 4b if imsky runs out.
+- [x] The same repository has 13,426 nouns, 9,001 adjectives and 6,065 infinitive verbs, all public domain. Mined in v2.24.0, with the list used as the voucher rather than the shovel: broad hand-written topic vocabularies were intersected against it (own POS list, then the union, then a short explicit override list for real words the 2019-era source lacks), yielding +371 across nine categories — jobs 158 → 215, music 194 → 257, movement 145 → 207. Total slot vocabulary: 5,183.
 
 ### Rejected: tagging a flat list with WordNet lexnames
 
@@ -321,7 +321,7 @@ Category sizes drive passphrase strength and are invisible today:
 | `adv/place` (smallest) | 60 | **5.91** |
 
 - [x] **Show pool size and bits/slot** in each category picker. Done — every picker option reads like *Colors — 149 · 7.2 bits*. Choosing `adv/place` over the EFF list costs 7 bits *per word*.
-- [ ] Ties directly into the Epic 4 rebalancing work.
+- [x] Ties directly into the Epic 4 rebalancing work — which happened: v2.23.0 and v2.24.0 rebalanced and grew the pools the pickers price.
 
 ### 6e. Crack-time estimates — carefully
 
