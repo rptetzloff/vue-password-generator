@@ -333,6 +333,12 @@ body {
   margin: 0;
 }
 
+/* The strength readout takes the bar's second row: meter, bits, tier and the
+   guess-time spread at a glance, with "how?" expanding in place. */
+.card-generate .entropy-panel {
+  flex-basis: 100%;
+}
+
 /* 7c: rarely-changed groups collapse behind their header. */
 details.card-collapse > summary {
   cursor: pointer;

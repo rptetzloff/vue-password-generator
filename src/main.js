@@ -541,11 +541,11 @@ const SimplePassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
       </div>
 
       <div class="card">
 
-        <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -950,11 +950,11 @@ const AdvancedPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
       </div>
 
       <div class="card">
 
-        <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1284,6 +1284,7 @@ const WordsPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" mode="words" />
       </div>
 
       <div class="card">
@@ -1310,7 +1311,6 @@ const WordsPassword = {
           </button>
         </div>
 
-        <EntropyPanel :entropy="entropy" :password="password" mode="words" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1514,11 +1514,11 @@ const NumbersPassword = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
       </div>
 
       <div class="card">
 
-        <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -1953,6 +1953,7 @@ const Passphrase = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
       </div>
 
       <div class="card">
@@ -1980,7 +1981,6 @@ const Passphrase = {
           </button>
         </div>
 
-        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2437,6 +2437,7 @@ const WifiWords = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
       </div>
 
       <div class="card">
@@ -2464,7 +2465,6 @@ const WifiWords = {
           </button>
         </div>
 
-        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
         <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
@@ -2891,6 +2891,7 @@ const MadLib = {
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
         </div>
+        <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
       </div>
 
       <div class="card">
@@ -2924,7 +2925,6 @@ const MadLib = {
           <div class="madlib-preview-phrase">{{ preview }}</div>
         </div>
 
-        <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
         <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
         <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
           {{ notification.message }}
