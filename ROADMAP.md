@@ -528,9 +528,12 @@ The biggest lift here, and the one that argues with the product.
 - [ ] **Be honest about the competition.** Bitwarden, KeePass and 1Password exist and are audited. The reason to build this would be a specific thing they do not do, and that reason should be written down here before any code is.
 
 > **Superseded by Epic 9.** 8e asked whether this should exist and set the
-> conditions; Epic 9 answers yes to the storage half, no to the sync half, and
-> states the reason 8e's last bullet demanded. Read 8e for the tension, Epic 9
-> for the plan.
+> conditions. Epic 9 answers yes -- becoming a password manager is an accepted
+> destination -- and replaces "do not build it" with two invariants that bind
+> how: the generator stays first-class and stays the front door, and
+> standalone-offline stays a complete mode rather than a trial. Sync remains
+> conditional rather than parked; see 9d for the gates. Read 8e for the
+> tension, Epic 9 for the plan.
 
 ---
 
@@ -544,17 +547,32 @@ password is generated.
 
 ### The reason to build it, written down first
 
-8e's last bullet demands this before any code, so: **the pitch is the notebook,
-not the manager.** Bitwarden, KeePass and 1Password are audited, synced, and
-better at being password managers than this will ever be. What they are not is
-*present at the moment the password is created*, and none of them will hold a
-password without an account somewhere in the story.
+8e's last bullet demands a reason before any code. The reason is not "the world
+needs a fourth password manager" — Bitwarden, KeePass and 1Password are audited
+and synced and better at that than this will be for a long time. It is that
+none of them are *present at the moment a password is created*, and none of
+them will hold a password without an account somewhere in the story.
 
-WordLock's niche is the ten seconds after Generate: keep this one, label it,
-remember what it was worth — no account, no server, no sync, on the same screen
-that made it. If someone outgrows that, export hands them to a real manager
-gracefully. **A fourth password manager is not the goal, and if this epic starts
-drifting toward one, that is the signal to stop.**
+**Becoming a password manager is an accepted destination** (decided 2026-08-12),
+not something to steer away from. What is not negotiable is how it gets there.
+Two invariants bind every item in this epic, and any feature that cannot be
+built without breaking one does not get built:
+
+1. **The generator stays first-class and stays the front door.** It is the
+   product's name and its reason for existing. It never becomes a modal inside
+   a vault, never loses a mode or an option to make room for storage UI, and
+   never requires an unlocked vault — or an account — to generate a password.
+   Someone who wants nothing but a strong password must be able to arrive,
+   generate, copy and leave, exactly as today, forever.
+2. **Standalone and offline is always a complete mode, never a trial.** Local
+   vault, no account, no network, full function, permanently. If sync is ever
+   built it is strictly additive and strictly optional: not a nag, not a
+   degraded local experience, not a feature gate. "Works with nothing" is the
+   claim the whole site is built on, and a manager that quietly turns it into
+   "works, but…" would be a worse product than no manager at all.
+
+Everything else — vault, autofill, biometrics, eventually sync — is fair game
+if it can be built inside those two lines.
 
 ### 9a. The local vault — storage without identity
 
@@ -628,16 +646,34 @@ the bridge between them, which is a reason to build 9b first and well.
       the packaged version launches with autofill and biometrics rather than
       being the website in a trench coat.
 
-### 9d. What stays out
+### 9d. Sync, if it ever happens — the conditions
 
-- [ ] **Server-side sync stays parked.** If it is ever built it takes 8e's
-      shape — end-to-end encrypted, the server holding ciphertext it cannot
-      read, the account an opaque sync identifier and not a profile — and it
-      requires rewriting the Legal and About claims *first*, in the same
-      release, not afterward.
+Not parked forever, but conditional. Every one of these is a gate, not a
+preference:
+
+- [ ] **Opt-in, and the local mode stays whole.** No account prompt on first
+      run, no feature that exists only for synced users, no reminder that
+      syncing is available. Invariant 2 is the test: if a local-only user's
+      experience is measurably worse after sync ships, sync shipped wrong.
+- [ ] **End-to-end encrypted in 8e's shape** — the server holds ciphertext it
+      cannot read, and the account is an opaque sync identifier, not a profile.
+      No email required, no recovery flow that implies the server can decrypt.
+- [ ] **Rewrite Legal and About in the same release**, not afterward. Both
+      currently say there are no accounts and nothing leaves your device.
+      Shipping optional sync makes the unqualified version of that false even
+      for people who never enable it, because the sentence describes the
+      software, not the session. The honest replacement distinguishes what the
+      software does by default from what it can be asked to do.
+- [ ] **9b's export/import ships first and stays.** It is the sync story until
+      there is a sync story, and the escape hatch afterward.
+
+### 9e. What stays out regardless
+
 - [ ] **No breach-corpus checks, no password health scoring against remote
-      services, no telemetry.** All three are normal in a password manager and
-      all three need the network. The line stays where it is.
+      services, no telemetry, no analytics.** All four are normal in a password
+      manager and all four need the network for something the user did not ask
+      for. Health scoring that runs locally — reused passwords, weak entries,
+      age — is fine and needs no server; it is the *remote* version that is out.
 
 ---
 
@@ -709,3 +745,13 @@ cannot do: autofill into other apps.
 **9. Epic 8c/8d/8e as reading, not work.** 8d is a documented dead end, 8c is
 the desktop half of the same autofill idea 9c covers on mobile, and 8e is now
 superseded by Epic 9.
+
+**A note on scope, since Epic 9 changes what this product is.** The decision to
+let WordLock grow into a password manager was made deliberately and is recorded
+in Epic 9's opening, along with the two invariants that constrain it — the
+generator stays first-class and stays the front door, and standalone-offline
+stays a complete mode rather than a trial. Those are not aspirations to revisit
+when a feature gets awkward; they are the conditions under which the rest of
+the epic was agreed to. A future reader deciding "just this once" against
+either of them should treat that as a scope change requiring the same
+deliberation, not an implementation detail.
