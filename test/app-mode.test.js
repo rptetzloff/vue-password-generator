@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import { PAGE_FILES } from './helpers/pages.js'
 
 // App mode (ROADMAP 8b). The service worker has no build step behind it, so
 // its precache list is maintained by hand -- which is exactly the kind of
@@ -16,7 +17,7 @@ const pkg = JSON.parse(read('package.json'))
 const manifest = JSON.parse(read('manifest.webmanifest'))
 
 const PRECACHE = [...sw.matchAll(/'(\/[^']*)'/g)].map((m) => m[1])
-const PAGES = ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html', 'roadmap.html']
+const PAGES = PAGE_FILES
 
 test('the service worker version is the package version', () => {
   // The cache is named after VERSION; a release that forgets to bump it would

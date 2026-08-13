@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { resolveTheme, THEMES, THEME_KEY, resolveFontScale, FONT_SCALES, FONT_SCALE_KEY } from '../src/theme.js'
 import { PALETTE_KEY, PALETTE_VALUES, DEFAULT_PALETTE, resolvePalette } from '../src/palettes.js'
+import { PAGE_FILES } from './helpers/pages.js'
 
 // theme.js is importable here only because nothing runs at module scope -- the
 // DOM-touching functions are all called explicitly. If someone adds an
@@ -68,7 +69,7 @@ test('every page pre-paints the same palette list as the manifest', () => {
   assert.equal(PALETTE_KEY, 'global.palette')
   const expected = PALETTE_VALUES.filter((v) => v !== DEFAULT_PALETTE)
 
-  for (const page of ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html', 'roadmap.html']) {
+  for (const page of PAGE_FILES) {
     const html = fs.readFileSync(new URL(`../${page}`, import.meta.url), 'utf8')
     const m = /\[([^\]]*)\]\s*\.indexOf\(pal\)/.exec(html)
     assert.ok(m, `${page} has no palette list in its pre-paint script`)
