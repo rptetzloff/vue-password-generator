@@ -53,6 +53,12 @@
 
 .vault-field textarea { resize: vertical; }
 
+/* A form's submit button sat flush against whatever followed it inside the
+   same card -- the unlock button against "Forgotten the passphrase?". */
+.vault-card form + * { margin-top: 1.1rem; }
+
+.vault-card > .vault-danger + .vault-danger { margin-top: 0.6rem; }
+
 /* Buttons. The generator's style.css owns .btn, but this page does not load
    it -- that file is the whole generator UI. These are the same rules, and
    the same tokens, so a button here matches a button there; the alternative
@@ -84,6 +90,70 @@
 
 .btn:disabled { opacity: 0.65; cursor: default; }
 
+/* Live strength of a TYPED passphrase. Visually quieter than the generator's
+   meter on purpose: that one states a fact, this one states a ceiling, and
+   the two should not look like the same claim. */
+.pass-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.4rem 0 0.5rem;
+}
+
+.pass-meter {
+  flex: 1 1 6rem;
+  max-width: 10rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.pass-meter-fill {
+  display: block;
+  height: 100%;
+  transition: width 0.15s ease;
+}
+
+.pass-meter.meter-weak .pass-meter-fill { background: var(--error); }
+.pass-meter.meter-fair .pass-meter-fill { background: var(--warning); }
+.pass-meter.meter-good .pass-meter-fill,
+.pass-meter.meter-strong .pass-meter-fill { background: var(--success); }
+
+.pass-figure {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pass-tier {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.pass-tier.meter-weak { color: var(--error); }
+.pass-tier.meter-fair { color: var(--warning); }
+.pass-tier.meter-good,
+.pass-tier.meter-strong { color: var(--success); }
+
+.pass-notes {
+  margin: 0 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.pass-caveat {
+  font-size: 0.75rem !important;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.pass-caveat a { color: var(--primary); }
+
 .vault-bar {
   display: flex;
   flex-wrap: wrap;
@@ -91,7 +161,17 @@
   align-items: center;
 }
 
-.vault-search { flex: 1 1 12rem; }
+/* .form-input lives in the generator's style.css, which this page does not
+   load, so the search field arrived with no padding at all. */
+.vault-search {
+  flex: 1 1 12rem;
+  padding: 0.55rem 0.75rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 0.95rem;
+}
 
 /* Statuses. --error and --warning are already AA-verified against both
    surfaces by the contrast suite, so these reuse them rather than inventing

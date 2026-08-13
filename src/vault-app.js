@@ -10,6 +10,7 @@ import { createApp, ref, computed, onMounted, onUnmounted, nextTick } from '../v
 import { createVaultStore, DEFAULT_AUTOLOCK_MS } from './vault-store.js'
 import { KDF_ITERATIONS, needsRekey } from './vault-crypto.js'
 import { entropyTier } from './entropy.js'
+import { estimatePassphrase } from './passphrase-strength.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -152,6 +153,22 @@ const App = {
 
     const tierOf = (bits) => (Number.isFinite(bits) ? entropyTier(bits) : null)
 
+    /**
+     * Live strength of whatever is being typed into a passphrase field.
+     *
+     * Reported as a ceiling, never as a score -- see passphrase-strength.js.
+     * The generator's figures are exact because it made the choices; this one
+     * cannot be, and the label says so rather than letting a number the site
+     * cannot stand behind sit next to numbers it can.
+     */
+    const strengthOf = (value) => {
+      const s = estimatePassphrase(value)
+      if (!s.length) return null
+      return { ...s, tier: entropyTier(s.bits), pct: Math.min(100, (s.bits / 100) * 100) }
+    }
+    const newStrength = computed(() => strengthOf(pass.value))
+    const rekeyStrength = computed(() => strengthOf(newPass.value))
+
     // Auto-lock: poll rather than schedule, so a laptop that slept through
     // the deadline locks on wake instead of trusting a timer that did not run.
     let timer = null
@@ -180,6 +197,7 @@ const App = {
       persisted, rekeyOpen, pass, passConfirm, oldPass, newPass,
       create, unlock, lock, save, remove, copy, toggleReveal,
       startAdd, startEdit, rekey, destroy, tierOf,
+      newStrength, rekeyStrength,
       iterations: KDF_ITERATIONS.toLocaleString(),
       autoLockMinutes: Math.round(loadAutoLock() / 60000),
       needsRekey: () => needsRekey(store.envelope()),
@@ -209,6 +227,24 @@ const App = {
             <span>Passphrase</span>
             <input v-model="pass" type="password" autocomplete="new-password" required />
           </label>
+
+          <div v-if="newStrength" class="pass-strength">
+            <span class="pass-meter" :class="'meter-' + newStrength.tier.id">
+              <span class="pass-meter-fill" :style="{ width: newStrength.pct + '%' }"></span>
+            </span>
+            <span class="pass-figure">at most {{ newStrength.bits.toFixed(0) }} bits</span>
+            <span class="pass-tier" :class="'meter-' + newStrength.tier.id">{{ newStrength.tier.label }}</span>
+          </div>
+          <ul v-if="newStrength && newStrength.notes.length" class="pass-notes">
+            <li v-for="n in newStrength.notes" :key="n">{{ n }}</li>
+          </ul>
+          <p v-if="newStrength" class="pass-caveat">
+            An estimate, and an upper bound — unlike the generator's figures, which are exact because
+            it made every choice itself. A real attacker's dictionary knows words, names and dates
+            that this does not. <a href="/">Generate a passphrase</a> instead and the number stops
+            being a guess.
+          </p>
+
           <label class="vault-field">
             <span>Confirm passphrase</span>
             <input v-model="passConfirm" type="password" autocomplete="new-password" required />
@@ -328,6 +364,13 @@ const App = {
               <span>New passphrase</span>
               <input v-model="newPass" type="password" autocomplete="new-password" />
             </label>
+            <div v-if="rekeyStrength" class="pass-strength">
+              <span class="pass-meter" :class="'meter-' + rekeyStrength.tier.id">
+                <span class="pass-meter-fill" :style="{ width: rekeyStrength.pct + '%' }"></span>
+              </span>
+              <span class="pass-figure">at most {{ rekeyStrength.bits.toFixed(0) }} bits</span>
+              <span class="pass-tier" :class="'meter-' + rekeyStrength.tier.id">{{ rekeyStrength.tier.label }}</span>
+            </div>
             <button class="btn" :disabled="busy">{{ busy ? 'Re-encrypting…' : 'Change passphrase' }}</button>
           </form>
         </details>

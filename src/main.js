@@ -269,7 +269,9 @@ const getVaultStore = () => {
 
 const KeepButton = {
   name: 'KeepButton',
-  props: { password: String, bits: Number },
+  // `compact` is the history-strip form: a small inline icon rather than one
+  // overlaid on the output field, with the panel anchored to itself.
+  props: { password: String, bits: Number, compact: Boolean },
   setup (props) {
     const open = ref(false)
     const state = ref('loading')
@@ -278,6 +280,7 @@ const KeepButton = {
     const busy = ref(false)
     const error = ref('')
     const kept = ref(false)
+    const acknowledged = ref(false)
 
     const start = async () => {
       if (!props.password) return
@@ -307,6 +310,32 @@ const KeepButton = {
       }
     }
 
+    /**
+     * Adopt the generated password as the vault's passphrase, when there is
+     * no vault yet. The loop this closes is the point of the whole feature:
+     * the site makes strong passphrases, and a vault needs exactly one.
+     *
+     * The warning is not decoration. A random character string as your only
+     * unrecoverable key is a bad idea unless it is written down somewhere,
+     * and the word modes make something you can actually remember -- so the
+     * panel says both, and makes you tick the box.
+     */
+    const adopt = async () => {
+      busy.value = true
+      error.value = ''
+      await nextTick()
+      try {
+        await getVaultStore().create(props.password)
+        state.value = 'unlocked'
+        acknowledged.value = false
+        if (navigator.storage?.persist) { try { await navigator.storage.persist() } catch {} }
+      } catch (e) {
+        error.value = e.message
+      } finally {
+        busy.value = false
+      }
+    }
+
     const save = async () => {
       busy.value = true
       error.value = ''
@@ -329,21 +358,20 @@ const KeepButton = {
       }
     }
 
-    return { open, state, label, pass, busy, error, kept, start, unlock, save }
+    return { open, state, label, pass, busy, error, kept, acknowledged, start, unlock, save, adopt }
   },
   template: `
-    <span class="keep-wrap">
+    <span class="keep-wrap" :class="{ 'keep-compact': compact }">
       <button
-        class="copy-btn keep-btn"
-        :class="{ kept }"
-        @click="start"
+        :class="[compact ? 'history-keep' : 'copy-btn keep-btn', { kept }]"
+        @click.stop="start"
         :disabled="!password"
         :title="kept ? 'Kept in the vault' : 'Keep in the vault'"
         :aria-label="kept ? 'Kept in the vault' : 'Keep in the vault'"
         :aria-expanded="open ? 'true' : 'false'"
       ><span :class="['mdi', kept ? 'mdi-check-decagram' : 'mdi-safe-square-outline']"></span></button>
 
-      <div v-if="open" class="keep-panel" role="dialog" aria-label="Keep in the vault">
+      <div v-if="open" class="keep-panel" role="dialog" aria-label="Keep in the vault" @click.stop>
         <div v-if="error" class="keep-error">{{ error }}</div>
 
         <template v-if="state === 'unlocked'">
@@ -371,8 +399,31 @@ const KeepButton = {
         </template>
 
         <template v-else-if="state === 'absent'">
-          <p>No vault on this device yet.</p>
-          <a class="btn btn-primary" href="/vault.html">Create one</a>
+          <p>No vault on this device yet. Use this password as the passphrase that protects it?</p>
+
+          <div class="keep-writedown">
+            <p class="keep-writedown-head">
+              <span class="mdi mdi-alert" aria-hidden="true"></span> Write this down, or save it elsewhere, first.
+            </p>
+            <p>
+              It becomes the only key to your vault. There is no account, no reset link and no
+              recovery: if you lose it, everything in the vault is gone for good — not locked out,
+              gone. Put it on paper, in another password manager, or anywhere you will still have
+              it later — <em>before</em> you continue.
+            </p>
+            <code class="keep-writedown-pw">{{ password }}</code>
+          </div>
+
+          <label class="keep-ack">
+            <input type="checkbox" v-model="acknowledged" />
+            <span>I have written it down, or saved it somewhere I will still have it.</span>
+          </label>
+          <div class="keep-actions">
+            <button class="btn btn-primary" @click="adopt" :disabled="busy || !acknowledged">
+              {{ busy ? 'Creating…' : 'Use as vault passphrase' }}
+            </button>
+            <a class="btn" href="/vault.html">Choose my own</a>
+          </div>
         </template>
 
         <p v-else>Opening…</p>
@@ -383,20 +434,25 @@ const KeepButton = {
 
 const HistoryStrip = {
   name: 'HistoryStrip',
+  components: { KeepButton },
   props: { history: { default: () => [] }, current: String, warnSet: { default: () => new Set() } },
   emits: ['select'],
+  // Each row is a recall button plus a keep button, side by side rather than
+  // nested: a button inside a button is invalid, and the keep action must not
+  // also recall the password into the output field.
   template: `
     <div v-if="history.length > 1" class="history-strip">
       <div class="history-label">History</div>
       <div class="history-list">
-        <button
-          v-for="(entry, i) in history"
-          :key="i"
-          class="history-item"
-          :class="{ 'history-item-active': entry.pw === current, 'history-item-warn': warnSet.has(entry.pw) }"
-          @click="$emit('select', entry)"
-          :title="warnSet.has(entry.pw) ? entry.pw + ' (under 8 characters)' : entry.pw"
-        ><span class="history-pw">{{ entry.pw }}</span><span v-if="entry.bits != null" class="history-bits">{{ entry.bits.toFixed(1) }} bits</span><span v-if="warnSet.has(entry.pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
+        <div v-for="(entry, i) in history" :key="i" class="history-row">
+          <button
+            class="history-item"
+            :class="{ 'history-item-active': entry.pw === current, 'history-item-warn': warnSet.has(entry.pw) }"
+            @click="$emit('select', entry)"
+            :title="warnSet.has(entry.pw) ? entry.pw + ' (under 8 characters)' : entry.pw"
+          ><span class="history-pw">{{ entry.pw }}</span><span v-if="entry.bits != null" class="history-bits">{{ entry.bits.toFixed(1) }} bits</span><span v-if="warnSet.has(entry.pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
+          <KeepButton :password="entry.pw" :bits="entry.bits" compact />
+        </div>
       </div>
     </div>
   `

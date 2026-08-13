@@ -823,6 +823,50 @@ details[open].card-collapse > summary .collapse-chevron {
   position: static;
 }
 
+/* In the history strip the button anchors its own panel, since there is no
+   output field to hang it from. */
+.keep-wrap.keep-compact {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.history-row .history-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-keep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-min);
+  min-height: var(--control-min);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.history-keep:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.history-keep.kept {
+  color: var(--success);
+  border-color: var(--success);
+}
+
 .keep-btn {
   right: 2.6rem;
 }
@@ -889,6 +933,65 @@ details[open].card-collapse > summary .collapse-chevron {
 .keep-actions .btn {
   padding: 0.45rem 0.9rem;
   font-size: 0.875rem;
+}
+
+/* Adopting a generated password as the vault passphrase makes it the single
+   unrecoverable key to everything in the vault, so the instruction to record
+   it is the loudest thing in the panel and the button waits behind a tick. */
+.keep-writedown {
+  border: 2px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.7rem;
+}
+
+.keep-writedown-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.4rem !important;
+  color: var(--warning);
+  font-weight: 700;
+  font-size: 0.85rem !important;
+}
+
+.keep-writedown p {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.keep-writedown-pw {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.045em;
+  color: var(--text);
+  word-break: break-all;
+  user-select: all;
+}
+
+.keep-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.keep-ack input {
+  margin-top: 0.15rem;
+  width: var(--control-min);
+  height: var(--control-min);
+  flex-shrink: 0;
+  accent-color: var(--primary);
 }
 
 .keep-error {
