@@ -28,16 +28,38 @@
 export const VAULT_VERSION = 1
 
 /**
- * PBKDF2-SHA256 iterations for new vaults. OWASP's 2023 floor for this
- * algorithm; stated in the UI rather than hidden, because an iteration count
- * is the one KDF parameter a user can meaningfully be told.
+ * PBKDF2-SHA256 iterations for new vaults. Stated in the UI rather than
+ * hidden, because an iteration count is the one KDF parameter a user can
+ * meaningfully be told.
  *
- * Argon2id would be the better primitive, but every browser implementation
- * arrives as a WebAssembly dependency, and this project has none. PBKDF2 is
- * what the platform gives us, so the answer is to use it at a defensible
- * count rather than to add a build step -- see the note in About.
+ * Why 1,000,000 and not 10,000,000. Attacker cost scales LINEARLY with this
+ * number, so the strength it buys is logarithmic: measured on a 2026 desktop,
+ * derivation is almost exactly 0.1ms per thousand iterations, and
+ *
+ *     600k -> 54ms      1M -> 93ms      2M -> 191ms
+ *       5M -> 475ms    10M -> 1032ms
+ *
+ * Going from 600k to 10M is a 16.7x cost increase, which is log2(16.7) = 4.1
+ * bits -- less than one extra random lowercase letter (4.7 bits). It would
+ * buy that for a full second of unlock latency on a fast desktop, and several
+ * on a phone, on a screen the user hits every time the lock window expires.
+ * One more word in the passphrase beats the whole trade and costs nothing.
+ *
+ * So this is not tuned for maximum bits; it is tuned to sit clear of OWASP's
+ * 2023 floor of 600k as hardware improves, at a latency nobody notices. The
+ * count travels inside each envelope, so raising it again later never strands
+ * an existing vault -- needsRekey() flags those and re-encrypts on the next
+ * passphrase change.
+ *
+ * Argon2id would be the better primitive, being memory-hard where PBKDF2 is
+ * merely slow, and no amount of PBKDF2 iterations closes that gap: it changes
+ * the constant, not the attacker's parallelism. But Web Crypto does not
+ * implement it -- deriveBits offers PBKDF2, HKDF and ECDH only -- so it
+ * arrives as a WebAssembly blob in the most security-critical path in the
+ * product, which is a trade worth making deliberately rather than in passing.
+ * See ROADMAP 9f.
  */
-export const KDF_ITERATIONS = 600_000
+export const KDF_ITERATIONS = 1_000_000
 
 const SALT_BYTES = 16
 const IV_BYTES = 12
@@ -91,7 +113,7 @@ export const isVaultEnvelope = (value) =>
  * relationship between the two plaintexts.
  *
  * `kdf` is carried through unchanged so a reseal after an ordinary edit costs
- * one AES pass instead of 600,000 PBKDF2 rounds -- the difference between a
+ * one AES pass instead of a million PBKDF2 rounds -- the difference between a
  * save that is instant and one that visibly stalls.
  */
 export const sealVault = async (key, kdf, data) => {

@@ -205,6 +205,49 @@ preference:
 - [ ] **9b's export/import ships first and stays.** It is the sync story until
       there is a sync story, and the escape hatch afterward.
 
+**The shape it would take, noted now so it is not designed under pressure.**
+None of this is built and none of it should be built yet; it is written down
+because the standard zero-knowledge blueprint is well understood and the time
+to disagree with parts of it is before there is a server to change. If sync
+ever happens, this is the starting point:
+
+- [ ] **Derive once, split twice.** The passphrase stretches to a master key;
+      that key is *never* used directly and never leaves the device. Split or
+      re-derive it into (a) a symmetric vault key that encrypts entries, and
+      (b) a separate authentication hash that is the only derived value the
+      server ever sees. The server verifying a login must be unable to derive
+      the decryption key from what it was sent — that separation is the whole
+      trick, and getting it backwards is the classic way to build a "zero
+      knowledge" system that is not one.
+- [ ] **The server is a dumb blob store.** Opaque sync identifier, KDF
+      parameters, the authentication hash, and the ciphertext. No email
+      required, no profile, no password-reset flow — a reset flow that works
+      is proof the server can decrypt.
+- [ ] **Keep the random per-vault salt; do not switch to email-as-salt.** The
+      common design salts with the user's email so a new device can re-derive
+      without fetching anything first. That is a convenience workaround with a
+      real cost: emails are low-entropy, reused across services, and shared
+      between users of the same provider, which makes cross-account rainbow
+      tables worth building. A random salt fetched alongside the blob is
+      strictly stronger and costs one round trip.
+- [ ] **Authenticated encryption stays.** AES-GCM as today, or
+      XChaCha20-Poly1305. Never a mode without integrity: a server that can
+      flip ciphertext bits undetected is a server that can attack you.
+- [ ] **Session tokens in `HttpOnly` cookies**, never in `localStorage`, so
+      script cannot read them. Note this is only meaningful once there *is* a
+      session; today there are no cookies at all, which is stronger.
+- [ ] **Move the crypto into a Web Worker.** Today the vault key is a
+      non-extractable `CryptoKey`, which already means script cannot read its
+      bytes. With a server in the picture the passphrase-handling path becomes
+      worth isolating too — see the memory-sanitisation limits documented in
+      Legal, which a worker narrows but does not remove.
+- [ ] **The dependency threat gets worse, not better.** A build step and an
+      npm tree are the usual companions of a backend, and one compromised
+      transitive package in the crypto path ends the product. The current
+      answer — zero dependencies, everything vendored and readable — is a
+      security property, not just an aesthetic, and giving it up needs a
+      better reason than convenience.
+
 ### 9e. What stays out regardless
 
 - [ ] **No breach-corpus checks, no password health scoring against remote
@@ -212,6 +255,56 @@ preference:
       manager and all four need the network for something the user did not ask
       for. Health scoring that runs locally — reused passwords, weak entries,
       age — is fine and needs no server; it is the *remote* version that is out.
+
+### 9f. Hardening the primitives
+
+Neither of these is a defect. Both are places where the honest answer today is
+"this is the best available without a trade the project has not agreed to",
+and both should be revisited deliberately rather than drifted into.
+
+- [ ] **Argon2id instead of PBKDF2.** PBKDF2 is merely slow; Argon2id is
+      memory-hard, which is the property that actually blunts a GPU or ASIC
+      attack. No number of PBKDF2 iterations substitutes, because iterations
+      change the attacker's constant and not their parallelism.
+
+      Why not yet: Web Crypto does not implement it — `deriveBits` offers
+      PBKDF2, HKDF and ECDH only — so it arrives as a WebAssembly blob in the
+      single most security-critical path in the product, for a project whose
+      pitch is that you can read the source. Doable, but the work *is* the
+      provenance: a pinned reproducible build, a recorded hash, and a note in
+      Legal about what is being trusted. A hand-written JS implementation is
+      not the answer; it would be slow enough to need parameters that give the
+      memory-hardness back.
+
+      The migration is already built: the KDF parameters travel inside each
+      envelope, so adding `name: 'Argon2id'` with `m`/`t`/`p` leaves every old
+      vault opening on PBKDF2, and `needsRekey()` upgrades them on the next
+      passphrase change.
+
+- [x] **Iterations raised to 1,000,000** (from OWASP's 2023 floor of 600,000),
+      and deliberately not to 10,000,000. Measured on a 2026 desktop, PBKDF2
+      costs ~0.1ms per thousand iterations: 600k is 54ms, 1M is 93ms, 10M is
+      1032ms. Attacker cost is linear, so 600k → 10M is 16.7×, or **4.1 bits**
+      — less than one extra random lowercase letter — bought with a full
+      second of unlock latency on a fast machine and several on a phone. One
+      more word in the passphrase beats the entire trade for free. The bump to
+      1M is about staying clear of the floor as hardware improves, not about
+      the bits, and the code comment says so.
+
+- [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
+      for every inline script and `connect-src 'self'`, which is the directive
+      that matters here: whatever runs, it has nowhere to send anything. But
+      `'unsafe-eval'` had to stay, because components are declared with Vue's
+      `template:` option and Vue compiles those at runtime through
+      `new Function` — measured, not assumed: without it every page renders
+      blank.
+
+      Removing it means precompiling templates to render functions, which
+      means a build step. That is a bigger decision than the CSP, and it
+      trades a real property (the deployed site is the readable source) for a
+      bounded gain — reaching `eval` requires already executing script, which
+      the hash list is what prevents. Revisit if a build step arrives for
+      another reason; do not add one for this alone.
 
 ---
 

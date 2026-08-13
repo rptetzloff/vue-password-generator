@@ -81,7 +81,7 @@
         <p>
           If you create a <strong>vault</strong>, its contents are stored the same way — on
           your device, in your browser — but encrypted with a passphrase only you know, using
-          600,000 rounds of PBKDF2. That key is never written anywhere and exists only while the
+          1,000,000 rounds of PBKDF2. That key is never written anywhere and exists only while the
           vault is unlocked, so a copy of your browser profile yields ciphertext rather than
           passwords. There is no account, no server and no recovery: if you forget the
           passphrase, nobody can open the vault, including us.
@@ -108,6 +108,20 @@
           one for a backup, and they should be deleted the moment the move is done. Nothing is
           uploaded when you export; the file is written by your browser and goes wherever you put
           it.
+        </p>
+        <p>
+          <strong>What we cannot scrub from memory, and why.</strong> A careful password manager
+          overwrites secrets in memory the moment it has finished with them, so that a crash dump,
+          a swap file, or a hibernation image does not quietly preserve them. We do that where the
+          browser allows it: the vault key is a non-extractable <code>CryptoKey</code>, meaning its
+          bytes are never handed to our code at all and are released when the vault locks. Your
+          <em>passphrase</em> is different. It arrives as an ordinary JavaScript string from a text
+          field, and strings in JavaScript are immutable — there is no way for any page, ours
+          included, to overwrite one. It stays in memory until the browser's garbage collector
+          happens to reclaim it, on no schedule we control. We hold it for as briefly as we can and
+          never write it anywhere, but a page in a browser cannot promise more than that, and any
+          web password manager telling you otherwise is describing an intention rather than a
+          guarantee.
         </p>
         <p>
           Clearing your browser's site data erases all of it. None of it is ever
