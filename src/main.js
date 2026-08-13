@@ -346,7 +346,7 @@ const KeepButton = {
         :title="kept ? 'Kept in the vault' : 'Keep in the vault'"
         :aria-label="kept ? 'Kept in the vault' : 'Keep in the vault'"
         :aria-expanded="open ? 'true' : 'false'"
-      ><span :class="['mdi', kept ? 'mdi-check-decagram' : 'mdi-safe-square-outline']"></span></button>
+      ><span :class="['mdi', kept ? 'mdi-check-decagram' : 'mdi-shield-key-outline']"></span></button>
 
       <div v-if="open" class="keep-panel" role="dialog" aria-label="Keep in the vault" @click.stop>
         <div v-if="error" class="keep-error">{{ error }}</div>

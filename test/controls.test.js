@@ -95,3 +95,69 @@ test('no control in style.css suppresses its focus outline', () => {
       'replacing it is WCAG 2.4.7.',
   )
 })
+
+// The three controls overlaid on the password output field: copy, keep, and
+// the character-count pill.
+//
+// They were positioned by hand, in three separate edits, and the third one
+// collided. Keep (9a) was given `right: 2.6rem` while the length pill already
+// sat at `right: 2.75rem` -- two 2rem-wide controls whose left edges landed on
+// the same pixel. Rendered, it looked like one corrupt glyph, and that is how
+// it was reported: "what is this icon?".
+//
+// Nothing about either declaration looked wrong on its own, which is the whole
+// problem with hand-placed absolute positions. They derive from shared
+// variables now, and this asserts they still do.
+test('the controls overlaid on the password field cannot collide', () => {
+  const vars = ruleBody('.password-display')
+  for (const name of ['--pw-edge', '--pw-btn', '--pw-slot']) {
+    assert.match(vars, new RegExp(`${name}\s*:`),
+      `.password-display must define ${name}; the overlay positions derive from it`)
+  }
+
+  // Each control's offset must be computed, not a literal, or it can drift
+  // back on top of its neighbour.
+  const positioned = {
+    '.password-display .copy-btn': /right:\s*var\(--pw-edge\)/,
+    '.password-display .keep-btn': /right:\s*calc\(.*--pw-btn/,
+    '.password-display .length-pill': /right:\s*calc\(.*--pw-btn/,
+  }
+  for (const [selector, pattern] of Object.entries(positioned)) {
+    assert.match(ruleBody(selector), pattern,
+      `${selector} must derive its offset from the --pw-* variables, not a literal rem`)
+  }
+
+  // And the text has to stop before the leftmost of them.
+  assert.match(
+    ruleBody('.password-display .password-input.has-length-pill'),
+    /padding-right:\s*calc\(.*--pw-btn/,
+    'the field padding must track the overlay width, or long output runs under the pill',
+  )
+})
+
+test('the overlay controls tile without overlapping, at the declared sizes', () => {
+  // Arithmetic on the same numbers the CSS uses: each control occupies
+  // [right, right + width] measured from the field's right edge, and no two
+  // spans may intersect.
+  const num = (name) => {
+    const m = new RegExp(`${name}\\s*:\\s*([\\d.]+)rem`).exec(ruleBody('.password-display'))
+    assert.ok(m, `${name} should be a rem value`)
+    return parseFloat(m[1])
+  }
+  const edge = num('--pw-edge')
+  const btn = num('--pw-btn')
+  const slot = num('--pw-slot')
+
+  const spans = [
+    ['copy', edge, edge + btn],
+    ['keep', edge + btn + slot, edge + 2 * btn + slot],
+    // The pill's width varies with the digit count; 2.6rem covers three digits.
+    ['pill', edge + 2 * (btn + slot), edge + 2 * (btn + slot) + 2.6],
+  ]
+  for (let i = 1; i < spans.length; i++) {
+    const [prevName, , prevEnd] = spans[i - 1]
+    const [name, start] = spans[i]
+    assert.ok(start >= prevEnd,
+      `${name} starts at ${start}rem but ${prevName} runs to ${prevEnd}rem — they overlap`)
+  }
+})

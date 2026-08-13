@@ -738,6 +738,25 @@ details[open].card-collapse > summary .collapse-chevron {
      drift apart -- see .copy-btn for why that matters once the field wraps. */
   --pw-pad: 0.75rem;
   --pw-line: 1.65rem;
+
+  /* The overlay strip, right to left: copy, keep, then the length pill.
+     Each position is derived rather than written out, because they were hand
+     placed and the Keep button (9a) was given right: 2.6rem while the length
+     pill already sat at 2.75rem -- two 2rem-wide controls starting on the same
+     pixel. It read as one corrupt glyph, which is how it was reported. */
+  --pw-edge: 0.5rem;   /* gap from the right edge of the field */
+  --pw-btn: 2rem;      /* width of one overlaid icon button */
+  --pw-slot: 0.1rem;   /* gap between neighbouring overlaid controls */
+}
+
+.password-display .copy-btn { right: var(--pw-edge); }
+.password-display .keep-btn { right: calc(var(--pw-edge) + var(--pw-btn) + var(--pw-slot)); }
+.password-display .length-pill {
+  right: calc(var(--pw-edge) + 2 * (var(--pw-btn) + var(--pw-slot)));
+}
+/* Text must stop before the pill, whose own width varies with the digit count. */
+.password-display .password-input.has-length-pill {
+  padding-right: calc(var(--pw-edge) + 2 * (var(--pw-btn) + var(--pw-slot)) + 2.6rem);
 }
 
 /* This was an <input type="text">, which cannot wrap: a password longer than
