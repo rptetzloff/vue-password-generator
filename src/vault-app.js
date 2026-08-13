@@ -16,6 +16,7 @@ import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
 } from './vault-transfer.js'
+import { totpCode, secondsRemaining, formatCode, parseTotpInput } from './totp.js'
 import { openVault } from './vault-crypto.js'
 import { KDF_ITERATIONS, needsRekey } from './vault-crypto.js'
 import { entropyTier } from './entropy.js'
@@ -170,7 +171,7 @@ const App = {
         // worse than leaving it blank.
         group: (groupFilter.value.size === 1 && [...groupFilter.value][0] !== UNGROUPED)
           ? [...groupFilter.value][0] : '',
-        questions: [], fields: [], bits: null, revealPw: false,
+        questions: [], fields: [], totp: null, bits: null, revealPw: false,
       }
     }
     const startEdit = (entry) => {
@@ -180,6 +181,7 @@ const App = {
         urlText: (entry.urls || []).join('\n'),
         questions: (entry.questions || []).map((qa) => ({ ...qa })),
         fields: (entry.fields || []).map((f) => ({ ...f })),
+        totp: entry.totp ? { ...entry.totp } : null,
         revealPw: false,
       }
     }
@@ -188,6 +190,46 @@ const App = {
 
     const addField = (secret = false) => { editing.value.fields.push({ name: '', value: '', secret }) }
     const removeField = (i) => { editing.value.fields.splice(i, 1) }
+
+    // --- one-time codes --------------------------------------------------------
+
+    /**
+     * Live TOTP codes for every entry that has a seed.
+     *
+     * Recomputed on a one-second tick rather than per render, because the
+     * code is a function of the clock and Vue has no reason to know that.
+     */
+    const totpCodes = ref(new Map())
+    const totpLeft = ref(0)
+
+    const refreshTotp = async () => {
+      const next = new Map()
+      for (const entry of entries.value) {
+        if (!entry.totp) continue
+        try { next.set(entry.id, await totpCode(entry.totp)) } catch { /* a bad seed shows nothing */ }
+      }
+      totpCodes.value = next
+      const withTotp = entries.value.find((e) => e.totp)
+      totpLeft.value = withTotp ? secondsRemaining(withTotp.totp) : 0
+    }
+
+    const codeFor = (entry) => formatCode(totpCodes.value.get(entry.id) || '')
+
+    /** The editor's own field, which accepts a link or a bare secret. */
+    const totpInput = ref('')
+    const totpError = ref('')
+    const applyTotp = () => {
+      totpError.value = ''
+      const text = totpInput.value.trim()
+      if (!text) { editing.value.totp = null; return }
+      try {
+        editing.value.totp = parseTotpInput(text)
+        totpInput.value = ''
+      } catch (e) {
+        totpError.value = e.message
+      }
+    }
+    const clearTotp = () => { editing.value.totp = null; totpInput.value = ''; totpError.value = '' }
 
     // --- collapsing ------------------------------------------------------------
 
@@ -640,6 +682,7 @@ const App = {
     // Auto-lock: poll rather than schedule, so a laptop that slept through
     // the deadline locks on wake instead of trusting a timer that did not run.
     let timer = null
+    let totpTimer = null
     const activity = () => store.touch()
     onMounted(async () => {
       try {
@@ -656,11 +699,15 @@ const App = {
       readEstimate()
       readLastExport()
       timer = setInterval(() => { if (store.lockIfIdle()) revealed.value = new Set() }, 5000)
+      // A code is a function of the clock, so it needs its own tick.
+      totpTimer = setInterval(refreshTotp, 1000)
+      refreshTotp()
       for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, activity, true)
       for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, dismissGroupMenu)
     })
     onUnmounted(() => {
       clearInterval(timer)
+      clearInterval(totpTimer)
       for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, activity, true)
       for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, dismissGroupMenu)
     })
@@ -671,6 +718,7 @@ const App = {
       create, unlock, lock, save, remove, copy, copyText, hostOf, toggleReveal,
       startAdd, startEdit, rekey, destroy, tierOf,
       addQuestion, removeQuestion, addField, removeField,
+      codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
       toggleGroupOpen, isGroupOpen, toggleEntryOpen, isEntryOpen, allCollapsed, toggleAll,
       exportVault, importFile, exported,
       backupNag, lastExport, openTransfer, transferEl,
@@ -952,6 +1000,20 @@ const App = {
                 <span class="mdi mdi-open-in-new" aria-hidden="true"></span>{{ hostOf(u) }}
               </a>
             </div>
+            <!-- The current one-time code, with how long it has left. Never
+                 masked: it is worthless in seconds, and hiding it behind a
+                 reveal would only add a click to the one thing here that is
+                 genuinely time-critical. -->
+            <div v-if="isEntryOpen(e.id) && e.totp && codeFor(e)" class="vault-totp">
+              <span class="mdi mdi-timer-outline" aria-hidden="true"></span>
+              <code class="vault-totp-code">{{ codeFor(e) }}</code>
+              <span class="vault-totp-left" :class="{ 'is-expiring': totpLeft <= 5 }">{{ totpLeft }}s</span>
+              <button class="vault-icon" @click="copyText(codeFor(e).replace(' ', ''), 'Code copied.')"
+                      aria-label="Copy one-time code" title="Copy code">
+                <span class="mdi mdi-content-copy"></span>
+              </button>
+            </div>
+
             <!-- Extra fields. A secret one is masked and copied through the
                  clipboard timer like the password; a plain one is just text,
                  because hiding a customer number helps nobody. -->
@@ -1091,6 +1153,50 @@ const App = {
                   <span class="mdi mdi-lock"></span> Add a secret
                 </button>
               </div>
+            </fieldset>
+            <fieldset class="vault-field vault-qa">
+              <legend>One-time code</legend>
+              <!-- The warning is above the input, not below it, and not
+                   collapsed. It is the reason to hesitate and it should be
+                   read before the secret is pasted, not after. -->
+              <p class="vault-totp-warn">
+                <span class="mdi mdi-alert-outline" aria-hidden="true"></span>
+                <span>
+                  <strong>This weakens two-factor authentication.</strong> A one-time code is a
+                  second factor only while it is kept apart from the password. Storing the seed
+                  here means whoever opens this vault has both, and an attacker who gets in needs
+                  nothing else. It still helps against a password leaked by the site — the common
+                  case — and it is the same trade every password manager offering this makes
+                  quietly. Keep the codes in a separate app if you would rather not make it.
+                </span>
+              </p>
+              <div v-if="editing.totp" class="vault-totp-set">
+                <span class="mdi mdi-check-circle-outline" aria-hidden="true"></span>
+                <span>
+                  Code set{{ editing.totp.issuer ? ' for ' + editing.totp.issuer : '' }}<template
+                    v-if="editing.totp.account"> ({{ editing.totp.account }})</template> —
+                  {{ editing.totp.digits }} digits, every {{ editing.totp.period }}s,
+                  {{ editing.totp.algorithm }}
+                </span>
+                <button class="btn btn-small" type="button" @click="clearTotp">Remove</button>
+              </div>
+              <template v-else>
+                <div class="vault-qa-row vault-totp-row">
+                  <input v-model="totpInput" type="text" spellcheck="false" autocomplete="off"
+                         placeholder="otpauth://… link, or the base32 secret"
+                         @keydown.enter.prevent="applyTotp" />
+                  <button class="btn btn-small" type="button" @click="applyTotp">Add</button>
+                </div>
+                <p v-if="totpError" class="vault-reuse-warn">
+                  <span class="mdi mdi-alert-outline" aria-hidden="true"></span>
+                  {{ totpError }}
+                </p>
+                <p class="vault-hint">
+                  Most sites show a "can't scan the code?" link next to the QR image with the secret
+                  in text. Pasting the whole <code>otpauth://</code> link is safest — it carries the
+                  digit count and interval too.
+                </p>
+              </template>
             </fieldset>
             <fieldset class="vault-field vault-qa">
               <legend>Security questions</legend>

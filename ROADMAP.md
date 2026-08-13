@@ -146,6 +146,19 @@ sync needs an account. A local vault breaks no published claim.
       editing rather than after saving. It is the one health finding a local
       vault can make with certainty -- everything else about a stored password
       is either a guess or needs a network.
+- [x] **Custom fields and one-time codes.** Fields are name/value pairs with a
+      secret flag rather than a fixed second username and password, because
+      the fixed answer runs out at the first account that wants a PIN. TOTP is
+      RFC 6238 over Web Crypto's HMAC -- no dependency -- verified against the
+      RFC's own published vectors for SHA-1, SHA-256 and SHA-512.
+
+      TOTP ships with a warning that is not decoration: a one-time code is a
+      second factor only while it is kept apart from the first, and storing
+      the seed beside the password means one compromise yields both. It is
+      still a real gain against the common case, a password leaked at the
+      site's end, and it is the trade every password manager offering this
+      makes quietly. The difference here is that it is stated above the input,
+      before the secret is pasted.
 
 ### 9b. Export and import — the portability layer, and the honest sync
 
@@ -315,6 +328,40 @@ and both should be revisited deliberately rather than drifted into.
       more word in the passphrase beats the entire trade for free. The bump to
       1M is about staying clear of the floor as hardware improves, not about
       the bits, and the code comment says so.
+
+- [ ] **Recovery codes, if the case for them survives this.** Asked for, with
+      the suspicion that the security model forbids it. It does not -- but the
+      version most people picture is the unsafe one, so the constraints matter
+      more than the feature.
+
+      How it would work: generate a high-entropy recovery key, wrap the vault
+      key under it, and store that second wrapped copy in the envelope
+      alongside the passphrase-derived one. Either key opens the vault.
+
+      The constraint that makes it safe: **the recovery key must be generated,
+      never chosen.** An attacker takes whichever path is cheaper, so the
+      vault's strength becomes the *weaker* of the two. A user-chosen recovery
+      phrase would therefore lower the security of every vault that has one,
+      silently, no matter how good the passphrase is. At 128 bits of generated
+      randomness the recovery path is not attackable at all and the passphrase
+      remains the binding constraint -- so it costs nothing. Between those two
+      is a trap: anything memorable is anything guessable.
+
+      The argument against building it: **the encrypted backup already is
+      this.** Export the vault, keep the file, keep the passphrase safe --
+      that is recovery, with no second key path and no extra surface. A
+      recovery code adds a permanent second door to protect against forgetting
+      the first, and a written-down 128-bit key you must not lose is the same
+      storage problem as a backup file you must not lose.
+
+      The argument for: the backup only restores what it contained. A recovery
+      key opens the vault *in front of you*, including everything added since
+      the last export -- which is exactly the gap the backup reminder keeps
+      pointing at. That is a real difference, not a cosmetic one.
+
+      Not started. If it happens: generated only, shown once, with the same
+      write-it-down gate the adopt flow uses, a clear statement that it is a
+      second key to everything, and a way to revoke it by re-keying.
 
 - [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
       for every inline script and `connect-src 'self'`, which is the directive

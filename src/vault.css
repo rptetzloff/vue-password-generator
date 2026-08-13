@@ -843,3 +843,64 @@
   text-align: center;
   margin: 0.5rem 0 0;
 }
+
+/* One-time codes. Shown plainly rather than masked: the value is worthless in
+   seconds, and a reveal click on the one time-critical thing here would be
+   pure friction. */
+.vault-totp {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-totp-code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  user-select: all;
+}
+
+.vault-totp-left {
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+/* The last few seconds, when starting to type it is a mistake. Colour is not
+   the only signal -- the number itself is counting down in plain sight. */
+.vault-totp-left.is-expiring { color: var(--warning); }
+
+/* Above the input and never collapsed: this is the reason to hesitate, and it
+   should be read before the secret is pasted rather than after. */
+.vault-totp-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  color: var(--warning);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.vault-totp-warn strong { color: var(--text); }
+
+.vault-totp-set {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.vault-totp-row { grid-template-columns: minmax(0, 1fr) auto; }

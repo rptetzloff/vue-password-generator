@@ -17,6 +17,7 @@
 // bargain isCurrentPage and shouldCondense already make.
 
 import { createVault, openVault, sealVault, isVaultEnvelope } from './vault-crypto.js'
+import { normalizeTotp } from './totp.js'
 import * as realSession from './vault-session.js'
 import { mergeEntries } from './vault-transfer.js'
 
@@ -192,6 +193,9 @@ export const normalizeEntry = (raw) => {
     urls: textList(raw.urls, 500),
     questions: questionList(raw.questions),
     fields: fieldList(raw.fields),
+    // A one-time-code seed, when the account has one. Stored beside the
+    // password, which is exactly the trade the UI warns about -- see totp.js.
+    totp: normalizeTotp(raw.totp),
     // Free text rather than a managed list of folders. A vault of a few dozen
     // entries does not need a taxonomy, and the cost of one is that every new
     // entry becomes a filing decision. An empty group is "Ungrouped", which is

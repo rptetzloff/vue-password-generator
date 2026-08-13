@@ -527,6 +527,16 @@
          than a scroll handler, so it works without JS, is focusable, and
          announces itself. #top carries tabindex=-1 so focus follows the
          scroll instead of staying stranded at the bottom of the page. */
+      /* The one place in the docs that carries a real caution rather than an
+         explanation. Bordered so it is not skimmed as another paragraph. */
+      .vault-doc-warn {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--warning);
+        border-radius: 6px;
+        color: var(--warning);
+      }
+      .vault-doc-warn strong { color: var(--text); }
+
       .to-top {
         display: inline-flex;
         align-items: center;
@@ -598,6 +608,7 @@
           <a class="nav-sub nav-item" href="#vault-entries">Entry fields</a>
           <a class="nav-sub nav-item" href="#vault-generate">Generating</a>
           <a class="nav-sub nav-item" href="#vault-organise">Groups &amp; sorting</a>
+          <a class="nav-sub nav-item" href="#vault-otp">One-time codes</a>
           <a class="nav-sub nav-item" href="#vault-reuse">Reused passwords</a>
           <a class="nav-sub nav-item" href="#vault-backup">Backup &amp; import</a>
           <a class="nav-sub nav-item" href="#vault-passphrase">Passphrase</a>
@@ -1983,6 +1994,16 @@
                 </div>
               </div>
               <div class="option-row">
+                <div class="option-name">Anything else</div>
+                <div class="option-desc">
+                  Named fields you add yourself, for whatever the account actually needs — a second
+                  login, a PIN, a customer number, a support passphrase. Mark one <strong>secret</strong>
+                  and it behaves like the password: masked until revealed, copied through the
+                  clipboard timer, and it can be generated. Leave it plain and it is just text,
+                  because hiding a customer number behind a row of dots helps nobody.
+                </div>
+              </div>
+              <div class="option-row">
                 <div class="option-name">Security questions</div>
                 <div class="option-desc">
                   <p>
@@ -2090,6 +2111,56 @@
                     putting the unknowns first would bury the ones you can actually act on. Anything without a
                     date sorts as oldest, because an entry predating the date field genuinely is.
                   </p>
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-otp" class="option-group">
+              <div class="option-group-label">One-time codes</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p class="vault-doc-warn">
+                    <strong>Read this before you use it.</strong> A one-time code is a
+                    <em>second factor</em> only while it is kept apart from the first. Storing the
+                    seed in the same vault as the password collapses two factors into one: whoever
+                    opens the vault has both, and an attacker who gets in needs nothing else.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    It is still a real gain against the common case — a password leaked from the
+                    site's own database, where the attacker never touches your device. And it is the
+                    same trade every password manager offering this feature makes. The difference is
+                    that here it is said before you paste the secret rather than discovered
+                    afterwards. If you would rather not make the trade, keep the codes in a separate
+                    app; that is the stronger arrangement and always was.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Adding one</div>
+                <div class="option-desc">
+                  Paste the <code>otpauth://</code> link or the base32 secret. Most sites put both
+                  behind a "can't scan the QR code?" link. The full link is better: it carries the
+                  digit count, interval and hash algorithm, so nothing has to be assumed. A secret
+                  with an invalid character is rejected rather than accepted and quietly mangled —
+                  six plausible digits that never work is a miserable thing to debug.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Using it</div>
+                <div class="option-desc">
+                  The current code shows on the entry with the seconds remaining, and is not masked
+                  — it expires in under a minute, and a reveal click on the one time-critical thing
+                  in the vault would be pure friction. The countdown turns amber for the last five
+                  seconds, when starting to type it is a mistake.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Correctness</div>
+                <div class="option-desc">
+                  RFC 6238, computed with the browser's own HMAC — no dependency, nothing to trust
+                  beyond the platform. The implementation is checked against the test vectors
+                  published in the RFC itself, for SHA-1, SHA-256 and SHA-512, rather than against
+                  another implementation of the same guesswork.
                 </div>
               </div>
             </div>
