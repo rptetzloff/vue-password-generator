@@ -32,6 +32,7 @@ const PRECACHE = [
   '/src/entropy.js',
   '/src/history-crypto.js',
   '/src/vault-crypto.js',
+  '/src/vault-store.js',
   '/src/theme.js',
   '/src/palettes.js',
   '/src/site-header.js',

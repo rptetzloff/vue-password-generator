@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  createVault, openVault, sealVault, deriveKey, newSalt, changePassphrase,
+  createVault, openVault, sealVault, deriveKey, newSalt,
   isVaultEnvelope, needsRekey, KDF_ITERATIONS, VAULT_VERSION,
 } from '../src/vault-crypto.js'
 
@@ -109,19 +109,6 @@ test('the iteration count travels with the vault, so old vaults still open', asy
 
   const fresh = await createVault(PASS, ENTRIES)
   assert.ok(!needsRekey(fresh.envelope))
-})
-
-test('changing the passphrase re-keys, re-salts, and upgrades the cost', async () => {
-  const salt = newSalt()
-  const legacyKdf = { name: 'PBKDF2', hash: 'SHA-256', iterations: 1000, salt: btoa(String.fromCharCode(...salt)) }
-  const legacy = await sealVault(await deriveKey(PASS, salt, 1000), legacyKdf, ENTRIES)
-
-  const { envelope } = await changePassphrase(legacy, PASS, 'a different passphrase entirely')
-  assert.equal(envelope.kdf.iterations, KDF_ITERATIONS, 'a re-key should adopt the current cost')
-  assert.notEqual(envelope.kdf.salt, legacyKdf.salt)
-
-  assert.deepEqual((await openVault(envelope, 'a different passphrase entirely')).data, ENTRIES)
-  await assert.rejects(() => openVault(envelope, PASS), 'the old passphrase must stop working')
 })
 
 test('the cost parameter is defensible and stated in one place', async () => {

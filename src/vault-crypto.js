@@ -136,16 +136,11 @@ export const openVault = async (envelope, passphrase) => {
   return { data: JSON.parse(new TextDecoder().decode(pt)), key, kdf }
 }
 
-/**
- * Re-key an existing vault under a new passphrase: new salt, current default
- * iteration count, same data. Also the upgrade path for the cost parameter --
- * a vault sealed at an older count is re-sealed at today's whenever the
- * passphrase changes.
- */
-export const changePassphrase = async (envelope, oldPassphrase, newPassphrase) => {
-  const { data } = await openVault(envelope, oldPassphrase)
-  return createVault(newPassphrase, data)
-}
+// Re-keying lives in vault-store.js rather than here. A helper at this level
+// would open the envelope and then hand its result to createVault, which
+// re-opens what it just sealed -- three derivations where two is the floor,
+// and on a phone that is a visible stall. The store already has to update its
+// in-memory state, so it does both in one pass.
 
 /**
  * Whether a vault should be re-sealed at a higher cost than it was created

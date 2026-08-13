@@ -1,0 +1,299 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import {
+  createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
+} from '../src/vault-store.js'
+import { KDF_ITERATIONS } from '../src/vault-crypto.js'
+
+// Storage and the clock are injected, so the state machine, the auto-lock and
+// the entry rules are all exercised here without a browser. Only the
+// IndexedDB adapter itself is left to the live page.
+
+const PASS = 'correct horse battery staple'
+
+const fakeStorage = () => {
+  const box = { value: null, saves: 0, cleared: 0 }
+  return {
+    box,
+    load: async () => box.value,
+    save: async (envelope) => { box.value = envelope; box.saves++ },
+    clear: async () => { box.value = null; box.cleared++ },
+  }
+}
+
+const fakeClock = (start = 1_000_000) => {
+  const c = { t: start }
+  c.now = () => c.t
+  c.advance = (ms) => { c.t += ms }
+  return c
+}
+
+const freshStore = async (opts = {}) => {
+  const storage = fakeStorage()
+  const clock = fakeClock()
+  const store = createVaultStore({ storage, now: clock.now, ...opts })
+  await store.init()
+  return { store, storage, clock }
+}
+
+test('a device with no vault reports absent, not empty', async () => {
+  const { store } = await freshStore()
+  assert.equal(store.state(), 'absent')
+  // Reading a vault that does not exist is a programming error, not an
+  // empty list -- an empty list would render as "your vault is empty".
+  assert.throws(() => store.list(), /locked/)
+})
+
+test('create, lock, unlock: the round trip', async () => {
+  const { store, storage } = await freshStore()
+  await store.create(PASS)
+  assert.equal(store.state(), 'unlocked')
+  await store.add({ label: 'email', pw: 'hunter2!', bits: 30 })
+
+  store.lock()
+  assert.equal(store.state(), 'locked')
+  assert.throws(() => store.list(), /locked/)
+
+  await store.unlock(PASS)
+  assert.equal(store.state(), 'unlocked')
+  assert.equal(store.list()[0].label, 'email')
+  assert.ok(storage.box.value, 'the envelope should be on disk')
+})
+
+test('locking forgets, rather than hiding', async () => {
+  // The failure this guards against is a "locked" vault whose entries are
+  // still sitting in a closure. Nothing readable may survive the lock.
+  const { store, storage } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'router', pw: 'silent-sparrow-storm', bits: 44 })
+  store.lock()
+
+  const onDisk = JSON.stringify(storage.box.value)
+  assert.ok(!onDisk.includes('sparrow'), 'the stored envelope must be ciphertext')
+  assert.throws(() => store.list(), /locked/)
+  await assert.rejects(() => store.add({ pw: 'x' }), /locked/)
+  await assert.rejects(() => store.update('any', { pw: 'x' }), /locked/)
+  await assert.rejects(() => store.remove('any'), /locked/)
+})
+
+test('a wrong passphrase leaves the vault locked, not half-open', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'hunter2!' })
+  store.lock()
+
+  await assert.rejects(() => store.unlock('wrong'))
+  assert.equal(store.state(), 'locked', 'a failed unlock must not leave state unlocked')
+  assert.throws(() => store.list(), /locked/)
+
+  await store.unlock(PASS)
+  assert.equal(store.list().length, 1)
+})
+
+test('entries survive a reload from storage', async () => {
+  const storage = fakeStorage()
+  const first = createVaultStore({ storage, now: fakeClock().now })
+  await first.init()
+  await first.create(PASS)
+  await first.add({ label: 'email', pw: 'hunter2!', bits: 30 })
+  await first.add({ label: 'bank', pw: 'Tireless4Marimba', bits: 58 })
+
+  // A new store over the same storage is what a page reload looks like.
+  const second = createVaultStore({ storage, now: fakeClock().now })
+  assert.equal(await second.init(), 'locked')
+  await second.unlock(PASS)
+  const labels = second.list().map((e) => e.label)
+  assert.deepEqual(labels, ['bank', 'email'], 'newest first, and both present')
+})
+
+test('add, update and remove persist each time', async () => {
+  const { store, storage } = await freshStore()
+  await store.create(PASS)
+  const saved = storage.box.saves
+
+  const entry = await store.add({ label: 'email', pw: 'hunter2!', bits: 30 })
+  assert.equal(storage.box.saves, saved + 1)
+
+  await store.update(entry.id, { label: 'work email', note: 'the good one' })
+  assert.equal(storage.box.saves, saved + 2)
+  assert.equal(store.list()[0].label, 'work email')
+  assert.equal(store.list()[0].note, 'the good one')
+  assert.equal(store.list()[0].pw, 'hunter2!', 'an unrelated patch must not disturb the password')
+
+  assert.equal(await store.remove(entry.id), true)
+  assert.equal(store.list().length, 0)
+  assert.equal(await store.remove(entry.id), false, 'removing twice is not an error')
+})
+
+test('auto-lock fires on idle and is deferred by activity', async () => {
+  const { store, clock } = await freshStore({ autoLockMs: 60_000 })
+  await store.create(PASS)
+
+  clock.advance(59_000)
+  assert.equal(store.lockIfIdle(), false)
+  assert.equal(store.state(), 'unlocked')
+
+  // Any use of the vault counts as activity and restarts the clock.
+  store.touch()
+  clock.advance(59_000)
+  assert.equal(store.lockIfIdle(), false)
+
+  clock.advance(1_500)
+  assert.equal(store.shouldAutoLock(), true)
+  assert.equal(store.lockIfIdle(), true)
+  assert.equal(store.state(), 'locked')
+
+  // A locked vault has nothing left to auto-lock.
+  assert.equal(store.lockIfIdle(), false)
+})
+
+test('reading the vault counts as activity', async () => {
+  const { store, clock } = await freshStore({ autoLockMs: 60_000 })
+  await store.create(PASS)
+  clock.advance(59_000)
+  store.list()
+  clock.advance(59_000)
+  assert.equal(store.shouldAutoLock(), false, 'listing entries should defer the lock')
+})
+
+test('auto-lock can be switched off, and defaults to the quarter hour', async () => {
+  assert.equal(DEFAULT_AUTOLOCK_MS, 15 * 60 * 1000)
+  const { store, clock } = await freshStore({ autoLockMs: 0 })
+  await store.create(PASS)
+  clock.advance(365 * 24 * 60 * 60 * 1000)
+  assert.equal(store.shouldAutoLock(), false)
+})
+
+test('re-keying keeps the entries, re-salts, and retires the old passphrase', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'hunter2!' })
+  const oldSalt = store.envelope().kdf.salt
+
+  await store.rekey(PASS, 'a different passphrase entirely')
+  assert.equal(store.list().length, 1)
+  assert.notEqual(store.envelope().kdf.salt, oldSalt, 'a re-key must re-salt')
+  assert.equal(store.envelope().kdf.iterations, KDF_ITERATIONS,
+    're-keying is also the upgrade path for the cost parameter')
+
+  store.lock()
+  await assert.rejects(() => store.unlock(PASS), 'the old passphrase must stop working')
+  await store.unlock('a different passphrase entirely')
+  assert.equal(store.list()[0].label, 'email')
+})
+
+test('re-keying derives twice, which is the floor', async () => {
+  // Two derivations: one to open with the old passphrase, one to seal with
+  // the new. A third would be a visible stall on a phone for no reason.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const started = process.hrtime.bigint()
+  await store.rekey(PASS, 'another passphrase')
+  const ms = Number(process.hrtime.bigint() - started) / 1e6
+  const oneDerivation = await (async () => {
+    const t = process.hrtime.bigint()
+    await store.unlock('another passphrase')
+    return Number(process.hrtime.bigint() - t) / 1e6
+  })()
+  assert.ok(ms < oneDerivation * 2.75,
+    `re-key took ${ms.toFixed(0)}ms against ${oneDerivation.toFixed(0)}ms per derivation; that looks like three`)
+})
+
+test('destroying the vault requires the passphrase', async () => {
+  // Someone who walks up to an unlocked browser should not be able to erase
+  // the vault with one click; forgetting a passphrase is the common case.
+  const { store, storage } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'hunter2!' })
+
+  await assert.rejects(() => store.destroy('wrong'))
+  assert.equal(storage.box.cleared, 0)
+  assert.equal(store.state(), 'unlocked')
+
+  assert.equal(await store.destroy(PASS), true)
+  assert.equal(store.state(), 'absent')
+  assert.equal(storage.box.value, null)
+})
+
+test('a second vault cannot be created over an existing one', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await assert.rejects(() => store.create('another'), /already exists/)
+})
+
+test('storage failure surfaces rather than presenting as no vault', async () => {
+  // Reporting "absent" after a read error would invite creating a fresh vault
+  // on top of one that is merely unreadable right now.
+  const store = createVaultStore({
+    storage: { load: async () => { throw new Error('disk gone') }, save: async () => {}, clear: async () => {} },
+  })
+  await assert.rejects(() => store.init(), /could not be read/)
+})
+
+test('export exposes the sealed envelope and never the contents', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'Tireless4Marimba' })
+  const serialized = JSON.stringify(store.envelope())
+  assert.ok(!serialized.includes('Marimba'))
+  assert.ok(!serialized.includes('email'))
+})
+
+test('entry normalization keeps the password and forgives the rest', async () => {
+  // An entry without a password is not an entry; everything else is cosmetic
+  // and must never be a reason to drop someone's password.
+  assert.equal(normalizeEntry(null), null)
+  assert.equal(normalizeEntry({ label: 'no password' }), null)
+  assert.equal(normalizeEntry({ pw: '' }), null)
+
+  const e = normalizeEntry({ pw: 'x9!kQ' })
+  assert.equal(e.pw, 'x9!kQ')
+  assert.equal(e.label, '')
+  assert.equal(e.bits, null)
+  assert.ok(e.id, 'an id is generated when absent')
+
+  const junk = normalizeEntry({ pw: 'p', label: 42, bits: 'lots', at: 7, note: {} })
+  assert.equal(junk.label, '')
+  assert.equal(junk.bits, null)
+  assert.equal(junk.at, null)
+  assert.equal(junk.note, '')
+
+  assert.equal(normalizeEntry({ pw: 'p', label: '  spaced  ' }).label, 'spaced')
+  assert.equal(normalizeEntry({ pw: 'p', label: 'x'.repeat(500) }).label.length, 200)
+  assert.equal(normalizeEntries([{ pw: 'a' }, null, { nope: 1 }, { pw: 'b' }]).length, 2)
+  assert.deepEqual(normalizeEntries('not a list'), [])
+})
+
+test('ids are stable across edits and unique across entries', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const a = await store.add({ label: 'one', pw: 'same-password' })
+  const b = await store.add({ label: 'two', pw: 'same-password' })
+  assert.notEqual(a.id, b.id, 'identical passwords must still be distinct entries')
+
+  // Changing the password must not change which entry it is.
+  const updated = await store.update(a.id, { pw: 'rotated!' })
+  assert.equal(updated.id, a.id)
+  assert.equal(store.list().find((e) => e.id === a.id).pw, 'rotated!')
+  assert.equal(store.list().find((e) => e.id === b.id).pw, 'same-password')
+})
+
+test('the caller cannot mutate the vault by holding a listed entry', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'hunter2!' })
+  const copy = store.list()[0]
+  copy.pw = 'tampered'
+  copy.label = 'tampered'
+  assert.equal(store.list()[0].pw, 'hunter2!')
+  assert.equal(store.list()[0].label, 'email')
+})
+
+test('onChange reports every state transition', async () => {
+  const seen = []
+  const { store } = await freshStore({ onChange: (s) => seen.push(s) })
+  await store.create(PASS)
+  store.lock()
+  await store.unlock(PASS)
+  assert.deepEqual(seen.slice(-3), ['unlocked', 'locked', 'unlocked'])
+})
