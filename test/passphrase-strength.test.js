@@ -111,10 +111,11 @@ test('famous passwords are told the truth, not their ceiling', () => {
   // reality. The ceiling is honest but useless here, so the common-password
   // check overrides it -- locally, with no network, which is what keeps this
   // on the right side of 9e's no-breach-corpus line.
-  for (const s of ['password', 'Password', 'P@ssw0rd', 'password123', 'qwerty', 'letmein', '123456', 'iloveyou']) {
-    const { bits, notes } = estimatePassphrase(s)
-    assert.ok(bits <= 2, `"${s}" scored ${bits.toFixed(1)}; it should be worth about one guess`)
-    assert.ok(notes.some((n) => /guess/.test(n)), `"${s}" should say why`)
+  for (const s of ['password', 'Password', 'P@ssw0rd', 'password123', 'qwerty', 'letmein', '123456', 'iloveyou', 'monkey', 'trustno1', 'jordan23']) {
+    const { bits, notes, common } = estimatePassphrase(s)
+    assert.equal(bits, 0, `"${s}" scored ${bits.toFixed(1)}; a first-guess password is worth nothing`)
+    assert.equal(common, true, `"${s}" should be flagged so the vault can refuse it outright`)
+    assert.ok(notes.some((n) => /attackers try first/.test(n)), `"${s}" should say why`)
   }
   assert.ok(isCommon('P@ssw0rd12'), 'trailing digits and leet must not disguise a famous password')
   assert.ok(!isCommon('Marimba7-Harvest'), 'an ordinary passphrase is not on the list')

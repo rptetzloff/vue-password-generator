@@ -82,28 +82,7 @@ export const longestRepeat = (s) => {
   return best
 }
 
-/**
- * The passwords that top every leaked-credential list, plus the words people
- * reach for when asked to invent one on the spot.
- *
- * This is NOT the breach-corpus check 9e rules out: that one needs a network
- * request per password, which would break the site's central promise. This is
- * fifty-odd strings compiled in, checked locally, and it exists because
- * "password" scoring 38 bits from pool arithmetic is true and useless -- the
- * ceiling is real, but the floor for a word an attacker tries first is about
- * one guess. Anything matching gets told the truth instead of the ceiling.
- */
-const COMMON = new Set([
-  'password', 'passw0rd', 'p@ssword', 'p@ssw0rd', 'password1', 'password123',
-  '123456', '1234567', '12345678', '123456789', '1234567890', '12345',
-  'qwerty', 'qwerty123', 'qwertyuiop', 'abc123', 'letmein', 'welcome',
-  'monkey', 'dragon', 'master', 'sunshine', 'princess', 'football',
-  'baseball', 'iloveyou', 'trustno1', 'superman', 'batman', 'starwars',
-  'admin', 'administrator', 'root', 'guest', 'login', 'test', 'changeme',
-  'secret', 'whatever', 'freedom', 'shadow', 'michael', 'jennifer',
-  'hunter2', 'ninja', 'azerty', 'zaq12wsx', '1qaz2wsx', 'qazwsx',
-  'correcthorsebatterystaple', 'correct horse battery staple',
-])
+import { COMMON_PASSWORDS as COMMON } from './common-passwords.js'
 
 /** Strip the substitutions people believe disguise a word. */
 const unLeet = (s) => s.toLowerCase()
@@ -153,14 +132,16 @@ export const estimatePassphrase = (raw) => {
   const notes = []
   const pool = poolSize(s)
 
-  // A famous password is not worth its ceiling; it is worth the position it
-  // holds in the list an attacker tries first. Reported before any arithmetic
-  // so no other rule can talk the number back up.
+  // Zero, not a small number. A password on the well-known list is not weak
+  // protection, it is no protection: these are the first few hundred guesses
+  // of any attack, tried in order, before anything clever starts. Reported
+  // before any arithmetic runs, so no later rule can talk the figure back up.
   if (isCommon(s)) {
     return {
-      bits: 1,
-      notes: ['one of the first passwords anyone would guess — a decoration like “123” does not hide it'],
+      bits: 0,
+      notes: ['on the list of passwords attackers try first — decorating it with “123” or “@” does not help'],
       length: s.length,
+      common: true,
     }
   }
 

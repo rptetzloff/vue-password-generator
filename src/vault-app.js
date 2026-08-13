@@ -71,6 +71,13 @@ const App = {
 
     const create = () => {
       if (pass.value.length < 8) { error.value = 'Use at least 8 characters.'; return }
+      // Refused outright rather than merely scored badly. This one passphrase
+      // is the only key to everything in the vault, and a password from the
+      // first few hundred an attacker tries is not a weak key, it is no key.
+      if (newStrength.value?.common) {
+        error.value = 'That is one of the passwords attackers try first. Please choose another.'
+        return
+      }
       if (pass.value !== passConfirm.value) { error.value = 'The two passphrases do not match.'; return }
       return run(async () => {
         await store.create(pass.value)
@@ -127,6 +134,10 @@ const App = {
 
     const rekey = () => {
       if (newPass.value.length < 8) { error.value = 'Use at least 8 characters.'; return }
+      if (rekeyStrength.value?.common) {
+        error.value = 'That is one of the passwords attackers try first. Please choose another.'
+        return
+      }
       return run(async () => {
         await store.rekey(oldPass.value, newPass.value)
         clearPass()
