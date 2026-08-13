@@ -598,6 +598,7 @@
           <a class="nav-sub nav-item" href="#vault-entries">Entry fields</a>
           <a class="nav-sub nav-item" href="#vault-generate">Generating</a>
           <a class="nav-sub nav-item" href="#vault-organise">Groups &amp; sorting</a>
+          <a class="nav-sub nav-item" href="#vault-reuse">Reused passwords</a>
           <a class="nav-sub nav-item" href="#vault-backup">Backup &amp; import</a>
           <a class="nav-sub nav-item" href="#vault-passphrase">Passphrase</a>
           <div class="nav-divider"></div>
@@ -2045,8 +2046,33 @@
                   Groups are the outer order, sorting the inner one — entries are sorted within their group,
                   and the group headings appear only once something is actually filed. Ungrouped sorts last:
                   it is where things sit when nobody has decided, and leading with the undecided pile would be
-                  an odd headline. The group filter narrows to one group at a time, and a new entry starts in
-                  whichever group you are currently filtered to.
+                  an odd headline.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Choosing which groups to show</div>
+                <div class="option-desc">
+                  The group button opens a list of checkboxes, so you can show several at once rather than one
+                  at a time. Ticking nothing means <em>all</em> groups, not none — an empty list is never what
+                  anyone wanted. With exactly one group ticked, a new entry starts in it; with several, it
+                  starts blank, because guessing between them would be worse than not guessing.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Group them <span class="plain">(the toggle)</span></div>
+                <div class="option-desc">
+                  <p>
+                    Turn grouping off and the list becomes one flat run in pure sort order. This matters more
+                    than it sounds. With grouping on, <strong>Weakest first</strong> means
+                    weakest-<em>within-each-group</em>, so the worst password in the whole vault can sit
+                    halfway down the page under a heading.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    A four-entry vault at 128, 56, 26 and 56 bits sorts grouped as
+                    <strong>56, 128, 26, 56</strong> and flat as <strong>26, 56, 56, 128</strong>. The first is
+                    right for finding an entry you already know about; the second is right for auditing. No
+                    single default serves both, which is why it is a switch rather than a decision.
+                  </p>
                 </div>
               </div>
               <div class="option-row">
@@ -2064,6 +2090,44 @@
                     putting the unknowns first would bury the ones you can actually act on. Anything without a
                     date sorts as oldest, because an entry predating the date field genuinely is.
                   </p>
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-reuse" class="option-group">
+              <div class="option-group-label">Reused passwords</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    If two entries share a password, both say so — a badge on the entry naming how many others
+                    use it, a summary line above the list, and a filter to show only those. Editing an entry
+                    warns as you type, before the password is filed under a second name, and names the entries
+                    it collides with.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Reuse is the failure that turns one breach into several: the site that leaks your password
+                    is rarely the site you cared about, and it hands over the one you did. It is also the only
+                    piece of password health a vault like this can assess with <em>certainty</em> — no
+                    guessing, no corpus, no network. It is comparing what is already in front of it.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Exact matches only</div>
+                <div class="option-desc">
+                  <code>Password1</code> and <code>Password2</code> are two passwords, and so are
+                  <code>Password1</code> and <code>password1</code>. There is deliberately no fuzzy matching:
+                  a near-miss flagged as reuse is a guess presented as a finding, and this page does not do
+                  that anywhere else either.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Still nothing leaves the device</div>
+                <div class="option-desc">
+                  The check runs entirely in memory on the vault you have open. This is the local kind of
+                  password health; the remote kind — asking a service whether your passwords appear in a
+                  breach corpus — is on the permanent no list, along with telemetry. See
+                  <a href="/legal.html" style="color:var(--primary);">Legal</a>.
                 </div>
               </div>
             </div>

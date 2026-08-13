@@ -471,6 +471,92 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* The group picker. A menu of checkboxes rather than a <select>, because
+   several groups at once is the point. */
+.vault-groupmenu { position: relative; }
+
+.vault-groupmenu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.vault-groupmenu-panel {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 20;
+  min-width: 11rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem;
+  /* Opaque: it floats over the entry cards, and a translucent panel would put
+     two lists of text on top of each other. */
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+}
+
+.vault-groupmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.vault-groupmenu-item:hover { background: var(--overlay-soft); }
+
+.vault-groupmenu-clear {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.35rem;
+  /* Inside an opaque panel, not on the band, so this one is a link colour. */
+  color: var(--primary);
+  font-size: 0.78rem;
+}
+
+/* Password reuse: the one health finding a local vault can make with
+   certainty. Warning-coloured, not error-coloured -- a reused password is a
+   risk to fix, not a broken entry. */
+.vault-reuse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--warning);
+  cursor: help;
+}
+
+.vault-nag-warn { color: var(--band-text); }
+
+.vault-reuse-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  color: var(--warning);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.vault-reuse-warn strong { color: var(--text); }
+
 .vault-group-head {
   display: flex;
   align-items: center;

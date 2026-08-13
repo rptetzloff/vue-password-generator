@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
-  groupsOf, sortEntries, groupEntries, SORTS, UNGROUPED,
+  groupsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
 } from '../src/vault-store.js'
 import { KDF_ITERATIONS } from '../src/vault-crypto.js'
 
@@ -497,4 +497,83 @@ test('a vault with no groups at all is one Ungrouped bucket', () => {
   const grouped = groupEntries(normalizeEntries([{ pw: 'a' }, { pw: 'b' }]), 'recent')
   assert.equal(grouped.length, 1)
   assert.equal(grouped[0].name, UNGROUPED)
+})
+
+// --- password reuse ----------------------------------------------------------
+
+test('reuse is found across entries, whatever else differs', () => {
+  const list = normalizeEntries([
+    { pw: 'shared-one', label: 'Bank', group: 'Finance' },
+    { pw: 'unique', label: 'Email' },
+    { pw: 'shared-one', label: 'Broker', group: 'Finance' },
+    { pw: 'shared-one', label: 'Card' },
+    { pw: 'shared-two', label: 'Forum' },
+    { pw: 'shared-two', label: 'Wiki' },
+  ])
+  const index = reuseIndex(list)
+
+  assert.equal(index.size, 5, 'five of the six entries share with someone')
+  assert.equal(reuseCount(list), 5)
+
+  const bank = list.find((e) => e.label === 'Bank')
+  assert.deepEqual(
+    index.get(bank.id).map((e) => e.label).sort(),
+    ['Broker', 'Card'],
+    'an entry is told who it shares with, not merely that it does',
+  )
+  const email = list.find((e) => e.label === 'Email')
+  assert.equal(index.get(email.id), undefined, 'a unique password is not flagged')
+})
+
+test('an entry is never listed as reusing its own password', () => {
+  const list = normalizeEntries([{ pw: 'p', label: 'Only' }])
+  assert.equal(reuseIndex(list).size, 0)
+})
+
+test('reuse is exact: a near-miss is not a match', () => {
+  // Deliberately no fuzzy matching. "Password1" and "Password2" are two
+  // passwords, and claiming otherwise would be a guess dressed as a finding.
+  const list = normalizeEntries([
+    { pw: 'Password1', label: 'A' }, { pw: 'Password2', label: 'B' },
+    { pw: 'password1', label: 'C' }, { pw: 'Password1 ', label: 'D' },
+  ])
+  assert.equal(reuseIndex(list).size, 0)
+})
+
+test('an empty vault and a vault of one have nothing to report', () => {
+  assert.equal(reuseCount([]), 0)
+  assert.equal(reuseCount(normalizeEntries([{ pw: 'x' }])), 0)
+})
+
+test('every member of a reuse set knows about every other', () => {
+  const list = normalizeEntries(
+    Array.from({ length: 4 }, (_, i) => ({ pw: 'same', label: `E${i}` })))
+  const index = reuseIndex(list)
+  assert.equal(index.size, 4)
+  for (const entry of list) {
+    assert.equal(index.get(entry.id).length, 3, `${entry.label} should see the other three`)
+    assert.ok(!index.get(entry.id).some((o) => o.id === entry.id))
+  }
+})
+
+test('grouping and a flat sort disagree, which is why the toggle exists', () => {
+  // Grouped, "weakest first" means weakest-within-each-group, so the weakest
+  // password in the whole vault can sit halfway down the page under a heading.
+  // That is right for finding a known entry and wrong for an audit, and no
+  // single default serves both.
+  const list = normalizeEntries([
+    { pw: 'a', label: 'Bank', group: 'Finance', bits: 128 },
+    { pw: 'b', label: 'Broker', group: 'Finance', bits: 56 },
+    { pw: 'c', label: 'Email', bits: 26 },
+    { pw: 'd', label: 'Loose end', bits: 56 },
+  ])
+
+  const grouped = groupEntries(list, 'strength').flatMap((g) => g.entries).map((e) => e.bits)
+  const flat = sortEntries(list, 'strength').map((e) => e.bits)
+
+  assert.deepEqual(flat, [26, 56, 56, 128], 'flat is a true weakest-first order')
+  assert.deepEqual(grouped, [56, 128, 26, 56], 'grouped orders within each group')
+  assert.notDeepEqual(grouped, flat)
+  assert.notEqual(grouped[0], Math.min(...flat),
+    'the weakest entry is NOT first when grouped — the toggle is what fixes that')
 })

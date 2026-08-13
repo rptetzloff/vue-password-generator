@@ -229,6 +229,40 @@ export const sortEntries = (entries, sortId) => {
 }
 
 /**
+ * Which entries share a password with which others.
+ *
+ * Reuse is the failure that turns one breach into several, and it is the one
+ * piece of password health a vault can assess with certainty -- no guessing,
+ * no corpus, no network. ROADMAP 9e allows exactly this and rules out the
+ * remote kind: local analysis of what is already in front of us.
+ *
+ * Compared on the password itself. Not hashed, not truncated: the vault is
+ * decrypted in memory at this point, so a hash would add ceremony without
+ * adding protection, and it would introduce collisions where there are none.
+ *
+ * @returns Map of entry id -> the other entries sharing its password
+ */
+export const reuseIndex = (entries) => {
+  const byPassword = new Map()
+  for (const entry of entries || []) {
+    if (!entry.pw) continue
+    if (!byPassword.has(entry.pw)) byPassword.set(entry.pw, [])
+    byPassword.get(entry.pw).push(entry)
+  }
+  const index = new Map()
+  for (const shared of byPassword.values()) {
+    if (shared.length < 2) continue
+    for (const entry of shared) {
+      index.set(entry.id, shared.filter((other) => other.id !== entry.id))
+    }
+  }
+  return index
+}
+
+/** How many entries are involved in reuse at all, for a one-line summary. */
+export const reuseCount = (entries) => reuseIndex(entries).size
+
+/**
  * Entries bucketed by group, in the order the groups should appear.
  *
  * Ungrouped goes last: it is where things sit when nobody has decided, and

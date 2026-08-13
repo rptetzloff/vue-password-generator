@@ -136,7 +136,16 @@ sync needs an account. A local vault breaks no published claim.
       auditing; entries with no recorded entropy sort to the bottom of that
       last one rather than the top, since an unknown figure is not evidence of
       a weak password and the unknowns would otherwise bury the actionable
-      ones.
+      ones. The group picker takes checkboxes rather than a single choice, and
+      a "Group them" toggle turns bucketing off entirely -- grouping and
+      auditing pull in opposite directions, because weakest-first inside
+      groups can leave the vault's worst password halfway down the page.
+- [x] **Reused-password detection**, which 9e already permits: local health
+      analysis is fine, the remote kind is not. Exact matches only, flagged on
+      the entry, summarised above the list, filterable, and warned about while
+      editing rather than after saving. It is the one health finding a local
+      vault can make with certainty -- everything else about a stored password
+      is either a guess or needs a network.
 
 ### 9b. Export and import — the portability layer, and the honest sync
 

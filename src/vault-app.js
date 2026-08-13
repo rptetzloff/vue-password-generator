@@ -9,7 +9,7 @@
 import { createApp, ref, computed, watch, onMounted, onUnmounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
 import {
   createVaultStore, vaultLockMs, vaultLockSection,
-  groupsOf, groupEntries, SORTS, UNGROUPED,
+  groupsOf, groupEntries, sortEntries, reuseIndex, SORTS, UNGROUPED,
 } from './vault-store.js'
 import { MODES, readSettings, loadData, generateWithRetry } from './generators.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
@@ -165,9 +165,11 @@ const App = {
     const startAdd = () => {
       editing.value = {
         id: null, label: '', username: '', pw: '', urlText: '', note: '',
-        // A new entry lands in whatever group is currently being filtered to,
-        // which is nearly always the one you meant.
-        group: groupFilter.value === UNGROUPED ? '' : groupFilter.value,
+        // With exactly one group filtered to, a new entry lands in it -- that
+        // is nearly always the one intended. With several, guessing would be
+        // worse than leaving it blank.
+        group: (groupFilter.value.size === 1 && [...groupFilter.value][0] !== UNGROUPED)
+          ? [...groupFilter.value][0] : '',
         questions: [], bits: null, revealPw: false,
       }
     }
@@ -248,14 +250,91 @@ const App = {
       try { localStorage.setItem(SORT_KEY, JSON.stringify(v)) } catch {}
     })
 
-    /** Narrow the list to one group; '' is everything. */
-    const groupFilter = ref('')
+    /**
+     * Which groups to show. Empty means all of them, which is different from
+     * none selected -- unticking everything shows everything rather than an
+     * empty list, because an empty list is never what someone wanted.
+     */
+    const groupFilter = ref(new Set())
+    const groupMenuOpen = ref(false)
 
-    /** Group headings are only worth drawing once something is actually filed. */
+    const toggleGroup = (name) => {
+      const next = new Set(groupFilter.value)
+      next.has(name) ? next.delete(name) : next.add(name)
+      groupFilter.value = next
+    }
+    const clearGroupFilter = () => { groupFilter.value = new Set() }
+
+    // A menu that only closes by pressing its own button is a menu people
+    // leave open over the list they are trying to read.
+    const dismissGroupMenu = (event) => {
+      if (!groupMenuOpen.value) return
+      if (event.type === 'keydown') {
+        if (event.key === 'Escape') groupMenuOpen.value = false
+        return
+      }
+      if (!event.target.closest('.vault-groupmenu')) groupMenuOpen.value = false
+    }
+
+    const groupFilterLabel = computed(() => {
+      const n = groupFilter.value.size
+      if (n === 0) return 'All groups'
+      if (n === 1) return [...groupFilter.value][0]
+      return `${n} groups`
+    })
+
+    /**
+     * Whether to bucket by group at all.
+     *
+     * Off gives one flat list in pure sort order. Grouping is the right
+     * default for finding a known entry, and exactly wrong for auditing: with
+     * it on, "weakest first" means weakest-within-each-group, so the worst
+     * password in the vault can sit halfway down the page under a heading.
+     */
+    const GROUPING_KEY = 'vault.grouping'
+    const grouping = ref((() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(GROUPING_KEY))
+        return typeof saved === 'boolean' ? saved : true
+      } catch { return true }
+    })())
+    watch(grouping, (v) => {
+      try { localStorage.setItem(GROUPING_KEY, JSON.stringify(v)) } catch {}
+    })
+
     const knownGroups = computed(() => groupsOf(entries.value))
-    const grouped = computed(() => groupEntries(shown.value, sortBy.value))
-    const showGroupHeadings = computed(() =>
-      grouped.value.length > 1 || (grouped.value[0] && grouped.value[0].name !== UNGROUPED))
+
+    /** One bucket per group, or a single unnamed bucket when grouping is off. */
+    const grouped = computed(() => (grouping.value
+      ? groupEntries(shown.value, sortBy.value)
+      : [{ name: '', entries: sortEntries(shown.value, sortBy.value) }]))
+
+    const showGroupHeadings = computed(() => grouping.value && (
+      grouped.value.length > 1 || (grouped.value[0] && grouped.value[0].name !== UNGROUPED)))
+
+    // --- password reuse --------------------------------------------------------
+
+    /** entry id -> the other entries sharing its password. */
+    const reuse = computed(() => reuseIndex(entries.value))
+    const reusedWith = (entry) => reuse.value.get(entry.id) || []
+    const reuseTitle = (entry) => {
+      const others = reusedWith(entry)
+      if (!others.length) return ''
+      const names = others.map((e) => e.label || 'an untitled entry')
+      return `The same password is on ${names.join(', ')}. One breach exposes all of them.`
+    }
+    const reuseSummary = computed(() => {
+      const n = reuse.value.size
+      if (!n) return ''
+      return `${n} entries share a password with another entry.`
+    })
+    const showReusedOnly = ref(false)
+
+    /** Reuse for the entry being edited, checked live against the others. */
+    const editingReuse = computed(() => {
+      if (!editing.value || !editing.value.pw) return []
+      return entries.value.filter((e) => e.pw === editing.value.pw && e.id !== editing.value.id)
+    })
 
     // --- export and import (9b) ---------------------------------------------
 
@@ -406,9 +485,10 @@ const App = {
 
     const shown = computed(() => {
       const q = query.value.trim().toLowerCase()
-      const g = groupFilter.value
+      const groups = groupFilter.value
       return entries.value.filter((e) => {
-        if (g && (e.group || UNGROUPED) !== g) return false
+        if (groups.size && !groups.has(e.group || UNGROUPED)) return false
+        if (showReusedOnly.value && !reuse.value.has(e.id)) return false
         if (!q) return true
         return [e.label, e.username, e.note, e.group, ...(e.urls || [])]
           .some((field) => (field || '').toLowerCase().includes(q))
@@ -451,10 +531,12 @@ const App = {
       readLastExport()
       timer = setInterval(() => { if (store.lockIfIdle()) revealed.value = new Set() }, 5000)
       for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, activity, true)
+      for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, dismissGroupMenu)
     })
     onUnmounted(() => {
       clearInterval(timer)
       for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, activity, true)
+      for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, dismissGroupMenu)
     })
 
     return {
@@ -466,8 +548,10 @@ const App = {
       backupNag, lastExport, openTransfer, transferEl,
       newStrength, rekeyStrength,
       genModes, genMode, generating, generateInto,
-      sortBy, sorts: SORTS, groupFilter, knownGroups, grouped, showGroupHeadings,
-      ungrouped: UNGROUPED,
+      sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
+      ungrouped: UNGROUPED, grouping,
+      groupFilter, groupMenuOpen, toggleGroup, clearGroupFilter, groupFilterLabel,
+      reusedWith, reuseTitle, reuseSummary, showReusedOnly, editingReuse,
       iterations: KDF_ITERATIONS.toLocaleString(),
       autoLockMinutes: Math.round(vaultLockMs() / 60000),
       needsRekey: () => needsRekey(store.envelope()),
@@ -565,17 +649,43 @@ const App = {
               <option v-for="s in sorts" :key="s.id" :value="s.id">{{ s.label }}</option>
             </select>
           </label>
-          <label v-if="knownGroups.length" class="vault-filter">
-            <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
-            <span class="vault-filter-label">Group</span>
-            <select v-model="groupFilter" class="vault-select" aria-label="Filter by group">
-              <option value="">All groups</option>
-              <option v-for="g in knownGroups" :key="g" :value="g">{{ g }}</option>
-              <option :value="ungrouped">{{ ungrouped }}</option>
-            </select>
+          <!-- Checkboxes rather than a <select>, so several groups can be
+               shown at once. Unticking everything means "all", not "none". -->
+          <div v-if="knownGroups.length" class="vault-filter vault-groupmenu">
+            <button class="vault-select vault-groupmenu-btn" type="button"
+                    @click="groupMenuOpen = !groupMenuOpen"
+                    :aria-expanded="String(groupMenuOpen)">
+              <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+              {{ groupFilterLabel }}
+              <span class="mdi mdi-menu-down" aria-hidden="true"></span>
+            </button>
+            <div v-if="groupMenuOpen" class="vault-groupmenu-panel" role="group" aria-label="Groups to show">
+              <label v-for="g in knownGroups" :key="g" class="vault-groupmenu-item">
+                <input type="checkbox" :checked="groupFilter.has(g)" @change="toggleGroup(g)" />
+                <span>{{ g }}</span>
+              </label>
+              <label class="vault-groupmenu-item">
+                <input type="checkbox" :checked="groupFilter.has(ungrouped)" @change="toggleGroup(ungrouped)" />
+                <span>{{ ungrouped }}</span>
+              </label>
+              <button v-if="groupFilter.size" class="link-button vault-groupmenu-clear" type="button"
+                      @click="clearGroupFilter">Show all</button>
+            </div>
+          </div>
+          <label class="vault-filter">
+            <input type="checkbox" v-model="grouping" />
+            <span class="vault-filter-label">Group them</span>
           </label>
           <span class="vault-count">{{ shown.length }} of {{ entries.length }}</span>
         </div>
+
+        <p v-if="reuseSummary" class="vault-nag vault-nag-warn">
+          <span class="mdi mdi-content-duplicate" aria-hidden="true"></span>
+          {{ reuseSummary }}
+          <button class="link-button" type="button" @click="showReusedOnly = !showReusedOnly">
+            {{ showReusedOnly ? 'Show all entries' : 'Show only those' }}
+          </button>
+        </p>
 
         <p v-if="persisted === false" class="vault-warn">
           Your browser has not promised to keep this vault: it may be evicted if the device runs
@@ -608,6 +718,12 @@ const App = {
               <span class="vault-label">{{ e.label || 'Untitled' }}</span>
               <span v-if="tierOf(e.bits)" class="vault-bits" :class="'meter-' + tierOf(e.bits).id">
                 {{ e.bits.toFixed(1) }} bits
+              </span>
+              <!-- Reuse is the one health finding a vault can make with
+                   certainty, so it is stated on the entry rather than buried. -->
+              <span v-if="reusedWith(e).length" class="vault-reuse" :title="reuseTitle(e)">
+                <span class="mdi mdi-content-duplicate" aria-hidden="true"></span>
+                reused on {{ reusedWith(e).length }} other{{ reusedWith(e).length === 1 ? '' : 's' }}
               </span>
               <span v-if="e.at" class="vault-date">{{ e.at }}</span>
             </div>
@@ -717,6 +833,14 @@ const App = {
                 </span>
                 <a class="vault-gen-link" href="/">Change settings</a>
               </div>
+              <!-- Caught while typing, not on save: the moment to reconsider a
+                   reused password is before it is filed under a second name. -->
+              <p v-if="editingReuse.length" class="vault-reuse-warn">
+                <span class="mdi mdi-alert-outline" aria-hidden="true"></span>
+                Already used by
+                <strong>{{ editingReuse.map(e => e.label || 'an untitled entry').join(', ') }}</strong>.
+                Reuse is what turns one breach into several — generate a new one instead.
+              </p>
             </div>
             <label class="vault-field">
               <span>Web addresses</span>
