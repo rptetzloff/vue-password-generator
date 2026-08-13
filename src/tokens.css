@@ -104,7 +104,13 @@
   --band-text-dim: rgba(255, 255, 255, 0.90);
   --band-control-border: rgba(255, 255, 255, 0.70);
   --band-control-bg: rgba(255, 255, 255, 0.10);
-  --band-control-hover-bg: rgba(0, 0, 0, 0.18);
+  /* The darkening wash, for anything that needs a fill ON the band. Named
+     separately from the hover use because the changelog's release badges want
+     the same thing at rest: a white wash there measured 3.98:1 under white
+     text, for the reason spelled out above -- lightening the backdrop is the
+     wrong direction when the text is white. */
+  --band-fill: rgba(0, 0, 0, 0.18);
+  --band-control-hover-bg: var(--band-fill);
 
   /* Elevation */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);

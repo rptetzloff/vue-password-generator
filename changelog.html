@@ -113,13 +113,16 @@
       .release-version {
         font-size: 1rem;
         font-weight: 800;
-        color: white;
+        color: var(--band-text);
         letter-spacing: -0.01em;
       }
 
       .release-date {
         font-size: 0.78rem;
-        color: rgba(255,255,255,0.65);
+        /* Was rgba(255,255,255,0.65), which measured 3.44:1 on the light band.
+           These three lines sit on the page gradient, not on a card, so they
+           take --band-* like the header and the docs sidebar do. */
+        color: var(--band-text-dim);
         margin-top: 0.15rem;
       }
 
@@ -134,9 +137,15 @@
         letter-spacing: 0.06em;
       }
 
+      /* Major keeps its own opaque fill, so it is not on the band at all.
+         Minor and patch are: their white washes lightened the gradient under
+         white text and measured 3.98:1 and 3.59:1 in light. Minor takes the
+         darkening wash instead, and patch drops the fill for an outline --
+         which also keeps the three visually distinct now that neither is a
+         white block. */
       .badge-major  { background: var(--primary); color: var(--on-primary); }
-      .badge-minor  { background: rgba(255,255,255,0.2); color: white; }
-      .badge-patch  { background: rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); }
+      .badge-minor  { background: var(--band-fill); color: var(--band-text); }
+      .badge-patch  { background: none; border: 1px solid var(--band-text-dim); color: var(--band-text-dim); }
 
       /* ── Release card (right column) ──────────────────────── */
 
@@ -360,6 +369,9 @@
                     <li><strong>A stale success notice could sit beside a fresh error.</strong> The confirmation lingers for two and a half seconds; a failure inside that window showed a green "done" next to a red "did not". Found when a bad import landed under a good one.</li>
                     <li><strong>Locking from another page silently failed.</strong> Refreshing the unlock window is a read-modify-write, so a refresh in flight could write the session back after the lock button had deleted it. A synchronous guard, re-checked after the await, closes the race.</li>
                     <li><strong>A clipboard wipe could fire early on the wrong password.</strong> A timer that reached its deadline while the page was unfocused left a gesture listener armed; copying again armed a second and left the first in place, so the next click wiped the new password well before its own deadline.</li>
+                    <li><strong>Text on the blue band was measured for the first time, and some of it was invisible.</strong> The contrast suite checks token <em>pairs</em> &mdash; that <code>--text-secondary</code> clears AA on <code>--surface</code>, for ten palettes in both themes &mdash; and all of it passed. What no pair test can know is which pairs actually meet on screen. Four elements were painted straight onto the page gradient while wearing colours calibrated for a card: the generator's mode-description strip (<strong>1.28:1</strong> in light &mdash; effectively invisible, and it was in production), the changelog's release dates (3.44:1) and its Minor and Patch badges (3.98:1 and 3.59:1, their white washes lightening the band under white text). All four now use the <code>--band-*</code> tokens that already existed for this exact case. A new browser-based auditor, <code>test/tools/contrast-audit.js</code>, walks every rendered text node and composites its real backdrop &mdash; that is what found them &mdash; and the Node suite gained per-palette gradient checks plus a lint so an on-gradient rule cannot reach for a surface token again.</li>
+                    <li><strong>Slot-pill controls failed on every tint.</strong> The remove glyph used <code>--error</code> on the blue, teal, slate and amber pills: 3.28&ndash;4.41:1, failing all eight tint/theme combinations. Both it and the arrows also painted their own overlay fill over the tint, which is not the backdrop the badge pairs were verified against &mdash; that cost light teal its margin at rest (4.26:1) and took it to 3.53:1 on hover. They now inherit the pill's own verified foreground with no fill, and hover draws a <code>currentColor</code> ring, which sits beside the glyph rather than underneath it and so cannot move the contrast at all.</li>
+                    <li><strong>The selected history row's bits figure sat at 4.00:1 in dark.</strong> The active row lays <code>--focus-tint</code> over the card, so the backdrop is no longer <code>--surface</code> &mdash; the surface the token was verified against.</li>
                     <li><strong>Search and question fields were unusable at phone width</strong> &mdash; the search box had no padding at all (the shared input style lives in the generator's stylesheet, which the vault page does not load), and the three-column question row left 107px per field. The question now takes its own line below 480px.</li>
                   </ul>
                 </div>

@@ -122,7 +122,12 @@ body {
     display: block;
     text-align: center;
     font-size: 0.78rem;
-    color: var(--text-secondary);
+    /* --band-text-dim, NOT --text-secondary. This strip is drawn straight onto
+       the page gradient rather than on a card, which is the case the --band-*
+       tokens exist for. --text-secondary is calibrated against --surface, and
+       on the light band it measured 1.28:1 -- invisible, and it shipped that
+       way. The token was already here; this rule simply never reached for it. */
+    color: var(--band-text-dim);
     margin: 0 0 1.1rem;
   }
 }
@@ -1381,6 +1386,36 @@ details[open].card-collapse > summary .collapse-chevron {
 
 .slot-remove { margin-left: auto; color: var(--error); }
 
+/* Slot-pill controls sit on the pill's tint, not on --surface, and the rules
+   above were written for --surface. Two separate problems came out of that.
+
+   The colour: --error on the four tints measured 3.28-4.41:1 across both
+   themes -- all eight combinations failed. Each --badge-*-fg is already
+   verified against its own --badge-*-bg, so inheriting the pill's foreground
+   is correct by construction and stays correct if a tint is ever retuned. The
+   destructive meaning does not depend on red: the glyph is an unambiguous
+   remove affordance and the button carries an aria-label, and a red that
+   cannot be read communicates less than a legible colour that is not red.
+
+   The fill: --overlay-soft/--overlay-strong darken the tint in light and
+   lighten it in dark, so the glyph is not on the tint the badge pair was
+   verified against. At rest that cost light teal its margin (4.26:1); on
+   hover --overlay-strong took light teal to 3.53:1 and dark amber to 4.38:1.
+   So no fill inside a pill, and a currentColor ring for the hover affordance
+   -- a ring sits beside the glyph rather than underneath it, so it cannot
+   move the contrast at all. */
+.slot-pill .slot-arrow,
+.slot-pill .slot-remove {
+  color: inherit;
+  background: none;
+}
+
+.slot-pill .slot-arrow:not(:disabled):hover,
+.slot-pill .slot-remove:hover {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
 .slot-cat-select {
   font-size: 0.75rem;
   /* Was a translucent white fill with var(--text) on top. In dark mode that put
@@ -1846,6 +1881,11 @@ details[open].card-collapse > summary .collapse-chevron {
   color: var(--text-secondary);
   font-variant-numeric: tabular-nums;
 }
+
+/* The active row lays --focus-tint over the card, which lifts the backdrop out
+   from under --text-secondary: 4.00:1 in dark, just under the line. The token
+   was verified against --surface, and this row is no longer --surface. */
+.history-item-active .history-bits { color: var(--text); }
 
 /* The strength meter. Color is never the only signal -- the tier word sits
    beside the bar, the bits are stated, and width alone separates good from

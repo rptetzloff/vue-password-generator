@@ -28,9 +28,31 @@ const readBlock = (selector) => {
   return out
 }
 
-const light = readBlock(':root')
+/**
+ * Expand `var(--other)` in token values.
+ *
+ * Tokens referencing tokens is ordinary CSS -- --band-control-hover-bg is
+ * defined as var(--band-fill) so the two cannot drift apart -- but every
+ * check here reads the raw declaration text, where that is a string rather
+ * than a colour. Resolving once, at the point the merged map is built, keeps
+ * every assertion below working on real values.
+ */
+const resolveVars = (map) => {
+  const out = {}
+  for (const key of Object.keys(map)) {
+    let value = map[key]
+    for (let depth = 0; depth < 8 && /var\(\s*--/.test(value); depth++) {
+      value = value.replace(/var\(\s*(--[\w-]+)\s*(?:,[^)]*)?\)/g, (whole, ref) =>
+        (map[ref] === undefined ? whole : map[ref]))
+    }
+    out[key] = value
+  }
+  return out
+}
+
+const light = resolveVars(readBlock(':root'))
 // The dark block only overrides some tokens; the rest inherit from :root.
-const dark = { ...light, ...readBlock("[data-theme='dark']") }
+const dark = resolveVars({ ...light, ...readBlock("[data-theme='dark']") })
 
 const hex = (h) => {
   const m = /^#([0-9a-f]{6})$/i.exec(h.trim())
@@ -104,11 +126,11 @@ for (const { value } of PALETTES) {
   const isDefault = value === DEFAULT_PALETTE
   CONTEXTS.push([
     `${value}/light`,
-    isDefault ? light : { ...light, ...readBlock(`[data-palette='${value}']`) },
+    isDefault ? light : resolveVars({ ...light, ...readBlock(`[data-palette='${value}']`) }),
   ])
   CONTEXTS.push([
     `${value}/dark`,
-    isDefault ? dark : { ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) },
+    isDefault ? dark : resolveVars({ ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) }),
   ])
 }
 
@@ -183,8 +205,8 @@ const PALETTE_PAIRS = [
 
 for (const { value } of PALETTES) {
   if (value === DEFAULT_PALETTE) continue // the bare :root, covered above
-  const pLight = { ...light, ...readBlock(`[data-palette='${value}']`) }
-  const pDark = { ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) }
+  const pLight = resolveVars({ ...light, ...readBlock(`[data-palette='${value}']`) })
+  const pDark = resolveVars({ ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) })
   for (const [themeName, tokens] of [['light', pLight], ['dark', pDark]]) {
     test(`the ${value} palette meets WCAG AA in ${themeName}`, () => {
       for (const [fg, bg, min] of PALETTE_PAIRS) {
@@ -282,8 +304,8 @@ const BAND_SCRIM = { light: ['#000000', 0.10], dark: ['#ffffff', 0.10] }
 
 for (const { value } of PALETTES) {
   const isDefault = value === DEFAULT_PALETTE
-  const pLight = isDefault ? light : { ...light, ...readBlock(`[data-palette='${value}']`) }
-  const pDark = isDefault ? dark : { ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) }
+  const pLight = isDefault ? light : resolveVars({ ...light, ...readBlock(`[data-palette='${value}']`) })
+  const pDark = isDefault ? dark : resolveVars({ ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) })
 
   for (const [themeName, tokens] of [['light', pLight], ['dark', pDark]]) {
     test(`${value}/${themeName} derives --header-bg from its own gradient`, () => {
@@ -572,4 +594,175 @@ test('the meter CSS actually uses --background as its track', () => {
   assert.ok(rule, '.entropy-meter rule missing')
   assert.match(rule[0], /background: var\(--background\)/,
     'the meter track must be --background — --error on --border fails 3:1 in dark')
+})
+
+// ---------------------------------------------------------------------------
+// Text painted directly on the page gradient.
+//
+// The gap that let a 1.28:1 element reach production. Everything above checks
+// TOKEN PAIRS -- that --text-secondary clears AA on --surface, and on
+// --background, for every palette in both themes. All of it passed. What no
+// pair test can know is which pairs actually meet on screen, and `.tabs-desc`
+// -- the mode-description strip under the tab grid below 640px -- was
+// --text-secondary rendered straight onto the blue band, a pair the design
+// never intended and nothing enumerated.
+//
+// The --band-* tokens already existed for exactly this case, with a comment
+// claiming 0.90 alpha is the lowest that clears 4.5:1 on every palette
+// gradient. That claim was also untested. Both halves are pinned here: the
+// tokens are measured against both gradient stops, and the stylesheets are
+// linted so an on-gradient rule cannot reach for a surface-calibrated token.
+//
+// Finding NEW members of this category needs a browser, since it depends on
+// what actually composites where -- test/tools/contrast-audit.js does that.
+
+/**
+ * Selectors known to render straight onto --page-gradient, with no card.
+ *
+ * Maintained by hand, because whether an element ends up on the band depends
+ * on what composites where and no amount of CSS parsing settles it. The
+ * browser tool is what FINDS new members; this list is what keeps the ones we
+ * know about from regressing. Every entry here was a real failure once.
+ */
+const ON_GRADIENT = [
+  { file: '../src/style.css', selector: '.tabs-desc' },       // measured 1.28:1
+  { file: '../docs.html', selector: '.sidebar-label' },
+  { file: '../changelog.html', selector: '.release-version' },
+  { file: '../changelog.html', selector: '.release-date' },   // measured 3.44:1
+  { file: '../changelog.html', selector: '.badge-minor' },    // measured 3.98:1
+  { file: '../changelog.html', selector: '.badge-patch' },    // measured 3.59:1
+]
+
+/** Tokens calibrated against --surface. Using one on the band is the bug. */
+const SURFACE_TEXT_TOKENS = ['--text', '--text-secondary', '--text-muted']
+
+for (const { value } of PALETTES) {
+  const isDefault = value === DEFAULT_PALETTE
+  const pLight = isDefault ? light : resolveVars({ ...light, ...readBlock(`[data-palette='${value}']`) })
+  const pDark = isDefault ? dark : resolveVars({ ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) })
+
+  for (const [themeName, tokens] of [['light', pLight], ['dark', pDark]]) {
+    test(`${value}/${themeName} band text is legible on the raw gradient`, () => {
+      const stops = gradientStops(tokens['--page-gradient'])
+      assert.equal(stops.length, 2, `expected two gradient stops for ${value}/${themeName}`)
+
+      // Unlike the header, this text has no scrim under it -- it lands on the
+      // gradient itself, so both stops have to carry it.
+      for (const tokenName of ['--band-text', '--band-text-dim']) {
+        const { hex: colour, alpha } = rgbaToken(tokens[tokenName])
+        for (const stop of stops) {
+          const composited = alpha < 1 ? alphaOver(colour, alpha, stop) : colour
+          const ratio = contrast(composited, stop)
+          assert.ok(
+            ratio >= 4.5,
+            `${value}/${themeName}: ${tokenName} on the gradient stop ${stop} is ` +
+              `${ratio.toFixed(2)}:1, needs 4.5:1. The --band-* alphas are the lowest ` +
+              'that clear AA on every palette; this palette has a lighter gradient than ' +
+              'they were tuned for.',
+          )
+        }
+      }
+    })
+  }
+}
+
+test('nothing on the page gradient uses a surface-calibrated text token', () => {
+  for (const { file, selector } of ON_GRADIENT) {
+    const source = fs.readFileSync(new URL(file, import.meta.url), 'utf8')
+    // Every rule for this selector, including the ones inside media queries.
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const rules = [...source.matchAll(new RegExp(`${escaped}\\s*\\{([^}]*)\\}`, 'g'))]
+    assert.ok(rules.length, `${selector} not found in ${file}`)
+
+    const declaring = rules.filter((r) => /(^|[;\s])color\s*:/.test(r[1]))
+    assert.ok(
+      declaring.length,
+      `${selector} sits on the page gradient but never sets a color, so it inherits ` +
+        'whatever the cascade hands it — which is how it ended up at 1.28:1',
+    )
+
+    for (const rule of declaring) {
+      const colour = /(?:^|[;\s])color\s*:\s*([^;]+)/.exec(rule[1])[1].trim()
+      for (const bad of SURFACE_TEXT_TOKENS) {
+        assert.ok(
+          !colour.includes(bad),
+          `${file} ${selector} sets color: ${colour}. ${bad} is calibrated against ` +
+            '--surface, and this element is on the page gradient — use --band-text or ' +
+            '--band-text-dim.',
+        )
+      }
+      assert.match(
+        colour,
+        /var\(--band-/,
+        `${file} ${selector} sets color: ${colour}; on-gradient text must use a ` +
+          '--band-* token so the gradient tests above actually cover it',
+      )
+    }
+  }
+})
+
+// ---------------------------------------------------------------------------
+// Tinted backdrops: a row that is no longer --surface.
+//
+// The second and third things the rendered audit found, and the same shape of
+// mistake as the gradient one. A slot pill paints --badge-*-bg over the card
+// and a selected history row paints --focus-tint over it, so text inside
+// either is not on --surface any more -- but both kept tokens verified only
+// against --surface.
+
+test('slot-pill controls are legible on every tint, at rest and on hover', () => {
+  const css = fs.readFileSync(new URL('../src/style.css', import.meta.url), 'utf8')
+
+  // Colour: --error measured 3.28-4.41:1 on the four tints across both themes,
+  // failing all eight combinations. Inheriting takes the pill's --badge-*-fg,
+  // which is verified against its own --badge-*-bg, so it cannot drift.
+  const rest = /\.slot-pill \.slot-arrow,\s*\n\.slot-pill \.slot-remove \{([^}]*)\}/.exec(css)
+  assert.ok(rest, '.slot-pill .slot-arrow/.slot-remove rest rule missing')
+  assert.match(rest[1], /color:\s*inherit/,
+    'pill controls must inherit the pill foreground; --error fails AA on all four tints')
+
+  // Fill: the overlays darken the tint in light and lighten it in dark, so an
+  // overlay-filled control is NOT on the tint the badge pair was verified
+  // against. That cost light teal its margin at rest (4.26:1) and took it to
+  // 3.53:1 on hover. Both states must leave the tint alone.
+  assert.match(rest[1], /background:\s*none/,
+    'an overlay fill at rest puts the glyph on a backdrop no test verifies')
+  const hover = /\.slot-pill \.slot-remove:hover \{([^}]*)\}/.exec(css)
+  assert.ok(hover, '.slot-pill .slot-remove:hover rule missing')
+  assert.match(hover[1], /background:\s*none/,
+    '--overlay-strong on hover took light teal to 3.53:1 and dark amber to 4.38:1')
+  assert.match(hover[1], /box-shadow:[^;]*currentColor/,
+    'the hover affordance must be a ring, which sits beside the glyph rather than ' +
+      'under it and so cannot move the contrast')
+
+  // With no fill, the backdrop is exactly the tint, and this is the guarantee.
+  for (const [name, tokens] of CONTEXTS) {
+    for (const tint of ['blue', 'teal', 'slate', 'amber']) {
+      const ratio = contrast(tokens[`--badge-${tint}-fg`], tokens[`--badge-${tint}-bg`])
+      assert.ok(
+        ratio >= 4.5,
+        `${name}: inheriting on a ${tint} pill gives ${ratio.toFixed(2)}:1, needs 4.5:1`,
+      )
+    }
+  }
+})
+
+test('the selected history row keeps its bits figure legible', () => {
+  // --focus-tint over --surface lifts the backdrop out from under
+  // --text-secondary: 4.00:1 in dark sky, just under the line.
+  const css = fs.readFileSync(new URL('../src/style.css', import.meta.url), 'utf8')
+  const rule = /\.history-item-active \.history-bits \{([^}]*)\}/.exec(css)
+  assert.ok(rule, '.history-item-active .history-bits rule missing')
+  assert.match(rule[1], /color:\s*var\(--text\)/,
+    'the active row is --focus-tint over --surface, where --text-secondary measures 4.00:1')
+
+  for (const [name, tokens] of CONTEXTS) {
+    const { hex: tint, alpha } = rgbaToken(tokens['--focus-tint'])
+    const backdrop = alphaOver(tint, alpha, tokens['--surface'])
+    const ratio = contrast(tokens['--text'], backdrop)
+    assert.ok(
+      ratio >= 4.5,
+      `${name}: --text on the active history row (${backdrop}) is ${ratio.toFixed(2)}:1`,
+    )
+  }
 })
