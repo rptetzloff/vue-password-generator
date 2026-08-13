@@ -47,6 +47,9 @@ const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === '
 import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
 import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
+import {
+  MODES, MADLIB_TEMPLATES, ALL_SYMBOLS, draw, build, generate, WIRELESS_MIN,
+} from './generators.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -579,51 +582,19 @@ const SimplePassword = {
     }
 
     const generatePassword = () => {
-      if (!lowerCase.value && !upperCase.value && !digits.value && !specialChars.value && !useEmoji.value) {
-        showNotification('Please select at least one character type', 'error')
-        return
-      }
-
-      const availableTypes = []
-      if (lowerCase.value) availableTypes.push('lower')
-      if (upperCase.value) availableTypes.push('upper')
-      if (digits.value) availableTypes.push('digits')
-      if (specialChars.value) availableTypes.push('special')
-      if (useEmoji.value) availableTypes.push('emoji')
-
-      const sets = excludeAmbiguous.value
-        ? { lower: stripAmbiguous(characterSets.lower), upper: stripAmbiguous(characterSets.upper), digits: stripAmbiguous(characterSets.digits), special: stripAmbiguous(characterSets.special) }
-        : characterSets
-
-      let newPassword = ''
-      for (let i = 0; i < passwordLength.value; i++) {
-        const type = randPick(availableTypes)
-        switch (type) {
-          case 'lower':   newPassword += randChar(sets.lower); break
-          case 'upper':   newPassword += randChar(sets.upper); break
-          case 'digits':  newPassword += randChar(sets.digits); break
-          case 'special': newPassword += randChar(sets.special); break
-          case 'emoji':   newPassword += pickEmoji('default'); break
-        }
-      }
-
-      password.value = newPassword
-
-      // Bits of the process as written: a type uniformly, then a character
-      // within it. Characters are NOT uniform over the union pool, so the
-      // naive log2(union^length) would overstate -- see simpleBits.
-      const setSizes = []
-      const fullSizes = []
-      if (lowerCase.value) { setSizes.push(sets.lower.length); fullSizes.push(characterSets.lower.length) }
-      if (upperCase.value) { setSizes.push(sets.upper.length); fullSizes.push(characterSets.upper.length) }
-      if (digits.value) { setSizes.push(sets.digits.length); fullSizes.push(characterSets.digits.length) }
-      if (specialChars.value) { setSizes.push(sets.special.length); fullSizes.push(characterSets.special.length) }
-      if (useEmoji.value) { setSizes.push(EMOJI_POOLS.default.length); fullSizes.push(EMOJI_POOLS.default.length) }
-      entropy.value = simpleBits({
-        length: parseInt(passwordLength.value), setSizes,
-        fullSetSizes: excludeAmbiguous.value ? fullSizes : undefined,
+      const result = generate('simple', {
+        passwordLength: passwordLength.value,
+        lowerCase: lowerCase.value,
+        upperCase: upperCase.value,
+        digits: digits.value,
+        specialChars: specialChars.value,
+        useEmoji: useEmoji.value,
+        excludeAmbiguous: excludeAmbiguous.value,
       })
-      pushHistory(newPassword, entropy.value.total)
+      if (result.error) { showNotification(result.error, 'error'); return }
+      password.value = result.password
+      entropy.value = result.entropy
+      pushHistory(result.password, result.entropy.total)
     }
 
     onMounted(() => {
@@ -744,7 +715,6 @@ const AdvancedPassword = {
     const upperCase = persistedRef('adv.upperCase', [1, 20])
     const digits = persistedRef('adv.digits', [1, 20])
     const specialChars = persistedRef('adv.specialChars', [1, 20])
-    const ALL_SYMBOLS = '!#$%&()*+,-./:;<=>?@[]^_`{|}~'.split('')
     const activeSymbols = persistedRef('adv.activeSymbols', new Set(ALL_SYMBOLS))
     const emojiCount = persistedRef('adv.emojiCount', [0, 0])
     const excludeAmbiguous = persistedRef('adv.excludeAmbiguous', false)
@@ -778,105 +748,22 @@ const AdvancedPassword = {
     }
 
     const generatePassword = () => {
-      if (passwordLength.value === 0) {
-        password.value = ''
-        return
-      }
-
-      const len = parseInt(passwordLength.value)
-      const emMin = parseInt(emojiCount.value[0]), emMax = parseInt(emojiCount.value[1])
-      const minTotal = parseInt(lowerCase.value[0]) + parseInt(upperCase.value[0]) + parseInt(digits.value[0]) + parseInt(specialChars.value[0]) + emMin
-      const maxTotal = parseInt(lowerCase.value[1]) + parseInt(upperCase.value[1]) + parseInt(digits.value[1]) + parseInt(specialChars.value[1]) + emMax
-
-      if (minTotal > len) {
-        showNotification('Minimum character requirements exceed password length', 'error')
-        return
-      }
-
-      if (maxTotal < len) {
-        showNotification('Maximum character limits are less than password length', 'error')
-        return
-      }
-
-      const lcMin = parseInt(lowerCase.value[0]), lcMax = parseInt(lowerCase.value[1])
-      const ucMin = parseInt(upperCase.value[0]), ucMax = parseInt(upperCase.value[1])
-      const dgMin = parseInt(digits.value[0]), dgMax = parseInt(digits.value[1])
-      const spMin = parseInt(specialChars.value[0]), spMax = parseInt(specialChars.value[1])
-
-      let charTypes = []
-
-      // Add minimum required characters
-      for (let i = 0; i < lcMin; i++) charTypes.push('lower')
-      for (let i = 0; i < ucMin; i++) charTypes.push('upper')
-      for (let i = 0; i < dgMin; i++) charTypes.push('digits')
-      for (let i = 0; i < spMin; i++) charTypes.push('special')
-      for (let i = 0; i < emMin; i++) charTypes.push('emoji')
-
-      // Fill remaining slots randomly within limits
-      while (charTypes.length < len) {
-        const lowerCount = charTypes.filter(t => t === 'lower').length
-        const upperCount = charTypes.filter(t => t === 'upper').length
-        const digitCount = charTypes.filter(t => t === 'digits').length
-        const specialCount = charTypes.filter(t => t === 'special').length
-        const emojiCountCur = charTypes.filter(t => t === 'emoji').length
-
-        const availableTypes = []
-        if (lowerCount < lcMax) availableTypes.push('lower')
-        if (upperCount < ucMax) availableTypes.push('upper')
-        if (digitCount < dgMax) availableTypes.push('digits')
-        if (specialCount < spMax) availableTypes.push('special')
-        if (emojiCountCur < emMax) availableTypes.push('emoji')
-
-        if (availableTypes.length === 0) break
-
-        const randomType = randPick(availableTypes)
-        charTypes.push(randomType)
-      }
-
-      // Shuffle character types
-      for (let i = charTypes.length - 1; i > 0; i--) {
-        const j = randInt(i + 1)
-        ;[charTypes[i], charTypes[j]] = [charTypes[j], charTypes[i]]
-      }
-
-      // Generate actual password
-      const sets = excludeAmbiguous.value
-        ? { lower: stripAmbiguous(characterSets.lower), upper: stripAmbiguous(characterSets.upper), digits: stripAmbiguous(characterSets.digits) }
-        : characterSets
-      // If stripping empties a user-picked symbol set (e.g. only '|' selected),
-      // the exclusion cannot apply there; fall back to the set as chosen.
-      const symbols = (excludeAmbiguous.value ? stripAmbiguous(customSymbols.value) : customSymbols.value) || customSymbols.value
-      let newPassword = ''
-      for (const type of charTypes) {
-        switch (type) {
-          case 'lower':   newPassword += randChar(sets.lower); break
-          case 'upper':   newPassword += randChar(sets.upper); break
-          case 'digits':  newPassword += randChar(sets.digits); break
-          case 'special':  newPassword += randChar(symbols); break
-          case 'emoji':   newPassword += pickEmoji('default'); break
-        }
-      }
-
-      password.value = newPassword
-
-      // Bits for the composition that was actually drawn: uniform arrangement
-      // of the type multiset plus a uniform character per position. The type
-      // composition itself carries a little extra entropy with no closed form,
-      // so this is a floor -- under-reporting is the safe direction.
-      const typeSpecs = [
-        ['lower', 'lowercase', sets.lower.length, characterSets.lower.length],
-        ['upper', 'uppercase', sets.upper.length, characterSets.upper.length],
-        ['digits', 'digits', sets.digits.length, characterSets.digits.length],
-        ['special', 'symbols', Math.max(symbols.length, 1), Math.max(customSymbols.value.length, 1)],
-        ['emoji', 'emoji', EMOJI_POOLS.default.length, EMOJI_POOLS.default.length],
-      ]
-      entropy.value = advancedBits({
-        counts: typeSpecs.map(([key, label, size, fullSize]) => ({
-          label, size, count: charTypes.filter((t) => t === key).length,
-          fullSize: excludeAmbiguous.value ? fullSize : undefined,
-        })),
+      const result = generate('advanced', {
+        passwordLength: passwordLength.value,
+        lowerCase: lowerCase.value,
+        upperCase: upperCase.value,
+        digits: digits.value,
+        specialChars: specialChars.value,
+        activeSymbols: activeSymbols.value,
+        emojiCount: emojiCount.value,
+        excludeAmbiguous: excludeAmbiguous.value,
       })
-      pushHistory(newPassword, entropy.value.total)
+      if (result.error) { showNotification(result.error, 'error'); return }
+      password.value = result.password
+      // Length 0 is a valid state the slider can reach, not a failure.
+      if (!result.entropy) { entropy.value = null; return }
+      entropy.value = result.entropy
+      pushHistory(result.password, result.entropy.total)
     }
 
     onMounted(() => {
@@ -1184,9 +1071,6 @@ const WordsPassword = {
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     const rawWords = ref([])
-    const cachedPre = ref('')
-    const cachedSep = ref('')
-    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('words.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
@@ -1207,51 +1091,39 @@ const WordsPassword = {
       }
     }
 
-    // The lock persists across visits but the caches don't, so the first build
-    // of a session must roll even when locked.
-    let affixesRolled = false
-    const rollAffixes = () => {
-      affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
-    }
+    // The affix lock is session state, so it stays here; generators.js takes
+    // the previously used set and hands back whatever it used.
+    let heldAffixes = null
+
+    const settingsOf = () => ({
+      wordCount: wordCount.value,
+      separator: separator.value,
+      customSeparator: customSeparator.value,
+      capitalization: capitalization.value,
+      prefixMode: prefixMode.value,
+      prefixCustom: prefixCustom.value,
+      suffixMode: suffixMode.value,
+      suffixCustom: suffixCustom.value,
+      activeLeet: activeLeet.value,
+      useEmoji: useEmoji.value,
+      lockAffixes: lockAffixes.value,
+      excludeAmbiguous: excludeAmbiguous.value,
+    })
 
     const buildPassword = () => {
-      const rolledAffixes = !lockAffixes.value || !affixesRolled
-      if (rolledAffixes) rollAffixes()
-      preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => {
-        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
-        return useEmoji.value ? pickEmoji('default') + cased : cased
-      })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
-      const assembled = cachedPre.value + joined + cachedSuf.value
-      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      entropy.value = wordsBits({
-        wordCount: rawWords.value.length,
-        listSize: Math.max(wordList.value.length, 1),
-        capitalization: capitalization.value,
-        letterCount: rawWords.value.join('').length,
-        separator: separator.value,
-        prefix: prefixMode.value,
-        suffix: suffixMode.value,
-        emoji: useEmoji.value,
-        leetActive: activeLeet.value.size,
-        affixesLocked: !rolledAffixes,
-        ambiguousExcluded: excludeAmbiguous.value,
-      })
-      pushHistory(password.value, entropy.value.total)
+      const result = build('words', settingsOf(), { wordList: wordList.value },
+        rawWords.value, heldAffixes)
+      heldAffixes = result.affixes
+      password.value = result.password
+      entropy.value = result.entropy
+      preview.value = result.preview
+      pushHistory(result.password, result.entropy.total)
     }
 
     const generatePassword = () => {
-      if (wordList.value.length === 0) {
-        showNotification('Word list not loaded', 'error')
-        return
-      }
-      rawWords.value = Array.from({ length: wordCount.value }, () =>
-        randPick(wordList.value)
-      )
+      const drawn = draw('words', settingsOf(), { wordList: wordList.value })
+      if (drawn.error) { showNotification(drawn.error, 'error'); return }
+      rawWords.value = drawn.raw
       buildPassword()
     }
 
@@ -1526,88 +1398,14 @@ const NumbersPassword = {
     const { copied, notification, copyPassword } = useCopyPassword(password)
 
     const generatePassword = () => {
-      let newPassword = ''
-      let repeatedCount = 0
-      let sequentialCount = 0
-      let sequenceDirection = null // 'up', 'down', or null
-      
-      for (let i = 0; i < passwordLength.value; i++) {
-        let availableDigits = '0123456789'
-        const lastDigit = newPassword.slice(-1)
-        
-        if (lastDigit) {
-          const lastNum = parseInt(lastDigit)
-          
-          // Remove digits that would exceed repeat limit
-          if (repeatedCount >= maxRepeated.value) {
-            availableDigits = availableDigits.replace(lastDigit, '')
-          }
-          
-          // Remove digits that would exceed sequential limit
-          if (sequentialCount >= maxSequential.value) {
-            if (sequenceDirection === 'up' && lastNum < 9) {
-              availableDigits = availableDigits.replace((lastNum + 1).toString(), '')
-            }
-            if (sequenceDirection === 'down' && lastNum > 0) {
-              availableDigits = availableDigits.replace((lastNum - 1).toString(), '')
-            }
-          }
-        }
-        
-        if (availableDigits.length === 0) {
-          availableDigits = '0123456789'
-        }
-        
-        const nextDigit = randChar(availableDigits)
-        newPassword += nextDigit
-        
-        // Update counters
-        if (lastDigit) {
-          const lastNum = parseInt(lastDigit)
-          const nextNum = parseInt(nextDigit)
-          
-          if (nextDigit === lastDigit) {
-            repeatedCount++
-            sequentialCount = 1
-            sequenceDirection = null
-          } else if (nextNum === lastNum + 1) {
-            if (sequenceDirection === 'up') {
-              sequentialCount++
-            } else {
-              sequentialCount = 2
-              sequenceDirection = 'up'
-            }
-            repeatedCount = 1
-          } else if (nextNum === lastNum - 1) {
-            if (sequenceDirection === 'down') {
-              sequentialCount++
-            } else {
-              sequentialCount = 2
-              sequenceDirection = 'down'
-            }
-            repeatedCount = 1
-          } else {
-            repeatedCount = 1
-            sequentialCount = 1
-            sequenceDirection = null
-          }
-        } else {
-          repeatedCount = 1
-          sequentialCount = 1
-        }
-      }
-      
-      password.value = newPassword
-
-      // Exact: replays the filtered-pool state machine over the password just
-      // produced, so the repeat and sequence limits are priced at what they
-      // actually removed on this path.
-      entropy.value = numbersBits({
-        password: newPassword,
-        maxRepeated: parseInt(maxRepeated.value),
-        maxSequential: parseInt(maxSequential.value),
+      const result = generate('numbers', {
+        passwordLength: passwordLength.value,
+        maxRepeated: maxRepeated.value,
+        maxSequential: maxSequential.value,
       })
-      pushHistory(newPassword, entropy.value.total)
+      password.value = result.password
+      entropy.value = result.entropy
+      pushHistory(result.password, result.entropy.total)
     }
 
     onMounted(() => {
@@ -1816,9 +1614,6 @@ const Passphrase = {
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     const rawWords = ref([])
-    const cachedPre = ref('')
-    const cachedSep = ref('')
-    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('phrase.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'passphrase')
     const wordData = ref({})
@@ -1848,64 +1643,39 @@ const Passphrase = {
       return randPick(pool)
     }
 
-    // The lock persists across visits but the caches don't, so the first build
-    // of a session must roll even when locked.
-    let affixesRolled = false
-    const rollAffixes = () => {
-      affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
-    }
+    // The affix lock is session state, so it stays here; generators.js takes
+    // the previously used set and hands back whatever it used.
+    let heldAffixes = null
+
+    const settingsOf = () => ({
+      slots: slots.value,
+      separator: separator.value,
+      customSeparator: customSeparator.value,
+      capitalization: capitalization.value,
+      prefixMode: prefixMode.value,
+      prefixCustom: prefixCustom.value,
+      suffixMode: suffixMode.value,
+      suffixCustom: suffixCustom.value,
+      activeLeet: activeLeet.value,
+      useEmoji: useEmoji.value,
+      lockAffixes: lockAffixes.value,
+      excludeAmbiguous: excludeAmbiguous.value,
+    })
 
     const buildPassword = () => {
-      const rolledAffixes = !lockAffixes.value || !affixesRolled
-      if (rolledAffixes) rollAffixes()
-      preview.value = rawWords.value.map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
-      const words = rawWords.value.map((w, i, arr) => {
-        const cased = applyCapitalization(w, capitalization.value, i, arr.length)
-        if (useEmoji.value) {
-          const slot = slots.value[i]
-          const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
-          return pickEmoji(emojiCat) + cased
-        }
-        return cased
-      })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
-      const assembled = cachedPre.value + joined + cachedSuf.value
-      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      const slotInfos = slots.value.map((s) => {
-        const cats = wordData.value[s.type] || {}
-        const pool = s.cat === 'random' ? allOf(cats) : (cats[s.cat] || allOf(cats))
-        const emojiCat = s.cat === 'random' ? s.type : (s.cat || 'default')
-        return {
-          label: s.cat === 'random' ? s.type : `${s.type} · ${s.cat}`,
-          poolSize: Math.max(pool.length, 1),
-          // Mirrors pickEmoji's lookup exactly, fallback included.
-          emojiPoolSize: (EMOJI_POOLS[emojiCat] || EMOJI_POOLS.default).length,
-        }
-      })
-      entropy.value = slotBits({
-        slots: slotInfos,
-        capitalization: capitalization.value,
-        letterCount: rawWords.value.join('').length,
-        separator: separator.value,
-        prefix: prefixMode.value,
-        suffix: suffixMode.value,
-        emoji: useEmoji.value,
-        leetActive: activeLeet.value.size,
-        affixesLocked: !rolledAffixes,
-        ambiguousExcluded: excludeAmbiguous.value,
-      })
-      pushHistory(password.value, entropy.value.total)
+      const result = build('passphrase', settingsOf(), { wordData: wordData.value },
+        rawWords.value, heldAffixes)
+      heldAffixes = result.affixes
+      password.value = result.password
+      entropy.value = result.entropy
+      preview.value = result.preview
+      pushHistory(result.password, result.entropy.total)
     }
 
     const generatePassword = () => {
-      if (slots.value.length === 0) {
-        showNotification('Add at least one word slot', 'error')
-        return
-      }
-      rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
+      const drawn = draw('passphrase', settingsOf(), { wordData: wordData.value })
+      if (drawn.error) { showNotification(drawn.error, 'error'); return }
+      rawWords.value = drawn.raw
       buildPassword()
     }
 
@@ -2228,9 +1998,6 @@ const WifiWords = {
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
     const preview = ref('')
     const rawWords = ref([])
-    const cachedPre = ref('')
-    const cachedSep = ref('')
-    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('wifi.history')
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password, 'wifi')
     const wordData = ref({})
@@ -2268,114 +2035,53 @@ const WifiWords = {
       return randPick(pool)
     }
 
-    const pickAlliterationLetter = () => {
-      const allPools = slots.value.map(s => {
-        const cats = wordData.value[s.type]
-        if (!cats) return new Set()
-        const pool = s.cat === 'random' ? allOf(cats) : (cats[s.cat] || allOf(cats))
-        return new Set(pool.map(w => w.charAt(0).toLowerCase()))
-      })
-      if (allPools.length === 0) return ''
-      const common = [...allPools[0]].filter(l => allPools.every(p => p.has(l)))
-      if (common.length === 0) return ''
-      return randPick(common)
-    }
+    // The affix lock is session state, so it stays here; generators.js takes
+    // the previously used set and hands back whatever it used.
+    let heldAffixes = null
 
-    // The lock persists across visits but the caches don't, so the first build
-    // of a session must roll even when locked.
-    let affixesRolled = false
-    const rollAffixes = () => {
-      affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
-    }
-
+    // Short results are flagged rather than hidden -- see the retry below.
     const warnSet = ref(new Set())
 
-    const buildPassword = () => {
-      const rolledAffixes = !lockAffixes.value || !affixesRolled
-      if (rolledAffixes) rollAffixes()
-      preview.value = rawWords.value.map(w => w ? w.charAt(0).toUpperCase() + w.slice(1).toLowerCase() : '').join(' ')
-      const words = rawWords.value.map((w, i, arr) => {
-        const cased = applyCapitalization(w || '', capitalization.value, i, arr.length)
-        if (useEmoji.value) {
-          const slot = slots.value[i]
-          const emojiCat = slot?.cat === 'random' ? slot?.type : (slot?.cat || 'default')
-          return pickEmoji(emojiCat) + cased
-        }
-        return cased
-      })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
-      const assembled = cachedPre.value + joined + cachedSuf.value
-      const result = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      password.value = result
+    const settingsOf = () => ({
+      slots: slots.value,
+      separator: separator.value,
+      customSeparator: customSeparator.value,
+      capitalization: capitalization.value,
+      prefixMode: prefixMode.value,
+      prefixCustom: prefixCustom.value,
+      suffixMode: suffixMode.value,
+      suffixCustom: suffixCustom.value,
+      activeLeet: activeLeet.value,
+      useEmoji: useEmoji.value,
+      lockAffixes: lockAffixes.value,
+      excludeAmbiguous: excludeAmbiguous.value,
+      alliterationMode: alliterationMode.value,
+    })
 
-      // With alliteration on, the free pools shrink to the drawn letter and
-      // the breakdown states the measured cost of that. The 8-character
-      // minimum's retry can shave a further fraction of a bit at very small
-      // settings; it is not modelled.
-      const letter = alliterationMode.value ? alliterationLetter.value : ''
-      let commonLetters = 0
-      if (letter) {
-        const pools = slots.value.map((s) => {
-          const cats = wordData.value[s.type] || {}
-          const p = s.cat === 'random' ? allOf(cats) : (cats[s.cat] || allOf(cats))
-          return new Set(p.map((w) => w.charAt(0).toLowerCase()))
-        })
-        commonLetters = pools.length
-          ? [...pools[0]].filter((l) => pools.every((p) => p.has(l))).length
-          : 0
-      }
-      const slotInfos = slots.value.map((s) => {
-        const cats = wordData.value[s.type] || {}
-        const freePool = s.cat === 'random' ? allOf(cats) : (cats[s.cat] || allOf(cats))
-        const pool = letter ? freePool.filter((w) => w.charAt(0).toLowerCase() === letter) : freePool
-        const emojiCat = s.cat === 'random' ? s.type : (s.cat || 'default')
-        return {
-          label: s.cat === 'random' ? s.type : `${s.type} · ${s.cat}`,
-          poolSize: Math.max(pool.length, 1),
-          freePoolSize: Math.max(freePool.length, 1),
-          letter,
-          emojiPoolSize: (EMOJI_POOLS[emojiCat] || EMOJI_POOLS.default).length,
-        }
-      })
-      entropy.value = wirelessBits({
-        alliteration: !!letter,
-        commonLetters: Math.max(commonLetters, 1),
-        slots: slotInfos,
-        capitalization: capitalization.value,
-        letterCount: rawWords.value.join('').length,
-        separator: separator.value,
-        prefix: prefixMode.value,
-        suffix: suffixMode.value,
-        emoji: useEmoji.value,
-        leetActive: activeLeet.value.size,
-        affixesLocked: !rolledAffixes,
-        ambiguousExcluded: excludeAmbiguous.value,
-      })
+    const buildPassword = () => {
+      const result = build('wireless', settingsOf(), { wordData: wordData.value },
+        rawWords.value, heldAffixes, alliterationLetter.value)
+      heldAffixes = result.affixes
+      password.value = result.password
+      entropy.value = result.entropy
+      preview.value = result.preview
     }
 
+    // A key shorter than 8 characters is rejected by the router rather than
+    // merely weak, so a short build is redrawn. Ten attempts, then the result
+    // is flagged -- no number of redraws makes a three-letter word long enough.
     const generatePassword = (attempt = 0) => {
       if (typeof attempt !== 'number') attempt = 0
-      if (slots.value.length === 0) {
-        showNotification('Add at least one word slot', 'error')
-        return
-      }
-      if (alliterationMode.value) {
-        const letter = pickAlliterationLetter()
-        alliterationLetter.value = letter
-        rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat, letter))
-      } else {
-        alliterationLetter.value = ''
-        rawWords.value = slots.value.map(s => pickFrom(s.type, s.cat))
-      }
+      const drawn = draw('wireless', settingsOf(), { wordData: wordData.value })
+      if (drawn.error) { showNotification(drawn.error, 'error'); return }
+      alliterationLetter.value = drawn.letter
+      rawWords.value = drawn.raw
       buildPassword()
-      if (password.value.length < 8 && attempt < 10) {
+      if (password.value.length < WIRELESS_MIN && attempt < 10) {
         generatePassword(attempt + 1)
         return
       }
-      if (password.value.length < 8) {
+      if (password.value.length < WIRELESS_MIN) {
         warnSet.value = new Set([...warnSet.value, password.value])
       }
       pushHistory(password.value, entropy.value ? entropy.value.total : null)
@@ -2681,21 +2387,6 @@ const WifiWords = {
 }
 
 // Mad Lib Password Component
-const MADLIB_TEMPLATES = [
-  { id: 'hero',      label: 'The Hero',       template: 'The {adj} {noun} {adv} {verb} the {adj} {noun}' },
-  { id: 'villain',   label: 'The Villain',    template: 'A {adj} {noun} {adv} {verb} every {noun}' },
-  { id: 'quest',     label: 'The Quest',      template: '{noun} {adv} {verb} beyond the {adj} {noun}' },
-  { id: 'science',   label: 'Science!',       template: 'The {adj} {noun} {adv} {verb} any {noun}' },
-  { id: 'proverb',   label: 'Wise Proverb',   template: 'A {adj} {noun} {adv} {verb} alone' },
-  { id: 'news',      label: 'Breaking News',  template: '{adj} {noun} {adv} {verb} the {noun}' },
-  { id: 'haiku',     label: 'Haiku-ish',      template: '{adj} {noun} {adv} {verb}' },
-  { id: 'epic',      label: 'Epic Tale',      template: '{noun} and {noun} {adv} {verb} the {adj} world' },
-  { id: 'mystery',   label: 'Mystery',        template: 'A {noun} {adv} {verb} the {adj} {noun}' },
-  { id: 'romance',   label: 'Romance',        template: 'The {adj} {noun} {adv} {verb} a {adj} {noun}' },
-  { id: 'scifi',     label: 'Sci-Fi',         template: '{adj} {noun} {adv} {verb} every {noun}' },
-  { id: 'fable',     label: 'Fable',          template: 'Once the {adj} {noun} {adv} {verb} alone' },
-]
-
 const MadLib = {
   name: 'MadLib',
   setup() {
@@ -2751,9 +2442,6 @@ const MadLib = {
     const excludeAmbiguous = persistedRef('madlib.excludeAmbiguous', false)
     const affixOpen = persistedRef('madlib.ui.affixOpen', false)
     const extrasOpen = persistedRef('madlib.ui.extrasOpen', false)
-    const cachedPre = ref('')
-    const cachedSep = ref('')
-    const cachedSuf = ref('')
     const { history, pushHistory } = useHistory('madlib.history')
     const { copied, notification, copyPassword } = useCopyPassword(password)
     const wordData = ref({})
@@ -2781,83 +2469,41 @@ const MadLib = {
       return randPick(pool) || ''
     }
 
-    // The lock persists across visits but the caches don't, so the first build
-    // of a session must roll even when locked.
-    let affixesRolled = false
-    const rollAffixes = () => {
-      affixesRolled = true
-      cachedPre.value = resolveToken(prefixMode.value, prefixCustom.value, excludeAmbiguous.value)
-      cachedSuf.value = resolveSuffixToken(suffixMode.value, suffixCustom.value, cachedPre.value, excludeAmbiguous.value)
-      cachedSep.value = resolveToken(separator.value, customSeparator.value, excludeAmbiguous.value)
-    }
+    // The affix lock is session state, so it stays here; generators.js takes
+    // the previously used set and hands back whatever it used.
+    let heldAffixes = null
+
+    const settingsOf = () => ({
+      templateId: templateId.value,
+      slotCats: slotCats.value,
+      separator: separator.value,
+      customSeparator: customSeparator.value,
+      capitalization: capitalization.value,
+      prefixMode: prefixMode.value,
+      prefixCustom: prefixCustom.value,
+      suffixMode: suffixMode.value,
+      suffixCustom: suffixCustom.value,
+      activeLeet: activeLeet.value,
+      useEmoji: useEmoji.value,
+      lockAffixes: lockAffixes.value,
+      excludeAmbiguous: excludeAmbiguous.value,
+    })
 
     const buildPassword = () => {
-      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
-      if (!tmpl) return
-      const rolledAffixes = !lockAffixes.value || !affixesRolled
-      if (rolledAffixes) rollAffixes()
-      const totalWords = rawSegments.value.filter(s => s.isToken).length
-      let wordIndex = 0
-      const filledSegments = rawSegments.value.map(seg => {
-        if (!seg.isToken) return seg.word
-        return applyCapitalization(seg.word, capitalization.value, wordIndex++, totalWords)
-      })
-      preview.value = filledSegments.join('')
-      const tokenSegs = rawSegments.value.filter(s => s.isToken)
-      const words = filledSegments.filter((_, i) => rawSegments.value[i]?.isToken).map((w, i) => {
-        if (useEmoji.value) {
-          const seg = tokenSegs[i]
-          const slotEntry = slotCats.value.find(s => s.type === seg?.type && s.occurrence === seg?.occurrence)
-          const emojiCat = slotEntry?.cat === 'random' ? (seg?.type || 'default') : (slotEntry?.cat || seg?.type || 'default')
-          return pickEmoji(emojiCat) + w
-        }
-        return w
-      })
-      const joined = isPerGapSeparator(separator.value) ? joinPerGap(words, separator.value, excludeAmbiguous.value) : words.join(cachedSep.value)
-      const assembled = cachedPre.value + joined + cachedSuf.value
-      password.value = activeLeet.value.size > 0 ? applyLeet(assembled, activeLeet.value) : assembled
-      // Only the token slots carry entropy -- the template text is a setting.
-      const entropySegs = rawSegments.value.filter(s => s.isToken)
-      const slotInfos = entropySegs.map((seg) => {
-        const slotEntry = slotCats.value.find(s => s.type === seg.type && s.occurrence === seg.occurrence)
-        const cat = slotEntry?.cat ?? 'random'
-        const typeCats = wordData.value[seg.type] || {}
-        const pool = cat === 'random' ? allOf(typeCats) : (typeCats[cat] || allOf(typeCats))
-        const emojiCat = cat === 'random' ? (seg.type || 'default') : cat
-        return {
-          label: cat === 'random' ? seg.type : `${seg.type} · ${cat}`,
-          poolSize: Math.max(pool.length, 1),
-          emojiPoolSize: (EMOJI_POOLS[emojiCat] || EMOJI_POOLS.default).length,
-        }
-      })
-      entropy.value = slotBits({
-        slots: slotInfos,
-        capitalization: capitalization.value,
-        letterCount: entropySegs.map(s => s.word).join('').length,
-        separator: separator.value,
-        prefix: prefixMode.value,
-        suffix: suffixMode.value,
-        emoji: useEmoji.value,
-        leetActive: activeLeet.value.size,
-        affixesLocked: !rolledAffixes,
-        ambiguousExcluded: excludeAmbiguous.value,
-      })
-      pushHistory(password.value, entropy.value.total)
+      const result = build('madlib', settingsOf(), { wordData: wordData.value },
+        rawSegments.value, heldAffixes)
+      if (result.error) return
+      heldAffixes = result.affixes
+      password.value = result.password
+      entropy.value = result.entropy
+      preview.value = result.preview
+      pushHistory(result.password, result.entropy.total)
     }
 
     const generatePassword = () => {
-      const tmpl = MADLIB_TEMPLATES.find(t => t.id === templateId.value)
-      if (!tmpl) return
-      const typeOccurrence = {}
-      const parts = tmpl.template.split(/(\{[^}]+\})/)
-      rawSegments.value = parts.map(part => {
-        const m = part.match(/^\{(adj|adv|noun|verb)\}$/)
-        if (!m) return { word: part, isToken: false }
-        const type = m[1]
-        typeOccurrence[type] = (typeOccurrence[type] || 0) + 1
-        const slotEntry = slotCats.value.find(s => s.type === type && s.occurrence === typeOccurrence[type])
-        return { word: pickFrom(type, slotEntry?.cat ?? 'random'), isToken: true, type, occurrence: typeOccurrence[type] }
-      })
+      const drawn = draw('madlib', settingsOf(), { wordData: wordData.value })
+      if (drawn.error) return
+      rawSegments.value = drawn.raw
       buildPassword()
     }
 

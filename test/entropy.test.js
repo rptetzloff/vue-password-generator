@@ -6,6 +6,7 @@ import {
   simpleBits, advancedBits, wordsBits, slotBits, alliterationSlotParts,
   numbersSurprisal, numbersBits, ENTROPY_FLOOR,
 } from '../src/entropy.js'
+import { generate } from '../src/generators.js'
 
 // The entropy display is only worth shipping if the numbers are true. Where a
 // formula can be PROVEN against enumeration, it is; where it mirrors a
@@ -48,20 +49,30 @@ test('numbers breakdown reports the cost of the limits', () => {
   assert.ok(parts.some((p) => /limits/.test(p.label)))
 })
 
-// The surprisal replays main.js's transition logic. It cannot import main.js
-// (which mounts an app), so this canary fails if the generator's code changes
-// without the replica being revisited.
-test('canary: the Numbers generator in main.js still matches the replica', () => {
-  const main = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
-  for (const line of [
-    'if (repeatedCount >= maxRepeated.value)',
-    'if (sequentialCount >= maxSequential.value)',
-    "if (sequenceDirection === 'up' && lastNum < 9)",
-    "if (sequenceDirection === 'down' && lastNum > 0)",
-    'if (availableDigits.length === 0)',
-  ]) {
-    assert.ok(main.includes(line),
-      `main.js no longer contains "${line}" — the Numbers generator changed; update numbersSurprisal to match`)
+// This used to be a canary: numbersSurprisal replays the digit generator's
+// transition logic, that logic lived inside a Vue component in main.js which a
+// test cannot import, so the best available check was asserting that five
+// specific lines still appeared in the file. It caught drift by proxy and
+// nothing more -- reordered code passed, and a rewritten line failed whether or
+// not the behaviour changed.
+//
+// The generator moved to generators.js, so the real property is now testable:
+// every password the generator can actually produce must be one the model
+// considers reachable. A NaN is the model saying "this output is impossible"
+// about an output that just happened, which would make the bits beside it a
+// fiction.
+test('numbersSurprisal accepts everything the real generator produces', () => {
+  for (const [maxRepeated, maxSequential] of [[1, 1], [1, 2], [2, 2], [3, 3], [1, 5], [5, 1]]) {
+    for (let i = 0; i < 150; i++) {
+      const { password } = generate('numbers',
+        { passwordLength: 14, maxRepeated, maxSequential }, {})
+      const bits = numbersSurprisal(password, maxRepeated, maxSequential)
+      assert.ok(
+        Number.isFinite(bits),
+        `${password} was generated at maxRep=${maxRepeated} maxSeq=${maxSequential}, ` +
+          'but numbersSurprisal calls it unreachable',
+      )
+    }
   }
 })
 
