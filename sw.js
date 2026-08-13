@@ -11,7 +11,7 @@
 // the cache. The browser re-fetches sw.js on navigation, sees a new byte
 // sequence, installs the new worker, and activate() below drops the old
 // cache. Assets are cache-first *within* a version, never across versions.
-const VERSION = '2.24.0'
+const VERSION = '3.0.0'
 const CACHE = 'pwgen-' + VERSION
 
 const PRECACHE = [
@@ -37,6 +37,7 @@ const PRECACHE = [
   '/src/passphrase-strength.js',
   '/src/common-passwords.js',
   '/src/vault-store.js',
+  '/src/vault-transfer.js',
   '/src/vault-session.js',
   '/src/vault-app.js',
   '/src/theme.js',

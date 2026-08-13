@@ -299,6 +299,76 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v3.0.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v3.0.0</div>
+            <div class="release-date">2026-08-12</div>
+            <span class="release-badge badge-major">Major</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">The vault — somewhere for a password to go</div>
+                <div class="release-summary">A generator was a moment-tool: you took a password and left, and the clipboard timer erased the only copy thirty seconds later. WordLock now has an encrypted, offline, accountless vault to keep it in — and a way back out again. The generator stays first-class and stays the front door; that is a condition of the change, not a courtesy.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added — The vault</span></div>
+                  <ul class="change-list">
+                    <li><strong>An encrypted local vault</strong> at <code>/vault.html</code> &mdash; entries sealed as a single AES-256-GCM blob under a key derived from a passphrase you choose, PBKDF2-SHA256 at 600,000 iterations (the OWASP floor). No account, no server, no sync, and no recovery: nobody can open it or reset the passphrase, including us. The iteration count travels inside each vault, so raising the default later will never strand an older one.</li>
+                    <li><strong>Keep</strong> beside every generated password, and on every history row &mdash; files it in the vault with a label, the date, and the exact entropy the generator computed at the time, shown afterwards as a coloured pill so a weak old entry is visible at a glance.</li>
+                    <li><strong>Auto-lock on idle</strong>, with the window in the same settings gear as the clipboard timer (Never, 1, 5, 15 or 60 minutes; 15 by default). Locked means the key has been discarded, not hidden. The deadline is measured against the clock rather than trusted to a timer, so a laptop that slept through it locks on waking.</li>
+                    <li><strong>Full entries, not just strings</strong> &mdash; username, any number of web addresses, and security question/answer pairs. Answers are treated as the secrets they are: masked, copyable, and covered by the clipboard timer, with the reminder that they need not be true. Search covers labels, usernames, notes and addresses.</li>
+                    <li><strong>Persistent storage is requested, and the answer is shown.</strong> An installed app is usually granted it silently; a tab may not be. A vault the browser might evict says so rather than letting you find out by losing it.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added — Getting your data out</span></div>
+                  <ul class="change-list">
+                    <li><strong>Encrypted backup</strong> &mdash; the sealed vault as a single <code>.json</code> file, still encrypted, safe to keep anywhere, restorable with the passphrase it was made with. This is also the sync story, deliberately: you move the file, and no server ever holds the ciphertext.</li>
+                    <li><strong>Plain-text export, reversing an earlier decision.</strong> The roadmap said plain-text export would not be offered, on the grounds that a CSV of passwords is the format every manager regrets supporting. That reasoning was right about the format and wrong about the alternative: refusing every exit but "another copy of WordLock" is lock-in, and an escape hatch you cannot use is not an escape hatch &mdash; particularly with no account behind the product to recover anyone who gets stuck. JSON and CSV both ship, behind a confirmation that says exactly what the file is, with <code>PLAINTEXT</code> in the filename and a warning inside the JSON itself. Only the encrypted backup counts as a backup.</li>
+                    <li><strong>Import that merges and never deletes.</strong> Reads WordLock backups, WordLock plain exports, and CSVs from other managers &mdash; the common Bitwarden, LastPass and 1Password header names are recognised. Entries already present are skipped, so restoring an old backup cannot silently wipe newer work. Identity is the entry id where both sides have one and the password paired with its label otherwise, because two accounts can share a password and one account's password can change.</li>
+                    <li><strong>A quiet backup reminder</strong> &mdash; one line of text noting how many entries have been added since the last backup, and a link to make one. Not a modal: a vault that shouts at every visit gets ignored at the visit that matters.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong>A passphrase on the worst-passwords list is refused, not merely scored badly.</strong> 515 entries compiled offline from the SecLists (MIT) "500 worst passwords" plus curated additions, shipped with the site &mdash; nothing you type is ever sent anywhere to be checked. Against a vault this is not a weak key, it is no key, so the create and rekey forms reject it outright. On the generator's strength readout such a password now reads zero bits. In practice this changes the number far more than the verdict: 497 of the 499 tested already rated weak.</li>
+                    <li><strong>Live passphrase strength, labelled as a ceiling rather than a score.</strong> The vault forms show <em>at most N bits</em> as you type, with the deductions named. Everywhere else on the site the entropy figure is exact, because the generator made every random choice and can count them; it cannot know what went into something you typed, and a real attacker's dictionary knows words, names and dates that a few hundred lines of arithmetic do not. The reading can say a passphrase is bad and never that one is good, and the wording says so.</li>
+                    <li><strong>The clipboard timer now covers the vault</strong> &mdash; copying a password, a username or a security answer from an entry arms the same wipe the generator uses. It was extracted from <code>main.js</code> into a shared module rather than duplicated.</li>
+                    <li><strong>Staying unlocked between pages, with the cost stated.</strong> Walking from the generator to the vault inside the lock window no longer asks for the passphrase again. Making that work writes the vault key to browser storage, wrapped under a second key the browser holds &mdash; for the length of the window, a slightly weaker position than "the key exists only in memory". Setting the vault lock to <em>Never</em> switches it off entirely, and the Legal and Docs pages both say what the trade is. An earlier SharedWorker approach was measured, found to die with the last document, and dropped.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>A vault section in the docs</strong> covering the encryption, the locking window and what it costs, the entry fields, backup and import, and how to choose the passphrase.</li>
+                    <li><strong>Adopt a generated password as the vault passphrase</strong> &mdash; offered when no vault exists yet, behind a warning to write it down or save it elsewhere first, with a checkbox that must be ticked. There is no recovery, so there is no forgiving version of this flow.</li>
+                    <li><strong>Import failures say what is actually wrong</strong> &mdash; "that CSV has no password column", "that file is not valid JSON" &mdash; instead of a single generic message, which was the only thing that could tell someone how to fix the file.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>A stale success notice could sit beside a fresh error.</strong> The confirmation lingers for two and a half seconds; a failure inside that window showed a green "done" next to a red "did not". Found when a bad import landed under a good one.</li>
+                    <li><strong>Locking from another page silently failed.</strong> Refreshing the unlock window is a read-modify-write, so a refresh in flight could write the session back after the lock button had deleted it. A synchronous guard, re-checked after the await, closes the race.</li>
+                    <li><strong>A clipboard wipe could fire early on the wrong password.</strong> A timer that reached its deadline while the page was unfocused left a gesture listener armed; copying again armed a second and left the first in place, so the next click wiped the new password well before its own deadline.</li>
+                    <li><strong>Search and question fields were unusable at phone width</strong> &mdash; the search box had no padding at all (the shared input style lives in the generator's stylesheet, which the vault page does not load), and the three-column question row left 107px per field. The question now takes its own line below 480px.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v2.24.0 -->
         <div class="release">
           <div class="release-meta">

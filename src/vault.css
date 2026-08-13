@@ -90,6 +90,14 @@
 
 .btn:disabled { opacity: 0.65; cursor: default; }
 
+/* For secondary actions inside a block that already has a primary one -- the
+   plain-text exports, and adding a question row. */
+.btn-small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
 /* Live strength of a TYPED passphrase. Visually quieter than the generator's
    meter on purpose: that one states a fact, this one states a ceiling, and
    the two should not look like the same claim. */
@@ -188,6 +196,30 @@
 .vault-error { color: var(--error); border-color: var(--error); background: var(--surface); }
 .vault-notice { color: var(--success); border-color: var(--success); background: var(--surface); }
 .vault-warn { color: var(--warning); border-color: var(--warning); background: var(--surface); }
+
+/* The backup reminder. Quieter than .vault-warn on purpose: nothing is wrong
+   yet, and a vault that shouts at every visit gets ignored at the one that
+   matters. No border, no colour of its own. */
+.vault-nag {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--primary);
+  text-decoration: underline;
+  cursor: pointer;
+}
 
 .vault-empty {
   color: var(--text-secondary);
@@ -294,7 +326,179 @@
   color: var(--text-secondary);
 }
 
+/* Username and web addresses, between the password row and the note. */
+.vault-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.vault-user > span:nth-child(2) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22ch;
+}
+
+.vault-url {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.vault-url:hover { text-decoration: underline; }
+
+.vault-questions {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-questions > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.vault-questions dl {
+  margin: 0.4rem 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+}
+
+.vault-questions dt { color: var(--text); }
+
+.vault-questions dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.vault-questions code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Repeatable question/answer pairs in the editor. */
+.vault-qa {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.8rem;
+  min-width: 0;
+}
+
+.vault-qa legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 0.3rem;
+}
+
+.vault-qa-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+/* .vault-field is a stretching flex column, so without this the add button
+   spanned the whole fieldset and read as heavily as Save. */
+.vault-qa > .btn { align-self: flex-start; }
+
+/* Three columns inside a phone's card left 107px per field -- about a dozen
+   characters of an answer. The question takes its own line instead. */
+@media (max-width: 480px) {
+  .vault-qa-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .vault-qa-row input:first-child { grid-column: 1 / -1; }
+}
+
+.vault-hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 0.6rem;
+}
+
 .vault-editor { margin-top: 0.25rem; }
+
+/* Backup and transfer. Same box as the danger blocks -- it belongs to the
+   same "things below the list" band -- but not framed as a risk. */
+.vault-transfer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+}
+
+.vault-transfer > summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vault-transfer[open] > summary { margin-bottom: 0.75rem; }
+
+.vault-transfer p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 0.7rem;
+}
+
+/* The plain-text half, walled off so it does not read as a peer of the
+   encrypted backup above it. */
+.vault-plain {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  background: var(--overlay-soft);
+}
+
+.vault-plain strong { color: var(--text); }
+
+/* A file input styled as a button: the input stays in the page, merely
+   invisible, so it keeps the native picker and its own place in the tab order.
+   Hiding it with display:none would have taken the keyboard path with it. */
+.vault-file-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.vault-file {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The focus ring belongs to the label, since the input it would land on has
+   no size to draw one around. */
+.vault-file-btn:focus-within {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
 
 .vault-danger {
   background: var(--surface);

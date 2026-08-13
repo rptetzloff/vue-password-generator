@@ -18,6 +18,7 @@
 
 import { createVault, openVault, sealVault, isVaultEnvelope } from './vault-crypto.js'
 import * as realSession from './vault-session.js'
+import { mergeEntries } from './vault-transfer.js'
 
 const DB_NAME = 'pwgen-vault'
 const STORE = 'vault'
@@ -126,18 +127,50 @@ const newId = () => (
  * deletions key on identity rather than on the password (which can change) or
  * the label (which can repeat).
  */
+const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
+
+/** A list of non-empty strings, deduplicated, from anything list-shaped. */
+const textList = (v, max, cap = 20) => {
+  const raw = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(/[\s,]+/) : [])
+  return [...new Set(raw.map((x) => text(x, max)).filter(Boolean))].slice(0, cap)
+}
+
+/**
+ * Security questions, as question/answer pairs.
+ *
+ * These belong in a vault more than almost anything else: the answers are
+ * credentials, people are told to invent false ones precisely so they cannot
+ * be researched, and an invented answer you cannot remember is a locked
+ * account. A pair with no answer is dropped -- the question alone is not a
+ * secret worth storing.
+ */
+const questionList = (v) => {
+  if (!Array.isArray(v)) return []
+  return v
+    .map((qa) => (qa && typeof qa === 'object'
+      ? { q: text(qa.q, 300), a: text(qa.a, 300) }
+      : null))
+    .filter((qa) => qa && qa.a)
+    .slice(0, 20)
+}
+
 export const normalizeEntry = (raw) => {
   if (!raw || typeof raw !== 'object') return null
   if (typeof raw.pw !== 'string' || raw.pw === '') return null
-  const label = typeof raw.label === 'string' ? raw.label.trim().slice(0, 200) : ''
-  const note = typeof raw.note === 'string' ? raw.note.trim().slice(0, 2000) : ''
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : newId(),
-    label,
+    label: text(raw.label, 200),
+    // What most sites actually ask for alongside the password, and the field
+    // whose absence made the vault a notepad rather than a record.
+    username: text(raw.username, 200),
     pw: raw.pw,
+    // Plural: one login often covers several hosts, and matching a saved
+    // entry to the site in front of you is what 9c's autofill will need.
+    urls: textList(raw.urls, 500),
+    questions: questionList(raw.questions),
     bits: Number.isFinite(raw.bits) ? raw.bits : null,
     at: typeof raw.at === 'string' && raw.at ? raw.at : null,
-    note,
+    note: text(raw.note, 2000),
   }
 }
 
@@ -324,6 +357,20 @@ export const createVaultStore = ({
    * This is also the upgrade path for the iteration count -- createVault
    * always seals at today's default.
    */
+  /**
+   * Merge imported entries in. Never replaces: restoring an old backup must
+   * not delete work done since, so the merge rules live in vault-transfer.js
+   * and existing entries win every conflict.
+   */
+  const importEntries = async (incoming) => {
+    requireUnlocked()
+    const result = mergeEntries(entries, normalizeEntries(incoming))
+    entries = result.merged
+    await persist()
+    emit()
+    return { added: result.added, skipped: result.skipped }
+  }
+
   const rekey = async (oldPassphrase, newPassphrase) => {
     if (!envelope) throw new Error('no vault to re-key')
     const opened = await openVault(envelope, oldPassphrase)
@@ -354,7 +401,7 @@ export const createVaultStore = ({
 
   return {
     init, state, touch, lock, lockIfIdle, shouldAutoLock,
-    create, unlock, rekey, destroy,
+    create, unlock, rekey, destroy, importEntries,
     list, add, update, remove,
     // The sealed envelope, for 9b's export. Never the key, and never the
     // decrypted entries -- an export is ciphertext by construction.

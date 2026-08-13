@@ -22,18 +22,26 @@ make room.
 
 ## Where this stands
 
-**Done:** Epics 1, 2, 3, 5, 6 and 7 in full, plus 8a and 8b. Epic 4's remaining
-boxes are standing notes rather than work. All of it is in the archive at the
-bottom of this file, with the measurements intact.
+**Done:** Epics 1, 2, 3, 5, 6 and 7 in full, plus 8a, 8b, and now 9a and 9b.
+Epic 4's remaining boxes are standing notes rather than work. All of it is in
+the archive at the bottom of this file, with the measurements intact.
 
-**Next — Epic 9, the vault.** The answer to "a standalone generator is a little
-lackluster": everything shipped so far perfects the moment of generation, and
-nothing survives it — the clipboard timer erases the only copy thirty seconds
-later. 9a (local vault) and 9b (export/import) are pure web work on top of what
-already exists: the entropy figure, the clipboard timer, the encryption
-patterns and the offline shell. 9c only becomes worth its cost once those two
-are good, and it brings the one thing the web genuinely cannot do — autofill
-into other apps.
+**Shipped — Epic 9's web half.** The answer to "a standalone generator is a
+little lackluster": everything shipped before it perfected the moment of
+generation and nothing survived it — the clipboard timer erased the only copy
+thirty seconds later. 9a gave that moment somewhere to go (a passphrase-encrypted
+local vault, auto-locking, with Keep beside every password) and 9b gave it a way
+out (encrypted backup, plus plain JSON and CSV behind a warning, importing from
+other managers, and a quiet reminder when the vault has drifted from its last
+backup). Both sit on what already existed: the entropy figure, the clipboard
+timer, the encryption patterns and the offline shell. 9b's one reversal — that
+plain-text export would not be offered — is recorded in place rather than
+quietly edited away.
+
+**Next — 9c, the packaged app.** It only became worth its cost once 9a and 9b
+were good, and it brings the one thing the web genuinely cannot do: autofill
+into other apps. 9b's export file is the bridge between a packaged app's storage
+sandbox and the site's, which is why it was built first.
 
 **Reading, not work — Epic 8c/8d/8e.** 8d is a documented dead end (the web
 platform cannot hand a password to a manager for another origin, by design),
@@ -94,43 +102,58 @@ if it can be built inside those two lines.
 8e's key insight, adopted: storage and sync are different problems, and only
 sync needs an account. A local vault breaks no published claim.
 
-- [ ] **Encrypted with a passphrase you choose**, not with the ambient key
+- [x] **Encrypted with a passphrase you choose**, not with the ambient key
       pattern history uses. History's AES-GCM key sits unextractable in
       IndexedDB, which stops disk-scraping but not someone driving your browser
       profile; a vault must beat that bar. PBKDF2 (or Argon2 if it can be done
       without a dependency) over a user passphrase, iteration count stated in
       the UI, key held in memory only while unlocked.
-- [ ] **Auto-lock on idle**, with the timeout in the same settings gear as the
+- [x] **Auto-lock on idle**, with the timeout in the same settings gear as the
       clipboard timer. Locked means the key is gone from memory, not hidden.
-- [ ] **Save from the generator** — a "keep" action beside copy, storing the
+- [x] **Save from the generator** — a "keep" action beside copy, storing the
       password, a label, the entropy figure it was generated at, and the date.
       The entropy is already computed and already stored in history; this is
       the same data with a name attached.
-- [ ] **Never a silent upgrade of history.** History stays what it is: a
+- [x] **Never a silent upgrade of history.** History stays what it is: a
       short, ambient-encrypted list of recent output. The vault is a separate,
       deliberate act. Conflating them would quietly change what "History: Off"
       means, and that setting is documented.
-- [ ] **Ask for persistent storage** via `navigator.storage.persist()` and
+- [x] **Ask for persistent storage** via `navigator.storage.persist()` and
       *show the answer*. An installed app usually gets it; a tab may not. A
       vault the browser may evict without warning must say so.
 
 ### 9b. Export and import — the portability layer, and the honest sync
 
-- [ ] **Encrypted export file.** The vault, sealed with the same passphrase
+- [x] **Encrypted export file.** The vault, sealed with the same passphrase
       scheme, as a single file the user carries. This is the backup story and
       the migration story at once.
-- [ ] **This is also the sync story, and deliberately so.** The user moves the
+- [x] **This is also the sync story, and deliberately so.** The user moves the
       file; no server holds ciphertext, no identity exists to hold. Slower than
       real sync, and the honest trade for the claims on the Legal page.
-- [ ] **Import merges rather than replaces**, keyed on the password itself, so
+- [x] **Import merges rather than replaces**, keyed on the password itself, so
       importing an old backup cannot silently delete newer entries.
-- [ ] **Nag gently about exporting.** A vault living in one browser profile is
+- [x] **Nag gently about exporting.** A vault living in one browser profile is
       one "clear site data" away from gone. Unexported changes deserve a quiet
       reminder, not a modal.
-- [ ] **Plain-text export is not offered.** A CSV of passwords is the format
-      every other manager regrets supporting; if migration to another tool is
-      the goal, that is a conversation to have with a decrypted file in hand,
-      not a one-click button that writes secrets to the Downloads folder.
+- [x] ~~**Plain-text export is not offered.**~~ **Reversed, deliberately.**
+      The original reasoning still holds about the format: a CSV of passwords
+      is what every other manager regrets supporting. What it got wrong was the
+      alternative. Refusing any exit but "another copy of WordLock" is lock-in,
+      and an escape hatch you cannot use is not an escape hatch -- which is the
+      worse failure for a vault with no account behind it, since nobody can
+      recover your data for you if you get stuck in it. Plain JSON and CSV both
+      ship, behind a confirmation that says exactly what the file is, with
+      PLAINTEXT in the filename, and a warning inside the JSON itself. The
+      encrypted backup remains the default and the only one the export reminder
+      counts. See the header of `src/vault-transfer.js`.
+
+**Richer entries, added along the way.** An entry started as a label, a
+password and a note. Storing logins rather than just generated strings needs
+username, one or more web addresses, and security questions -- whose answers
+are secrets in their own right, get the same reveal/copy/clipboard-wipe
+treatment as the password, and come with the reminder that they need not be
+true. CSV cannot carry all of that, which is stated where the CSV button is
+rather than discovered afterwards.
 
 ### 9c. The packaged app — where separation is real
 
