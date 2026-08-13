@@ -168,10 +168,83 @@ export const normalizeEntry = (raw) => {
     // entry to the site in front of you is what 9c's autofill will need.
     urls: textList(raw.urls, 500),
     questions: questionList(raw.questions),
+    // Free text rather than a managed list of folders. A vault of a few dozen
+    // entries does not need a taxonomy, and the cost of one is that every new
+    // entry becomes a filing decision. An empty group is "Ungrouped", which is
+    // a perfectly good place for most things to stay.
+    group: text(raw.group, 60),
     bits: Number.isFinite(raw.bits) ? raw.bits : null,
     at: typeof raw.at === 'string' && raw.at ? raw.at : null,
     note: text(raw.note, 2000),
   }
+}
+
+/** Every group in use, sorted, for the datalist and the group headings. */
+export const groupsOf = (entries) =>
+  [...new Set((entries || []).map((e) => e.group).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+
+export const UNGROUPED = 'Ungrouped'
+
+/**
+ * How the list can be ordered. Recent first is the default because the thing
+ * you just saved is the thing you are most likely to want back.
+ */
+export const SORTS = [
+  { id: 'recent', label: 'Newest first' },
+  { id: 'oldest', label: 'Oldest first' },
+  { id: 'label', label: 'Name (A–Z)' },
+  { id: 'strength', label: 'Weakest first' },
+]
+
+const byLabel = (a, b) =>
+  (a.label || '').localeCompare(b.label || '', undefined, { sensitivity: 'base' }) ||
+  (a.username || '').localeCompare(b.username || '', undefined, { sensitivity: 'base' })
+
+/**
+ * Sort a copy of the entries.
+ *
+ * Weakest-first puts entries with no recorded entropy last rather than first:
+ * an unknown figure is not evidence of weakness, and sorting them to the top
+ * would bury the ones actually worth changing. Anything undated sorts as
+ * oldest, since an entry that predates the date field genuinely is.
+ */
+export const sortEntries = (entries, sortId) => {
+  const list = [...(entries || [])]
+  switch (sortId) {
+    case 'oldest':
+      return list.sort((a, b) => String(a.at || '').localeCompare(String(b.at || '')) || byLabel(a, b))
+    case 'label':
+      return list.sort(byLabel)
+    case 'strength':
+      return list.sort((a, b) => {
+        const known = (e) => Number.isFinite(e.bits)
+        if (known(a) !== known(b)) return known(a) ? -1 : 1
+        if (!known(a)) return byLabel(a, b)
+        return a.bits - b.bits || byLabel(a, b)
+      })
+    default:
+      return list.sort((a, b) => String(b.at || '').localeCompare(String(a.at || '')) || byLabel(a, b))
+  }
+}
+
+/**
+ * Entries bucketed by group, in the order the groups should appear.
+ *
+ * Ungrouped goes last: it is where things sit when nobody has decided, and
+ * putting it first would make the undecided pile the headline.
+ */
+export const groupEntries = (entries, sortId) => {
+  const buckets = new Map()
+  for (const entry of sortEntries(entries, sortId)) {
+    const key = entry.group || UNGROUPED
+    if (!buckets.has(key)) buckets.set(key, [])
+    buckets.get(key).push(entry)
+  }
+  const named = [...buckets.keys()].filter((k) => k !== UNGROUPED)
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+  if (buckets.has(UNGROUPED)) named.push(UNGROUPED)
+  return named.map((name) => ({ name, entries: buckets.get(name) }))
 }
 
 export const normalizeEntries = (list) =>

@@ -8,7 +8,7 @@ import { normalizeEntries } from '../src/vault-store.js'
 
 const ENTRIES = [
   {
-    id: 'a', label: 'Email', username: 'me@example.com', pw: 'Tireless4Marimba',
+    id: 'a', label: 'Email', group: 'Mail', username: 'me@example.com', pw: 'Tireless4Marimba',
     urls: ['https://mail.example.com', 'https://example.com/login'],
     questions: [{ q: 'First pet?', a: 'not-really-a-pet-name' }],
     bits: 58.2, at: '2026-08-13', note: 'the good one',
@@ -53,15 +53,16 @@ test('a plain export says in the file that it is not encrypted', () => {
   assert.ok(file.includes('Tireless4Marimba'), 'it is, after all, the plaintext export')
 })
 
-test('CSV carries the four fields other managers read', () => {
+test('CSV carries the fields other managers read', () => {
   const csv = exportCsv(ENTRIES)
   const rows = parseCsv(csv)
-  assert.deepEqual(rows[0], ['name', 'url', 'username', 'password', 'note'])
-  assert.equal(rows[1][0], 'Email')
-  assert.equal(rows[1][1], 'https://mail.example.com', 'only the first URL fits a flat row')
-  assert.equal(rows[1][2], 'me@example.com')
-  assert.equal(rows[1][3], 'Tireless4Marimba')
-  assert.match(rows[1][4], /First pet\?: not-really-a-pet-name/,
+  assert.deepEqual(rows[0], ['folder', 'name', 'url', 'username', 'password', 'note'])
+  assert.equal(rows[1][0], 'Mail')
+  assert.equal(rows[1][1], 'Email')
+  assert.equal(rows[1][2], 'https://mail.example.com', 'only the first URL fits a flat row')
+  assert.equal(rows[1][3], 'me@example.com')
+  assert.equal(rows[1][4], 'Tireless4Marimba')
+  assert.match(rows[1][5], /First pet\?: not-really-a-pet-name/,
     'questions fold into the note rather than vanishing')
 })
 
@@ -72,10 +73,10 @@ test('CSV survives commas, quotes and newlines in the data', () => {
   }]
   const rows = parseCsv(exportCsv(awkward))
   assert.equal(rows.length, 2)
-  assert.equal(rows[1][0], 'Comma, Inc "quoted"')
-  assert.equal(rows[1][2], 'a"b')
-  assert.equal(rows[1][3], 'has,comma')
-  assert.equal(rows[1][4], 'line one\nline two')
+  assert.equal(rows[1][1], 'Comma, Inc "quoted"')
+  assert.equal(rows[1][3], 'a"b')
+  assert.equal(rows[1][4], 'has,comma')
+  assert.equal(rows[1][5], 'line one\nline two')
 })
 
 test('CSV export neutralises spreadsheet formulas', () => {
@@ -155,4 +156,30 @@ test('filenames are dated, and the clear ones say so', () => {
   assert.equal(transferFilename('backup', '2026-08-13'), 'wordlock-vault-2026-08-13.json')
   assert.match(transferFilename('plain', '2026-08-13'), /PLAINTEXT/)
   assert.match(transferFilename('csv', '2026-08-13'), /PLAINTEXT.*\.csv$/)
+})
+
+test('groups survive every format that can carry them', () => {
+  const withGroups = normalizeEntries(ENTRIES)
+  assert.equal(withGroups[0].group, 'Mail')
+
+  const plain = normalizeEntries(parseTransfer(exportPlainJson(withGroups)).entries)
+  assert.equal(plain[0].group, 'Mail', 'plain JSON must round-trip the group')
+
+  const csv = normalizeEntries(parseTransfer(exportCsv(withGroups)).entries)
+  assert.equal(csv[0].group, 'Mail', 'CSV has a folder column for exactly this')
+})
+
+test("a foreign CSV's folder column is recognised under its various names", () => {
+  // Every manager names this differently and all of them have one, so an
+  // import that dropped it would silently flatten someone's filing.
+  for (const header of ['folder', 'group', 'category', 'collection']) {
+    const foreign = `name,${header},password\nBank,Finance,hunter2!`
+    const [entry] = normalizeEntries(parseTransfer(foreign).entries)
+    assert.equal(entry.group, 'Finance', `${header} should map to the group`)
+  }
+})
+
+test('a CSV with no folder column simply leaves entries ungrouped', () => {
+  const [entry] = normalizeEntries(parseTransfer('name,password\nBank,hunter2!\n').entries)
+  assert.equal(entry.group, '')
 })

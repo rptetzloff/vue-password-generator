@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
+  groupsOf, sortEntries, groupEntries, SORTS, UNGROUPED,
 } from '../src/vault-store.js'
 import { KDF_ITERATIONS } from '../src/vault-crypto.js'
 
@@ -399,4 +400,101 @@ test('a session the holder rejects just means asking again', async () => {
   const liar = { ...good, recallSession: async () => ({ key: wrongKey, kdf: good.box.held.kdf }) }
   const second = createVaultStore({ ...opts, session: liar })
   assert.equal(await second.init(), 'locked')
+})
+
+// --- groups and sorting ------------------------------------------------------
+
+const entry = (over) => normalizeEntry({ pw: 'x', ...over })
+
+test('a group is optional free text, trimmed and capped', () => {
+  assert.equal(entry({ group: '  Work  ' }).group, 'Work')
+  assert.equal(entry({}).group, '')
+  assert.equal(entry({ group: 'g'.repeat(200) }).group.length, 60)
+  assert.equal(entry({ group: 42 }).group, '')
+})
+
+test('groupsOf lists each group once, case-insensitively sorted', () => {
+  const groups = groupsOf(normalizeEntries([
+    { pw: '1', group: 'work' }, { pw: '2', group: 'Banking' },
+    { pw: '3', group: 'work' }, { pw: '4', group: '' }, { pw: '5' },
+  ]))
+  assert.deepEqual(groups, ['Banking', 'work'])
+})
+
+test('every offered sort is implemented', () => {
+  const list = normalizeEntries([{ pw: 'a', label: 'A' }, { pw: 'b', label: 'B' }])
+  for (const { id } of SORTS) {
+    const sorted = sortEntries(list, id)
+    assert.equal(sorted.length, 2, `${id} lost an entry`)
+  }
+})
+
+test('sorting does not mutate the list it was given', () => {
+  const list = normalizeEntries([
+    { pw: 'a', label: 'Zebra' }, { pw: 'b', label: 'Alpha' },
+  ])
+  const before = list.map((e) => e.label)
+  sortEntries(list, 'label')
+  assert.deepEqual(list.map((e) => e.label), before)
+})
+
+test('newest first, oldest first, and by name', () => {
+  const list = normalizeEntries([
+    { pw: 'a', label: 'Middle', at: '2026-02-01' },
+    { pw: 'b', label: 'Oldest', at: '2026-01-01' },
+    { pw: 'c', label: 'Newest', at: '2026-03-01' },
+  ])
+  assert.deepEqual(sortEntries(list, 'recent').map((e) => e.label), ['Newest', 'Middle', 'Oldest'])
+  assert.deepEqual(sortEntries(list, 'oldest').map((e) => e.label), ['Oldest', 'Middle', 'Newest'])
+  assert.deepEqual(sortEntries(list, 'label').map((e) => e.label), ['Middle', 'Newest', 'Oldest'])
+})
+
+test('weakest first, with unknown strength last rather than first', () => {
+  // An entry with no recorded entropy is not evidence of a weak password, and
+  // sorting the unknowns to the top would bury the ones worth changing.
+  const list = normalizeEntries([
+    { pw: 'a', label: 'Strong', bits: 90 },
+    { pw: 'b', label: 'Unknown' },
+    { pw: 'c', label: 'Weak', bits: 20 },
+    { pw: 'd', label: 'Fair', bits: 55 },
+  ])
+  assert.deepEqual(sortEntries(list, 'strength').map((e) => e.label),
+    ['Weak', 'Fair', 'Strong', 'Unknown'])
+})
+
+test('an undated entry sorts as the oldest, which is what it is', () => {
+  const list = normalizeEntries([
+    { pw: 'a', label: 'Dated', at: '2026-01-01' },
+    { pw: 'b', label: 'Undated' },
+  ])
+  assert.equal(sortEntries(list, 'recent')[0].label, 'Dated')
+  assert.equal(sortEntries(list, 'oldest')[0].label, 'Undated')
+})
+
+test('grouping buckets by group and puts Ungrouped last', () => {
+  const grouped = groupEntries(normalizeEntries([
+    { pw: 'a', label: 'Loose' },
+    { pw: 'b', label: 'Pay', group: 'Banking' },
+    { pw: 'c', label: 'Mail', group: 'work' },
+    { pw: 'd', label: 'Chat', group: 'work' },
+  ]), 'label')
+  assert.deepEqual(grouped.map((g) => g.name), ['Banking', 'work', UNGROUPED])
+  assert.deepEqual(grouped[1].entries.map((e) => e.label), ['Chat', 'Mail'])
+  assert.deepEqual(grouped[2].entries.map((e) => e.label), ['Loose'])
+})
+
+test('grouping keeps every entry exactly once', () => {
+  const list = normalizeEntries(
+    Array.from({ length: 25 }, (_, i) => ({ pw: `p${i}`, label: `E${i}`, group: i % 4 ? `g${i % 4}` : '' })))
+  for (const { id } of SORTS) {
+    const flat = groupEntries(list, id).flatMap((g) => g.entries)
+    assert.equal(flat.length, list.length, `${id} changed the count`)
+    assert.equal(new Set(flat.map((e) => e.id)).size, list.length, `${id} duplicated an entry`)
+  }
+})
+
+test('a vault with no groups at all is one Ungrouped bucket', () => {
+  const grouped = groupEntries(normalizeEntries([{ pw: 'a' }, { pw: 'b' }]), 'recent')
+  assert.equal(grouped.length, 1)
+  assert.equal(grouped[0].name, UNGROUPED)
 })

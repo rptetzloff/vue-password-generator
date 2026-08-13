@@ -631,6 +631,15 @@ const ON_GRADIENT = [
   { file: '../changelog.html', selector: '.release-date' },   // measured 3.44:1
   { file: '../changelog.html', selector: '.badge-minor' },    // measured 3.98:1
   { file: '../changelog.html', selector: '.badge-patch' },    // measured 3.59:1
+  // The vault page's bare children -- everything not inside a card. These
+  // only became visible to the audit once the vault was UNLOCKED, which is
+  // why an earlier clean sweep of that page proved less than it looked.
+  { file: '../src/vault.css', selector: '.vault-nag' },       // measured 1.00:1
+  { file: '../src/vault.css', selector: '.vault-foot' },      // measured 1.00:1
+  { file: '../src/vault.css', selector: '.vault-filters' },
+  { file: '../src/vault.css', selector: '.vault-filter-label' },
+  { file: '../src/vault.css', selector: '.vault-group-head' },
+  { file: '../src/vault.css', selector: '.link-button' },
 ]
 
 /** Tokens calibrated against --surface. Using one on the band is the bug. */

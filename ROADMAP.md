@@ -121,6 +121,22 @@ sync needs an account. A local vault breaks no published claim.
 - [x] **Ask for persistent storage** via `navigator.storage.persist()` and
       *show the answer*. An installed app usually gets it; a tab may not. A
       vault the browser may evict without warning must say so.
+- [x] **Generate from inside the vault**, rather than sending people to the
+      generator and back. Any of the seven modes, run with that mode's own
+      saved settings, into the password field or any security answer. This is
+      what forced the generators out of `main.js` and into `generators.js`:
+      the alternative was a second copy of the generation logic, and two
+      copies is how the entropy figure starts differing depending on which
+      page you generated from. Because it is the same code, an entry made this
+      way carries the same exact bits as one filed with Keep.
+- [x] **Groups and sorting**, once a vault holds enough to need them. Group is
+      free text with suggestions, not a folder tree -- a taxonomy makes every
+      new entry a filing decision, which is a real cost for a few dozen
+      entries. Sorting is newest, oldest, by name, and weakest-first for
+      auditing; entries with no recorded entropy sort to the bottom of that
+      last one rather than the top, since an unknown figure is not evidence of
+      a weak password and the unknowns would otherwise bury the actionable
+      ones.
 
 ### 9b. Export and import — the portability layer, and the honest sync
 

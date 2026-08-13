@@ -6,8 +6,12 @@
 // in vault-store.js; this file is the view. It holds the passphrase only for
 // the instant it takes to unlock, and never writes it anywhere.
 
-import { createApp, ref, computed, onMounted, onUnmounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
-import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
+import { createApp, ref, computed, watch, onMounted, onUnmounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
+import {
+  createVaultStore, vaultLockMs, vaultLockSection,
+  groupsOf, groupEntries, SORTS, UNGROUPED,
+} from './vault-store.js'
+import { MODES, readSettings, loadData, generateWithRetry } from './generators.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
@@ -111,6 +115,9 @@ const App = {
     const save = (entry) => run(async () => {
       const payload = { ...entry, urls: (entry.urlText || '').split('\n') }
       delete payload.urlText
+      // View state, not entry data -- normalizeEntry would drop it anyway, but
+      // sending it at all invites someone to start persisting it.
+      delete payload.revealPw
       if (payload.id) await store.update(payload.id, payload)
       else await store.add(payload)
       entries.value = store.list()
@@ -156,7 +163,13 @@ const App = {
     }
 
     const startAdd = () => {
-      editing.value = { id: null, label: '', username: '', pw: '', urlText: '', note: '', questions: [], bits: null }
+      editing.value = {
+        id: null, label: '', username: '', pw: '', urlText: '', note: '',
+        // A new entry lands in whatever group is currently being filtered to,
+        // which is nearly always the one you meant.
+        group: groupFilter.value === UNGROUPED ? '' : groupFilter.value,
+        questions: [], bits: null, revealPw: false,
+      }
     }
     const startEdit = (entry) => {
       // URLs edit as one-per-line text; questions as a repeatable pair list.
@@ -164,10 +177,85 @@ const App = {
         ...entry,
         urlText: (entry.urls || []).join('\n'),
         questions: (entry.questions || []).map((qa) => ({ ...qa })),
+        revealPw: false,
       }
     }
     const addQuestion = () => { editing.value.questions.push({ q: '', a: '' }) }
     const removeQuestion = (i) => { editing.value.questions.splice(i, 1) }
+
+    // --- generating into the vault's own fields ------------------------------
+
+    /**
+     * The generator, reached without leaving the page.
+     *
+     * Deliberately not a second set of options. It runs whichever mode you
+     * pick using that mode's settings exactly as the generator page has them,
+     * so there is one place to configure Words and it is the Words tab. The
+     * entropy comes back with the password, which is what lets an entry
+     * created here carry the same exact figure a Kept one does.
+     */
+    const GEN_MODE_KEY = 'vault.genMode'
+    const genModes = MODES
+    const genMode = ref((() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(GEN_MODE_KEY))
+        return MODES.some((m) => m.id === saved) ? saved : 'words'
+      } catch { return 'words' }
+    })())
+    watch(genMode, (v) => {
+      try { localStorage.setItem(GEN_MODE_KEY, JSON.stringify(v)) } catch {}
+    })
+
+    const generating = ref(false)
+
+    /**
+     * @param target 'pw' for the password, or a question index for its answer
+     */
+    const generateInto = async (target = 'pw') => {
+      if (!editing.value) return
+      generating.value = true
+      error.value = ''
+      try {
+        const mode = genMode.value
+        const result = generateWithRetry(mode, readSettings(mode), await loadData(mode))
+        if (result.error) { error.value = result.error; return }
+        if (target === 'pw') {
+          editing.value.pw = result.password
+          // The figure is only exact for the password itself, so it is only
+          // recorded there -- an entry's bits describe its password.
+          editing.value.bits = result.entropy ? result.entropy.total : null
+          editing.value.revealPw = true
+        } else {
+          editing.value.questions[target].a = result.password
+        }
+      } catch (e) {
+        error.value = `The generator could not run: ${e.message}`
+      } finally {
+        generating.value = false
+      }
+    }
+
+    // --- grouping and sorting -------------------------------------------------
+
+    const SORT_KEY = 'vault.sort'
+    const sortBy = ref((() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(SORT_KEY))
+        return SORTS.some((s) => s.id === saved) ? saved : 'recent'
+      } catch { return 'recent' }
+    })())
+    watch(sortBy, (v) => {
+      try { localStorage.setItem(SORT_KEY, JSON.stringify(v)) } catch {}
+    })
+
+    /** Narrow the list to one group; '' is everything. */
+    const groupFilter = ref('')
+
+    /** Group headings are only worth drawing once something is actually filed. */
+    const knownGroups = computed(() => groupsOf(entries.value))
+    const grouped = computed(() => groupEntries(shown.value, sortBy.value))
+    const showGroupHeadings = computed(() =>
+      grouped.value.length > 1 || (grouped.value[0] && grouped.value[0].name !== UNGROUPED))
 
     // --- export and import (9b) ---------------------------------------------
 
@@ -318,9 +406,13 @@ const App = {
 
     const shown = computed(() => {
       const q = query.value.trim().toLowerCase()
-      if (!q) return entries.value
-      return entries.value.filter((e) => [e.label, e.username, e.note, ...(e.urls || [])]
-        .some((field) => (field || '').toLowerCase().includes(q)))
+      const g = groupFilter.value
+      return entries.value.filter((e) => {
+        if (g && (e.group || UNGROUPED) !== g) return false
+        if (!q) return true
+        return [e.label, e.username, e.note, e.group, ...(e.urls || [])]
+          .some((field) => (field || '').toLowerCase().includes(q))
+      })
     })
 
     const tierOf = (bits) => (Number.isFinite(bits) ? entropyTier(bits) : null)
@@ -373,6 +465,9 @@ const App = {
       addQuestion, removeQuestion, exportVault, importFile, exported,
       backupNag, lastExport, openTransfer, transferEl,
       newStrength, rekeyStrength,
+      genModes, genMode, generating, generateInto,
+      sortBy, sorts: SORTS, groupFilter, knownGroups, grouped, showGroupHeadings,
+      ungrouped: UNGROUPED,
       iterations: KDF_ITERATIONS.toLocaleString(),
       autoLockMinutes: Math.round(vaultLockMs() / 60000),
       needsRekey: () => needsRekey(store.envelope()),
@@ -461,6 +556,27 @@ const App = {
           <button class="btn" @click="lock"><span class="mdi mdi-lock"></span> Lock</button>
         </div>
 
+        <!-- Only worth the row once there is enough in the vault to order. -->
+        <div v-if="entries.length > 1" class="vault-bar vault-filters">
+          <label class="vault-filter">
+            <span class="mdi mdi-sort" aria-hidden="true"></span>
+            <span class="vault-filter-label">Sort</span>
+            <select v-model="sortBy" class="vault-select" aria-label="Sort entries">
+              <option v-for="s in sorts" :key="s.id" :value="s.id">{{ s.label }}</option>
+            </select>
+          </label>
+          <label v-if="knownGroups.length" class="vault-filter">
+            <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+            <span class="vault-filter-label">Group</span>
+            <select v-model="groupFilter" class="vault-select" aria-label="Filter by group">
+              <option value="">All groups</option>
+              <option v-for="g in knownGroups" :key="g" :value="g">{{ g }}</option>
+              <option :value="ungrouped">{{ ungrouped }}</option>
+            </select>
+          </label>
+          <span class="vault-count">{{ shown.length }} of {{ entries.length }}</span>
+        </div>
+
         <p v-if="persisted === false" class="vault-warn">
           Your browser has not promised to keep this vault: it may be evicted if the device runs
           short of storage. Export a backup.
@@ -480,8 +596,14 @@ const App = {
         </p>
         <p v-else-if="!shown.length" class="vault-empty">Nothing matches “{{ query }}”.</p>
 
+        <template v-for="g in grouped" :key="g.name">
+        <h2 v-if="showGroupHeadings" class="vault-group-head">
+          <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+          {{ g.name }}
+          <span class="vault-group-count">{{ g.entries.length }}</span>
+        </h2>
         <ul class="vault-list">
-          <li v-for="e in shown" :key="e.id" class="vault-entry">
+          <li v-for="e in g.entries" :key="e.id" class="vault-entry">
             <div class="vault-entry-head">
               <span class="vault-label">{{ e.label || 'Untitled' }}</span>
               <span v-if="tierOf(e.bits)" class="vault-bits" :class="'meter-' + tierOf(e.bits).id">
@@ -506,7 +628,12 @@ const App = {
                 <span class="mdi mdi-delete-outline"></span>
               </button>
             </div>
-            <div v-if="e.username || (e.urls && e.urls.length)" class="vault-meta">
+            <div v-if="e.username || e.group || (e.urls && e.urls.length)" class="vault-meta">
+              <!-- Only when there is no heading above it saying the same thing. -->
+              <button v-if="e.group && !showGroupHeadings" class="vault-group-chip" type="button"
+                      @click="groupFilter = e.group" :title="'Show only ' + e.group">
+                <span class="mdi mdi-folder-outline" aria-hidden="true"></span>{{ e.group }}
+              </button>
               <span v-if="e.username" class="vault-user">
                 <span class="mdi mdi-account-outline" aria-hidden="true"></span>
                 <span>{{ e.username }}</span>
@@ -538,6 +665,7 @@ const App = {
             </details>
           </li>
         </ul>
+        </template>
 
         <!-- Add / edit -->
         <div v-if="editing" class="vault-card vault-editor">
@@ -547,15 +675,49 @@ const App = {
               <span>Label</span>
               <input v-model="editing.label" type="text" placeholder="What is this for?" />
             </label>
+            <!-- Filing goes with the name. Username and password are the
+                 credential pair and belong next to each other, so the group
+                 sits above them rather than between them. -->
+            <label class="vault-field">
+              <span>Group</span>
+              <input v-model="editing.group" type="text" list="vault-groups"
+                     placeholder="Optional — e.g. Finance, Work" />
+              <datalist id="vault-groups">
+                <option v-for="g in knownGroups" :key="g" :value="g"></option>
+              </datalist>
+            </label>
             <label class="vault-field">
               <span>Username</span>
               <input v-model="editing.username" type="text" spellcheck="false"
                      autocomplete="off" placeholder="Email or sign-in name" />
             </label>
-            <label class="vault-field">
+            <div class="vault-field">
               <span>Password</span>
-              <input v-model="editing.pw" type="text" required spellcheck="false" />
-            </label>
+              <div class="vault-pw-field">
+                <input v-model="editing.pw" :type="editing.revealPw ? 'text' : 'password'"
+                       required spellcheck="false" autocomplete="off" aria-label="Password" />
+                <button class="vault-icon" type="button" @click="editing.revealPw = !editing.revealPw"
+                        :aria-label="editing.revealPw ? 'Hide password' : 'Reveal password'"
+                        :title="editing.revealPw ? 'Hide' : 'Reveal'">
+                  <span :class="['mdi', editing.revealPw ? 'mdi-eye-off' : 'mdi-eye']"></span>
+                </button>
+              </div>
+              <!-- The generator, without leaving the page. Not a second set of
+                   options: each mode runs on the settings its own tab holds. -->
+              <div class="vault-gen">
+                <select v-model="genMode" class="vault-select" aria-label="Generator to use">
+                  <option v-for="m in genModes" :key="m.id" :value="m.id">{{ m.label }}</option>
+                </select>
+                <button class="btn btn-small" type="button" :disabled="generating"
+                        @click="generateInto('pw')">
+                  <span class="mdi mdi-refresh"></span> {{ generating ? 'Generating…' : 'Generate' }}
+                </button>
+                <span v-if="tierOf(editing.bits)" class="vault-bits" :class="'meter-' + tierOf(editing.bits).id">
+                  {{ editing.bits.toFixed(1) }} bits
+                </span>
+                <a class="vault-gen-link" href="/">Change settings</a>
+              </div>
+            </div>
             <label class="vault-field">
               <span>Web addresses</span>
               <textarea v-model="editing.urlText" rows="2" spellcheck="false"
@@ -570,6 +732,11 @@ const App = {
               <div v-for="(qa, i) in editing.questions" :key="i" class="vault-qa-row">
                 <input v-model="qa.q" type="text" placeholder="Question" />
                 <input v-model="qa.a" type="text" spellcheck="false" placeholder="Answer" />
+                <button class="vault-icon" type="button" :disabled="generating"
+                        @click="generateInto(i)"
+                        aria-label="Generate an answer" title="Generate an answer">
+                  <span class="mdi mdi-refresh"></span>
+                </button>
                 <button class="vault-icon" type="button" @click="removeQuestion(i)"
                         aria-label="Remove this question" title="Remove">
                   <span class="mdi mdi-close"></span>

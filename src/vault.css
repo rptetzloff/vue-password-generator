@@ -208,7 +208,10 @@
   margin: 0;
   padding: 0.1rem 0.2rem;
   font-size: 0.82rem;
-  color: var(--text-secondary);
+  /* On the page gradient, not on a card -- see the --band-* note in
+     tokens.css. --text-secondary measured 1.00:1 here against the light
+     gradient's far stop, which is invisible. */
+  color: var(--band-text-dim);
 }
 
 .link-button {
@@ -216,7 +219,7 @@
   border: none;
   background: none;
   font: inherit;
-  color: var(--primary);
+  color: var(--band-text);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -414,7 +417,8 @@
 
 .vault-qa-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  /* question, answer, generate, remove */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
   gap: 0.4rem;
   margin-bottom: 0.4rem;
 }
@@ -426,8 +430,111 @@
 /* Three columns inside a phone's card left 107px per field -- about a dozen
    characters of an answer. The question takes its own line instead. */
 @media (max-width: 480px) {
-  .vault-qa-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .vault-qa-row { grid-template-columns: minmax(0, 1fr) auto auto; }
   .vault-qa-row input:first-child { grid-column: 1 / -1; }
+}
+
+/* Sort and group controls. Hidden until there is more than one entry, since
+   ordering one thing is not a feature. */
+.vault-filters {
+  font-size: 0.82rem;
+  color: var(--band-text-dim);
+}
+
+.vault-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.vault-filter-label {
+  font-weight: 600;
+  color: var(--band-text);
+}
+
+.vault-select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  /* A themed surface, not the UA default: the native option list inherits
+     these colours, and a transparent control renders an unreadable popup in
+     dark mode -- the same trap .slot-cat-select hit on the generator. */
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  max-width: 12rem;
+}
+
+.vault-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 -0.2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--band-text-dim);
+}
+
+.vault-group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.vault-group-chip:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.vault-group-count {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The password field in the editor, with its reveal toggle. */
+.vault-pw-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vault-pw-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Generate, inline. Deliberately quieter than Save: it is a step on the way
+   to saving, not the commitment. */
+.vault-gen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.vault-gen-link {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--primary);
 }
 
 .vault-hint {
@@ -471,7 +578,6 @@
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--warning);
   border-radius: 6px;
-  background: var(--overlay-soft);
 }
 
 .vault-plain strong { color: var(--text); }
@@ -524,7 +630,7 @@
 
 .vault-foot {
   font-size: 0.78rem;
-  color: var(--text-secondary);
+  color: var(--band-text-dim);
   text-align: center;
   margin: 0.5rem 0 0;
 }

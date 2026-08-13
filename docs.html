@@ -596,6 +596,8 @@
           <a class="nav-sub nav-item" href="#vault-crypto">Encryption</a>
           <a class="nav-sub nav-item" href="#vault-lock">Locking</a>
           <a class="nav-sub nav-item" href="#vault-entries">Entry fields</a>
+          <a class="nav-sub nav-item" href="#vault-generate">Generating</a>
+          <a class="nav-sub nav-item" href="#vault-organise">Groups &amp; sorting</a>
           <a class="nav-sub nav-item" href="#vault-backup">Backup &amp; import</a>
           <a class="nav-sub nav-item" href="#vault-passphrase">Passphrase</a>
           <div class="nav-divider"></div>
@@ -1992,6 +1994,75 @@
                     you grew up on are matters of public record; an invented answer stored here is strictly
                     stronger, and the only reason people use the true one is that they have nowhere to keep the
                     invented one. Now you do.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-generate" class="option-group">
+              <div class="option-group-label">Generating into an entry</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    Every password field in the vault has a <strong>Generate</strong> button beside it and a
+                    picker for which of the seven generators to use. It runs that generator with
+                    <em>its own current settings</em> — whatever the Words tab is set to is what the Words
+                    option produces here. There is deliberately no second copy of the options: one place to
+                    configure a generator, and it is that generator's tab.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    The entropy comes back with the password and is stored on the entry, so something generated
+                    here carries the same exact figure as something filed with
+                    <strong>Keep</strong> — not an estimate. The two paths run the same code.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Security answers too</div>
+                <div class="option-desc">
+                  The same button sits on every security answer. An answer that came out of the generator is
+                  the strongest possible version of a field whose usual content is a fact about you that other
+                  people know.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-organise" class="option-group">
+              <div class="option-group-label">Groups &amp; sorting</div>
+              <div class="option-row">
+                <div class="option-name">Groups</div>
+                <div class="option-desc">
+                  A free-text field, not a managed folder tree. Type anything — <em>Finance</em>,
+                  <em>Work</em>, <em>Household</em> — and it joins the suggestions offered on every other
+                  entry. A vault of a few dozen entries does not need a taxonomy, and the cost of imposing one
+                  is that every new entry becomes a filing decision. Leave it blank and the entry sits under
+                  <strong>Ungrouped</strong>, which is a perfectly good place to stay.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">How the list is arranged</div>
+                <div class="option-desc">
+                  Groups are the outer order, sorting the inner one — entries are sorted within their group,
+                  and the group headings appear only once something is actually filed. Ungrouped sorts last:
+                  it is where things sit when nobody has decided, and leading with the undecided pile would be
+                  an odd headline. The group filter narrows to one group at a time, and a new entry starts in
+                  whichever group you are currently filtered to.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Sort orders</div>
+                <div class="option-desc">
+                  <p>
+                    <strong>Newest first</strong> (the default, because the thing you just saved is the thing
+                    you most likely want back), <strong>Oldest first</strong>, <strong>Name</strong>, and
+                    <strong>Weakest first</strong>.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Weakest-first is the audit view: it orders by the stored entropy so the entries worth
+                    changing come to the top. Entries with <em>no</em> recorded figure sort to the
+                    <em>bottom</em>, not the top — an unknown number is not evidence of a weak password, and
+                    putting the unknowns first would bury the ones you can actually act on. Anything without a
+                    date sorts as oldest, because an entry predating the date field genuinely is.
                   </p>
                 </div>
               </div>
