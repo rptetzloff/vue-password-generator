@@ -542,6 +542,30 @@
 
 .vault-nag-warn { color: var(--band-text); }
 
+/* The persistent-storage explainer. Collapsed by default: it is a standing
+   condition of the browser rather than news, and a paragraph of it unfurled
+   above the list every visit would be the thing people learn to skip. */
+.vault-persist > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.vault-persist[open] > summary { margin-bottom: 0.6rem; }
+
+.vault-persist p {
+  margin: 0 0 0.6rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.vault-persist .vault-hint {
+  margin: 0.6rem 0 0;
+  color: var(--text-secondary);
+}
+
 .vault-reuse-warn {
   display: flex;
   align-items: flex-start;

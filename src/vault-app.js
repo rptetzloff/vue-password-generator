@@ -314,6 +314,64 @@ const App = {
 
     // --- password reuse --------------------------------------------------------
 
+    // --- persistent storage ----------------------------------------------------
+
+    /**
+     * Whether the browser has promised to keep this vault, and what can be
+     * done when it has not.
+     *
+     * The permission state is what makes this actionable rather than a shrug.
+     * Chromium never prompts: it grants `persistent-storage` on its own once
+     * the site is installed, bookmarked, or has enough engagement history, and
+     * reports "denied" until then -- which reads like a refusal but is really
+     * "not yet earned". Firefox does prompt, so there the button is the
+     * request. Telling someone their data may be evicted without telling them
+     * which of those situations they are in is not much of a warning.
+     */
+    const storagePermission = ref('unknown')
+    const installed = ref(false)
+
+    const readStorageState = async () => {
+      try { persisted.value = await navigator.storage.persisted() } catch {}
+      try {
+        storagePermission.value = (await navigator.permissions.query({ name: 'persistent-storage' })).state
+      } catch { storagePermission.value = 'unknown' }
+      installed.value = window.matchMedia('(display-mode: standalone)').matches
+    }
+
+    const askingPersistence = ref(false)
+    const requestPersistence = async () => {
+      askingPersistence.value = true
+      try {
+        const granted = await navigator.storage.persist()
+        await readStorageState()
+        flash(granted
+          ? 'The browser has promised to keep this vault.'
+          : 'The browser still will not promise. Installing the app is the reliable fix.')
+      } catch {
+        error.value = 'This browser does not offer persistent storage.'
+      } finally {
+        askingPersistence.value = false
+      }
+    }
+
+    /** How much room the vault has, for the "is this actually likely" question. */
+    const storageEstimate = ref(null)
+    const readEstimate = async () => {
+      try {
+        const { usage, quota } = await navigator.storage.estimate()
+        if (!quota) return
+        // Whole units a person reads at a glance -- "11 GB" rather than the
+        // literal 11,259 MB, which invites arithmetic instead of reassurance.
+        const size = (bytes) => {
+          if (bytes >= 1024 ** 3) return `${Math.round(bytes / 1024 ** 3)} GB`
+          if (bytes >= 1024 ** 2) return `${Math.round(bytes / 1024 ** 2)} MB`
+          return `${Math.max(1, Math.round(bytes / 1024))} KB`
+        }
+        storageEstimate.value = { used: size(usage), quota: size(quota) }
+      } catch {}
+    }
+
     /** entry id -> the other entries sharing its password. */
     const reuse = computed(() => reuseIndex(entries.value))
     const reusedWith = (entry) => reuse.value.get(entry.id) || []
@@ -525,9 +583,11 @@ const App = {
         error.value = e.message
         return
       }
-      if (navigator.storage?.persisted) {
-        try { persisted.value = await navigator.storage.persisted() } catch {}
-      }
+      // Re-checked on every load, not just at creation: the grant can arrive
+      // later, when the app is installed or the browser decides the site has
+      // been used enough to be worth keeping.
+      await readStorageState()
+      readEstimate()
       readLastExport()
       timer = setInterval(() => { if (store.lockIfIdle()) revealed.value = new Set() }, 5000)
       for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, activity, true)
@@ -552,6 +612,7 @@ const App = {
       ungrouped: UNGROUPED, grouping,
       groupFilter, groupMenuOpen, toggleGroup, clearGroupFilter, groupFilterLabel,
       reusedWith, reuseTitle, reuseSummary, showReusedOnly, editingReuse,
+      storagePermission, installed, requestPersistence, askingPersistence, storageEstimate,
       iterations: KDF_ITERATIONS.toLocaleString(),
       autoLockMinutes: Math.round(vaultLockMs() / 60000),
       needsRekey: () => needsRekey(store.envelope()),
@@ -687,10 +748,50 @@ const App = {
           </button>
         </p>
 
-        <p v-if="persisted === false" class="vault-warn">
-          Your browser has not promised to keep this vault: it may be evicted if the device runs
-          short of storage. Export a backup.
-        </p>
+        <!-- Not a bare warning. The old version stated the risk and offered
+             nothing to do about it, which is the least useful shape a warning
+             can take. -->
+        <details v-if="persisted === false" class="vault-warn vault-persist">
+          <summary>
+            <span class="mdi mdi-database-alert-outline" aria-hidden="true"></span>
+            This browser has not promised to keep the vault
+          </summary>
+          <p>
+            Browser storage can be cleared automatically if the device runs short of space. It is
+            unlikely
+            <template v-if="storageEstimate">
+              — this site is using about {{ storageEstimate.used }} of roughly
+              {{ storageEstimate.quota }} available
+            </template>
+            — but "unlikely" is not "no", and there is no copy of this anywhere else.
+          </p>
+          <p v-if="storagePermission === 'prompt'">
+            Your browser will ask you to allow it. <strong>Ask it now</strong> below.
+          </p>
+          <p v-else-if="storagePermission === 'denied'">
+            This browser does not ask — it decides. Chrome and Edge grant it once a site is
+            <strong>installed</strong>, bookmarked, or used often enough, and report it as refused
+            until then. Installing is the reliable one: use <em>Install</em> or <em>Add to Home
+            Screen</em> in the browser menu, and it is usually granted the next time you open the
+            vault.
+          </p>
+          <p v-else>
+            Installing the app is the reliable way to get the promise: use <em>Install</em> or
+            <em>Add to Home Screen</em> in your browser's menu.
+          </p>
+          <div class="vault-bar">
+            <button class="btn btn-small" type="button" :disabled="askingPersistence"
+                    @click="requestPersistence">
+              {{ askingPersistence ? 'Asking…' : 'Ask again' }}
+            </button>
+            <button class="btn btn-small" type="button" @click="openTransfer">Export a backup</button>
+          </div>
+          <p class="vault-hint">
+            Worth saying plainly: none of this is a substitute for a backup. A promise not to evict
+            is not a promise against a lost laptop, and clearing your browsing data ignores it
+            entirely.
+          </p>
+        </details>
         <p v-if="backupNag" class="vault-nag">
           <span class="mdi mdi-cloud-off-outline" aria-hidden="true"></span>
           {{ backupNag }}

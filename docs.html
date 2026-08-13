@@ -2222,9 +2222,34 @@
                 <div class="option-name">Persistent storage</div>
                 <div class="option-desc">
                   On creating a vault the page asks the browser not to evict it under storage pressure, via
-                  <code>navigator.storage.persist()</code>, and <em>shows you the answer</em>. An installed app
-                  is usually granted this silently; an ordinary tab may not be. If the browser has not promised,
-                  the vault page says so plainly rather than letting you find out by losing it.
+                  <code>navigator.storage.persist()</code>, and <em>shows you the answer</em>. It asks again on
+                  every visit, because the answer can change. If the browser has not promised, the vault page
+                  says so rather than letting you find out by losing it.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">If it says it has not promised</div>
+                <div class="option-desc">
+                  <p>
+                    <strong>Install the app.</strong> That is the reliable fix. Chrome and Edge never ask you
+                    about this — they decide, granting it once a site is installed, bookmarked, or used often
+                    enough, and reporting it as <em>refused</em> until then. So "denied" usually means "not
+                    yet", not "no". Use <em>Install</em> or <em>Add to Home Screen</em> in the browser menu
+                    and it is generally granted the next time you open the vault. Firefox does ask, and there
+                    the <strong>Ask again</strong> button is the request.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    It is also worth knowing how unlikely eviction is. Browsers evict under genuine storage
+                    pressure, least-recently-used first, and a vault is tiny — the page shows you its size
+                    against the space available, which is typically a few dozen kilobytes against several
+                    gigabytes.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>None of it replaces a backup.</strong> A promise not to evict is not a promise
+                    against a lost laptop, a reinstalled browser, or your own hand on <em>Clear browsing
+                    data</em> — which ignores the promise entirely. Keep an
+                    <a href="#vault-backup" style="color:var(--primary);">encrypted backup</a>.
+                  </p>
                 </div>
               </div>
             </div>
