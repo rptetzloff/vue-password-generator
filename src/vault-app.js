@@ -170,7 +170,7 @@ const App = {
         // worse than leaving it blank.
         group: (groupFilter.value.size === 1 && [...groupFilter.value][0] !== UNGROUPED)
           ? [...groupFilter.value][0] : '',
-        questions: [], bits: null, revealPw: false,
+        questions: [], fields: [], bits: null, revealPw: false,
       }
     }
     const startEdit = (entry) => {
@@ -179,11 +179,74 @@ const App = {
         ...entry,
         urlText: (entry.urls || []).join('\n'),
         questions: (entry.questions || []).map((qa) => ({ ...qa })),
+        fields: (entry.fields || []).map((f) => ({ ...f })),
         revealPw: false,
       }
     }
     const addQuestion = () => { editing.value.questions.push({ q: '', a: '' }) }
     const removeQuestion = (i) => { editing.value.questions.splice(i, 1) }
+
+    const addField = (secret = false) => { editing.value.fields.push({ name: '', value: '', secret }) }
+    const removeField = (i) => { editing.value.fields.splice(i, 1) }
+
+    // --- collapsing ------------------------------------------------------------
+
+    /**
+     * Which groups and entries are folded shut.
+     *
+     * Stored as the set of things CLOSED rather than open, so a newly added
+     * entry or group starts visible. The alternative -- remembering what is
+     * open -- makes everything new arrive collapsed, which looks like the save
+     * failed.
+     *
+     * Group state persists because it is a filing preference. Entry state does
+     * not: entries are collapsed to skim a long list, and coming back to a
+     * vault with a particular row still folded from last week is noise.
+     */
+    const COLLAPSED_KEY = 'vault.collapsedGroups'
+    const collapsedGroups = ref((() => {
+      try {
+        const saved = JSON.parse(localStorage.getItem(COLLAPSED_KEY))
+        return new Set(Array.isArray(saved) ? saved : [])
+      } catch { return new Set() }
+    })())
+    watch(collapsedGroups, (v) => {
+      try { localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...v])) } catch {}
+    })
+
+    const toggleGroupOpen = (name) => {
+      const next = new Set(collapsedGroups.value)
+      next.has(name) ? next.delete(name) : next.add(name)
+      collapsedGroups.value = next
+    }
+    const isGroupOpen = (name) => !collapsedGroups.value.has(name)
+
+    const collapsedEntries = ref(new Set())
+    const toggleEntryOpen = (id) => {
+      const next = new Set(collapsedEntries.value)
+      next.has(id) ? next.delete(id) : next.add(id)
+      collapsedEntries.value = next
+    }
+    const isEntryOpen = (id) => !collapsedEntries.value.has(id)
+
+    /**
+     * Fold or unfold every entry at once, for a vault too long to click
+     * through. Entries only -- groups keep their own toggles. Folding both
+     * would leave nothing on screen but two headings, which is a different
+     * thing from the scannable list of labels this is for.
+     */
+    const allCollapsed = computed(() =>
+      shown.value.length > 0 && shown.value.every((e) => collapsedEntries.value.has(e.id)))
+    const toggleAll = () => {
+      // Snapshot first. Reading allCollapsed again after the assignment reads
+      // the value the assignment just produced, which had this collapsing
+      // everything on the second click instead of expanding it.
+      const collapse = !allCollapsed.value
+      collapsedEntries.value = collapse ? new Set(shown.value.map((e) => e.id)) : new Set()
+      // An entry hidden inside a folded group cannot be unfolded, so expanding
+      // has to open the groups too.
+      if (!collapse) collapsedGroups.value = new Set()
+    }
 
     // --- generating into the vault's own fields ------------------------------
 
@@ -211,7 +274,8 @@ const App = {
     const generating = ref(false)
 
     /**
-     * @param target 'pw' for the password, or a question index for its answer
+     * @param target 'pw' for the password, a question index for its answer,
+     *               or { field: i } for a custom field's value
      */
     const generateInto = async (target = 'pw') => {
       if (!editing.value) return
@@ -227,6 +291,8 @@ const App = {
           // recorded there -- an entry's bits describe its password.
           editing.value.bits = result.entropy ? result.entropy.total : null
           editing.value.revealPw = true
+        } else if (target && typeof target === 'object' && 'field' in target) {
+          editing.value.fields[target.field].value = result.password
         } else {
           editing.value.questions[target].a = result.password
         }
@@ -604,7 +670,9 @@ const App = {
       persisted, rekeyOpen, pass, passConfirm, oldPass, newPass,
       create, unlock, lock, save, remove, copy, copyText, hostOf, toggleReveal,
       startAdd, startEdit, rekey, destroy, tierOf,
-      addQuestion, removeQuestion, exportVault, importFile, exported,
+      addQuestion, removeQuestion, addField, removeField,
+      toggleGroupOpen, isGroupOpen, toggleEntryOpen, isEntryOpen, allCollapsed, toggleAll,
+      exportVault, importFile, exported,
       backupNag, lastExport, openTransfer, transferEl,
       newStrength, rekeyStrength,
       genModes, genMode, generating, generateInto,
@@ -737,6 +805,9 @@ const App = {
             <input type="checkbox" v-model="grouping" />
             <span class="vault-filter-label">Group them</span>
           </label>
+          <button v-if="shown.length > 1" class="link-button vault-foldall" type="button" @click="toggleAll">
+            {{ allCollapsed ? 'Expand all' : 'Collapse all' }}
+          </button>
           <span class="vault-count">{{ shown.length }} of {{ entries.length }}</span>
         </div>
 
@@ -809,14 +880,28 @@ const App = {
 
         <template v-for="g in grouped" :key="g.name">
         <h2 v-if="showGroupHeadings" class="vault-group-head">
-          <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
-          {{ g.name }}
-          <span class="vault-group-count">{{ g.entries.length }}</span>
+          <button class="vault-group-toggle" type="button" @click="toggleGroupOpen(g.name)"
+                  :aria-expanded="String(isGroupOpen(g.name))">
+            <span :class="['mdi', isGroupOpen(g.name) ? 'mdi-chevron-down' : 'mdi-chevron-right']"
+                  aria-hidden="true"></span>
+            <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+            {{ g.name }}
+            <span class="vault-group-count">{{ g.entries.length }}</span>
+          </button>
         </h2>
-        <ul class="vault-list">
-          <li v-for="e in g.entries" :key="e.id" class="vault-entry">
+        <ul v-if="!showGroupHeadings || isGroupOpen(g.name)" class="vault-list">
+          <li v-for="e in g.entries" :key="e.id" class="vault-entry"
+              :class="{ 'is-collapsed': !isEntryOpen(e.id) }">
             <div class="vault-entry-head">
+              <button class="vault-entry-toggle" type="button" @click="toggleEntryOpen(e.id)"
+                      :aria-expanded="String(isEntryOpen(e.id))"
+                      :aria-label="(isEntryOpen(e.id) ? 'Collapse ' : 'Expand ') + (e.label || 'this entry')">
+                <span :class="['mdi', isEntryOpen(e.id) ? 'mdi-chevron-down' : 'mdi-chevron-right']"></span>
+              </button>
               <span class="vault-label">{{ e.label || 'Untitled' }}</span>
+              <!-- Collapsed, the username is the one thing that still tells
+                   two entries on the same site apart. -->
+              <span v-if="!isEntryOpen(e.id) && e.username" class="vault-collapsed-user">{{ e.username }}</span>
               <span v-if="tierOf(e.bits)" class="vault-bits" :class="'meter-' + tierOf(e.bits).id">
                 {{ e.bits.toFixed(1) }} bits
               </span>
@@ -828,7 +913,7 @@ const App = {
               </span>
               <span v-if="e.at" class="vault-date">{{ e.at }}</span>
             </div>
-            <div class="vault-entry-pw">
+            <div v-if="isEntryOpen(e.id)" class="vault-entry-pw">
               <code>{{ revealed.has(e.id) ? e.pw : '••••••••••••' }}</code>
               <button class="vault-icon" @click="toggleReveal(e.id)"
                       :aria-label="revealed.has(e.id) ? 'Hide password' : 'Reveal password'"
@@ -845,10 +930,13 @@ const App = {
                 <span class="mdi mdi-delete-outline"></span>
               </button>
             </div>
-            <div v-if="e.username || e.group || (e.urls && e.urls.length)" class="vault-meta">
-              <!-- Only when there is no heading above it saying the same thing. -->
+            <div v-if="isEntryOpen(e.id) && (e.username || e.group || (e.urls && e.urls.length))" class="vault-meta">
+              <!-- Only when there is no heading above it saying the same thing.
+                   Sets the filter to just this group -- the filter is a Set of
+                   selected names now, so assigning the bare string would have
+                   quietly broken every group comparison. -->
               <button v-if="e.group && !showGroupHeadings" class="vault-group-chip" type="button"
-                      @click="groupFilter = e.group" :title="'Show only ' + e.group">
+                      @click="groupFilter = new Set([e.group])" :title="'Show only ' + e.group">
                 <span class="mdi mdi-folder-outline" aria-hidden="true"></span>{{ e.group }}
               </button>
               <span v-if="e.username" class="vault-user">
@@ -864,8 +952,25 @@ const App = {
                 <span class="mdi mdi-open-in-new" aria-hidden="true"></span>{{ hostOf(u) }}
               </a>
             </div>
-            <p v-if="e.note" class="vault-note">{{ e.note }}</p>
-            <details v-if="e.questions && e.questions.length" class="vault-questions">
+            <!-- Extra fields. A secret one is masked and copied through the
+                 clipboard timer like the password; a plain one is just text,
+                 because hiding a customer number helps nobody. -->
+            <dl v-if="isEntryOpen(e.id) && e.fields && e.fields.length" class="vault-fields">
+              <template v-for="(f, i) in e.fields" :key="i">
+                <dt>{{ f.name || 'Field ' + (i + 1) }}</dt>
+                <dd>
+                  <code v-if="f.secret">{{ revealed.has(e.id) ? f.value : '••••••••' }}</code>
+                  <span v-else class="vault-field-value">{{ f.value }}</span>
+                  <button class="vault-icon"
+                          @click="copyText(f.value, (f.name || 'Field') + ' copied.')"
+                          :aria-label="'Copy ' + (f.name || 'field')" :title="'Copy ' + (f.name || 'field')">
+                    <span class="mdi mdi-content-copy"></span>
+                  </button>
+                </dd>
+              </template>
+            </dl>
+            <p v-if="isEntryOpen(e.id) && e.note" class="vault-note">{{ e.note }}</p>
+            <details v-if="isEntryOpen(e.id) && e.questions && e.questions.length" class="vault-questions">
               <summary>{{ e.questions.length }} security {{ e.questions.length === 1 ? 'answer' : 'answers' }}</summary>
               <dl>
                 <template v-for="(qa, i) in e.questions" :key="i">
@@ -948,6 +1053,45 @@ const App = {
               <textarea v-model="editing.urlText" rows="2" spellcheck="false"
                         placeholder="One per line"></textarea>
             </label>
+            <!-- Not "second username" and "second password" fields. The next
+                 account wants a PIN, then a customer number, then a recovery
+                 address; a named pair covers all of them. -->
+            <fieldset class="vault-field vault-qa">
+              <legend>Other fields</legend>
+              <p class="vault-hint">
+                Anything else the account needs — a second login, a PIN, a customer number.
+                Mark it secret and it is masked, copied through the clipboard timer, and can be
+                generated like a password.
+              </p>
+              <div v-for="(f, i) in editing.fields" :key="i" class="vault-qa-row vault-extra-row">
+                <input v-model="f.name" type="text" placeholder="Name" />
+                <input v-model="f.value" :type="f.secret ? 'password' : 'text'"
+                       spellcheck="false" autocomplete="off" placeholder="Value" />
+                <label class="vault-secret-toggle" :title="f.secret ? 'Treated as a secret' : 'Stored as plain text'">
+                  <input type="checkbox" v-model="f.secret" />
+                  <span class="mdi" :class="f.secret ? 'mdi-lock' : 'mdi-lock-open-variant-outline'"
+                        aria-hidden="true"></span>
+                  <span class="vault-secret-label">Secret</span>
+                </label>
+                <button class="vault-icon" type="button" :disabled="generating"
+                        @click="generateInto({ field: i })"
+                        aria-label="Generate a value" title="Generate a value">
+                  <span class="mdi mdi-refresh"></span>
+                </button>
+                <button class="vault-icon" type="button" @click="removeField(i)"
+                        aria-label="Remove this field" title="Remove">
+                  <span class="mdi mdi-close"></span>
+                </button>
+              </div>
+              <div class="vault-bar">
+                <button class="btn btn-small" type="button" @click="addField(false)">
+                  <span class="mdi mdi-plus"></span> Add a field
+                </button>
+                <button class="btn btn-small" type="button" @click="addField(true)">
+                  <span class="mdi mdi-lock"></span> Add a secret
+                </button>
+              </div>
+            </fieldset>
             <fieldset class="vault-field vault-qa">
               <legend>Security questions</legend>
               <p class="vault-hint">

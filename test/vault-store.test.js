@@ -577,3 +577,55 @@ test('grouping and a flat sort disagree, which is why the toggle exists', () => 
   assert.notEqual(grouped[0], Math.min(...flat),
     'the weakest entry is NOT first when grouped — the toggle is what fixes that')
 })
+
+// --- custom fields -----------------------------------------------------------
+
+test('custom fields are name/value pairs with a secret flag', () => {
+  const e = normalizeEntry({
+    pw: 'x',
+    fields: [
+      { name: 'PIN', value: '4417', secret: true },
+      { name: 'Customer number', value: 'CN-99120' },
+    ],
+  })
+  assert.equal(e.fields.length, 2)
+  assert.deepEqual(e.fields[0], { name: 'PIN', value: '4417', secret: true })
+  assert.equal(e.fields[1].secret, false, 'a field is public unless it says otherwise')
+})
+
+test('a field with no value is dropped; a field with no name is kept', () => {
+  // An unnamed value is still someone's data. An empty value is a blank row
+  // left behind by the editor, and saving those would grow the entry forever.
+  const e = normalizeEntry({
+    pw: 'x',
+    fields: [{ name: 'Empty', value: '' }, { name: '', value: 'orphaned' }, null, 'nonsense'],
+  })
+  assert.equal(e.fields.length, 1)
+  assert.equal(e.fields[0].value, 'orphaned')
+})
+
+test('custom fields are capped and trimmed like every other text', () => {
+  const e = normalizeEntry({
+    pw: 'x',
+    fields: [
+      { name: '  Spaced  ', value: '  padded  ' },
+      ...Array.from({ length: 50 }, (_, i) => ({ name: `f${i}`, value: 'v' })),
+    ],
+  })
+  assert.equal(e.fields[0].name, 'Spaced')
+  assert.equal(e.fields[0].value, 'padded')
+  assert.equal(e.fields.length, 30)
+})
+
+test('the secret flag is a real boolean, whatever was handed in', () => {
+  const e = normalizeEntry({
+    pw: 'x',
+    fields: [{ name: 'a', value: '1', secret: 'yes' }, { name: 'b', value: '2', secret: 0 }],
+  })
+  assert.equal(e.fields[0].secret, true)
+  assert.equal(e.fields[1].secret, false)
+})
+
+test('an entry with no fields has an empty list, not undefined', () => {
+  assert.deepEqual(normalizeEntry({ pw: 'x' }).fields, [])
+})

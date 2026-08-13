@@ -183,3 +183,33 @@ test('a CSV with no folder column simply leaves entries ungrouped', () => {
   const [entry] = normalizeEntries(parseTransfer('name,password\nBank,hunter2!\n').entries)
   assert.equal(entry.group, '')
 })
+
+test('the merge key cannot confuse two different pairs', () => {
+  // ("a b", "c") and ("a", "b c") join to the same string under any plain
+  // separator. Colliding here does not just mis-sort: the second entry is
+  // treated as already present and silently dropped from the import.
+  const existing = normalizeEntries([{ pw: 'a b', label: 'c' }])
+  const { added, merged } = mergeEntries(existing, normalizeEntries([{ pw: 'a', label: 'b c' }]))
+  assert.equal(added, 1, 'these are two different entries and both must survive')
+  assert.equal(merged.length, 2)
+})
+
+test('custom fields round-trip in JSON and fold into the CSV note', () => {
+  const withFields = normalizeEntries([{
+    label: 'Bank', pw: 'p', note: 'the joint one',
+    fields: [
+      { name: 'PIN', value: '4417', secret: true },
+      { name: 'Customer number', value: 'CN-99120' },
+    ],
+  }])
+
+  const plain = normalizeEntries(parseTransfer(exportPlainJson(withFields)).entries)[0]
+  assert.equal(plain.fields.length, 2)
+  assert.equal(plain.fields[0].secret, true, 'the secret flag must survive, or a PIN comes back public')
+
+  // CSV has no column for them, so they go where a person will still find them.
+  const note = parseCsv(exportCsv(withFields))[1][5]
+  assert.match(note, /the joint one/)
+  assert.match(note, /PIN: 4417/)
+  assert.match(note, /Customer number: CN-99120/)
+})

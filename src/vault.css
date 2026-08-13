@@ -525,6 +525,105 @@
   font-size: 0.78rem;
 }
 
+/* Collapsing. The chevron is the affordance; the heading text stays a normal
+   heading rather than becoming a giant button. */
+.vault-group-toggle,
+.vault-entry-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.vault-entry-toggle {
+  width: var(--control-min);
+  height: var(--control-min);
+  margin-left: -0.35rem;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.vault-entry-toggle:hover { color: var(--text); }
+
+/* A collapsed entry is one line, so it wants less vertical room than an
+   expanded one whose padding has to breathe around several rows. */
+.vault-entry.is-collapsed { padding: 0.4rem 0.9rem; }
+.vault-entry.is-collapsed .vault-entry-head { margin-bottom: 0; }
+
+.vault-collapsed-user {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 20ch;
+}
+
+.vault-foldall { font-size: 0.8rem; }
+
+/* Custom fields, shown on the entry. Same two-column shape as the security
+   answers, since they are the same kind of thing: a name and a value. */
+.vault-fields {
+  margin: 0.45rem 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-fields dt { color: var(--text); }
+
+.vault-fields dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.vault-fields code,
+.vault-field-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-fields code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* The editor row for a custom field: name, value, secret toggle, generate,
+   remove. */
+.vault-extra-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
+}
+
+.vault-secret-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .vault-extra-row { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+  .vault-extra-row input:first-child { grid-column: 1 / -1; }
+  .vault-secret-label { display: none; }
+}
+
 /* Password reuse: the one health finding a local vault can make with
    certainty. Warning-coloured, not error-coloured -- a reused password is a
    risk to fix, not a broken entry. */

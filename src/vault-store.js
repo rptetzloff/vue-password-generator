@@ -154,6 +154,29 @@ const questionList = (v) => {
     .slice(0, 20)
 }
 
+/**
+ * Arbitrary extra fields, rather than a fixed list of named ones.
+ *
+ * The request was "a second password or username, and other relevant fields",
+ * and the tempting answer is `username2` and `pw2`. That answer runs out
+ * immediately: the next account wants a PIN, then a customer number, then a
+ * recovery email, then a support passphrase. A name/value pair with a secret
+ * flag covers all of them and every one nobody has thought of yet.
+ *
+ * `secret` is what earns a field the password treatment -- masked, revealed
+ * deliberately, copied through the clipboard timer, and offered the generator.
+ * A customer number is not a secret and should not be hidden behind a dot row.
+ */
+const fieldList = (v) => {
+  if (!Array.isArray(v)) return []
+  return v
+    .map((f) => (f && typeof f === 'object'
+      ? { name: text(f.name, 100), value: text(f.value, 2000), secret: !!f.secret }
+      : null))
+    .filter((f) => f && f.value)
+    .slice(0, 30)
+}
+
 export const normalizeEntry = (raw) => {
   if (!raw || typeof raw !== 'object') return null
   if (typeof raw.pw !== 'string' || raw.pw === '') return null
@@ -168,6 +191,7 @@ export const normalizeEntry = (raw) => {
     // entry to the site in front of you is what 9c's autofill will need.
     urls: textList(raw.urls, 500),
     questions: questionList(raw.questions),
+    fields: fieldList(raw.fields),
     // Free text rather than a managed list of folders. A vault of a few dozen
     // entries does not need a taxonomy, and the cost of one is that every new
     // entry becomes a filing decision. An empty group is "Ungrouped", which is
