@@ -45,7 +45,7 @@ const suffixOptionMeta = (value, prefixValue, excl) => {
 }
 const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
 import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
-import { createVaultStore, DEFAULT_AUTOLOCK_MS } from './vault-store.js'
+import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -262,8 +262,14 @@ const useCopyPassword = (password, label = 'password') => {
 // The store is created lazily and shared by every generator tab, so the
 // generator page touches IndexedDB only if someone actually keeps something.
 let vaultStore = null
+
 const getVaultStore = () => {
-  if (!vaultStore) vaultStore = createVaultStore({ autoLockMs: DEFAULT_AUTOLOCK_MS })
+  if (!vaultStore) {
+    // One number governs both the idle auto-lock and how long the vault may
+    // stay unlocked across pages, read from the setting the vault page shares.
+    const window = vaultLockMs()
+    vaultStore = createVaultStore({ autoLockMs: window, staySignedInMs: window })
+  }
   return vaultStore
 }
 
@@ -3281,6 +3287,6 @@ mountSiteFooter(document.querySelector('[data-site-footer]'), {
       ],
       get: () => clipboardClear.value,
       set: (v) => { clipboardClear.value = Number(v) },
-    }],
+    }, vaultLockSection()],
   },
 })

@@ -17,6 +17,7 @@
 // bargain isCurrentPage and shouldCondense already make.
 
 import { createVault, openVault, sealVault, isVaultEnvelope } from './vault-crypto.js'
+import * as realSession from './vault-session.js'
 
 const DB_NAME = 'pwgen-vault'
 const STORE = 'vault'
@@ -24,6 +25,46 @@ const ENVELOPE_ID = 'envelope-v1'
 
 /** Fifteen minutes, matching the lockout scenario the entropy panel quotes. */
 export const DEFAULT_AUTOLOCK_MS = 15 * 60 * 1000
+
+export const VAULT_LOCK_KEY = 'global.vaultAutoLock'
+
+/** The configured window, in ms. Shared by the generator and the vault page. */
+export const vaultLockMs = () => {
+  try {
+    const v = JSON.parse(localStorage.getItem(VAULT_LOCK_KEY))
+    return Number.isFinite(v) && v >= 0 ? v : DEFAULT_AUTOLOCK_MS
+  } catch { return DEFAULT_AUTOLOCK_MS }
+}
+
+/**
+ * The settings-panel row for the lock window, so the generator page and the
+ * vault page offer the identical control rather than two that can drift.
+ *
+ * "Every page" is 0: the vault holds nothing between page loads and the
+ * passphrase is asked for each time, which is where this started before
+ * anyone complained about it. It is kept because it is the only setting that
+ * leaves the key non-extractable, and some people will want that.
+ */
+export const vaultLockSection = () => ({
+  label: 'Vault lock',
+  options: [
+    { value: 0, label: 'Every page' },
+    { value: 60_000, label: '1 min' },
+    { value: 5 * 60_000, label: '5 min' },
+    { value: DEFAULT_AUTOLOCK_MS, label: '15 min' },
+    { value: 60 * 60_000, label: '1 hour' },
+  ],
+  get: () => vaultLockMs(),
+  set: (v) => {
+    const ms = Number(v)
+    try { localStorage.setItem(VAULT_LOCK_KEY, JSON.stringify(ms)) } catch {}
+    // Tightening takes effect at once; a longer window only applies to the
+    // next unlock, since the running store captured the old one. Turning it
+    // off must not wait for a reload -- that is the security-relevant
+    // direction, so the held key goes immediately.
+    if (!ms) realSession.forgetSession()
+  },
+})
 
 // --- IndexedDB adapter -------------------------------------------------------
 // localStorage would work and is simpler, but it is synchronous, string-only
@@ -115,8 +156,16 @@ export const createVaultStore = ({
   storage = indexedDbStorage,
   now = Date.now,
   autoLockMs = DEFAULT_AUTOLOCK_MS,
+  // How long the vault may stay unlocked ACROSS page loads. 0 means never,
+  // which also keeps the key non-extractable -- see vault-session.js for the
+  // trade this makes when it is on.
+  staySignedInMs = 0,
+  // Injectable for the same reason storage and the clock are: the whole
+  // stay-unlocked lifecycle is then testable without IndexedDB.
+  session = realSession,
   onChange = () => {},
 } = {}) => {
+  const holdsSession = staySignedInMs > 0
   let envelope = null
   let key = null
   let kdf = null
@@ -144,16 +193,40 @@ export const createVaultStore = ({
       throw new Error('the vault could not be read from storage')
     }
     loaded = true
+
+    // A session held by the SharedWorker means the vault was unlocked on
+    // another page and has not timed out; restoring it here is what stops
+    // the generator and the vault asking separately. Failure is silent and
+    // simply leaves the vault locked.
+    if (envelope && holdsSession) {
+      try {
+        const held = await session.recallSession()
+        if (held) {
+          const opened = await openVault(envelope, null, held.key, holdsSession)
+          entries = normalizeEntries(opened.data)
+          key = held.key
+          kdf = held.kdf
+          touch()
+        }
+      } catch { /* a stale or mismatched key just means asking again */ }
+    }
+
     emit()
     return state()
   }
 
-  const touch = () => { lastActivity = now() }
+  const touch = () => {
+    lastActivity = now()
+    if (key && holdsSession) session.touchSession(staySignedInMs)
+  }
 
   const lock = () => {
     key = null
     kdf = null
     entries = null
+    // Locking on one page must lock every page; leaving the key with the
+    // worker would make the lock button a lie.
+    session.forgetSession()
     emit()
   }
 
@@ -174,12 +247,13 @@ export const createVaultStore = ({
 
   const create = async (passphrase) => {
     if (envelope) throw new Error('a vault already exists on this device')
-    const made = await createVault(passphrase, [])
+    const made = await createVault(passphrase, [], holdsSession)
     envelope = made.envelope
     key = made.key
     kdf = made.kdf
     entries = []
     await storage.save(envelope)
+    await session.rememberSession(key, kdf, staySignedInMs)
     touch()
     emit()
     return state()
@@ -188,10 +262,12 @@ export const createVaultStore = ({
   const unlock = async (passphrase) => {
     if (!envelope) throw new Error('no vault to unlock')
     // Any failure here leaves the store locked rather than half-open.
-    const opened = await openVault(envelope, passphrase)
+    const opened = await openVault(envelope, passphrase, null, holdsSession)
     entries = normalizeEntries(opened.data)
     key = opened.key
     kdf = opened.kdf
+    // Hand it to the session holder so the other pages do not ask again.
+    await session.rememberSession(key, kdf, staySignedInMs)
     touch()
     emit()
     return state()
@@ -251,12 +327,13 @@ export const createVaultStore = ({
   const rekey = async (oldPassphrase, newPassphrase) => {
     if (!envelope) throw new Error('no vault to re-key')
     const opened = await openVault(envelope, oldPassphrase)
-    const made = await createVault(newPassphrase, opened.data)
+    const made = await createVault(newPassphrase, opened.data, holdsSession)
     envelope = made.envelope
     key = made.key
     kdf = made.kdf
     entries = normalizeEntries(opened.data)
     await storage.save(envelope)
+    await session.rememberSession(key, kdf, staySignedInMs)
     touch()
     emit()
   }

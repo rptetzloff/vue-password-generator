@@ -7,21 +7,13 @@
 // the instant it takes to unlock, and never writes it anywhere.
 
 import { createApp, ref, computed, onMounted, onUnmounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
-import { createVaultStore, DEFAULT_AUTOLOCK_MS } from './vault-store.js'
+import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
 import { KDF_ITERATIONS, needsRekey } from './vault-crypto.js'
 import { entropyTier } from './entropy.js'
 import { estimatePassphrase } from './passphrase-strength.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
-
-const AUTOLOCK_KEY = 'global.vaultAutoLock'
-const loadAutoLock = () => {
-  try {
-    const v = JSON.parse(localStorage.getItem(AUTOLOCK_KEY))
-    return Number.isFinite(v) && v >= 0 ? v : DEFAULT_AUTOLOCK_MS
-  } catch { return DEFAULT_AUTOLOCK_MS }
-}
 
 const App = {
   setup () {
@@ -44,7 +36,10 @@ const App = {
     const newPass = ref('')
 
     const store = createVaultStore({
-      autoLockMs: loadAutoLock(),
+      autoLockMs: vaultLockMs(),
+      // The same window governs idle auto-lock and staying unlocked between
+      // pages, so there is one number for a reader to reason about.
+      staySignedInMs: vaultLockMs(),
       onChange: (s) => {
         state.value = s
         entries.value = s === 'unlocked' ? store.list() : []
@@ -210,7 +205,7 @@ const App = {
       startAdd, startEdit, rekey, destroy, tierOf,
       newStrength, rekeyStrength,
       iterations: KDF_ITERATIONS.toLocaleString(),
-      autoLockMinutes: Math.round(loadAutoLock() / 60000),
+      autoLockMinutes: Math.round(vaultLockMs() / 60000),
       needsRekey: () => needsRekey(store.envelope()),
     }
   },
@@ -414,5 +409,7 @@ const App = {
 
 initTheme()
 mountSiteHeader(document.querySelector('[data-site-header]'))
-mountSiteFooter(document.querySelector('[data-site-footer]'))
+mountSiteFooter(document.querySelector('[data-site-footer]'), {
+  settings: { extraSections: [vaultLockSection()] },
+})
 createApp(App).mount('#vault-app')

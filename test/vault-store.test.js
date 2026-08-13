@@ -297,3 +297,106 @@ test('onChange reports every state transition', async () => {
   await store.unlock(PASS)
   assert.deepEqual(seen.slice(-3), ['unlocked', 'locked', 'unlocked'])
 })
+
+// --- staying unlocked between pages -----------------------------------------
+// A page navigation destroys the in-memory key, so without this the generator
+// and the vault each demand the passphrase. The session holder is injected
+// here, exactly as storage and the clock are, so the whole lifecycle is
+// exercised without IndexedDB.
+
+const fakeSession = () => {
+  const box = { held: null, ttl: 0, forgets: 0 }
+  return {
+    box,
+    rememberSession: async (key, kdf, ttl) => {
+      if (!ttl) { box.held = null; return false }
+      box.held = { key, kdf }
+      box.ttl = ttl
+      return true
+    },
+    recallSession: async () => box.held,
+    touchSession: async (ttl) => { if (box.held) box.ttl = ttl },
+    forgetSession: async () => { box.held = null; box.forgets++ },
+  }
+}
+
+test('an unlocked vault survives a page load when a window is set', async () => {
+  const storage = fakeStorage()
+  const session = fakeSession()
+  const opts = { storage, session, staySignedInMs: 60_000, now: fakeClock().now }
+
+  const first = createVaultStore(opts)
+  await first.init()
+  await first.create(PASS)
+  await first.add({ label: 'email', pw: 'hunter2!' })
+
+  // A second store over the same storage and session is what navigating to
+  // another page looks like.
+  const second = createVaultStore(opts)
+  assert.equal(await second.init(), 'unlocked', 'the vault should still be open')
+  assert.equal(second.list()[0].label, 'email')
+})
+
+test('with the window off, nothing is held and every page asks again', async () => {
+  const storage = fakeStorage()
+  const session = fakeSession()
+  const opts = { storage, session, staySignedInMs: 0, now: fakeClock().now }
+
+  const first = createVaultStore(opts)
+  await first.init()
+  await first.create(PASS)
+  assert.equal(session.box.held, null, 'nothing may be held when the window is off')
+
+  const second = createVaultStore(opts)
+  assert.equal(await second.init(), 'locked')
+})
+
+test('locking clears the held session, so it locks everywhere', async () => {
+  // The bug this pins: lock() cleared local state but left the key with the
+  // session holder, so the next page walked straight back in and the lock
+  // button was a lie.
+  const storage = fakeStorage()
+  const session = fakeSession()
+  const opts = { storage, session, staySignedInMs: 60_000, now: fakeClock().now }
+
+  const first = createVaultStore(opts)
+  await first.init()
+  await first.create(PASS)
+  first.lock()
+  assert.equal(session.box.held, null)
+
+  const second = createVaultStore(opts)
+  assert.equal(await second.init(), 'locked')
+})
+
+test('idle auto-lock also clears the held session', async () => {
+  const storage = fakeStorage()
+  const session = fakeSession()
+  const clock = fakeClock()
+  const opts = { storage, session, staySignedInMs: 60_000, autoLockMs: 60_000, now: clock.now }
+
+  const store = createVaultStore(opts)
+  await store.init()
+  await store.create(PASS)
+  clock.advance(61_000)
+  assert.equal(store.lockIfIdle(), true)
+  assert.equal(session.box.held, null, 'an idle lock must not leave the key behind')
+})
+
+test('a session the holder rejects just means asking again', async () => {
+  // A stale or mismatched key must degrade to "locked", never to an error
+  // page or a half-open vault.
+  const storage = fakeStorage()
+  const good = fakeSession()
+  const opts = { storage, session: good, staySignedInMs: 60_000, now: fakeClock().now }
+  const first = createVaultStore(opts)
+  await first.init()
+  await first.create(PASS)
+
+  const wrongKey = await crypto.subtle.generateKey(
+    { name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'],
+  )
+  const liar = { ...good, recallSession: async () => ({ key: wrongKey, kdf: good.box.held.kdf }) }
+  const second = createVaultStore({ ...opts, session: liar })
+  assert.equal(await second.init(), 'locked')
+})

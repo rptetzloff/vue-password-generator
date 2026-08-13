@@ -61,7 +61,7 @@ export const newSalt = () => crypto.getRandomValues(new Uint8Array(SALT_BYTES))
  * become readable to script, so a vault open in a tab cannot have its key
  * exfiltrated as a value even if something is running on the origin.
  */
-export const deriveKey = async (passphrase, salt, iterations = KDF_ITERATIONS) => {
+export const deriveKey = async (passphrase, salt, iterations = KDF_ITERATIONS, extractable = false) => {
   if (typeof passphrase !== 'string' || passphrase === '') {
     throw new Error('a passphrase is required')
   }
@@ -72,7 +72,11 @@ export const deriveKey = async (passphrase, salt, iterations = KDF_ITERATIONS) =
     { name: 'PBKDF2', hash: 'SHA-256', salt, iterations },
     material,
     { name: 'AES-GCM', length: 256 },
-    false,
+    // Non-extractable by default: the derived bytes never become readable to
+    // script. Only the "stay unlocked between pages" setting turns this on,
+    // because a key that cannot be exported cannot be held for later either
+    // -- see vault-session.js for what that costs.
+    extractable,
     ['encrypt', 'decrypt'],
   )
 }
@@ -98,7 +102,7 @@ export const sealVault = async (key, kdf, data) => {
 }
 
 /** A brand new vault: fresh salt, key derived at the current default cost. */
-export const createVault = async (passphrase, data = []) => {
+export const createVault = async (passphrase, data = [], extractable = false) => {
   const salt = newSalt()
   const kdf = {
     name: 'PBKDF2',
@@ -106,7 +110,7 @@ export const createVault = async (passphrase, data = []) => {
     iterations: KDF_ITERATIONS,
     salt: toB64(salt),
   }
-  const key = await deriveKey(passphrase, salt, kdf.iterations)
+  const key = await deriveKey(passphrase, salt, kdf.iterations, extractable)
   return { envelope: await sealVault(key, kdf, data), key, kdf }
 }
 
@@ -120,7 +124,7 @@ export const createVault = async (passphrase, data = []) => {
  * vault to someone who mistyped would invite them to start over on top of
  * their real data.
  */
-export const openVault = async (envelope, passphrase) => {
+export const openVault = async (envelope, passphrase, existingKey = null, extractable = false) => {
   if (!isVaultEnvelope(envelope)) throw new Error('not a vault envelope')
   const { kdf } = envelope
   if (kdf.name !== 'PBKDF2' || kdf.hash !== 'SHA-256') {
@@ -129,7 +133,11 @@ export const openVault = async (envelope, passphrase) => {
   if (!Number.isInteger(kdf.iterations) || kdf.iterations < 1) {
     throw new Error('malformed kdf iterations')
   }
-  const key = await deriveKey(passphrase, fromB64(kdf.salt), kdf.iterations)
+  // An already-derived key skips the KDF entirely. Used when the key comes
+  // back from the session holder after a page navigation -- re-deriving there
+  // would need the passphrase, which is the whole thing being avoided. A key
+  // that does not match still fails, because GCM authenticates.
+  const key = existingKey || await deriveKey(passphrase, fromB64(kdf.salt), kdf.iterations, extractable)
   const pt = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: fromB64(envelope.iv) }, key, fromB64(envelope.ct),
   )

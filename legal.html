@@ -79,6 +79,26 @@
           </li>
         </ul>
         <p>
+          If you create a <strong>vault</strong>, its contents are stored the same way — on
+          your device, in your browser — but encrypted with a passphrase only you know, using
+          600,000 rounds of PBKDF2. That key is never written anywhere and exists only while the
+          vault is unlocked, so a copy of your browser profile yields ciphertext rather than
+          passwords. There is no account, no server and no recovery: if you forget the
+          passphrase, nobody can open the vault, including us.
+        </p>
+        <p>
+          One honest exception, because it is a real trade rather than a detail. The
+          <strong>Vault lock</strong> setting decides how long the vault may stay unlocked as you
+          move between pages. While that window is open, the vault key is kept in browser storage,
+          encrypted under a second key that the browser can use without asking — the same
+          protection level as the history list above. That stops casual inspection and anything
+          reading the database off your disk, but not somebody in control of your browser profile.
+          When the window expires the held key is deleted and the vault is worth only the
+          passphrase again. Setting <strong>Vault lock</strong> to “Every page” switches this off
+          entirely: nothing is held, the key is never even made exportable, and you are asked for
+          the passphrase on each page.
+        </p>
+        <p>
           Clearing your browser's site data erases all of it. None of it is ever
           sent anywhere. If you turn on <strong>Clear clipboard</strong> in the
           settings gear, a copied password is also wiped from your clipboard
