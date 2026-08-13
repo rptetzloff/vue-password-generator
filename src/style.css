@@ -752,7 +752,8 @@ details[open].card-collapse > summary .collapse-chevron {
      almost never wants less, and partial drags kept grabbing fragments. */
   user-select: all;
   padding: var(--pw-pad);
-  padding-right: 3rem;
+  /* Room for the two overlaid controls, copy and keep. */
+  padding-right: 5.1rem;
   background: var(--background);
   border: 2px solid var(--border-strong);
   line-height: var(--pw-line);
@@ -813,6 +814,90 @@ details[open].card-collapse > summary .collapse-chevron {
 .copy-btn:hover {
   background: var(--border);
   color: var(--text);
+}
+
+/* Keep-to-vault (9a). Sits beside copy, inside the output field, because the
+   moment to file a password is the moment it exists -- a vault you have to
+   navigate to and paste into is a notebook nobody opens twice. */
+.keep-wrap {
+  position: static;
+}
+
+.keep-btn {
+  right: 2.6rem;
+}
+
+.keep-btn.kept {
+  color: var(--success);
+}
+
+.keep-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Anchored to the output field rather than the button, so it cannot hang off
+   the edge of a narrow screen -- and opening UPWARD, because the field lives
+   in a bar docked at the bottom of the viewport: downward put the panel
+   off-screen, measured, exactly as it did for the settings gear. */
+.keep-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 20;
+  width: min(20rem, calc(100vw - 2.5rem));
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.keep-panel p {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.keep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.keep-field > span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.keep-field input {
+  padding: 0.45rem 0.6rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.keep-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.keep-actions .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+}
+
+.keep-error {
+  margin-bottom: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 0.8rem;
 }
 
 .copy-btn.copied {

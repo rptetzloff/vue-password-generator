@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch, onMounted } from '../vendor/vue.esm-browser.prod.js'
+import { createApp, ref, computed, watch, onMounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
 import {
   SPECIAL_CHARS,
   DIGITS,
@@ -45,6 +45,7 @@ const suffixOptionMeta = (value, prefixValue, excl) => {
 }
 const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
 import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
+import { createVaultStore, DEFAULT_AUTOLOCK_MS } from './vault-store.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -254,6 +255,132 @@ const useCopyPassword = (password, label = 'password') => {
   return { copied, notification, showNotification, copyPassword }
 }
 
+// Keep-to-vault (ROADMAP 9a). The vault is only worth having if filing a
+// password into it takes one click at the moment it is generated; a vault you
+// have to visit and paste into is a notebook you will not use.
+//
+// The store is created lazily and shared by every generator tab, so the
+// generator page touches IndexedDB only if someone actually keeps something.
+let vaultStore = null
+const getVaultStore = () => {
+  if (!vaultStore) vaultStore = createVaultStore({ autoLockMs: DEFAULT_AUTOLOCK_MS })
+  return vaultStore
+}
+
+const KeepButton = {
+  name: 'KeepButton',
+  props: { password: String, bits: Number },
+  setup (props) {
+    const open = ref(false)
+    const state = ref('loading')
+    const label = ref('')
+    const pass = ref('')
+    const busy = ref(false)
+    const error = ref('')
+    const kept = ref(false)
+
+    const start = async () => {
+      if (!props.password) return
+      open.value = !open.value
+      if (!open.value) return
+      error.value = ''
+      kept.value = false
+      try {
+        state.value = await getVaultStore().init()
+      } catch (e) {
+        state.value = 'error'
+        error.value = e.message
+      }
+    }
+
+    const unlock = async () => {
+      busy.value = true
+      error.value = ''
+      await nextTick()
+      try {
+        state.value = await getVaultStore().unlock(pass.value)
+        pass.value = ''
+      } catch {
+        error.value = 'That passphrase did not open the vault.'
+      } finally {
+        busy.value = false
+      }
+    }
+
+    const save = async () => {
+      busy.value = true
+      error.value = ''
+      try {
+        await getVaultStore().add({
+          label: label.value,
+          pw: props.password,
+          bits: Number.isFinite(props.bits) ? props.bits : null,
+          // Date only: the hour someone generated a password is not
+          // information the vault needs to keep about them.
+          at: new Date().toISOString().slice(0, 10),
+        })
+        label.value = ''
+        kept.value = true
+        open.value = false
+      } catch (e) {
+        error.value = e.message
+      } finally {
+        busy.value = false
+      }
+    }
+
+    return { open, state, label, pass, busy, error, kept, start, unlock, save }
+  },
+  template: `
+    <span class="keep-wrap">
+      <button
+        class="copy-btn keep-btn"
+        :class="{ kept }"
+        @click="start"
+        :disabled="!password"
+        :title="kept ? 'Kept in the vault' : 'Keep in the vault'"
+        :aria-label="kept ? 'Kept in the vault' : 'Keep in the vault'"
+        :aria-expanded="open ? 'true' : 'false'"
+      ><span :class="['mdi', kept ? 'mdi-check-decagram' : 'mdi-safe-square-outline']"></span></button>
+
+      <div v-if="open" class="keep-panel" role="dialog" aria-label="Keep in the vault">
+        <div v-if="error" class="keep-error">{{ error }}</div>
+
+        <template v-if="state === 'unlocked'">
+          <label class="keep-field">
+            <span>Label</span>
+            <input v-model="label" type="text" placeholder="What is this for?" @keyup.enter="save" />
+          </label>
+          <div class="keep-actions">
+            <button class="btn btn-primary" @click="save" :disabled="busy">Keep</button>
+            <button class="btn" @click="open = false">Cancel</button>
+          </div>
+        </template>
+
+        <template v-else-if="state === 'locked'">
+          <label class="keep-field">
+            <span>Vault passphrase</span>
+            <input v-model="pass" type="password" autocomplete="current-password" @keyup.enter="unlock" />
+          </label>
+          <div class="keep-actions">
+            <button class="btn btn-primary" @click="unlock" :disabled="busy">
+              {{ busy ? 'Unlocking…' : 'Unlock' }}
+            </button>
+            <button class="btn" @click="open = false">Cancel</button>
+          </div>
+        </template>
+
+        <template v-else-if="state === 'absent'">
+          <p>No vault on this device yet.</p>
+          <a class="btn btn-primary" href="/vault.html">Create one</a>
+        </template>
+
+        <p v-else>Opening…</p>
+      </div>
+    </span>
+  `,
+}
+
 const HistoryStrip = {
   name: 'HistoryStrip',
   props: { history: { default: () => [] }, current: String, warnSet: { default: () => new Set() } },
@@ -398,7 +525,7 @@ const AffixPicker = {
 // Simple Password Generator Component
 const SimplePassword = {
   name: 'SimplePassword',
-  components: { HistoryStrip, EntropyPanel },
+  components: { HistoryStrip, EntropyPanel, KeepButton },
   setup() {
     const passwordLength = persistedRef('simple.passwordLength', 20)
     const lowerCase = persistedRef('simple.lowerCase', true)
@@ -563,6 +690,7 @@ const SimplePassword = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
       </div>
@@ -579,7 +707,7 @@ const SimplePassword = {
 }
 const AdvancedPassword = {
   name: 'AdvancedPassword',
-  components: { HistoryStrip, EntropyPanel },
+  components: { HistoryStrip, EntropyPanel, KeepButton },
   setup() {
     const passwordLength = persistedRef('adv.passwordLength', 20)
     const lowerCase = persistedRef('adv.lowerCase', [1, 20])
@@ -976,6 +1104,7 @@ const AdvancedPassword = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
       </div>
@@ -994,7 +1123,7 @@ const AdvancedPassword = {
 // Words Password Generator Component
 const WordsPassword = {
   name: 'WordsPassword',
-  components: { AffixPicker, HistoryStrip, EntropyPanel },
+  components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
   setup() {
     const wordCount = persistedRef('words.wordCount', 4)
     const separator = persistedRef('words.separator', '$')
@@ -1314,6 +1443,7 @@ const WordsPassword = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="words" />
       </div>
@@ -1354,7 +1484,7 @@ const WordsPassword = {
 // Numbers Password Generator Component
 const NumbersPassword = {
   name: 'NumbersPassword',
-  components: { HistoryStrip, EntropyPanel },
+  components: { HistoryStrip, EntropyPanel, KeepButton },
   setup() {
     const passwordLength = persistedRef('nums.passwordLength', 8)
     const maxRepeated = persistedRef('nums.maxRepeated', 3)
@@ -1548,6 +1678,7 @@ const NumbersPassword = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
       </div>
@@ -1813,7 +1944,7 @@ const Passphrase = {
       generatePassword, regenWord, copyPassword
     }
   },
-  components: { AffixPicker, HistoryStrip, EntropyPanel },
+  components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
   template: `
     <div class="password-generator">
 
@@ -1991,6 +2122,7 @@ const Passphrase = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
       </div>
@@ -2293,7 +2425,7 @@ const WifiWords = {
       generatePassword, regenWord, copyPassword
     }
   },
-  components: { AffixPicker, HistoryStrip, EntropyPanel },
+  components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
   template: `
     <div class="password-generator">
 
@@ -2479,6 +2611,7 @@ const WifiWords = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
       </div>
@@ -2754,7 +2887,7 @@ const MadLib = {
       generatePassword, regenWord, copyPassword,
     }
   },
-  components: { AffixPicker, HistoryStrip, EntropyPanel },
+  components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
   template: `
     <div class="password-generator">
 
@@ -2937,6 +3070,7 @@ const MadLib = {
           <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
             <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
           </button>
+          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
         </div>
         <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
       </div>
