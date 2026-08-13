@@ -8,6 +8,7 @@
 
 import { createApp, ref, computed, onMounted, onUnmounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
 import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
+import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import { KDF_ITERATIONS, needsRekey } from './vault-crypto.js'
 import { entropyTier } from './entropy.js'
 import { estimatePassphrase } from './passphrase-strength.js'
@@ -114,6 +115,9 @@ const App = {
       try {
         await navigator.clipboard.writeText(entry.pw)
         flash('Copied.')
+        // The same timer the generator uses; a password copied out of the
+        // vault is no less worth wiping than one copied out of the bar.
+        scheduleClipboardClear((msg) => flash(msg))
       } catch { error.value = 'The clipboard refused the copy.' }
     }
 
@@ -410,6 +414,6 @@ const App = {
 initTheme()
 mountSiteHeader(document.querySelector('[data-site-header]'))
 mountSiteFooter(document.querySelector('[data-site-footer]'), {
-  settings: { extraSections: [vaultLockSection()] },
+  settings: { extraSections: [clipboardClearSection(), vaultLockSection()] },
 })
 createApp(App).mount('#vault-app')

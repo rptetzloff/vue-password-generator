@@ -31,6 +31,7 @@ const PRECACHE = [
   '/src/markdown.js',
   '/src/lib.js',
   '/src/entropy.js',
+  '/src/clipboard-clear.js',
   '/src/history-crypto.js',
   '/src/vault-crypto.js',
   '/src/passphrase-strength.js',

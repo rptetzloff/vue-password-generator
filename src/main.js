@@ -46,6 +46,7 @@ const suffixOptionMeta = (value, prefixValue, excl) => {
 const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
 import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
 import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
+import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
@@ -80,45 +81,12 @@ const persistedRef = (key, fallback) => {
 const historyMax = persistedRef('global.historyMax', 10)
 // Copy is the primary action, and a copied password otherwise sits in the
 // clipboard indefinitely. 0 = keep; otherwise seconds until it is wiped.
-const clipboardClear = persistedRef('global.clipboardClear', 0)
 
 // The Generate bar floats at the viewport bottom by default; the pin on the
 // bar itself puts it back into normal flow for anyone who finds the floating
 // version in the way. One setting for all seven generators.
 const floatBar = persistedRef('global.floatBar', true)
 
-// The wipe is blunt on purpose: it writes '' over whatever is in the
-// clipboard at the deadline, even if that is no longer the password --
-// checking first would mean asking to READ the clipboard, a permission this
-// site has no business requesting. And it must never cause a permission
-// prompt of its own: Edge treats a clipboard write with no user gesture as
-// prompt-worthy, so the wipe fires silently only where clipboard-write is
-// already granted; everywhere else it waits for the next real click or
-// keypress, because a write under transient user activation needs no
-// permission in any engine.
-let clipboardTimer = null
-const scheduleClipboardClear = (notify) => {
-  clearTimeout(clipboardTimer)
-  if (!clipboardClear.value) return
-  clipboardTimer = setTimeout(async () => {
-    const wipe = () => navigator.clipboard.writeText('')
-      .then(() => notify('Clipboard cleared', 'success'))
-      .catch(() => {})
-    let granted = false
-    try {
-      const p = await navigator.permissions.query({ name: 'clipboard-write' })
-      granted = p.state === 'granted'
-    } catch { /* engines without a queryable clipboard-write permission */ }
-    if (granted && document.hasFocus()) { wipe(); return }
-    const onGesture = () => {
-      window.removeEventListener('pointerdown', onGesture, true)
-      window.removeEventListener('keydown', onGesture, true)
-      wipe()
-    }
-    window.addEventListener('pointerdown', onGesture, true)
-    window.addEventListener('keydown', onGesture, true)
-  }, clipboardClear.value * 1000)
-}
 // The "vs last" chip and the per-option price tags are coaching, and some
 // people find a coach noisy. One switch hides all of it; the total, tier,
 // meter and breakdown stay.
@@ -3277,16 +3245,6 @@ mountSiteFooter(document.querySelector('[data-site-footer]'), {
       options: [{ value: 'on', label: 'On' }, { value: 'off', label: 'Off' }],
       get: () => (showBitHints.value ? 'on' : 'off'),
       set: (v) => { showBitHints.value = v === 'on' },
-    }, {
-      label: 'Clear clipboard',
-      options: [
-        { value: 0, label: 'Keep' },
-        { value: 30, label: '30s' },
-        { value: 60, label: '60s' },
-        { value: 120, label: '2 min' },
-      ],
-      get: () => clipboardClear.value,
-      set: (v) => { clipboardClear.value = Number(v) },
-    }, vaultLockSection()],
+    }, clipboardClearSection(), vaultLockSection()],
   },
 })
