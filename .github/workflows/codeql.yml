@@ -1,0 +1,46 @@
+name: CodeQL
+
+# Static analysis, for a product whose whole claim rests on the code being
+# right. Advanced setup rather than GitHub's default, for one reason: the
+# vendored Vue build has to be excluded. It is not this project's source, and
+# 149KB of minified library would bury real findings. The wordlists need no
+# exclusion -- they are .txt and .json, which CodeQL does not analyze.
+
+on:
+  push:
+    branches: [master, dev]
+  pull_request:
+    branches: [master]
+  schedule:
+    # Weekly, so a newly published query reaches this code without waiting for
+    # the next commit. Monday morning UTC.
+    - cron: '17 6 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze JavaScript
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # security-extended over the default: this is a password manager, and
+          # the extra queries' lower precision is a fair trade for the coverage.
+          queries: security-extended
+          config: |
+            paths-ignore:
+              - vendor
+
+      # No build step to run, which is the point of the project. CodeQL's
+      # autobuild is skipped entirely for JavaScript.
+      - name: Analyze
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: /language:javascript-typescript
