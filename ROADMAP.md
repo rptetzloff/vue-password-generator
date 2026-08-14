@@ -43,6 +43,16 @@ were good, and it brings the one thing the web genuinely cannot do: autofill
 into other apps. 9b's export file is the bridge between a packaged app's storage
 sandbox and the site's, which is why it was built first.
 
+**Epic 10 is the gap against a mainstream manager**, and it is listed after 9
+rather than inside it because most of it is not about the vault so much as
+about what people expect around one: attachments, importing from the tool they
+are leaving, more than one vault, folder templates, sharing, group accounts.
+It was raised on the assumption that most of it waits for sync. Four of the
+six do not — they need no server at all and could ship on what exists today,
+which changes the order considerably. The two that do need one are also the
+two where the zero-knowledge claim is easiest to lose by accident, and 10f
+spells out exactly how.
+
 **Reading, not work — Epic 8c/8d/8e.** 8d is a documented dead end (the web
 platform cannot hand a password to a manager for another origin, by design),
 8c is the desktop half of the same autofill idea 9c covers on mobile, and 8e is
@@ -390,6 +400,179 @@ and both should be revisited deliberately rather than drifted into.
       another reason; do not add one for this alone.
 
 ---
+
+## Epic 10 — What a password manager is expected to have
+
+Six things a person moving from 1Password or Bitwarden would look for and not
+find. None is started. They are gathered here because they were raised
+together, with the assumption that most would have to wait for sync.
+
+**That assumption is worth correcting, because it changes the order.** Four of
+the six need no server at all:
+
+| | Needs a server? | Real obstacle |
+|---|---|---|
+| 10a Attachments | No | Storage shape, not storage space |
+| 10b Import from other managers | No | One format at a time; KDBX is its own project |
+| 10c More than one vault | No | Deciding what a vault *is* |
+| 10d Folder templates | No | Nothing. This one is small |
+| 10e Sharing | Yes, but only to hold ciphertext | Key never reaches it |
+| 10f Group accounts and SSO | Yes | SSO must not become key custody |
+
+So the sequencing is not "wait for 9d". Attachments, imports, vaults and
+templates could all ship on what exists today, and between them they close
+most of the gap against a mainstream manager. Sharing and group accounts are
+the two that genuinely need 9d first, and they are also the two where the
+zero-knowledge claim is easiest to lose by accident.
+
+### 10a. File attachments — small ones, and the format is the hard part
+
+Recovery codes as a PDF, a scan of a passport, a licence key file. The obvious
+scope is "small files only", and that instinct is right, but not for the
+reason it looks like.
+
+- [ ] **The obstacle is the storage shape, not the quota.** The vault is one
+      sealed blob: every save re-encrypts and rewrites the whole thing. That
+      is fine for a few kilobytes of text and untenable the moment a 2 MB scan
+      is in there, because editing an unrelated entry's label would rewrite
+      the scan too. Attachments force per-item sealing — each attachment its
+      own envelope under the vault key, referenced by id — which is a real
+      change to 9a's design and should be made deliberately rather than
+      discovered halfway through.
+- [ ] **A cap, stated in the UI.** Browsers grant a large quota but a vault
+      that outgrows it gets evicted rather than truncated, and the persistence
+      warning already explains how little we control that. Something like a
+      few MB per attachment and a visible total, refusing rather than silently
+      degrading.
+- [ ] **Export has to change with it, and 1PUX is the right shape to copy** —
+      a zip holding a JSON manifest plus the files. The current backup is a
+      single JSON envelope and cannot carry bytes without base64 inflating
+      them by a third inside an already-encrypted blob.
+- [ ] **A zip writer without a dependency is feasible**, which is the part
+      worth checking before committing: `CompressionStream('deflate-raw')` is
+      in every current browser, so a real deflated zip needs a local header,
+      a central directory and a CRC-32 — roughly a hundred lines and no
+      third-party code. Store-only (uncompressed) is simpler still and legal
+      zip; ciphertext does not compress anyway.
+- [ ] **Keep the encrypted backup encrypted.** The zip is a container, not a
+      security boundary: zip's own password support is not to be used for
+      anything. Each file goes in sealed under the vault key, exactly as the
+      entries are.
+
+### 10b. Import from other managers — one format at a time
+
+Already reads a generic CSV with aliased headers, which covers more than it
+sounds: Bitwarden, LastPass, Chrome, Edge, Firefox and Safari all export CSV,
+and the header mapping already recognises most of their column names. What is
+missing is the rest.
+
+- [ ] **Tier one, nearly free: browser CSVs.** Chrome, Edge, Firefox and
+      Safari differ only in column naming. Mostly a matter of adding aliases
+      and testing against a real export of each.
+- [ ] **Tier two, moderate: 1PUX and Keeper.** 1Password's 1PUX is a zip with
+      JSON inside — reading it needs the unzip half of whatever 10a writes,
+      which is an argument for doing 10a first. Keeper exports JSON directly.
+      Both carry fields WordLock now has homes for: custom fields, TOTP seeds,
+      named URLs.
+- [ ] **Tier three, a project of its own: KeePass KDBX.** Not a format to
+      read casually — KDBX4 is an encrypted binary container with its own KDF
+      (Argon2 or AES-KDF), its own cipher (ChaCha20 or AES), an inner stream
+      cipher for protected values, and a compressed XML payload. Doing it
+      properly means implementing another manager's crypto stack correctly,
+      and doing it improperly means telling someone their import worked when
+      it silently dropped their protected fields. Either build it as its own
+      piece of work with its own tests, or say plainly that KeePass users
+      should export CSV.
+- [ ] **Import must stay non-destructive**, which it already is: merge, never
+      replace, existing entries win. Every format added inherits that.
+- [ ] **Report what did not come across.** Each of these formats carries
+      things WordLock has no field for. Silently dropping them is the failure
+      mode that loses someone's data without telling them; a summary of what
+      was skipped is the minimum.
+
+### 10c. More than one vault — decide what a vault *is* first
+
+Raised as "group/folder membership of some variety... maybe vaults?", and the
+two halves of that are different features.
+
+- [ ] **A group is a label; a vault is an encryption boundary.** Groups exist
+      and are cheap to extend — nesting, or letting an entry belong to
+      several. A second *vault* means a second envelope with its own key,
+      which is the only version that actually separates anything: locking the
+      work vault while the personal one stays open, or a shared vault whose
+      key is wrapped to several people (which is what 10f needs).
+- [ ] **Multiple envelopes are not hard; the UI is the question.** The
+      storage layer already keys by id and could hold several. What needs
+      deciding is whether they unlock independently, whether one passphrase
+      opens all of them, and what the lock button means when two are open.
+- [ ] **If the answer is only "I want folders inside folders", say so and do
+      that instead** — it is a tenth of the work and probably what most of the
+      demand actually is.
+
+### 10d. Folder templates — the small one
+
+Everything filed under *Banking* gets a PIN field and a security question;
+everything under *Government* gets an SSN field. Applied at creation, not
+enforced afterwards.
+
+- [ ] **Purely local, no dependency, no architecture change.** A template is
+      a list of field names and secret flags stored against a group name, and
+      `startAdd` already lands a new entry in the filtered group. This is the
+      cheapest item in the epic by a wide margin.
+- [ ] **A starting point, not a schema.** Templates must not stop someone
+      deleting a field they do not want, and changing a template must not
+      rewrite existing entries. The moment it validates rather than suggests,
+      it becomes a thing that argues with people about their own data.
+
+### 10e. One-time and individual shares — a server that holds only ciphertext
+
+Send someone a password without emailing it. Needs somewhere to put the
+ciphertext, so it depends on 9d — but only for storage, and the design keeps
+the server ignorant.
+
+- [ ] **The key travels in the URL fragment, which is never sent.** Encrypt
+      client-side with a fresh random key, upload only the ciphertext, and put
+      the key after the `#`. Browsers do not transmit the fragment to the
+      server, so the host holds a blob it cannot read even in principle. This
+      is the established design and it preserves the claim on the Legal page.
+- [ ] **Expiry and burn-after-reading enforced server-side**, because a
+      client cannot be trusted to delete anything. One fetch, or a deadline,
+      whichever comes first.
+- [ ] **Say what a link is.** Anyone holding the URL holds the secret —
+      including whatever logged it, sat in the chat history, or synced the
+      recipient's clipboard. A share link is a password in transit, and the
+      UI should say so rather than implying the encryption makes it safe to
+      paste anywhere.
+
+### 10f. Group accounts and SSO — where the model is easiest to lose
+
+Family and company vaults, with the members' identity provider. The security
+design matters more here than anywhere else in this file, because the natural
+implementation quietly destroys the property everything else protects.
+
+- [ ] **Wrap the key to each member; never hold it centrally.** Each member
+      gets a keypair. A shared vault's key is encrypted once per member's
+      public key. Adding someone is wrapping the key to them; removing them
+      is rotating it. At no point does the server hold anything it can open.
+- [ ] **SSO authenticates a person. It must never custody a key.** This is
+      the trap. "Log in with Okta and see the shared vault" is only possible
+      if something server-side can decrypt on the strength of an SSO
+      assertion — at which point the provider, and anyone who can forge or
+      replay an assertion, can read the vault. SSO can gate *access to the
+      ciphertext* and prove *who you are*; the decryption key still has to
+      come from something the user holds. Any design where an admin can
+      recover a member's data without that member's key is a design where the
+      operator can read everything, and it should be called that.
+- [ ] **Admin recovery is the honest version of the same question.** Every
+      company deployment eventually asks for it. It is buildable — wrap the
+      vault key to an escrow key the organisation holds — but it is precisely
+      the back door described above, and it must be visible to every member
+      rather than a checkbox in an admin console.
+- [ ] **This is the point where "no accounts, nothing leaves your device"
+      stops being true**, in a way that even 9d's optional sync does not
+      reach. Legal and About need rewriting in the same release, and the
+      local-only mode has to keep working exactly as it does now — Epic 9's
+      second invariant, which was agreed before any of this was on the list.
 
 ## Epic 8 — Beyond the page
 
