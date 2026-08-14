@@ -2120,7 +2120,15 @@
               <div class="option-row" style="grid-template-columns:1fr;">
                 <div class="option-desc">
                   <p class="vault-doc-warn">
-                    <strong>Read this before you use it.</strong> A one-time code is a
+                    <strong>Lose this vault and you are locked out.</strong> The seed lives only
+                    here. If this browser's data goes and there is no backup, the password is gone
+                    <em>and</em> so is the second factor &mdash; which is exactly the situation the
+                    second factor exists to survive. Keep an
+                    <a href="#vault-backup" style="color:inherit;text-decoration:underline;">encrypted
+                    backup</a>, and keep the provider's own recovery codes somewhere else entirely.
+                  </p>
+                  <p class="vault-doc-warn" style="margin-top:0.5rem;">
+                    <strong>And it weakens two-factor authentication.</strong> A one-time code is a
                     <em>second factor</em> only while it is kept apart from the first. Storing the
                     seed in the same vault as the password collapses two factors into one: whoever
                     opens the vault has both, and an attacker who gets in needs nothing else.

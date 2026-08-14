@@ -347,21 +347,32 @@ and both should be revisited deliberately rather than drifted into.
       remains the binding constraint -- so it costs nothing. Between those two
       is a trap: anything memorable is anything guessable.
 
-      The argument against building it: **the encrypted backup already is
-      this.** Export the vault, keep the file, keep the passphrase safe --
-      that is recovery, with no second key path and no extra surface. A
-      recovery code adds a permanent second door to protect against forgetting
-      the first, and a written-down 128-bit key you must not lose is the same
-      storage problem as a backup file you must not lose.
+      **What it is actually for**, corrected: a first draft of this entry said
+      the encrypted backup already provides recovery and a recovery key merely
+      duplicates it. That is wrong, and worth recording as wrong. A backup
+      protects against *losing the data*. A recovery key protects against
+      *forgetting the passphrase* -- and those are different failures, because
+      a backup you cannot decrypt is as lost as no backup at all. Nothing in
+      the product currently addresses the second one. Forget the passphrase
+      today and every copy you own, including every backup, is ciphertext
+      forever.
 
-      The argument for: the backup only restores what it contained. A recovery
-      key opens the vault *in front of you*, including everything added since
-      the last export -- which is exactly the gap the backup reminder keeps
-      pointing at. That is a real difference, not a cosmetic one.
+      Nor does a recovery key help with the first failure. If the vault is
+      gone and was never exported, no key recovers it; that is what backups
+      and, one day, sync are for. The two mechanisms are complements, not
+      alternatives, and the earlier framing collapsed them.
 
-      Not started. If it happens: generated only, shown once, with the same
-      write-it-down gate the adopt flow uses, a clear statement that it is a
-      second key to everything, and a way to revoke it by re-keying.
+      **Format.** Words, not a base32 blob, because this gets written on
+      paper and typed back by hand under stress. Sixteen words from the
+      17,576-word list is 225.6 bits, which is preposterous overkill and
+      free; ten words is 141 bits and still far beyond reach. Somewhere in
+      10-20 is right, trading transcription effort against a margin that is
+      already enormous at the bottom of the range. Lower case, space
+      separated, generated -- the same list the Words generator draws from.
+
+      Not started. If it happens: generated only, shown exactly once, behind
+      the same write-it-down gate the adopt flow uses, stated plainly as a
+      second key to everything in the vault, and revocable by re-keying.
 
 - [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
       for every inline script and `connect-src 'self'`, which is the directive

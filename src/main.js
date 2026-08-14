@@ -2796,17 +2796,49 @@ const App = {
   name: 'App',
   setup() {
     const activeTab = persistedRef('global.activeTab', 0)
+    // `mode` is the id from generators.js, which is what makes a tab
+    // addressable: /#words opens Words. The vault's "Change settings" link
+    // uses it to land on the generator being used rather than on whichever
+    // tab happened to be open last, which was the whole complaint.
     const tabs = [
       // Icons and descriptions mirror the docs intro tiles, so the switcher
       // and the reference describe each mode in the same words.
-      { id: 1, name: 'Simple',     icon: 'mdi-key-outline',           desc: 'Classic random characters', component: SimplePassword },
-      { id: 2, name: 'Advanced',   icon: 'mdi-tune',                  desc: 'Per-type min/max control',  component: AdvancedPassword },
-      { id: 3, name: 'Words',      icon: 'mdi-text',                  desc: 'Random word strings',       component: WordsPassword },
-      { id: 4, name: 'Passphrase', icon: 'mdi-format-list-bulleted',  desc: 'Grammar-aware phrases',     component: Passphrase },
-      { id: 5, name: 'Wireless',   icon: 'mdi-wifi',                  desc: 'WiFi-friendly passphrases', component: WifiWords },
-      { id: 6, name: 'Mad Lib',    icon: 'mdi-theater',               desc: 'Sentence-template phrases', component: MadLib },
-      { id: 7, name: 'Numbers',    icon: 'mdi-numeric',               desc: 'PIN & numeric codes',       component: NumbersPassword },
+      { id: 1, mode: 'simple',     name: 'Simple',     icon: 'mdi-key-outline',           desc: 'Classic random characters', component: SimplePassword },
+      { id: 2, mode: 'advanced',   name: 'Advanced',   icon: 'mdi-tune',                  desc: 'Per-type min/max control',  component: AdvancedPassword },
+      { id: 3, mode: 'words',      name: 'Words',      icon: 'mdi-text',                  desc: 'Random word strings',       component: WordsPassword },
+      { id: 4, mode: 'passphrase', name: 'Passphrase', icon: 'mdi-format-list-bulleted',  desc: 'Grammar-aware phrases',     component: Passphrase },
+      { id: 5, mode: 'wireless',   name: 'Wireless',   icon: 'mdi-wifi',                  desc: 'WiFi-friendly passphrases', component: WifiWords },
+      { id: 6, mode: 'madlib',     name: 'Mad Lib',    icon: 'mdi-theater',               desc: 'Sentence-template phrases', component: MadLib },
+      { id: 7, mode: 'numbers',    name: 'Numbers',    icon: 'mdi-numeric',               desc: 'PIN & numeric codes',       component: NumbersPassword },
     ]
+
+    /**
+     * A hash names a tab: /#words. Read once on load, and kept in step
+     * afterwards with replaceState rather than a new history entry -- flipping
+     * between tabs is not navigation, and filling the back button with it
+     * would make leaving the page take seven presses.
+     *
+     * No router. One id, one hash, one lookup; a routing library for this
+     * would be more code than the app it routes.
+     */
+    const tabFromHash = () => {
+      const wanted = decodeURIComponent(location.hash.replace(/^#/, '')).toLowerCase()
+      return tabs.findIndex((t) => t.mode === wanted)
+    }
+    const fromHash = tabFromHash()
+    if (fromHash >= 0) activeTab.value = fromHash
+
+    watch(activeTab, (i) => {
+      const tab = tabs[i]
+      if (!tab) return
+      try { history.replaceState(null, '', `#${tab.mode}`) } catch {}
+    })
+
+    // Back/forward, or someone editing the hash directly.
+    window.addEventListener('hashchange', () => {
+      const i = tabFromHash()
+      if (i >= 0) activeTab.value = i
+    })
 
     // The settings panel is plain DOM so that all five pages share one
     // implementation. History is contributed as an extra section rather than

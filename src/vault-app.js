@@ -1099,7 +1099,12 @@ const App = {
                 <span v-if="tierOf(editing.bits)" class="vault-bits" :class="'meter-' + tierOf(editing.bits).id">
                   {{ editing.bits.toFixed(1) }} bits
                 </span>
-                <a class="vault-gen-link" href="/">Change settings</a>
+                <!-- To the tab being used, not to whichever one was open
+                     last. The generator reads the hash as a mode id. -->
+                <a class="vault-gen-link" :href="'/#' + genMode"
+                   :title="'Open the ' + (genModes.find(m => m.id === genMode) || {}).label + ' generator'">
+                  Change settings
+                </a>
               </div>
               <!-- Caught while typing, not on save: the moment to reconsider a
                    reused password is before it is filed under a second name. -->
@@ -1162,12 +1167,22 @@ const App = {
               <p class="vault-totp-warn">
                 <span class="mdi mdi-alert-outline" aria-hidden="true"></span>
                 <span>
-                  <strong>This weakens two-factor authentication.</strong> A one-time code is a
+                  <strong>Lose this vault and you are locked out of the account.</strong>
+                  The seed lives only here. If this browser's data goes and you have no backup,
+                  the password is gone <em>and</em> so is the second factor — which is exactly the
+                  situation the second factor exists to survive. Export a backup, and keep the
+                  provider's own recovery codes somewhere else entirely.
+                </span>
+              </p>
+              <p class="vault-totp-warn">
+                <span class="mdi mdi-shield-alert-outline" aria-hidden="true"></span>
+                <span>
+                  <strong>And it weakens two-factor authentication.</strong> A one-time code is a
                   second factor only while it is kept apart from the password. Storing the seed
-                  here means whoever opens this vault has both, and an attacker who gets in needs
-                  nothing else. It still helps against a password leaked by the site — the common
-                  case — and it is the same trade every password manager offering this makes
-                  quietly. Keep the codes in a separate app if you would rather not make it.
+                  here means whoever opens this vault has both. It still helps against a password
+                  leaked by the site — the common case — and it is the same trade every password
+                  manager offering this makes quietly. Keep the codes in a separate app if you
+                  would rather not make it.
                 </span>
               </p>
               <div v-if="editing.totp" class="vault-totp-set">

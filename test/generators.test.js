@@ -346,3 +346,25 @@ test('generation is not deterministic', () => {
 test('an unknown mode is a programming error, not a silent empty string', () => {
   assert.throws(() => generate('nope', {}, {}), /unknown generator mode/)
 })
+
+test('every generator mode is an addressable tab, and every tab is a mode', () => {
+  // The vault links to /#<mode> to open the matching generator. If the two
+  // manifests drift, that link silently lands on whichever tab was open last
+  // -- which looks like the link simply not working.
+  const tabModes = [...MAIN.matchAll(/\{ id: \d+, mode: '([\w]+)'/g)].map((m) => m[1])
+  assert.equal(tabModes.length, MODES.length,
+    `main.js declares ${tabModes.length} tabs but generators.js declares ${MODES.length} modes`)
+  assert.deepEqual(tabModes, MODES.map((m) => m.id),
+    'the tab order and the MODES order must match, including their ids')
+})
+
+test('the generator reads a mode from the hash', () => {
+  // Asserted against the source because it is the contract the vault link
+  // depends on, and a rename here would break a link over in another file.
+  assert.match(MAIN, /location\.hash/,
+    'main.js must read location.hash to honour /#words')
+  assert.match(MAIN, /hashchange/,
+    'editing the hash or pressing back should still switch tabs')
+  assert.match(MAIN, /history\.replaceState/,
+    'tab switches must not each add a history entry')
+})
