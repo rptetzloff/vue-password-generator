@@ -11,7 +11,8 @@ import {
   createVaultStore, vaultLockMs, vaultLockSection,
   groupsOf, tagsOf, groupEntries, sortEntries, reuseIndex, SORTS, UNGROUPED,
 } from './vault-store.js'
-import { MODES, readSettings, loadData, generateWithRetry } from './generators.js'
+import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
+import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
@@ -55,6 +56,9 @@ const App = {
       onChange: (s) => {
         state.value = s
         entries.value = s === 'unlocked' ? store.list() : []
+        // The envelope is loaded even while locked, so the lock screen can
+        // offer recovery only to vaults that actually have a key for it.
+        hasRecovery.value = store.hasRecoveryKey()
       },
     })
 
@@ -102,6 +106,10 @@ const App = {
         if (navigator.storage?.persist) {
           try { persisted.value = await navigator.storage.persist() } catch {}
         }
+        // Offered here rather than left in settings, because this is the
+        // moment someone is thinking about losing access, and nobody goes
+        // looking in settings for a feature they do not know exists.
+        offerRecovery.value = true
         flash('Vault created.')
       })
     }
@@ -875,6 +883,136 @@ const App = {
       }, 'The current passphrase is not right.')
     }
 
+    // -- The recovery key (ROADMAP 9f) ---------------------------------------
+    //
+    // Shown exactly once. The vault stores the master key encrypted *under*
+    // the phrase, which is not the same as storing the phrase, so there is no
+    // "show it to me again" -- losing it means generating another, and the
+    // old one stops working the moment you do.
+
+    /** The phrase, while it is on screen and only then. */
+    const shownPhrase = ref('')
+    const phraseAck = ref(false)
+    // The recovery-key dialog shares the editor's backdrop, so it needs the
+    // same treatment: measure the chrome, and stop the page behind it
+    // scrolling. Without this it inherited whatever --vault-modal-top the
+    // editor last left behind -- or the 0px default, if the editor had never
+    // been opened, which put the dialog underneath the fixed header.
+    watch(shownPhrase, async (now) => {
+      document.body.classList.toggle('vault-modal-open', !!now)
+      if (!now) return
+      fitModalToChrome()
+      await nextTick()
+      // Focus the dialog itself rather than the copy button: this is a
+      // read-this screen, and a screen reader should start at the heading.
+      document.querySelector('.vault-phrase-modal')?.focus()
+    })
+    const recoveryPass = ref('')
+    const recoveryOpen = ref(false)
+    /** Set after creating a vault, to offer this once at the useful moment. */
+    const offerRecovery = ref(false)
+    const hasRecovery = ref(false)
+
+    // The recovery words come from the same list the Words generator draws
+    // from. Fetched once, on demand: the lock screen may need it to check a
+    // typed phrase, and the settings panel to make one.
+    let wordsPromise = null
+    const words = () => (wordsPromise || (wordsPromise = loadWordList()))
+
+    const refreshRecovery = () => { hasRecovery.value = store.hasRecoveryKey() }
+
+    const enableRecovery = () => run(async () => {
+      const phrase = await store.addRecoveryKey(recoveryPass.value, await words())
+      recoveryPass.value = ''
+      phraseAck.value = false
+      shownPhrase.value = phrase
+      offerRecovery.value = false
+      refreshRecovery()
+    }, 'That passphrase is not right, so no recovery key was made.')
+
+    const dismissPhrase = () => { shownPhrase.value = ''; phraseAck.value = false }
+
+    const copyPhrase = async () => {
+      try {
+        await navigator.clipboard.writeText(shownPhrase.value)
+        // Deliberately NOT on the clipboard timer. Everything else here is
+        // wiped after 30 seconds because it is a password in transit; this is
+        // being copied in order to be pasted somewhere permanent, and clearing
+        // it mid-paste would be the opposite of helpful.
+        flash('Recovery key copied. Paste it somewhere safe.')
+      } catch { error.value = 'The clipboard is not available.' }
+    }
+
+    const downloadPhrase = () => {
+      const body = [
+        'WordLock recovery key',
+        '',
+        shownPhrase.value,
+        '',
+        'This opens your vault without the passphrase. Anyone holding it can read',
+        'everything in the vault, so keep it somewhere you would keep a spare house',
+        'key -- not in the vault, and not on the same device if you can help it.',
+        '',
+        'It does not protect against losing the vault itself. For that, export a',
+        'backup as well; the two solve different problems.',
+        '',
+        `Made ${new Date().toISOString().slice(0, 10)}.`,
+      ].join('\n')
+      const url = URL.createObjectURL(new Blob([body], { type: 'text/plain' }))
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `wordlock-recovery-key-${new Date().toISOString().slice(0, 10)}.txt`
+      a.click()
+      URL.revokeObjectURL(url)
+    }
+
+    const disableRecovery = () => {
+      if (!confirm('Remove the recovery key? If you forget the passphrase after this, nothing can open the vault.')) return
+      return run(async () => {
+        await store.removeRecoveryKey(recoveryPass.value)
+        recoveryPass.value = ''
+        refreshRecovery()
+        flash('Recovery key removed.')
+      }, 'That passphrase is not right, so the recovery key is still in place.')
+    }
+
+    // -- Recovering, from the lock screen ------------------------------------
+
+    const recoverOpen = ref(false)
+    const recoverPhrase = ref('')
+    const recoverPass = ref('')
+    const recoverConfirm = ref('')
+    const recoverWords = ref(null)
+
+    // Checked as they type, so "that is 15 words" and "brambel is not one of
+    // the words" arrive before a million PBKDF2 rounds rather than after.
+    const recoverCheck = computed(() => {
+      if (!recoverPhrase.value.trim()) return null
+      return checkRecoveryPhrase(recoverPhrase.value, recoverWords.value)
+    })
+
+    const openRecover = async () => {
+      recoverOpen.value = true
+      try { recoverWords.value = await words() } catch {}
+    }
+
+    const doRecover = () => {
+      if (recoverPass.value.length < 8) { error.value = 'Use at least 8 characters.'; return }
+      if (recoverPass.value !== recoverConfirm.value) {
+        error.value = 'The two passphrases do not match.'
+        return
+      }
+      return run(async () => {
+        await store.recoverWithKey(recoverPhrase.value, recoverPass.value)
+        recoverPhrase.value = ''
+        recoverPass.value = ''
+        recoverConfirm.value = ''
+        recoverOpen.value = false
+        refreshRecovery()
+        flash('Vault recovered. The old passphrase and that recovery key no longer work.')
+      }, 'That recovery key did not open the vault.')
+    }
+
     const destroy = () => {
       if (!confirm('Delete the entire vault and everything in it? This cannot be undone.')) return
       return run(async () => {
@@ -974,6 +1112,11 @@ const App = {
       genModes, genMode, generating, generateInto,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
+      shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,
+      recoveryWords: RECOVERY_WORDS,
+      enableRecovery, disableRecovery, dismissPhrase, copyPhrase, downloadPhrase,
+      recoverOpen, recoverPhrase, recoverPass, recoverConfirm, recoverCheck,
+      openRecover, doRecover,
       groupFilter, groupMenuOpen, toggleGroup, clearGroupFilter, groupFilterLabel,
       tagFilter, tagMenuOpen, toggleTag, clearTagFilter, tagFilterLabel, knownTags,
       editTag, tagDraft, addTypedTag,
@@ -988,6 +1131,51 @@ const App = {
     <div class="vault">
       <div v-if="error" class="vault-error" role="alert">{{ error }}</div>
       <div v-if="notice" class="vault-notice" role="status" aria-live="polite">{{ notice }}</div>
+
+      <!-- The recovery key, shown exactly once.
+           A dialog rather than a panel, because this is the only moment these
+           words exist anywhere outside the encrypted envelope, and scrolling
+           past them by accident has no undo. -->
+      <div v-if="shownPhrase" class="vault-modal-backdrop">
+        <div class="vault-modal vault-phrase-modal" role="dialog" aria-modal="true"
+             aria-labelledby="phrase-title" tabindex="-1">
+          <h2 id="phrase-title">Write this down now</h2>
+          <p>
+            This is the only time it will be shown. It is not stored anywhere you can read it
+            back — the vault holds your master key encrypted <em>under</em> these words, which is
+            not the same as keeping them.
+          </p>
+
+          <p class="vault-phrase" aria-label="Your recovery key">{{ shownPhrase }}</p>
+
+          <div class="vault-row-actions">
+            <button class="btn" type="button" @click="copyPhrase">
+              <span class="mdi mdi-content-copy" aria-hidden="true"></span> Copy
+            </button>
+            <button class="btn" type="button" @click="downloadPhrase">
+              <span class="mdi mdi-download" aria-hidden="true"></span> Download
+            </button>
+          </div>
+
+          <p class="vault-warn">
+            <strong>Anyone holding these words can open your vault.</strong> They are a second key
+            to every password in it, so store them the way you would a spare house key. Not in the
+            vault, and not in the same place as the device if you can manage it.
+          </p>
+          <p class="vault-hint">
+            This does not replace a backup. It gets you back in when the passphrase is gone; a
+            backup gets you back the data when the vault is gone. Different failures.
+          </p>
+
+          <label class="vault-check">
+            <input v-model="phraseAck" type="checkbox" />
+            <span>I have written it down or saved it somewhere safe.</span>
+          </label>
+          <button class="btn btn-primary" type="button" :disabled="!phraseAck" @click="dismissPhrase">
+            Done
+          </button>
+        </div>
+      </div>
 
       <div v-if="state === 'loading'" class="vault-empty">Opening…</div>
 
@@ -1048,12 +1236,49 @@ const App = {
             <span class="mdi mdi-lock-open-variant"></span> {{ busy ? 'Unlocking…' : 'Unlock' }}
           </button>
         </form>
-        <details class="vault-danger">
+        <details class="vault-danger" :open="recoverOpen" @toggle="$event.target.open && openRecover()">
           <summary>Forgotten the passphrase?</summary>
-          <p>
-            Then the vault cannot be opened — that is what the encryption means. The only thing left
-            is to delete it and start again, which needs the passphrase too, so in practice a
-            forgotten vault stays until you clear this site's data in your browser.
+
+          <template v-if="hasRecovery">
+            <p>
+              This vault has a recovery key — the {{ recoveryWords }} words you were shown when you
+              made it. Enter them and choose a new passphrase.
+            </p>
+            <form @submit.prevent="doRecover">
+              <label class="vault-field">
+                <span>Recovery key</span>
+                <textarea v-model="recoverPhrase" rows="3" spellcheck="false" autocomplete="off"
+                          placeholder="The words, in order, separated by spaces"></textarea>
+              </label>
+              <p v-if="recoverCheck && !recoverCheck.ok" class="vault-hint">{{ recoverCheck.message }}</p>
+              <p v-else-if="recoverCheck && recoverCheck.ok" class="vault-hint">
+                <span class="mdi mdi-check" aria-hidden="true"></span>
+                {{ recoveryWords }} words, all recognised. The vault will say whether they are the right ones.
+              </p>
+              <label class="vault-field">
+                <span>New passphrase</span>
+                <input v-model="recoverPass" type="password" autocomplete="new-password" />
+              </label>
+              <label class="vault-field">
+                <span>Confirm new passphrase</span>
+                <input v-model="recoverConfirm" type="password" autocomplete="new-password" />
+              </label>
+              <p class="vault-hint">
+                The forgotten passphrase stops working, and so does this recovery key — it has just
+                been typed onto a screen. Make a fresh one afterwards from
+                <strong>Recovery key</strong> in settings.
+              </p>
+              <button class="btn btn-primary" :disabled="busy">
+                {{ busy ? 'Recovering…' : 'Recover the vault' }}
+              </button>
+            </form>
+          </template>
+
+          <p v-else>
+            Then the vault cannot be opened — that is what the encryption means. There is no
+            recovery key on this vault, and one cannot be added without the passphrase, so nothing
+            here or anywhere can read it. The only thing left is to clear this site's data in your
+            browser and start again.
           </p>
         </details>
       </section>
@@ -1644,6 +1869,59 @@ const App = {
               and security questions are folded into the note.
             </p>
           </div>
+        </details>
+
+        <details class="vault-danger" :open="recoveryOpen || offerRecovery">
+          <summary>Recovery key <span v-if="hasRecovery" class="vault-chip-on">on</span></summary>
+
+          <p v-if="offerRecovery" class="vault-hint">
+            Worth doing now, while you are thinking about it. A vault with no recovery key and a
+            forgotten passphrase is unreadable by everyone, including us.
+          </p>
+
+          <p>
+            A second way in, for the one failure a backup cannot fix: forgetting the passphrase. A
+            backup protects the <em>data</em>; if you cannot decrypt it, it is as lost as no backup
+            at all. These solve different problems and you want both.
+          </p>
+          <p class="vault-warn">
+            <strong>It is a second key to everything in the vault.</strong> Anyone holding it can
+            read the lot without knowing your passphrase, so keep it where you would keep a spare
+            house key — on paper is fine, in the vault is not.
+          </p>
+          <p class="vault-hint">
+            {{ recoveryWords }} words, generated here and never chosen by you. That is not fussiness:
+            an attacker takes whichever key is cheaper to break, so a memorable recovery phrase
+            would quietly become the real strength of your vault no matter how good the passphrase
+            is.
+          </p>
+
+          <form @submit.prevent="hasRecovery ? disableRecovery() : enableRecovery()">
+            <label class="vault-field">
+              <span>Passphrase</span>
+              <input v-model="recoveryPass" type="password" autocomplete="current-password" />
+            </label>
+            <p class="vault-hint">
+              Required even though the vault is open: an unlocked tab proves a tab is open, not who
+              is asking.
+            </p>
+            <div class="vault-row-actions">
+              <button v-if="!hasRecovery" class="btn btn-primary" :disabled="busy">
+                {{ busy ? 'Making…' : 'Make a recovery key' }}
+              </button>
+              <template v-else>
+                <button class="btn" type="button" :disabled="busy" @click="enableRecovery">
+                  {{ busy ? 'Making…' : 'Replace it' }}
+                </button>
+                <button class="btn" :disabled="busy">Remove it</button>
+              </template>
+            </div>
+            <p v-if="hasRecovery" class="vault-hint">
+              Replacing retires the old one immediately — the paper you already have stops working.
+              There is no way to show the current key again; the vault holds it encrypted, not
+              stored.
+            </p>
+          </form>
         </details>
 
         <details class="vault-danger" :open="rekeyOpen">
