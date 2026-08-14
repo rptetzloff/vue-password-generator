@@ -1181,3 +1181,28 @@ body.vault-modal-open { overflow: hidden; }
   font-size: 0.72rem;
   font-weight: 600;
 }
+
+/* The vault bar sits directly on the page gradient, not in a card.
+   --primary IS the gradient's first stop, so a primary button painted with it
+   was rgb(3,105,161) on rgb(3,105,161) in light mode: 1.00:1, the identical
+   colour. Only the white label showed, and the button read as floating text.
+   Dark was 1.59:1 -- less obvious, equally under WCAG 1.4.11's 3:1 for a
+   control's boundary.
+   The band already has tokens for exactly this, used by the header, the footer
+   and the settings panel; the bar's controls just never adopted them. */
+.vault-bar .btn-primary,
+.vault-bar .btn {
+  border: 1.5px solid var(--band-control-border);
+}
+
+.vault-bar .btn-primary:hover,
+.vault-bar .btn:hover {
+  border-color: var(--band-control-border);
+}
+
+/* White on the band, matching the header's controls -- the page behind is dark
+   in both themes here, so the ring does not need to follow the theme. */
+.vault-bar .btn:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
