@@ -83,3 +83,41 @@ test('the manifest is complete and its icons exist', () => {
   const themeJs = read('src/theme.js')
   assert.ok(themeJs.includes('syncThemeColor'), 'theme.js no longer syncs the theme-color meta')
 })
+
+// Freshness. The worker shipped as pure cache-first: a hit was returned and
+// the network was never consulted again, on the theory that a version bump
+// renames the cache. Four releases went out without one, so anyone who had
+// loaded the site was pinned to their build permanently -- and on a security
+// product, that means a fix never reaching the people who need it.
+test('the worker revalidates rather than trusting the cache forever', () => {
+  const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8')
+  const handler = sw.slice(sw.indexOf("addEventListener('fetch'"))
+  assert.ok(handler, 'sw.js should have a fetch handler')
+
+  // A hit must not be the end of the story: something has to reach the
+  // network on the same request.
+  assert.match(handler, /fetch\(request\)/, 'the network must be consulted')
+  assert.ok(/caches\.open\(CACHE\)/.test(sw), 'a revalidated response must be written back')
+
+  // And the old shape must not come back: `hit || fetch(...)` is exactly the
+  // bug, since it only fetches when the cache misses.
+  assert.ok(!/hit\s*\|\|\s*fetch\(/.test(handler),
+    'cache-first with no revalidation strands users on the build they first loaded')
+})
+
+test('a page load prefers the network, so a deploy is visible next load', () => {
+  const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8')
+  assert.match(sw, /isNavigation/, 'navigations need their own path')
+  // Offline still has to work: the fallback is the cache, not a failure.
+  const nav = sw.slice(sw.indexOf('if (isNavigation(request))'))
+  assert.match(nav.slice(0, 400), /\.catch\(\(\) => caches\.match/,
+    'a failed navigation fetch must fall back to the cache')
+})
+
+test('only navigations ignore the query string', () => {
+  // ignoreSearch on every request defeats ?v= cache-busting, which is the one
+  // tool left for forcing a single asset to refresh.
+  const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8')
+  const uses = (sw.match(/\{\s*ignoreSearch:\s*true\s*\}/g) || []).length
+  assert.equal(uses, 1, 'ignoreSearch belongs on the navigation fallback only')
+})
