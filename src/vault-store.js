@@ -225,6 +225,32 @@ const urlList = (v) => {
   return out
 }
 
+/**
+ * Tags: zero or many per entry, unlike the group's exactly-one.
+ *
+ * That difference is the entire point, and it is not presentational. A folder
+ * forces a choice -- the company credit card is under Work or under Finance,
+ * and it is genuinely both -- while a tag asks for none. It also means there
+ * is no equivalent of "Ungrouped": an entry with no tags is not unfiled
+ * awaiting a decision, it is simply untagged, which is a normal resting state.
+ *
+ * Lower-cased on the way in, because "Work" and "work" being two tags is the
+ * fastest way to make a tag list useless.
+ */
+const tagList = (v) => {
+  const raw = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(/[,\n]/) : [])
+  const seen = new Set()
+  const out = []
+  for (const item of raw) {
+    const tag = text(item, 40).toLowerCase().replace(/\s+/g, ' ')
+    if (!tag || seen.has(tag)) continue
+    seen.add(tag)
+    out.push(tag)
+    if (out.length >= 30) break
+  }
+  return out.sort()
+}
+
 const fieldList = (v) => {
   if (!Array.isArray(v)) return []
   return v
@@ -258,6 +284,8 @@ export const normalizeEntry = (raw) => {
     // entry becomes a filing decision. An empty group is "Ungrouped", which is
     // a perfectly good place for most things to stay.
     group: text(raw.group, 60),
+    // n:m, where group is 1:1. See tagList for why that is the whole point.
+    tags: tagList(raw.tags),
     bits: Number.isFinite(raw.bits) ? raw.bits : null,
     at: typeof raw.at === 'string' && raw.at ? raw.at : null,
     note: text(raw.note, 2000),
@@ -265,6 +293,11 @@ export const normalizeEntry = (raw) => {
 }
 
 /** Every group in use, sorted, for the datalist and the group headings. */
+/** Every tag in use, for the picker and the suggestions. */
+export const tagsOf = (entries) =>
+  [...new Set((entries || []).flatMap((e) => e.tags || []))]
+    .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))
+
 export const groupsOf = (entries) =>
   [...new Set((entries || []).map((e) => e.group).filter(Boolean))]
     .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }))

@@ -508,6 +508,18 @@ two halves of that are different features.
 - [ ] **If the answer is only "I want folders inside folders", say so and do
       that instead** — it is a tenth of the work and probably what most of the
       demand actually is.
+- [x] **Tags shipped, and they are not the same feature.** Raised as an
+      afterthought to this item and it is the more useful half: a folder is
+      one dimension, a tag is *n*. The company card is genuinely both Work and
+      Finance, and a filing system that makes you pick has thrown away one of
+      the two answers. Neither replaces the other — the group still says where
+      an entry *lives*, which is what makes the list scannable; tags say what
+      it *is*. Done in v3.0.0, including the export columns and the
+      and-not-or filter semantics.
+- [ ] **What remains here is the vault-as-boundary question**, unchanged.
+      Tags cover the "I want to slice my vault differently" demand; they do
+      not lock anything separately, and that is the only thing a second
+      envelope buys.
 
 ### 10d. Folder templates — the small one
 

@@ -9,7 +9,7 @@
 import { createApp, ref, computed, watch, onMounted, onUnmounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
 import {
   createVaultStore, vaultLockMs, vaultLockSection,
-  groupsOf, groupEntries, sortEntries, reuseIndex, SORTS, UNGROUPED,
+  groupsOf, tagsOf, groupEntries, sortEntries, reuseIndex, SORTS, UNGROUPED,
 } from './vault-store.js'
 import { MODES, readSettings, loadData, generateWithRetry } from './generators.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
@@ -215,6 +215,8 @@ const App = {
         // worse than leaving it blank.
         group: (groupFilter.value.size === 1 && [...groupFilter.value][0] !== UNGROUPED)
           ? [...groupFilter.value][0] : '',
+        // Filtered to some tags? The new entry almost certainly wants them.
+        tags: [...tagFilter.value],
         questions: [], fields: [], totp: null, bits: null, revealPw: false,
       }
     }
@@ -225,6 +227,7 @@ const App = {
         urls: (entry.urls || []).map((u) => ({ ...u })),
         questions: (entry.questions || []).map((qa) => ({ ...qa })),
         fields: (entry.fields || []).map((f) => ({ ...f })),
+        tags: [...(entry.tags || [])],
         totp: entry.totp ? { ...entry.totp } : null,
         revealPw: false,
       }
@@ -544,12 +547,13 @@ const App = {
     // A menu that only closes by pressing its own button is a menu people
     // leave open over the list they are trying to read.
     const dismissGroupMenu = (event) => {
-      if (!groupMenuOpen.value) return
+      if (!groupMenuOpen.value && !tagMenuOpen.value) return
       if (event.type === 'keydown') {
-        if (event.key === 'Escape') groupMenuOpen.value = false
+        if (event.key === 'Escape') { groupMenuOpen.value = false; tagMenuOpen.value = false }
         return
       }
       if (!event.target.closest('.vault-groupmenu')) groupMenuOpen.value = false
+      if (!event.target.closest('.vault-tagmenu')) tagMenuOpen.value = false
     }
 
     const groupFilterLabel = computed(() => {
@@ -579,6 +583,49 @@ const App = {
     })
 
     const knownGroups = computed(() => groupsOf(entries.value))
+
+    /**
+     * Tag filtering, which is set INTERSECTION rather than the group's union.
+     *
+     * Groups filter as OR -- "Finance or Work" -- because an entry has exactly
+     * one, so asking for two as AND would always return nothing. Tags are the
+     * opposite: an entry has many, and ticking `work` and `needs-2fa` means
+     * things that are both. Same widget, opposite operator, and getting it
+     * backwards makes tags feel broken in a way nobody can quite name.
+     */
+    const tagFilter = ref(new Set())
+    const tagMenuOpen = ref(false)
+
+    const toggleTag = (tag) => {
+      const next = new Set(tagFilter.value)
+      next.has(tag) ? next.delete(tag) : next.add(tag)
+      tagFilter.value = next
+    }
+    const clearTagFilter = () => { tagFilter.value = new Set() }
+    const knownTags = computed(() => tagsOf(entries.value))
+    const tagFilterLabel = computed(() => {
+      const n = tagFilter.value.size
+      if (n === 0) return 'Any tag'
+      if (n === 1) return [...tagFilter.value][0]
+      return `${n} tags`
+    })
+
+    /** Toggle a tag on the entry being edited, keeping the list sorted. */
+    const editTag = (tag) => {
+      const tags = editing.value.tags
+      const i = tags.indexOf(tag)
+      i >= 0 ? tags.splice(i, 1) : tags.push(tag)
+      tags.sort()
+    }
+    const tagDraft = ref('')
+    const addTypedTag = () => {
+      const raw = tagDraft.value.trim().toLowerCase().replace(/\s+/g, ' ')
+      if (raw && !editing.value.tags.includes(raw)) {
+        editing.value.tags.push(raw)
+        editing.value.tags.sort()
+      }
+      tagDraft.value = ''
+    }
 
     /** One bucket per group, or a single unnamed bucket when grouping is off. */
     const grouped = computed(() => (grouping.value
@@ -822,9 +869,11 @@ const App = {
       const groups = groupFilter.value
       return entries.value.filter((e) => {
         if (groups.size && !groups.has(e.group || UNGROUPED)) return false
+        // Every ticked tag must be present, not any of them -- see tagFilter.
+        for (const tag of tagFilter.value) if (!(e.tags || []).includes(tag)) return false
         if (showReusedOnly.value && !reuse.value.has(e.id)) return false
         if (!q) return true
-        return [e.label, e.username, e.note, e.group,
+        return [e.label, e.username, e.note, e.group, ...(e.tags || []),
           ...(e.urls || []).flatMap((u) => [u.name, u.url])]
           .some((field) => (field || '').toLowerCase().includes(q))
       })
@@ -906,6 +955,8 @@ const App = {
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
       groupFilter, groupMenuOpen, toggleGroup, clearGroupFilter, groupFilterLabel,
+      tagFilter, tagMenuOpen, toggleTag, clearTagFilter, tagFilterLabel, knownTags,
+      editTag, tagDraft, addTypedTag,
       reusedWith, reuseTitle, reuseSummary, showReusedOnly, editingReuse,
       storagePermission, installed, requestPersistence, askingPersistence, storageEstimate,
       iterations: KDF_ITERATIONS.toLocaleString(),
@@ -1026,6 +1077,25 @@ const App = {
               </label>
               <button v-if="groupFilter.size" class="link-button vault-groupmenu-clear" type="button"
                       @click="clearGroupFilter">Show all</button>
+            </div>
+          </div>
+          <!-- Tags intersect where groups union: ticking two means BOTH. -->
+          <div v-if="knownTags.length" class="vault-filter vault-tagmenu">
+            <button class="vault-select vault-groupmenu-btn" type="button"
+                    @click="tagMenuOpen = !tagMenuOpen"
+                    :aria-expanded="String(tagMenuOpen)">
+              <span class="mdi mdi-tag-multiple-outline" aria-hidden="true"></span>
+              {{ tagFilterLabel }}
+              <span class="mdi mdi-menu-down" aria-hidden="true"></span>
+            </button>
+            <div v-if="tagMenuOpen" class="vault-groupmenu-panel" role="group" aria-label="Tags to require">
+              <p class="vault-menu-note">Entries must have <strong>all</strong> ticked tags.</p>
+              <label v-for="t in knownTags" :key="t" class="vault-groupmenu-item">
+                <input type="checkbox" :checked="tagFilter.has(t)" @change="toggleTag(t)" />
+                <span>{{ t }}</span>
+              </label>
+              <button v-if="tagFilter.size" class="link-button vault-groupmenu-clear" type="button"
+                      @click="clearTagFilter">Clear tags</button>
             </div>
           </div>
           <label class="vault-filter">
@@ -1193,6 +1263,15 @@ const App = {
                 <span class="mdi mdi-open-in-new" aria-hidden="true"></span>{{ u.name || hostOf(u.url) }}
               </a>
             </div>
+            <!-- Tags. Clicking one filters to it, which is the whole reason
+                 to have tagged anything. -->
+            <div v-if="isEntryOpen(e.id) && e.tags && e.tags.length" class="vault-tags">
+              <button v-for="t in e.tags" :key="t" class="vault-tag" type="button"
+                      @click="tagFilter = new Set([t])" :title="'Show everything tagged ' + t">
+                <span class="mdi mdi-tag-outline" aria-hidden="true"></span>{{ t }}
+              </button>
+            </div>
+
             <!-- The current one-time code, with how long it has left. Never
                  masked: it is worthless in seconds, and hiding it behind a
                  reveal would only add a click to the one thing here that is
@@ -1286,6 +1365,33 @@ const App = {
                 <option v-for="g in knownGroups" :key="g" :value="g"></option>
               </datalist>
             </label>
+            <fieldset class="vault-field vault-qa">
+              <legend>Tags</legend>
+              <p class="vault-hint">
+                As many as you like, unlike the group — the company card really is both Work and
+                Finance, and a tag does not make you choose.
+              </p>
+              <div v-if="editing.tags.length" class="vault-tags vault-tags-edit">
+                <button v-for="t in editing.tags" :key="t" class="vault-tag is-on" type="button"
+                        @click="editTag(t)" :title="'Remove ' + t">
+                  {{ t }}<span class="mdi mdi-close" aria-hidden="true"></span>
+                </button>
+              </div>
+              <div class="vault-qa-row vault-tag-row">
+                <input v-model="tagDraft" type="text" spellcheck="false" autocomplete="off"
+                       list="vault-tags" placeholder="Add a tag"
+                       @keydown.enter.prevent="addTypedTag" />
+                <button class="btn btn-small" type="button" @click="addTypedTag">Add</button>
+              </div>
+              <datalist id="vault-tags">
+                <option v-for="t in knownTags" :key="t" :value="t"></option>
+              </datalist>
+              <div v-if="knownTags.length" class="vault-tags vault-tags-suggest">
+                <button v-for="t in knownTags" :key="t" type="button"
+                        class="vault-tag" :class="{ 'is-on': editing.tags.includes(t) }"
+                        @click="editTag(t)">{{ t }}</button>
+              </div>
+            </fieldset>
             <label class="vault-field">
               <span>Username</span>
               <input v-model="editing.username" type="text" spellcheck="false"

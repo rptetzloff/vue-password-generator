@@ -23,7 +23,7 @@
 export const TRANSFER_VERSION = 1
 
 /** Fields a CSV can carry, in the order the common managers expect them. */
-const CSV_COLUMNS = ['folder', 'name', 'url', 'username', 'password', 'note']
+const CSV_COLUMNS = ['folder', 'name', 'url', 'username', 'password', 'note', 'tags']
 
 const csvEscape = (value) => {
   const s = value == null ? '' : String(value)
@@ -99,6 +99,10 @@ export const exportCsv = (entries) => {
       csvEscape(e.username),
       csvEscape(e.pw),
       csvEscape(note),
+      // Space-separated, which is what 1Password and Bitwarden both read, and
+      // why tags are lower-cased with internal spaces collapsed rather than
+      // left free-form.
+      csvEscape((e.tags || []).join(' ')),
     ].join(','))
   }
   return lines.join('\n') + '\n'
@@ -112,6 +116,9 @@ const HEADER_ALIASES = {
   username: ['username', 'user', 'login', 'login_username', 'email', 'user name'],
   password: ['password', 'pass', 'login_password', 'pwd'],
   note: ['note', 'notes', 'comment', 'comments', 'extra'],
+  // 1Password exports tags natively, which is the one place a foreign file
+  // can carry them.
+  tags: ['tags', 'tag', 'labels'],
   // Every manager calls this something different, and all of them have one.
   folder: ['folder', 'group', 'grouping', 'category', 'collection', 'type'],
 }
@@ -166,6 +173,7 @@ export const parseTransfer = (text) => {
     pw: at(row, 'password'),
     urls: at(row, 'url') ? [at(row, 'url')] : [],
     note: at(row, 'note'),
+    tags: at(row, 'tags') ? at(row, 'tags').split(/[\s,]+/) : [],
   })).filter((e) => e.pw)
   if (!entries.length) throw new Error('no rows in that CSV had a password')
   return { kind: 'csv', entries }

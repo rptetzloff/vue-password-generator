@@ -59,7 +59,7 @@ test('a plain export says in the file that it is not encrypted', () => {
 test('CSV carries the fields other managers read', () => {
   const csv = exportCsv(ENTRIES)
   const rows = parseCsv(csv)
-  assert.deepEqual(rows[0], ['folder', 'name', 'url', 'username', 'password', 'note'])
+  assert.deepEqual(rows[0], ['folder', 'name', 'url', 'username', 'password', 'note', 'tags'])
   assert.equal(rows[1][0], 'Mail')
   assert.equal(rows[1][1], 'Email')
   assert.equal(rows[1][2], 'https://mail.example.com', 'only the first URL fits a flat row')
@@ -231,6 +231,22 @@ test('a named address keeps its name where the format has room', () => {
   // A CSV row has one url column, so the first address survives without its
   // name. Lossy, and labelled lossy.
   assert.equal(parseCsv(exportCsv([entry]))[1][2], 'https://store.example')
+})
+
+test('tags survive JSON and CSV, in and out', () => {
+  // Both directions matter: CSV is how tags reach us from 1Password, which is
+  // the only common export format that carries them at all.
+  const entry = normalizeEntries([{ label: 'Card', pw: 'p', tags: ['Finance', 'work'] }])[0]
+  assert.deepEqual(entry.tags, ['finance', 'work'])
+
+  const plain = normalizeEntries(parseTransfer(exportPlainJson([entry])).entries)[0]
+  assert.deepEqual(plain.tags, ['finance', 'work'])
+
+  const csv = normalizeEntries(parseTransfer(exportCsv([entry])).entries)[0]
+  assert.deepEqual(csv.tags, ['finance', 'work'], 'the CSV has a column of its own for these')
+
+  const foreign = normalizeEntries(parseTransfer('name,password,tags\nBank,hunter2!,"finance shared"').entries)[0]
+  assert.deepEqual(foreign.tags, ['finance', 'shared'])
 })
 
 test('addresses saved before names existed still load', () => {

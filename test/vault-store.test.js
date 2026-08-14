@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
-  groupsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
+  groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
 } from '../src/vault-store.js'
 import { KDF_ITERATIONS } from '../src/vault-crypto.js'
 
@@ -712,4 +712,49 @@ test('destroying the vault takes the draft with it', async () => {
   await store.saveDraft({ label: 'x', pw: 'y' })
   await store.destroy(PASS)
   assert.equal(storage.peek(), null, 'a destroyed vault must not leave a sealed draft behind')
+})
+
+// --- tags ---------------------------------------------------------------------
+
+test('tags are many per entry, where a group is one', () => {
+  const e = normalizeEntry({ pw: 'x', group: 'Finance', tags: ['work', 'card', 'shared'] })
+  assert.equal(e.group, 'Finance')
+  assert.deepEqual(e.tags, ['card', 'shared', 'work'], 'sorted, so the chips do not reshuffle')
+})
+
+test('tags are lower-cased and deduplicated', () => {
+  // "Work" and "work" as two separate tags is the fastest way to make a tag
+  // list useless.
+  const e = normalizeEntry({ pw: 'x', tags: ['Work', 'work', ' WORK ', 'Finance'] })
+  assert.deepEqual(e.tags, ['finance', 'work'])
+})
+
+test('tags accept a typed string as well as a list', () => {
+  assert.deepEqual(normalizeEntry({ pw: 'x', tags: 'work, finance' }).tags, ['finance', 'work'])
+  assert.deepEqual(normalizeEntry({ pw: 'x', tags: 'solo' }).tags, ['solo'])
+})
+
+test('an untagged entry is a normal state, not an unfiled one', () => {
+  // Unlike a group, there is no "Untagged" bucket to fall into.
+  assert.deepEqual(normalizeEntry({ pw: 'x' }).tags, [])
+  assert.deepEqual(normalizeEntry({ pw: 'x', tags: ['', '  '] }).tags, [])
+})
+
+test('tags are capped and trimmed like every other text', () => {
+  const e = normalizeEntry({
+    pw: 'x',
+    tags: [...Array.from({ length: 50 }, (_, i) => `t${i}`), 'g'.repeat(80)],
+  })
+  assert.equal(e.tags.length, 30)
+  assert.ok(e.tags.every((t) => t.length <= 40))
+})
+
+test('tagsOf gathers every tag in use, once', () => {
+  const list = normalizeEntries([
+    { pw: '1', tags: ['work', 'card'] },
+    { pw: '2', tags: ['work'] },
+    { pw: '3' },
+  ])
+  assert.deepEqual(tagsOf(list), ['card', 'work'])
+  assert.deepEqual(tagsOf([]), [])
 })

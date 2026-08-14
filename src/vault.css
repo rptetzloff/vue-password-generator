@@ -1042,3 +1042,65 @@ body.vault-modal-open { overflow: hidden; }
     bottom: -1rem;
   }
 }
+
+/* Tags. Pill-shaped and clickable everywhere they appear: on an entry a tag
+   filters to it, in the editor it toggles. */
+.vault-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.vault-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  /* min-height, not padding: WCAG 2.2's target minimum is 24 CSS px and text
+     of this size lands at 23.7, which passes a glance and fails the rule. */
+  min-height: 1.5rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.vault-tag:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+/* Selected, in the editor. --focus-tint is the same wash the active history
+   row and the symbol chips use, so "on" looks the same everywhere. */
+.vault-tag.is-on {
+  border-color: var(--primary);
+  background: var(--focus-tint);
+  color: var(--text);
+}
+
+.vault-tags-edit { margin: 0 0 0.5rem; }
+
+/* The full list to pick from sits below the input, quieter than the chosen
+   ones above it. */
+.vault-tags-suggest {
+  margin-top: 0.5rem;
+  max-height: 7rem;
+  overflow-y: auto;
+}
+
+.vault-tag-row { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* AND versus OR is the one thing about tag filtering that is not obvious, so
+   the menu says it rather than leaving it to be inferred from results. */
+.vault-menu-note {
+  margin: 0 0 0.35rem;
+  padding: 0 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.vault-menu-note strong { color: var(--text); }
