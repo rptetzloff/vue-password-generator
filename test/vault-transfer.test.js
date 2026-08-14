@@ -9,7 +9,7 @@ import { normalizeEntries } from '../src/vault-store.js'
 const ENTRIES = [
   {
     id: 'a', label: 'Email', group: 'Mail', username: 'me@example.com', pw: 'Tireless4Marimba',
-    urls: ['https://mail.example.com', 'https://example.com/login'],
+    urls: [{ name: 'Main', url: 'https://mail.example.com' }, { url: 'https://example.com/login' }],
     questions: [{ q: 'First pet?', a: 'not-really-a-pet-name' }],
     bits: 58.2, at: '2026-08-13', note: 'the good one',
   },
@@ -41,7 +41,10 @@ test('plain JSON round-trips every field, including the questions', () => {
   const back = normalizeEntries(parsed.entries)
   assert.equal(back.length, 2)
   assert.equal(back[0].username, 'me@example.com')
-  assert.deepEqual(back[0].urls, ['https://mail.example.com', 'https://example.com/login'])
+  assert.deepEqual(back[0].urls, [
+    { name: 'Main', url: 'https://mail.example.com' },
+    { name: '', url: 'https://example.com/login' },
+  ])
   assert.deepEqual(back[0].questions, [{ q: 'First pet?', a: 'not-really-a-pet-name' }])
 })
 
@@ -69,7 +72,7 @@ test('CSV carries the fields other managers read', () => {
 test('CSV survives commas, quotes and newlines in the data', () => {
   const awkward = [{
     label: 'Comma, Inc "quoted"', username: 'a"b', pw: 'has,comma',
-    urls: ['https://x.example'], questions: [], note: 'line one\nline two',
+    urls: [{ url: 'https://x.example' }], questions: [], note: 'line one\nline two',
   }]
   const rows = parseCsv(exportCsv(awkward))
   assert.equal(rows.length, 2)
@@ -99,7 +102,9 @@ test('a foreign CSV is mapped by its header names', () => {
   const parsed = parseTransfer(foreign)
   assert.equal(parsed.kind, 'csv')
   assert.equal(parsed.entries.length, 1)
-  assert.deepEqual(normalizeEntries(parsed.entries)[0].urls, ['https://bank.example'])
+  assert.deepEqual(normalizeEntries(parsed.entries)[0].urls,
+    [{ name: '', url: 'https://bank.example' }],
+    'a CSV has no column for a name, so the address arrives unnamed')
   assert.equal(parsed.entries[0].username, 'jane')
   assert.equal(parsed.entries[0].pw, 'hunter2!')
 
@@ -212,4 +217,28 @@ test('custom fields round-trip in JSON and fold into the CSV note', () => {
   assert.match(note, /the joint one/)
   assert.match(note, /PIN: 4417/)
   assert.match(note, /Customer number: CN-99120/)
+})
+
+test('a named address keeps its name where the format has room', () => {
+  const entry = normalizeEntries([{
+    label: 'App', pw: 'p',
+    urls: [{ name: 'Store', url: 'https://store.example' }, { name: 'Dev', url: 'https://dev.example' }],
+  }])[0]
+
+  const plain = normalizeEntries(parseTransfer(exportPlainJson([entry])).entries)[0]
+  assert.deepEqual(plain.urls, entry.urls, 'plain JSON has room for both')
+
+  // A CSV row has one url column, so the first address survives without its
+  // name. Lossy, and labelled lossy.
+  assert.equal(parseCsv(exportCsv([entry]))[1][2], 'https://store.example')
+})
+
+test('addresses saved before names existed still load', () => {
+  // Every entry written before this change is a plain array of strings, and
+  // so is every URL any other manager exports.
+  const entry = normalizeEntries([{ label: 'Old', pw: 'p', urls: ['https://a.example', 'https://b.example'] }])[0]
+  assert.deepEqual(entry.urls, [
+    { name: '', url: 'https://a.example' },
+    { name: '', url: 'https://b.example' },
+  ])
 })

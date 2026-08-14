@@ -119,7 +119,8 @@ const App = {
     const lock = () => { store.lock(); revealed.value = new Set(); flash('Locked.') }
 
     const save = (entry) => run(async () => {
-      const payload = { ...entry, urls: (entry.urlText || '').split('\n') }
+      const payload = { ...entry }
+      // Rows now, not a textarea -- urlList drops any with an empty address.
       delete payload.urlText
       // View state, not entry data -- normalizeEntry would drop it anyway, but
       // sending it at all invites someone to start persisting it.
@@ -208,7 +209,7 @@ const App = {
 
     const startAdd = () => {
       editing.value = {
-        id: null, label: '', username: '', pw: '', urlText: '', note: '',
+        id: null, label: '', username: '', pw: '', urls: [], note: '',
         // With exactly one group filtered to, a new entry lands in it -- that
         // is nearly always the one intended. With several, guessing would be
         // worse than leaving it blank.
@@ -221,7 +222,7 @@ const App = {
       // URLs edit as one-per-line text; questions as a repeatable pair list.
       editing.value = {
         ...entry,
-        urlText: (entry.urls || []).join('\n'),
+        urls: (entry.urls || []).map((u) => ({ ...u })),
         questions: (entry.questions || []).map((qa) => ({ ...qa })),
         fields: (entry.fields || []).map((f) => ({ ...f })),
         totp: entry.totp ? { ...entry.totp } : null,
@@ -823,7 +824,8 @@ const App = {
         if (groups.size && !groups.has(e.group || UNGROUPED)) return false
         if (showReusedOnly.value && !reuse.value.has(e.id)) return false
         if (!q) return true
-        return [e.label, e.username, e.note, e.group, ...(e.urls || [])]
+        return [e.label, e.username, e.note, e.group,
+          ...(e.urls || []).flatMap((u) => [u.name, u.url])]
           .some((field) => (field || '').toLowerCase().includes(q))
       })
     })
@@ -1139,7 +1141,9 @@ const App = {
               <span v-if="e.at" class="vault-date">{{ e.at }}</span>
             </div>
             <div v-if="isEntryOpen(e.id)" class="vault-entry-pw">
+              <span class="vault-row-label">Password</span>
               <code>{{ isRevealed(e) ? e.pw : '••••••••••••' }}</code>
+              <span class="vault-row-actions">
               <button class="vault-icon" @click="toggleSecret(e)"
                       :aria-label="isRevealed(e) ? 'Hide password' : 'Reveal password'"
                       :title="isRevealed(e) ? 'Hide password' : 'Reveal password'">
@@ -1160,6 +1164,7 @@ const App = {
               <button class="vault-icon" @click="remove(e)" aria-label="Delete entry" title="Delete">
                 <span class="mdi mdi-delete-outline"></span>
               </button>
+              </span>
             </div>
             <div v-if="isEntryOpen(e.id) && (e.username || e.group || (e.urls && e.urls.length))" class="vault-meta">
               <!-- Only when there is no heading above it saying the same thing.
@@ -1172,15 +1177,20 @@ const App = {
               </button>
               <span v-if="e.username" class="vault-user">
                 <span class="mdi mdi-account-outline" aria-hidden="true"></span>
-                <span>{{ e.username }}</span>
+                <span class="vault-row-label">User</span>
+                <span class="vault-user-value">{{ e.username }}</span>
                 <button class="vault-icon" @click="copyText(e.username, 'Username copied.')"
                         aria-label="Copy username" title="Copy username">
                   <span class="mdi mdi-content-copy"></span>
                 </button>
               </span>
-              <a v-for="u in (e.urls || [])" :key="u" class="vault-url" :href="u" :title="u"
+              <!-- The name when there is one, the host when there is not.
+                   "Dev" beats "staging-7.internal.example.com" at a glance,
+                   and the full address is still the title and the href. -->
+              <a v-for="(u, i) in (e.urls || [])" :key="i" class="vault-url"
+                 :href="u.url" :title="u.name ? u.name + ' — ' + u.url : u.url"
                  target="_blank" rel="noopener noreferrer nofollow">
-                <span class="mdi mdi-open-in-new" aria-hidden="true"></span>{{ hostOf(u) }}
+                <span class="mdi mdi-open-in-new" aria-hidden="true"></span>{{ u.name || hostOf(u.url) }}
               </a>
             </div>
             <!-- The current one-time code, with how long it has left. Never
@@ -1189,6 +1199,7 @@ const App = {
                  genuinely time-critical. -->
             <div v-if="isEntryOpen(e.id) && e.totp && codeFor(e)" class="vault-totp">
               <span class="mdi mdi-timer-outline" aria-hidden="true"></span>
+              <span class="vault-row-label">One-time</span>
               <code class="vault-totp-code">{{ codeFor(e) }}</code>
               <span class="vault-totp-left" :class="{ 'is-expiring': totpLeft <= 5 }">{{ totpLeft }}s</span>
               <button class="vault-icon" @click="copyText(codeFor(e).replace(' ', ''), 'Code copied.')"
@@ -1320,11 +1331,24 @@ const App = {
                 Reuse is what turns one breach into several — generate a new one instead.
               </p>
             </div>
-            <label class="vault-field">
-              <span>Web addresses</span>
-              <textarea v-model="editing.urlText" rows="2" spellcheck="false"
-                        placeholder="One per line"></textarea>
-            </label>
+            <!-- Named, because one login routinely covers several hosts that
+                 are not interchangeable, and reading hostnames to work out
+                 which is the admin panel is a poor way to find out. -->
+            <fieldset class="vault-field vault-qa">
+              <legend>Web addresses</legend>
+              <div v-for="(u, i) in editing.urls" :key="i" class="vault-qa-row vault-url-row">
+                <input v-model="u.name" type="text" placeholder="Name (optional)" />
+                <input v-model="u.url" type="url" spellcheck="false" autocomplete="off"
+                       placeholder="https://…" />
+                <button class="vault-icon" type="button" @click="editing.urls.splice(i, 1)"
+                        aria-label="Remove this address" title="Remove">
+                  <span class="mdi mdi-close"></span>
+                </button>
+              </div>
+              <button class="btn btn-small" type="button" @click="editing.urls.push({ name: '', url: '' })">
+                <span class="mdi mdi-plus"></span> Add an address
+              </button>
+            </fieldset>
             <!-- Not "second username" and "second password" fields. The next
                  account wants a PIN, then a customer number, then a recovery
                  address; a named pair covers all of them. -->

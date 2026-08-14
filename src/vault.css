@@ -245,6 +245,12 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 0.75rem 0.9rem;
+  /* A container, so the rows inside can respond to the width of the CARD.
+     A viewport media query is the wrong instrument here: the card is narrower
+     than the window by the page gutters, and narrower again inside a group,
+     so a 480px breakpoint never fired while the password was already being
+     squeezed into a column of single bullets. */
+  container-type: inline-size;
 }
 
 .vault-entry-head {
@@ -282,15 +288,54 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Password row. The value keeps its width and wraps to a second or third
+   line; the buttons drop below it rather than squeezing it to nothing. At
+   narrow widths the old flex row shrank the password to a sliver to keep five
+   icons on one line, which is backwards -- the password is the content and the
+   icons are the chrome. */
 .vault-entry-pw {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.35rem;
 }
 
+.vault-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  /* Never squeezed: five icon buttons at --control-min are the minimum this
+     row can be, and shrinking them below the 24px target would break 2.5.8. */
+  flex-shrink: 0;
+}
+
+/* A quiet word rather than an icon alone: on a card carrying a password, a
+   username, a code and three named links, icons stop being self-evident. */
+.vault-row-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.vault-url-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; }
+
+@media (max-width: 480px) {
+  .vault-url-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .vault-url-row input:first-child { grid-column: 1 / -1; }
+}
+
 .vault-entry-pw code {
-  flex: 1;
-  min-width: 0;
+  /* A floor, not `min-width: 0`. A flex item that may shrink to nothing will,
+     to keep its neighbours on one line -- and with word-break: break-all that
+     turned the password into a single column of bullets, one character per
+     line. The floor makes the ROW run out of room instead, and flex-wrap then
+     drops the buttons below, which is the right thing to move. */
+  flex: 1 1 14rem;
+  min-width: 11rem;
   font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
   font-size: 0.95rem;
   letter-spacing: 0.045em;
@@ -302,6 +347,19 @@
   word-break: break-all;
   /* One click takes the whole password, as in the generator's output field. */
   user-select: all;
+}
+
+/* Below this width the label, the value and five buttons stop fitting on one
+   line, so the value takes the whole width and the buttons go under it. A
+   CONTAINER query, not a media query: the card is narrower than the window by
+   the page gutters and narrower again inside a group, so a viewport
+   breakpoint never fired while the password was already being crushed. */
+@container (max-width: 30rem) {
+  .vault-entry-pw code { flex: 1 1 100%; }
+  .vault-row-actions { margin-left: 0; }
+  /* Only the password row: the value takes the whole line below it. In the
+     meta row the label sits inline beside its value and must not stretch. */
+  .vault-entry-pw .vault-row-label { width: 100%; }
 }
 
 .vault-icon {
@@ -347,7 +405,10 @@
   min-width: 0;
 }
 
-.vault-user > span:nth-child(2) {
+/* By class, not by position. This was `> span:nth-child(2)`, which meant
+   adding a label span in front of the username silently moved the truncation
+   onto the label and let the username run into the links beside it. */
+.vault-user-value {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;

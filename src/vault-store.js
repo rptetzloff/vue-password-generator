@@ -167,12 +167,6 @@ const newId = () => (
  */
 const text = (v, max) => (typeof v === 'string' ? v.trim().slice(0, max) : '')
 
-/** A list of non-empty strings, deduplicated, from anything list-shaped. */
-const textList = (v, max, cap = 20) => {
-  const raw = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(/[\s,]+/) : [])
-  return [...new Set(raw.map((x) => text(x, max)).filter(Boolean))].slice(0, cap)
-}
-
 /**
  * Security questions, as question/answer pairs.
  *
@@ -205,6 +199,32 @@ const questionList = (v) => {
  * deliberately, copied through the clipboard timer, and offered the generator.
  * A customer number is not a secret and should not be hidden behind a dot row.
  */
+/**
+ * Web addresses, each optionally named.
+ *
+ * One login routinely covers several hosts that are not interchangeable --
+ * the site, its admin panel, the staging copy, the app store listing -- and a
+ * bare list of URLs makes you read hostnames to tell which is which. A name
+ * turns that into "Main", "Dev", "Store".
+ *
+ * Accepts the old shape too. Entries saved before this existed are plain
+ * strings, and so are the URLs in every CSV any other manager exports; both
+ * arrive here as an unnamed address rather than as nothing.
+ */
+const urlList = (v) => {
+  const raw = Array.isArray(v) ? v : (typeof v === 'string' ? v.split(/[\s,]+/) : [])
+  const seen = new Set()
+  const out = []
+  for (const item of raw) {
+    const url = typeof item === 'string' ? text(item, 500) : text(item?.url, 500)
+    if (!url || seen.has(url)) continue
+    seen.add(url)
+    out.push({ name: typeof item === 'string' ? '' : text(item?.name, 40), url })
+    if (out.length >= 20) break
+  }
+  return out
+}
+
 const fieldList = (v) => {
   if (!Array.isArray(v)) return []
   return v
@@ -227,7 +247,7 @@ export const normalizeEntry = (raw) => {
     pw: raw.pw,
     // Plural: one login often covers several hosts, and matching a saved
     // entry to the site in front of you is what 9c's autofill will need.
-    urls: textList(raw.urls, 500),
+    urls: urlList(raw.urls),
     questions: questionList(raw.questions),
     fields: fieldList(raw.fields),
     // A one-time-code seed, when the account has one. Stored beside the

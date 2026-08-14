@@ -95,7 +95,7 @@ export const exportCsv = (entries) => {
     lines.push([
       csvEscape(e.group),
       csvEscape(e.label),
-      csvEscape((e.urls || [])[0] || ''),
+      csvEscape(((e.urls || [])[0] || {}).url || ''),
       csvEscape(e.username),
       csvEscape(e.pw),
       csvEscape(note),
