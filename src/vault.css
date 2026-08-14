@@ -904,3 +904,80 @@
 }
 
 .vault-totp-row { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* The editor dialog.
+   It was a card appended after the list, which works at two entries and is
+   absurd at two hundred -- editing the first meant scrolling past every other
+   to reach the form and again to get back. */
+.vault-modal-backdrop {
+  position: fixed;
+  /* Inset below the fixed header and above the floating nav, both of which
+     sit at z-index 100. A full-viewport backdrop would run underneath them
+     and hide the top and bottom of the form -- worst on a phone, where there
+     is least room to lose. The two offsets are measured when the dialog opens
+     because the header condenses on scroll, so its height is not a constant. */
+  top: var(--vault-modal-top, 0px);
+  bottom: var(--vault-modal-bottom, 0px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  /* Dark in both themes: this is a scrim over content, not a surface. */
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.vault-modal-backdrop .vault-editor {
+  width: min(42rem, 100%);
+  /* NOT margin: auto. On a flex item taller than its container that centres
+     the overflow, putting the top of the form above the scrollable area where
+     it cannot be reached -- the well-known flexbox centring trap. flex-start
+     on the backdrop plus auto side margins keeps it centred horizontally and
+     always scrollable to the top. */
+  margin: 0 auto;
+  max-height: none;
+}
+
+/* The list behind must not scroll while the dialog is up -- losing your place
+   in a long vault is exactly what the dialog exists to prevent. */
+body.vault-modal-open { overflow: hidden; }
+
+.vault-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.vault-editor-head h2 { margin: 0; }
+
+/* Save and Cancel stay reachable without hunting for the end of a long form. */
+.vault-editor-actions {
+  position: sticky;
+  bottom: -1.5rem;
+  margin: 0 -1.5rem -1.5rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+@media (max-width: 640px) {
+  .vault-modal-backdrop { padding: 0; }
+  .vault-modal-backdrop .vault-editor {
+    width: 100%;
+    /* Not min-height: 100% -- a short form would stretch to fill the gap and
+       a long one still scrolls the backdrop, which is what we want. */
+    border-radius: 0;
+    padding: 1rem;
+  }
+  .vault-editor-actions {
+    margin: 0 -1rem -1rem;
+    padding: 0.75rem 1rem;
+    bottom: -1rem;
+  }
+}

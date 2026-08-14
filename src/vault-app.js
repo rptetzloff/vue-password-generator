@@ -156,12 +156,49 @@ const App = {
       try { return new URL(url).host || url } catch { return url }
     }
 
-    const toggleReveal = (id) => {
+    /**
+     * Reveal state, per secret rather than per entry.
+     *
+     * It used to be one flag on the entry, so unmasking the password also
+     * unmasked every security answer and every secret field at once. Reading
+     * one of them out loud should not put the rest on screen -- the whole
+     * reason for masking is that someone might be looking.
+     *
+     * Keys are `<entryId>:<what>`: ":pw", ":f3" for the fourth field, ":q1"
+     * for the second answer.
+     */
+    const secretKey = (entry, what = 'pw') => `${entry.id}:${what}`
+
+    const toggleSecret = (entry, what = 'pw') => {
+      const key = secretKey(entry, what)
       const next = new Set(revealed.value)
-      next.has(id) ? next.delete(id) : next.add(id)
+      next.has(key) ? next.delete(key) : next.add(key)
       revealed.value = next
       store.touch()
     }
+    const isRevealed = (entry, what = 'pw') => revealed.value.has(secretKey(entry, what))
+
+    /** Every maskable thing on one entry, for the show-all toggle. */
+    const secretsOf = (entry) => [
+      'pw',
+      ...(entry.fields || []).map((f, i) => (f.secret ? `f${i}` : null)).filter(Boolean),
+      ...(entry.questions || []).map((_, i) => `q${i}`),
+    ]
+
+    const allRevealed = (entry) =>
+      secretsOf(entry).every((what) => revealed.value.has(secretKey(entry, what)))
+
+    const toggleAllSecrets = (entry) => {
+      const keys = secretsOf(entry).map((what) => secretKey(entry, what))
+      const next = new Set(revealed.value)
+      if (allRevealed(entry)) keys.forEach((k) => next.delete(k))
+      else keys.forEach((k) => next.add(k))
+      revealed.value = next
+      store.touch()
+    }
+
+    /** Whether the show-all control is worth drawing at all. */
+    const hasSeveralSecrets = (entry) => secretsOf(entry).length > 1
 
     const startAdd = () => {
       editing.value = {
@@ -185,6 +222,97 @@ const App = {
         revealPw: false,
       }
     }
+    // --- the editor dialog -----------------------------------------------------
+
+    const editorEl = ref(null)
+
+    /** What the entry looked like when the editor opened, to detect edits. */
+    let editorOpenedAs = ''
+    const snapshot = (e) => (e ? JSON.stringify({ ...e, revealPw: false }) : '')
+    const editorDirty = () => snapshot(editing.value) !== editorOpenedAs
+
+    /**
+     * Close, asking first if there is unsaved work.
+     *
+     * A dialog you can dismiss by clicking beside it needs this: the whole
+     * point of the modal is that it sits over the list, and the click that
+     * closes it is one slip away from the click that scrolls.
+     */
+    const cancelEdit = () => {
+      if (editorDirty() && !confirm('Discard the changes to this entry?')) return
+      editing.value = null
+    }
+
+    /**
+     * While the dialog is up: Escape closes it, Tab stays inside it, and the
+     * list behind does not scroll. A modal that lets the background scroll is
+     * how you lose your place in a long vault, which is the thing this was
+     * built to stop.
+     */
+    const onEditorKey = (event) => {
+      if (!editing.value) return
+      if (event.key === 'Escape') { event.preventDefault(); cancelEdit(); return }
+      if (event.key !== 'Tab' || !editorEl.value) return
+      const focusable = [...editorEl.value.querySelectorAll(
+        'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
+      )].filter((el) => el.offsetParent !== null)
+      if (!focusable.length) return
+      const first = focusable[0]
+      const last = focusable[focusable.length - 1]
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault(); last.focus()
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault(); first.focus()
+      }
+    }
+
+    /**
+     * Fit the dialog between the fixed header and the floating nav bar.
+     *
+     * Both are `position: fixed` at z-index 100, above the dialog's 60, so a
+     * full-viewport backdrop puts the top and bottom of the form underneath
+     * them -- most visibly on a phone, where there is least room to spare.
+     *
+     * Measured rather than hardcoded because the header condenses on scroll,
+     * so its height is a runtime fact and not a constant. Reading two
+     * bounding boxes is worth more than a magic number that is wrong in one
+     * of the two states.
+     */
+    const fitModalToChrome = () => {
+      // The EDGES, not the heights. The nav floats clear of the bottom of the
+      // viewport, so its height is 12px short of the gap it actually needs --
+      // measured as a 45px inset against a bar whose top edge is 57px up.
+      const edgesOf = (sel) => {
+        const el = document.querySelector(sel)
+        if (!el || getComputedStyle(el).position !== 'fixed') return null
+        return el.getBoundingClientRect()
+      }
+      const gap = 8
+      const header = edgesOf('.site-header')
+      const nav = edgesOf('.site-footer')
+      const root = document.documentElement
+      root.style.setProperty('--vault-modal-top',
+        `${Math.max(0, Math.ceil(header ? header.bottom : 0)) + (header ? gap : 0)}px`)
+      root.style.setProperty('--vault-modal-bottom',
+        `${Math.max(0, Math.ceil(nav ? window.innerHeight - nav.top : 0)) + (nav ? gap : 0)}px`)
+    }
+
+    watch(editing, async (now, before) => {
+      if (now && !before) {
+        editorOpenedAs = snapshot(now)
+        document.body.classList.add('vault-modal-open')
+        fitModalToChrome()
+        await nextTick()
+        // The label is where an entry starts, so that is where the cursor goes.
+        editorEl.value?.querySelector('input, textarea')?.focus()
+      } else if (!now) {
+        document.body.classList.remove('vault-modal-open')
+      } else {
+        // Reopened onto a different entry without closing first.
+        editorOpenedAs = snapshot(now)
+      }
+    })
+
     const addQuestion = () => { editing.value.questions.push({ q: '', a: '' }) }
     const removeQuestion = (i) => { editing.value.questions.splice(i, 1) }
 
@@ -704,20 +832,28 @@ const App = {
       refreshTotp()
       for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, activity, true)
       for (const ev of ['pointerdown', 'keydown']) window.addEventListener(ev, dismissGroupMenu)
+      window.addEventListener('keydown', onEditorKey, true)
+      // The header condenses at different widths, so the inset is not a
+      // constant across a resize or a rotation.
+      window.addEventListener('resize', fitModalToChrome)
     })
     onUnmounted(() => {
       clearInterval(timer)
       clearInterval(totpTimer)
       for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, activity, true)
       for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, dismissGroupMenu)
+      window.removeEventListener('keydown', onEditorKey, true)
+      window.removeEventListener('resize', fitModalToChrome)
+      document.body.classList.remove('vault-modal-open')
     })
 
     return {
       state, entries, shown, error, notice, busy, query, revealed, editing,
       persisted, rekeyOpen, pass, passConfirm, oldPass, newPass,
-      create, unlock, lock, save, remove, copy, copyText, hostOf, toggleReveal,
+      create, unlock, lock, save, remove, copy, copyText, hostOf,
+      toggleSecret, isRevealed, toggleAllSecrets, allRevealed, hasSeveralSecrets,
       startAdd, startEdit, rekey, destroy, tierOf,
-      addQuestion, removeQuestion, addField, removeField,
+      addQuestion, removeQuestion, addField, removeField, cancelEdit, editorEl,
       codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
       toggleGroupOpen, isGroupOpen, toggleEntryOpen, isEntryOpen, allCollapsed, toggleAll,
       exportVault, importFile, exported,
@@ -962,11 +1098,17 @@ const App = {
               <span v-if="e.at" class="vault-date">{{ e.at }}</span>
             </div>
             <div v-if="isEntryOpen(e.id)" class="vault-entry-pw">
-              <code>{{ revealed.has(e.id) ? e.pw : '••••••••••••' }}</code>
-              <button class="vault-icon" @click="toggleReveal(e.id)"
-                      :aria-label="revealed.has(e.id) ? 'Hide password' : 'Reveal password'"
-                      :title="revealed.has(e.id) ? 'Hide' : 'Reveal'">
-                <span :class="['mdi', revealed.has(e.id) ? 'mdi-eye-off' : 'mdi-eye']"></span>
+              <code>{{ isRevealed(e) ? e.pw : '••••••••••••' }}</code>
+              <button class="vault-icon" @click="toggleSecret(e)"
+                      :aria-label="isRevealed(e) ? 'Hide password' : 'Reveal password'"
+                      :title="isRevealed(e) ? 'Hide password' : 'Reveal password'">
+                <span :class="['mdi', isRevealed(e) ? 'mdi-eye-off' : 'mdi-eye']"></span>
+              </button>
+              <!-- Only when there is more than the password to unmask. -->
+              <button v-if="hasSeveralSecrets(e)" class="vault-icon" @click="toggleAllSecrets(e)"
+                      :aria-label="allRevealed(e) ? 'Hide everything on this entry' : 'Reveal everything on this entry'"
+                      :title="allRevealed(e) ? 'Hide all' : 'Reveal all'">
+                <span :class="['mdi', allRevealed(e) ? 'mdi-eye-off-outline' : 'mdi-eye-outline']"></span>
               </button>
               <button class="vault-icon" @click="copy(e)" aria-label="Copy password" title="Copy">
                 <span class="mdi mdi-content-copy"></span>
@@ -1021,8 +1163,13 @@ const App = {
               <template v-for="(f, i) in e.fields" :key="i">
                 <dt>{{ f.name || 'Field ' + (i + 1) }}</dt>
                 <dd>
-                  <code v-if="f.secret">{{ revealed.has(e.id) ? f.value : '••••••••' }}</code>
+                  <code v-if="f.secret">{{ isRevealed(e, 'f' + i) ? f.value : '••••••••' }}</code>
                   <span v-else class="vault-field-value">{{ f.value }}</span>
+                  <button v-if="f.secret" class="vault-icon" @click="toggleSecret(e, 'f' + i)"
+                          :aria-label="(isRevealed(e, 'f' + i) ? 'Hide ' : 'Reveal ') + (f.name || 'field')"
+                          :title="isRevealed(e, 'f' + i) ? 'Hide' : 'Reveal'">
+                    <span :class="['mdi', isRevealed(e, 'f' + i) ? 'mdi-eye-off' : 'mdi-eye']"></span>
+                  </button>
                   <button class="vault-icon"
                           @click="copyText(f.value, (f.name || 'Field') + ' copied.')"
                           :aria-label="'Copy ' + (f.name || 'field')" :title="'Copy ' + (f.name || 'field')">
@@ -1038,7 +1185,12 @@ const App = {
                 <template v-for="(qa, i) in e.questions" :key="i">
                   <dt>{{ qa.q || 'Question ' + (i + 1) }}</dt>
                   <dd>
-                    <code>{{ revealed.has(e.id) ? qa.a : '••••••••' }}</code>
+                    <code>{{ isRevealed(e, 'q' + i) ? qa.a : '••••••••' }}</code>
+                    <button class="vault-icon" @click="toggleSecret(e, 'q' + i)"
+                            :aria-label="isRevealed(e, 'q' + i) ? 'Hide answer' : 'Reveal answer'"
+                            :title="isRevealed(e, 'q' + i) ? 'Hide' : 'Reveal'">
+                      <span :class="['mdi', isRevealed(e, 'q' + i) ? 'mdi-eye-off' : 'mdi-eye']"></span>
+                    </button>
                     <button class="vault-icon" @click="copyText(qa.a, 'Answer copied.')"
                             aria-label="Copy answer" title="Copy answer">
                       <span class="mdi mdi-content-copy"></span>
@@ -1051,9 +1203,21 @@ const App = {
         </ul>
         </template>
 
-        <!-- Add / edit -->
-        <div v-if="editing" class="vault-card vault-editor">
-          <h2>{{ editing.id ? 'Edit entry' : 'Add an entry' }}</h2>
+        <!-- Add / edit.
+             A dialog rather than a panel appended to the page. It used to be
+             the last thing in the list, which is fine at two entries and
+             absurd at two hundred: editing the first one scrolled you past
+             every other to reach the form, and again to get back. -->
+        <div v-if="editing" class="vault-modal-backdrop" @pointerdown.self="cancelEdit">
+        <div class="vault-card vault-editor" role="dialog" aria-modal="true"
+             aria-labelledby="vault-editor-title" ref="editorEl">
+          <div class="vault-editor-head">
+            <h2 id="vault-editor-title">{{ editing.id ? 'Edit entry' : 'Add an entry' }}</h2>
+            <button class="vault-icon" type="button" @click="cancelEdit"
+                    aria-label="Close without saving" title="Close">
+              <span class="mdi mdi-close"></span>
+            </button>
+          </div>
           <form @submit.prevent="save(editing)">
             <label class="vault-field">
               <span>Label</span>
@@ -1240,11 +1404,12 @@ const App = {
               <span>Note</span>
               <textarea v-model="editing.note" rows="2"></textarea>
             </label>
-            <div class="vault-bar">
+            <div class="vault-bar vault-editor-actions">
               <button class="btn btn-primary" :disabled="busy">Save</button>
-              <button class="btn" type="button" @click="editing = null">Cancel</button>
+              <button class="btn" type="button" @click="cancelEdit">Cancel</button>
             </div>
           </form>
+        </div>
         </div>
 
         <details class="vault-transfer" ref="transferEl">
