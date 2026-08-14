@@ -775,3 +775,63 @@ test('the selected history row keeps its bits figure legible', () => {
     )
   }
 })
+
+// ---------------------------------------------------------------------------
+// A palette's dark block must restate everything its light block sets.
+//
+// This is a CSS specificity trap, not an oversight anyone would spot reading
+// the file. `[data-palette='slate']` is two attribute selectors; the dark
+// theme block `[data-theme='dark']` is one. So for any token the light
+// palette block defines and the dark palette block does not, the LIGHT value
+// wins in dark mode -- it outranks the theme.
+//
+// Slate shipped missing --surface, --background, --page-gradient and
+// --header-bg, so slate/dark drew dark-theme text on the light slate surface:
+// 1.04:1 for the password, 1.16:1 for every label. Not low contrast --
+// invisible. Nine palettes happened to restate all four and one did not, and
+// nothing in the suite noticed because every check reads the MERGED token map,
+// where the leak looks like a deliberate value.
+test('every palette overrides in dark whatever it overrides in light', () => {
+  for (const { value } of PALETTES) {
+    if (value === DEFAULT_PALETTE) continue      // the default lives in :root
+    const light = readBlock(`[data-palette='${value}']`)
+    const dark = readBlock(`[data-theme='dark'][data-palette='${value}']`)
+    const leaking = Object.keys(light).filter((token) => !(token in dark))
+    assert.deepEqual(
+      leaking, [],
+      `[data-palette='${value}'] sets ${leaking.join(', ')} but ` +
+        `[data-theme='dark'][data-palette='${value}'] does not. Two attribute ` +
+        'selectors beat one, so the LIGHT value wins in dark mode.',
+    )
+  }
+})
+
+// The merged maps every other check uses would have hidden the bug above, so
+// this one measures the palette blocks as the CASCADE actually resolves them.
+for (const { value } of PALETTES) {
+  if (value === DEFAULT_PALETTE) continue
+  test(`${value}/dark resolves to dark surfaces, not its light ones`, () => {
+    const light = readBlock(`[data-palette='${value}']`)
+    const dark = readBlock(`[data-theme='dark'][data-palette='${value}']`)
+    // What the browser would actually use: :root, then the dark theme, then
+    // the light palette, then the dark palette -- in specificity order.
+    const resolved = resolveVars({
+      ...light,
+      ...readBlock("[data-theme='dark']"),
+      ...light,          // two attributes beat one: the light palette wins again
+      ...dark,           // unless the dark palette restates it
+    })
+    const merged = resolveVars({ ...dark })
+    for (const token of ['--surface', '--background']) {
+      if (!(token in light)) continue
+      assert.equal(
+        resolved[token], merged[token] ?? resolved[token],
+        `${value}/dark ${token} resolves to ${resolved[token]}, its LIGHT value`,
+      )
+      // And the text has to be legible on whatever it resolved to.
+      const ratio = contrast(resolveVars({ ...dark, ...readBlock("[data-theme='dark']") })['--text'], resolved[token])
+      assert.ok(ratio >= 4.5,
+        `${value}/dark: --text on ${token} (${resolved[token]}) is ${ratio.toFixed(2)}:1`)
+    }
+  })
+}
