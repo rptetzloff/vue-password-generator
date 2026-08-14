@@ -308,6 +308,34 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v3.0.1 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v3.0.1</div>
+            <div class="release-date">2026-08-14</div>
+            <span class="release-badge badge-patch">Patch</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Stop serving yesterday's build forever</div>
+                <div class="release-summary">The service worker answered every request from its cache and never asked the network again. A vault you cannot update is a vault whose next fix never arrives.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The update path did not update.</strong> Every request was answered from the cache and the network was never consulted again. The design assumed each release renames the cache by bumping the version &mdash; true in principle, and four releases went out without one, at which point anyone who had loaded the site was pinned to that build with no way forward. Not stale until the next release: stale permanently, and silently. On a password manager that is more than an annoyance, because it means a fix for a real bug never reaches the people running the version that has it. Page loads now try the network first and fall back to the cache, so a deploy is visible on the next load; everything else is stale-while-revalidate, answering instantly from cache while fetching a fresh copy for next time. Offline is unaffected either way &mdash; a failed fetch simply uses what is already there. <code>ignoreSearch</code> is now scoped to the navigation fallback alone, because applying it to every request also defeated <code>?v=</code> cache-busting, which was the only manual escape left.</li>
+                    <li><strong>And a second, unrelated cause of the same symptom, local only.</strong> The dev server sends an <code>ETag</code> and no <code>Cache-Control</code> at all, and with no stated freshness a browser may reuse what it has without ever asking. That is what made an edited stylesheet need a hard refresh, repeatedly. It was never the service worker: every page skips registration on <code>localhost</code>. A <code>serve.json</code> at the repository root sets <code>no-store</code>, measured before and after across CSS, JavaScript, HTML and JSON. Render reads <code>render.yaml</code>, so the file changes nothing in production.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v3.0.0 -->
         <div class="release">
           <div class="release-meta">
