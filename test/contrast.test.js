@@ -415,6 +415,12 @@ for (const { value } of PALETTES) {
 // `:checked` only ever matches a form control, which makes the rule precise --
 // if a family styles a checked state and paints a pseudo-element indicator, it
 // has taken over rendering and must say so.
+// These paths are relative to this file, so every assertion message would
+// otherwise start "../". Anchored, because the intent is to strip one leading
+// prefix from a known constant -- not to sanitise a path, which is what an
+// unanchored replace of "../" looks like to a scanner, and fairly so.
+const label = (rel) => rel.replace(/^\.\.\//, '')
+
 test('controls that draw their own indicator disable the native one', () => {
   const sheets = ['../src/style.css', '../src/settings-panel.css', '../src/site-header.css']
 
@@ -441,7 +447,7 @@ test('controls that draw their own indicator disable the native one', () => {
       if (!e.indicator) continue
       assert.ok(
         e.appearance,
-        `${rel.replace('../', '')}: "${e.indicator}" paints its own indicator, but ` +
+        `${label(rel)}: "${e.indicator}" paints its own indicator, but ` +
           `"${base}" never sets appearance: none, so the browser draws its native ` +
           'control underneath and both are visible',
       )
@@ -521,7 +527,7 @@ test('no stylesheet puts a literal color on a themed fill', () => {
       const body = m[3]
       const entry = families.get(base) || { bg: false, literalAt: null }
       if (themedBg.test(body)) entry.bg = true
-      if (literalColor.test(body)) entry.literalAt = `${rel.replace('../', '')} ${m[2].trim()}`
+      if (literalColor.test(body)) entry.literalAt = `${label(rel)} ${m[2].trim()}`
       families.set(base, entry)
     }
   }

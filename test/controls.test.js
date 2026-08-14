@@ -111,7 +111,11 @@ test('no control in style.css suppresses its focus outline', () => {
 test('the controls overlaid on the password field cannot collide', () => {
   const vars = ruleBody('.password-display')
   for (const name of ['--pw-edge', '--pw-btn', '--pw-slot']) {
-    assert.match(vars, new RegExp(`${name}\s*:`),
+    // `\\s`, not `\s`: inside a template literal a lone backslash collapses,
+    // so `\s*` reached the RegExp as `s*` -- zero or more literal letter s.
+    // It passed only because the CSS has no space before the colon, which is
+    // an assertion holding by luck rather than by what it says.
+    assert.match(vars, new RegExp(`${name}\\s*:`),
       `.password-display must define ${name}; the overlay positions derive from it`)
   }
 
