@@ -169,12 +169,12 @@ test('re-keying keeps the entries, re-salts, and retires the old passphrase', as
   const { store } = await freshStore()
   await store.create(PASS)
   await store.add({ label: 'email', pw: 'hunter2!' })
-  const oldSalt = store.envelope().kdf.salt
+  const oldSalt = store.envelope().wraps.passphrase.kdf.salt
 
   await store.rekey(PASS, 'a different passphrase entirely')
   assert.equal(store.list().length, 1)
-  assert.notEqual(store.envelope().kdf.salt, oldSalt, 'a re-key must re-salt')
-  assert.equal(store.envelope().kdf.iterations, KDF_ITERATIONS,
+  assert.notEqual(store.envelope().wraps.passphrase.kdf.salt, oldSalt, 'a re-key must re-salt')
+  assert.equal(store.envelope().wraps.passphrase.kdf.iterations, KDF_ITERATIONS,
     're-keying is also the upgrade path for the cost parameter')
 
   store.lock()

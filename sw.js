@@ -35,6 +35,7 @@ const PRECACHE = [
   '/src/clipboard-clear.js',
   '/src/history-crypto.js',
   '/src/vault-crypto.js',
+  '/src/recovery-key.js',
   '/src/passphrase-strength.js',
   '/src/common-passwords.js',
   '/src/totp.js',
