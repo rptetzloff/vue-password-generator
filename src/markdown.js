@@ -25,6 +25,11 @@ const inline = (raw) => {
   // out of ordinary prose -- the roadmap is full of bare numbers.
   const code = []
   s = s.replace(/`([^`]+)`/g, (_, body) => `<${code.push(body) - 1}>`)
+  // Before emphasis, so ~~**text**~~ nests the right way round. The roadmap
+  // uses this to strike a decision it later reversed, keeping the original in
+  // place rather than editing it away -- which only reads as a reversal if it
+  // renders as one.
+  s = s.replace(/~~([^~]+)~~/g, '<del>$1</del>')
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
   s = s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
   s = s.replace(/\[([^\]]+)\]\(([^)\s]+)\)/g, (_, text, href) => {
@@ -53,14 +58,28 @@ export const renderMarkdown = (src) => {
   let inCode = false
   let nested = false
 
-  const closeNested = () => { if (nested) { out.push('</ul></li>'); nested = false } }
+  // An open list item or paragraph, buffered RAW until its block ends.
+  //
+  // Buffering rather than emitting line by line is what lets a wrapped line
+  // join the one above it, and it has to be the raw text: inline() run per
+  // line cannot see a `**` that opens on one line and closes on the next, and
+  // emits both markers literally. Seven spans in the roadmap did exactly that.
+  let open = null // { prefix, suffix, text: [] }
+
+  const flush = () => {
+    if (!open) return
+    out.push(open.prefix, inline(open.text.join(' ')), open.suffix)
+    open = null
+  }
+  const closeNested = () => { if (nested) { flush(); out.push('</ul></li>'); nested = false } }
   const closeList = () => {
     if (!listType) return
     closeNested()
+    flush()
     out.push('</ul>')
     listType = null
   }
-  const closePara = () => { if (inPara) { out.push('</p>'); inPara = false } }
+  const closePara = () => { if (inPara) { flush(); inPara = false } }
   const closeAll = () => { closeList(); closePara() }
 
   for (let i = 0; i < lines.length; i++) {
@@ -125,8 +144,9 @@ export const renderMarkdown = (src) => {
         out.push(wantType === 'task' ? '<ul class="task-list">' : '<ul>')
         listType = wantType
       }
-      if (indent >= 2 && !nested) { out.push('<li><ul>'); nested = true }
+      if (indent >= 2 && !nested) { flush(); out.push('<li><ul>'); nested = true }
       else if (indent < 2 && nested) closeNested()
+      flush()
 
       if (task) {
         const done = task[2].toLowerCase() === 'x'
@@ -134,19 +154,27 @@ export const renderMarkdown = (src) => {
           ? '<span class="task-box task-done" aria-hidden="true">[x]</span>'
           : '<span class="task-box task-todo" aria-hidden="true">[ ]</span>'
         const label = done ? 'Done: ' : 'To do: '
-        out.push(
-          `<li class="${done ? 'is-done' : ''}">${box}<span><span class="sr-only">${label}</span>${inline(task[3])}</span></li>`,
-        )
+        open = {
+          prefix: `<li class="${done ? 'is-done' : ''}">${box}<span><span class="sr-only">${label}</span>`,
+          suffix: '</span></li>',
+          text: [task[3]],
+        }
       } else {
-        out.push(`<li>${inline(bullet[2])}</li>`)
+        open = { prefix: '<li>', suffix: '</li>', text: [bullet[2]] }
       }
       continue
     }
 
+    // Lazy continuation: a wrapped bullet. Every long item in the roadmap is
+    // written with a hanging indent, and without this each one rendered as a
+    // one-item list with its own tail ejected into a paragraph underneath --
+    // which was 69 of the file's 98 lists. A blank line still ends the item,
+    // so this only rejoins lines the author had already joined.
+    if (open && listType) { open.text.push(line.trim()); continue }
+
     // Anything else is paragraph text; consecutive lines join.
-    if (!inPara) { closeList(); out.push('<p>'); inPara = true }
-    else out.push(' ')
-    out.push(inline(line.trim()))
+    if (!inPara) { closeList(); open = { prefix: '<p>', suffix: '</p>', text: [] }; inPara = true }
+    open.text.push(line.trim())
   }
 
   if (inCode) out.push('</code></pre>')
