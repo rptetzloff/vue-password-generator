@@ -613,6 +613,7 @@
           <a class="nav-sub nav-item" href="#vault-reuse">Reused passwords</a>
           <a class="nav-sub nav-item" href="#vault-backup">Backup &amp; import</a>
           <a class="nav-sub nav-item" href="#vault-passphrase">Passphrase</a>
+          <a class="nav-sub nav-item" href="#vault-recovery">Recovery key</a>
           <div class="nav-divider"></div>
           <a class="nav-item" href="#appearance"><span class="mdi mdi-cog-outline"></span> Appearance &amp; Settings</a>
           <div class="nav-divider"></div>
@@ -2339,11 +2340,88 @@
                 </div>
               </div>
               <div class="option-row">
-                <div class="option-name">No recovery</div>
+                <div class="option-name">Nobody can reset it for you</div>
                 <div class="option-desc">
-                  Forgetting it means the vault cannot be opened, by you or by anyone. There is no reset link,
-                  because there is nobody to send one. Deleting the vault also requires the passphrase, so in
-                  practice a forgotten vault sits there until you clear this site's data in your browser.
+                  There is no reset link, because there is nobody to send one. Forget the passphrase with no
+                  <a href="#vault-recovery">recovery key</a> and the vault cannot be opened, by you or by
+                  anyone. Deleting it also requires the passphrase, so in practice a forgotten vault sits
+                  there until you clear this site's data in your browser. A recovery key is the one thing
+                  that changes this, and it is a key you hold rather than one we do.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-recovery" class="option-group">
+              <div class="option-group-label">Recovery key</div>
+              <div class="option-row">
+                <div class="option-name">What it is for</div>
+                <div class="option-desc">
+                  A second way into the vault, for the one failure a backup cannot touch: forgetting the
+                  passphrase. The two are complements and you want both. A backup protects the
+                  <em>data</em> — if the device dies, the file is what brings it back. A recovery key
+                  protects <em>access</em> — a backup you cannot decrypt is as lost as no backup at all.
+                  Neither substitutes for the other, and a recovery key does nothing at all for a vault
+                  that was never exported and no longer exists.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Sixteen words, generated, never chosen</div>
+                <div class="option-desc">
+                  <p>
+                    Drawn here from the same 17,576-word list the Words generator uses: 14.1 bits a word,
+                    <strong>225 bits</strong> in total. There is deliberately no way to supply your own
+                    phrase, and that restraint is the whole security argument rather than fussiness.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    A vault with two keys is only as strong as the <em>weaker</em> one, because an attacker
+                    takes whichever is cheaper to break. A memorable recovery phrase would therefore become
+                    the real strength of your vault, silently, no matter how good the passphrase was. At 225
+                    bits of generated randomness the recovery path is not attackable at all, so the
+                    passphrase stays the binding constraint and this costs nothing. Between those two
+                    positions is a trap: anything memorable is anything guessable.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Words rather than a string of base32, because this gets written on paper and typed back
+                    by hand, months later, by someone already having a bad day. Duplicates are allowed —
+                    each draw is independent, which is exactly what makes the bit count true; removing them
+                    would look tidier and quietly lower it.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Shown exactly once</div>
+                <div class="option-desc">
+                  The vault stores your master key encrypted <em>under</em> those words, which is not the
+                  same as storing the words. There is no screen that shows it again, because there is
+                  nothing to show. Lose it and you generate another — which retires the previous one the
+                  moment it is made, so the old paper stops working.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">It is a second key to everything</div>
+                <div class="option-desc">
+                  Anyone holding those words can read every password in the vault without knowing your
+                  passphrase. Store them the way you would a spare house key: on paper is fine, inside the
+                  vault is not, and the same drawer as the laptop is worse than a different building.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Using it retires it</div>
+                <div class="option-desc">
+                  Recovering asks for the key and a new passphrase together, so the vault is never sitting
+                  open with no passphrase anyone knows. Afterwards the forgotten passphrase no longer works
+                  — the vault is re-sealed under a brand new master key, so whoever might have learned the
+                  old one is locked out too — and the recovery key is spent, because it has just been typed
+                  onto a screen and possibly read aloud. Make a fresh one from settings.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Adding or removing one needs the passphrase</div>
+                <div class="option-desc">
+                  Even with the vault already open. An unlocked tab proves a tab is open, not who is asking,
+                  and minting a permanent second key to someone's vault — or removing the one they are
+                  relying on — is not something a passer-by should be able to do. The same rule guards
+                  deleting the vault.
                 </div>
               </div>
             </div>

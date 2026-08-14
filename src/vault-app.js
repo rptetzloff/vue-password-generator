@@ -1187,9 +1187,11 @@ const App = {
           passphrase you choose — {{ iterations }} PBKDF2 rounds — and nothing is ever sent anywhere.
         </p>
         <p class="vault-warn">
-          <strong>There is no recovery.</strong> No account, no server, no reset link: if you forget
-          this passphrase the vault cannot be opened by anyone, including us. Pick something you can
-          remember, and export a backup once you have entries worth keeping.
+          <strong>Nobody can reset this for you.</strong> No account, no server, no reset link — if you
+          forget this passphrase, we cannot open the vault and neither can anyone else. Pick something
+          you can remember, make a <strong>recovery key</strong> once the vault exists, and export a
+          backup once you have entries worth keeping. The recovery key is a second key you hold; it is
+          not a way for us to get in.
         </p>
         <form @submit.prevent="create">
           <label class="vault-field">

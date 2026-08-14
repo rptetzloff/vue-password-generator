@@ -383,10 +383,10 @@ const KeepButton = {
               <span class="mdi mdi-alert" aria-hidden="true"></span> Write this down, or save it elsewhere, first.
             </p>
             <p>
-              It becomes the only key to your vault. There is no account, no reset link and no
-              recovery: if you lose it, everything in the vault is gone for good — not locked out,
-              gone. Put it on paper, in another password manager, or anywhere you will still have
-              it later — <em>before</em> you continue.
+              It becomes the key to your vault, and there is no account and no reset link. Lose it
+              with no recovery key made and everything in the vault is gone for good — not locked
+              out, gone. Put it on paper, in another password manager, or anywhere you will still
+              have it later — <em>before</em> you continue.
             </p>
             <code class="keep-writedown-pw">{{ password }}</code>
           </div>

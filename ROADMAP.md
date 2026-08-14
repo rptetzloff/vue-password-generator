@@ -345,10 +345,30 @@ and both should be revisited deliberately rather than drifted into.
       1M is about staying clear of the floor as hardware improves, not about
       the bits, and the code comment says so.
 
-- [ ] **Recovery codes, if the case for them survives this.** Asked for, with
+- [x] **Recovery codes — shipped, and the case survived.** Asked for, with
       the suspicion that the security model forbids it. It does not -- but the
       version most people picture is the unsafe one, so the constraints matter
-      more than the feature.
+      more than the feature. Everything below was the plan; all of it was
+      built, with the word count at 16 and the format decisions unchanged.
+
+      **What the build added to the plan.** The envelope had to grow a version:
+      v1 encrypts the data directly under the passphrase key, which leaves
+      nowhere to put a second wrap, so v2 encrypts under a random master key
+      and wraps *that* once per way in. Either wrap opens the vault. Two
+      dividends that were not the reason for it: changing the passphrase now
+      re-wraps 32 bytes instead of re-encrypting the whole vault, and revoking
+      recovery is deleting one field. Old vaults keep opening as v1 and convert
+      only when recovery is added or the passphrase changes -- both moments
+      where the passphrase is already in hand.
+
+      **Three rules that emerged while building it.** Adding or removing a key
+      requires the passphrase even with the vault open, because an unlocked tab
+      proves a tab is open rather than who is asking -- the same rule that
+      already guarded deleting a vault. Recovering takes the key and the new
+      passphrase in one operation, so the vault is never open with no
+      passphrase anyone knows, and re-seals under a fresh master key so the
+      forgotten passphrase dies with it. And using a recovery key retires it,
+      since by then it has been typed onto a screen and possibly read aloud.
 
       How it would work: generate a high-entropy recovery key, wrap the vault
       key under it, and store that second wrapped copy in the envelope
@@ -386,9 +406,9 @@ and both should be revisited deliberately rather than drifted into.
       already enormous at the bottom of the range. Lower case, space
       separated, generated -- the same list the Words generator draws from.
 
-      Not started. If it happens: generated only, shown exactly once, behind
-      the same write-it-down gate the adopt flow uses, stated plainly as a
-      second key to everything in the vault, and revocable by re-keying.
+      Shipped exactly as scoped here: generated only, shown exactly once,
+      behind the same write-it-down gate the adopt flow uses, stated plainly as
+      a second key to everything in the vault, and revocable.
 
 - [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
       for every inline script and `connect-src 'self'`, which is the directive
