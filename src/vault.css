@@ -1,0 +1,1112 @@
+/* The vault page (ROADMAP 9a). Only what the vault needs -- the shared
+   tokens, header, footer and prose-page rules carry everything else. */
+
+.vault {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.vault-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.5rem;
+}
+
+.vault-card h2 {
+  margin: 0 0 0.75rem;
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+.vault-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.55;
+  margin: 0 0 0.85rem;
+}
+
+.vault-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  margin-bottom: 0.85rem;
+}
+
+.vault-field > span {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.vault-field input,
+.vault-field textarea {
+  padding: 0.55rem 0.7rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.vault-field textarea { resize: vertical; }
+
+/* A form's submit button sat flush against whatever followed it inside the
+   same card -- the unlock button against "Forgotten the passphrase?". */
+.vault-card form + * { margin-top: 1.1rem; }
+
+.vault-card > .vault-danger + .vault-danger { margin-top: 0.6rem; }
+
+/* Buttons. The generator's style.css owns .btn, but this page does not load
+   it -- that file is the whole generator UI. These are the same rules, and
+   the same tokens, so a button here matches a button there; the alternative
+   was pulling in 1,200 lines of generator CSS for two selectors. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.btn:hover { background: var(--background); }
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+
+.btn-primary:hover { background: var(--primary-dark); }
+
+.btn:disabled { opacity: 0.65; cursor: default; }
+
+/* For secondary actions inside a block that already has a primary one -- the
+   plain-text exports, and adding a question row. */
+.btn-small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Live strength of a TYPED passphrase. Visually quieter than the generator's
+   meter on purpose: that one states a fact, this one states a ceiling, and
+   the two should not look like the same claim. */
+.pass-strength {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: -0.4rem 0 0.5rem;
+}
+
+.pass-meter {
+  flex: 1 1 6rem;
+  max-width: 10rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  background: var(--background);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.pass-meter-fill {
+  display: block;
+  height: 100%;
+  transition: width 0.15s ease;
+}
+
+.pass-meter.meter-weak .pass-meter-fill { background: var(--error); }
+.pass-meter.meter-fair .pass-meter-fill { background: var(--warning); }
+.pass-meter.meter-good .pass-meter-fill,
+.pass-meter.meter-strong .pass-meter-fill { background: var(--success); }
+
+.pass-figure {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.pass-tier {
+  font-size: 0.7rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+}
+
+.pass-tier.meter-weak { color: var(--error); }
+.pass-tier.meter-fair { color: var(--warning); }
+.pass-tier.meter-good,
+.pass-tier.meter-strong { color: var(--success); }
+
+.pass-notes {
+  margin: 0 0 0.5rem;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.pass-caveat {
+  font-size: 0.75rem !important;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.pass-caveat a { color: var(--primary); }
+
+.vault-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* .form-input lives in the generator's style.css, which this page does not
+   load, so the search field arrived with no padding at all. */
+.vault-search {
+  flex: 1 1 12rem;
+  padding: 0.55rem 0.75rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+/* Statuses. --error and --warning are already AA-verified against both
+   surfaces by the contrast suite, so these reuse them rather than inventing
+   a colour that nothing checks. */
+.vault-error,
+.vault-notice,
+.vault-warn {
+  padding: 0.6rem 0.85rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  border: 1px solid;
+}
+
+.vault-error { color: var(--error); border-color: var(--error); background: var(--surface); }
+.vault-notice { color: var(--success); border-color: var(--success); background: var(--surface); }
+.vault-warn { color: var(--warning); border-color: var(--warning); background: var(--surface); }
+
+/* The backup reminder. Quieter than .vault-warn on purpose: nothing is wrong
+   yet, and a vault that shouts at every visit gets ignored at the one that
+   matters. No border, no colour of its own. */
+.vault-nag {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0.1rem 0.2rem;
+  font-size: 0.82rem;
+  /* On the page gradient, not on a card -- see the --band-* note in
+     tokens.css. --text-secondary measured 1.00:1 here against the light
+     gradient's far stop, which is invisible. */
+  color: var(--band-text-dim);
+}
+
+.link-button {
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--band-text);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.vault-empty {
+  /* On the gradient, not on a card -- there is no card, that is the whole
+     point of the empty state. --text-secondary measured 1.00:1 in light. */
+  color: var(--band-text-dim);
+  font-size: 0.9rem;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.vault-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.vault-entry {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+  /* A container, so the rows inside can respond to the width of the CARD.
+     A viewport media query is the wrong instrument here: the card is narrower
+     than the window by the page gutters, and narrower again inside a group,
+     so a 480px breakpoint never fired while the password was already being
+     squeezed into a column of single bullets. */
+  container-type: inline-size;
+}
+
+.vault-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.4rem;
+}
+
+.vault-label {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.vault-bits {
+  font-size: 0.72rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The tier classes come from the strength meter, so a vault entry is coloured
+   by the same rule the generator uses. */
+.vault-bits.meter-weak { color: var(--error); }
+.vault-bits.meter-fair { color: var(--warning); }
+.vault-bits.meter-good,
+.vault-bits.meter-strong { color: var(--success); }
+
+.vault-date {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Password row. The value keeps its width and wraps to a second or third
+   line; the buttons drop below it rather than squeezing it to nothing. At
+   narrow widths the old flex row shrank the password to a sliver to keep five
+   icons on one line, which is backwards -- the password is the content and the
+   icons are the chrome. */
+.vault-entry-pw {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vault-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-left: auto;
+  /* Never squeezed: five icon buttons at --control-min are the minimum this
+     row can be, and shrinking them below the 24px target would break 2.5.8. */
+  flex-shrink: 0;
+}
+
+/* A quiet word rather than an icon alone: on a card carrying a password, a
+   username, a code and three named links, icons stop being self-evident. */
+.vault-row-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.vault-url-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto; }
+
+@media (max-width: 480px) {
+  .vault-url-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .vault-url-row input:first-child { grid-column: 1 / -1; }
+}
+
+.vault-entry-pw code {
+  /* A floor, not `min-width: 0`. A flex item that may shrink to nothing will,
+     to keep its neighbours on one line -- and with word-break: break-all that
+     turned the password into a single column of bullets, one character per
+     line. The floor makes the ROW run out of room instead, and flex-wrap then
+     drops the buttons below, which is the right thing to move. */
+  flex: 1 1 14rem;
+  min-width: 11rem;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.95rem;
+  letter-spacing: 0.045em;
+  color: var(--text);
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.4rem 0.6rem;
+  word-break: break-all;
+  /* One click takes the whole password, as in the generator's output field. */
+  user-select: all;
+}
+
+/* Below this width the label, the value and five buttons stop fitting on one
+   line, so the value takes the whole width and the buttons go under it. A
+   CONTAINER query, not a media query: the card is narrower than the window by
+   the page gutters and narrower again inside a group, so a viewport
+   breakpoint never fired while the password was already being crushed. */
+@container (max-width: 30rem) {
+  .vault-entry-pw code { flex: 1 1 100%; }
+  .vault-row-actions { margin-left: 0; }
+  /* Only the password row: the value takes the whole line below it. In the
+     meta row the label sits inline beside its value and must not stretch. */
+  .vault-entry-pw .vault-row-label { width: 100%; }
+}
+
+.vault-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-min);
+  height: var(--control-min);
+  flex-shrink: 0;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.vault-icon:hover {
+  background: var(--overlay-soft);
+  color: var(--text);
+}
+
+.vault-note {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* Username and web addresses, between the password row and the note. */
+.vault-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.9rem;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+/* By class, not by position. This was `> span:nth-child(2)`, which meant
+   adding a label span in front of the username silently moved the truncation
+   onto the label and let the username run into the links beside it. */
+.vault-user-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 22ch;
+}
+
+.vault-url {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.vault-url:hover { text-decoration: underline; }
+
+.vault-questions {
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-questions > summary {
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+
+.vault-questions dl {
+  margin: 0.4rem 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+}
+
+.vault-questions dt { color: var(--text); }
+
+.vault-questions dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.vault-questions code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Repeatable question/answer pairs in the editor. */
+.vault-qa {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.7rem 0.8rem;
+  min-width: 0;
+}
+
+.vault-qa legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  padding: 0 0.3rem;
+}
+
+.vault-qa-row {
+  display: grid;
+  /* question, answer, generate, remove */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto;
+  gap: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+/* .vault-field is a stretching flex column, so without this the add button
+   spanned the whole fieldset and read as heavily as Save. */
+.vault-qa > .btn { align-self: flex-start; }
+
+/* Three columns inside a phone's card left 107px per field -- about a dozen
+   characters of an answer. The question takes its own line instead. */
+@media (max-width: 480px) {
+  .vault-qa-row { grid-template-columns: minmax(0, 1fr) auto auto; }
+  .vault-qa-row input:first-child { grid-column: 1 / -1; }
+}
+
+/* Sort and group controls. Hidden until there is more than one entry, since
+   ordering one thing is not a feature. */
+.vault-filters {
+  font-size: 0.82rem;
+  color: var(--band-text-dim);
+}
+
+.vault-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.vault-filter-label {
+  font-weight: 600;
+  color: var(--band-text);
+}
+
+.vault-select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  /* A themed surface, not the UA default: the native option list inherits
+     these colours, and a transparent control renders an unreadable popup in
+     dark mode -- the same trap .slot-cat-select hit on the generator. */
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.82rem;
+  max-width: 12rem;
+}
+
+.vault-count {
+  margin-left: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The group picker. A menu of checkboxes rather than a <select>, because
+   several groups at once is the point. */
+/* The tag menu reuses every .vault-groupmenu-* child class, so it has to be a
+   positioning context too -- without this its panel resolves against whatever
+   is positioned further up and lands at the top of the page. */
+.vault-groupmenu,
+.vault-tagmenu { position: relative; }
+
+.vault-groupmenu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.82rem;
+}
+
+.vault-groupmenu-panel {
+  position: absolute;
+  top: calc(100% + 0.3rem);
+  left: 0;
+  z-index: 20;
+  min-width: 11rem;
+  max-height: 15rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem;
+  /* Opaque: it floats over the entry cards, and a translucent panel would put
+     two lists of text on top of each other. */
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+}
+
+.vault-groupmenu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.35rem;
+  border-radius: 4px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.vault-groupmenu-item:hover { background: var(--overlay-soft); }
+
+.vault-groupmenu-clear {
+  align-self: flex-start;
+  margin-top: 0.2rem;
+  padding: 0.2rem 0.35rem;
+  /* Inside an opaque panel, not on the band, so this one is a link colour. */
+  color: var(--primary);
+  font-size: 0.78rem;
+}
+
+/* Collapsing. The chevron is the affordance; the heading text stays a normal
+   heading rather than becoming a giant button. */
+.vault-group-toggle,
+.vault-entry-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  cursor: pointer;
+}
+
+.vault-entry-toggle {
+  width: var(--control-min);
+  height: var(--control-min);
+  margin-left: -0.35rem;
+  justify-content: center;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.vault-entry-toggle:hover { color: var(--text); }
+
+/* A collapsed entry is one line, so it wants less vertical room than an
+   expanded one whose padding has to breathe around several rows. */
+.vault-entry.is-collapsed { padding: 0.4rem 0.9rem; }
+.vault-entry.is-collapsed .vault-entry-head { margin-bottom: 0; }
+
+.vault-collapsed-user {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 20ch;
+}
+
+.vault-foldall { font-size: 0.8rem; }
+
+/* Custom fields, shown on the entry. Same two-column shape as the security
+   answers, since they are the same kind of thing: a name and a value. */
+.vault-fields {
+  margin: 0.45rem 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-fields dt { color: var(--text); }
+
+.vault-fields dd {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.vault-fields code,
+.vault-field-value {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-fields code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+}
+
+/* The editor row for a custom field: name, value, secret toggle, generate,
+   remove. */
+.vault-extra-row {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto auto auto;
+}
+
+.vault-secret-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+@media (max-width: 480px) {
+  .vault-extra-row { grid-template-columns: minmax(0, 1fr) auto auto auto; }
+  .vault-extra-row input:first-child { grid-column: 1 / -1; }
+  .vault-secret-label { display: none; }
+}
+
+/* Password reuse: the one health finding a local vault can make with
+   certainty. Warning-coloured, not error-coloured -- a reused password is a
+   risk to fix, not a broken entry. */
+.vault-reuse {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  color: var(--warning);
+  cursor: help;
+}
+
+.vault-nag-warn { color: var(--band-text); }
+
+/* The persistent-storage explainer. Collapsed by default: it is a standing
+   condition of the browser rather than news, and a paragraph of it unfurled
+   above the list every visit would be the thing people learn to skip. */
+.vault-persist > summary {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.vault-persist[open] > summary { margin-bottom: 0.6rem; }
+
+.vault-persist p {
+  margin: 0 0 0.6rem;
+  color: var(--text);
+  line-height: 1.5;
+}
+
+.vault-persist .vault-hint {
+  margin: 0.6rem 0 0;
+  color: var(--text-secondary);
+}
+
+.vault-reuse-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  margin: 0.5rem 0 0;
+  padding: 0.5rem 0.65rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  color: var(--warning);
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.vault-reuse-warn strong { color: var(--text); }
+
+.vault-group-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.5rem 0 -0.2rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--band-text-dim);
+}
+
+.vault-group-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.78rem;
+  cursor: pointer;
+}
+
+.vault-group-chip:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.vault-group-count {
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  font-variant-numeric: tabular-nums;
+}
+
+/* The password field in the editor, with its reveal toggle. */
+.vault-pw-field {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.vault-pw-field input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Generate, inline. Deliberately quieter than Save: it is a step on the way
+   to saving, not the commitment. */
+.vault-gen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.4rem;
+}
+
+.vault-gen-link {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--primary);
+}
+
+.vault-hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 0.6rem;
+}
+
+.vault-editor { margin-top: 0.25rem; }
+
+/* Backup and transfer. Same box as the danger blocks -- it belongs to the
+   same "things below the list" band -- but not framed as a risk. */
+.vault-transfer {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+}
+
+.vault-transfer > summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vault-transfer[open] > summary { margin-bottom: 0.75rem; }
+
+.vault-transfer p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin: 0 0 0.7rem;
+}
+
+/* The plain-text half, walled off so it does not read as a peer of the
+   encrypted backup above it. */
+.vault-plain {
+  margin-top: 1rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+}
+
+.vault-plain strong { color: var(--text); }
+
+/* A file input styled as a button: the input stays in the page, merely
+   invisible, so it keeps the native picker and its own place in the tab order.
+   Hiding it with display:none would have taken the keyboard path with it. */
+.vault-file-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.vault-file {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* The focus ring belongs to the label, since the input it would land on has
+   no size to draw one around. */
+.vault-file-btn:focus-within {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.vault-danger {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+}
+
+.vault-danger > summary {
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vault-danger[open] > summary { margin-bottom: 0.75rem; }
+
+.vault-danger p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.vault-foot {
+  font-size: 0.78rem;
+  color: var(--band-text-dim);
+  text-align: center;
+  margin: 0.5rem 0 0;
+}
+
+/* One-time codes. Shown plainly rather than masked: the value is worthless in
+   seconds, and a reveal click on the one time-critical thing here would be
+   pure friction. */
+.vault-totp {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.vault-totp-code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--text);
+  user-select: all;
+}
+
+.vault-totp-left {
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-size: 0.72rem;
+}
+
+/* The last few seconds, when starting to type it is a mistake. Colour is not
+   the only signal -- the number itself is counting down in plain sight. */
+.vault-totp-left.is-expiring { color: var(--warning); }
+
+/* Above the input and never collapsed: this is the reason to hesitate, and it
+   should be read before the secret is pasted rather than after. */
+.vault-totp-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0 0 0.7rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--warning);
+  border-radius: 6px;
+  color: var(--warning);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.vault-totp-warn strong { color: var(--text); }
+
+.vault-totp-set {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  font-size: 0.82rem;
+  color: var(--text);
+}
+
+.vault-totp-row { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* The editor dialog.
+   It was a card appended after the list, which works at two entries and is
+   absurd at two hundred -- editing the first meant scrolling past every other
+   to reach the form and again to get back. */
+.vault-modal-backdrop {
+  position: fixed;
+  /* Inset below the fixed header and above the floating nav, both of which
+     sit at z-index 100. A full-viewport backdrop would run underneath them
+     and hide the top and bottom of the form -- worst on a phone, where there
+     is least room to lose. The two offsets are measured when the dialog opens
+     because the header condenses on scroll, so its height is not a constant. */
+  top: var(--vault-modal-top, 0px);
+  bottom: var(--vault-modal-bottom, 0px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  /* Dark in both themes: this is a scrim over content, not a surface. */
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.vault-modal-backdrop .vault-editor {
+  width: min(42rem, 100%);
+  /* NOT margin: auto. On a flex item taller than its container that centres
+     the overflow, putting the top of the form above the scrollable area where
+     it cannot be reached -- the well-known flexbox centring trap. flex-start
+     on the backdrop plus auto side margins keeps it centred horizontally and
+     always scrollable to the top. */
+  margin: 0 auto;
+  max-height: none;
+}
+
+/* The list behind must not scroll while the dialog is up -- losing your place
+   in a long vault is exactly what the dialog exists to prevent. */
+body.vault-modal-open { overflow: hidden; }
+
+.vault-editor-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.vault-editor-head h2 { margin: 0; }
+
+/* Save and Cancel stay reachable without hunting for the end of a long form. */
+.vault-editor-actions {
+  position: sticky;
+  bottom: -1.5rem;
+  margin: 0 -1.5rem -1.5rem;
+  padding: 0.85rem 1.5rem;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  border-radius: 0 0 var(--radius) var(--radius);
+}
+
+@media (max-width: 640px) {
+  .vault-modal-backdrop { padding: 0; }
+  .vault-modal-backdrop .vault-editor {
+    width: 100%;
+    /* Not min-height: 100% -- a short form would stretch to fill the gap and
+       a long one still scrolls the backdrop, which is what we want. */
+    border-radius: 0;
+    padding: 1rem;
+  }
+  .vault-editor-actions {
+    margin: 0 -1rem -1rem;
+    padding: 0.75rem 1rem;
+    bottom: -1rem;
+  }
+}
+
+/* Tags. Pill-shaped and clickable everywhere they appear: on an entry a tag
+   filters to it, in the editor it toggles. */
+.vault-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.45rem;
+}
+
+.vault-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  /* min-height, not padding: WCAG 2.2's target minimum is 24 CSS px and text
+     of this size lands at 23.7, which passes a glance and fails the rule. */
+  min-height: 1.5rem;
+  padding: 0.1rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--background);
+  color: var(--text-secondary);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.vault-tag:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+/* Selected, in the editor. --focus-tint is the same wash the active history
+   row and the symbol chips use, so "on" looks the same everywhere. */
+.vault-tag.is-on {
+  border-color: var(--primary);
+  background: var(--focus-tint);
+  color: var(--text);
+}
+
+.vault-tags-edit { margin: 0 0 0.5rem; }
+
+/* The full list to pick from sits below the input, quieter than the chosen
+   ones above it. */
+.vault-tags-suggest {
+  margin-top: 0.5rem;
+  max-height: 7rem;
+  overflow-y: auto;
+}
+
+.vault-tag-row { grid-template-columns: minmax(0, 1fr) auto; }
+
+/* AND versus OR is the one thing about tag filtering that is not obvious, so
+   the menu says it rather than leaving it to be inferred from results. */
+.vault-menu-note {
+  margin: 0 0 0.35rem;
+  padding: 0 0.35rem;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+}
+
+.vault-menu-note strong { color: var(--text); }

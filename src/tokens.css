@@ -104,7 +104,13 @@
   --band-text-dim: rgba(255, 255, 255, 0.90);
   --band-control-border: rgba(255, 255, 255, 0.70);
   --band-control-bg: rgba(255, 255, 255, 0.10);
-  --band-control-hover-bg: rgba(0, 0, 0, 0.18);
+  /* The darkening wash, for anything that needs a fill ON the band. Named
+     separately from the hover use because the changelog's release badges want
+     the same thing at rest: a white wash there measured 3.98:1 under white
+     text, for the reason spelled out above -- lightening the backdrop is the
+     wrong direction when the text is white. */
+  --band-fill: rgba(0, 0, 0, 0.18);
+  --band-control-hover-bg: var(--band-fill);
 
   /* Elevation */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
@@ -499,12 +505,29 @@
 /* Slate is the neutral theme, so it keeps the default dark surfaces rather
    than tinting them. Deriving a tint from slate-950 put its surface at
    luminance 0.0082 -- nearly black, and 2.7x darker than every other palette. */
+/* Slate's dark surfaces.
+ *
+ * These were missing, and their absence was not a fallback -- it was a
+ * reversal. `[data-palette='slate']` is two attribute selectors and
+ * `[data-theme='dark']` is one, so the LIGHT palette block outranks the dark
+ * theme block for anything the dark palette block does not restate. Slate in
+ * dark mode therefore drew dark-theme text on the light slate surface:
+ * measured at 1.04:1 for the password and 1.16:1 for every label, which is
+ * invisible rather than merely poor.
+ *
+ * Every other palette happened to restate all four. This one is why the token
+ * test now checks that they all must.
+ */
 [data-theme='dark'][data-palette='slate'] {
   --primary: #94a3b8;
   --primary-dark: #cbd5e1;
   --on-primary: #020617;
   --border-focus: #94a3b8;
   --focus-tint: rgba(148, 163, 184, 0.18);
+  --page-gradient: linear-gradient(135deg, #334155 0%, #0f172a 100%);
+  --header-bg: #475466;
+  --background: #0f172a;
+  --surface: #1e293b;
 }
 
 /* Mono -- a true grayscale theme.

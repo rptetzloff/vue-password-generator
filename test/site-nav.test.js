@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { isCurrentPage, PAGES } from '../src/site-nav.js'
 
-const PAGE_FILES = ['index.html', 'docs.html', 'changelog.html', 'about.html', 'legal.html', 'roadmap.html']
+import { PAGE_FILES } from './helpers/pages.js'
 
 test('every page in the nav is reachable and unique', () => {
   const hrefs = PAGES.map(p => p.href)

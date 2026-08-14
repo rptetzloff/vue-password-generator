@@ -122,7 +122,12 @@ body {
     display: block;
     text-align: center;
     font-size: 0.78rem;
-    color: var(--text-secondary);
+    /* --band-text-dim, NOT --text-secondary. This strip is drawn straight onto
+       the page gradient rather than on a card, which is the case the --band-*
+       tokens exist for. --text-secondary is calibrated against --surface, and
+       on the light band it measured 1.28:1 -- invisible, and it shipped that
+       way. The token was already here; this rule simply never reached for it. */
+    color: var(--band-text-dim);
     margin: 0 0 1.1rem;
   }
 }
@@ -733,6 +738,25 @@ details[open].card-collapse > summary .collapse-chevron {
      drift apart -- see .copy-btn for why that matters once the field wraps. */
   --pw-pad: 0.75rem;
   --pw-line: 1.65rem;
+
+  /* The overlay strip, right to left: copy, keep, then the length pill.
+     Each position is derived rather than written out, because they were hand
+     placed and the Keep button (9a) was given right: 2.6rem while the length
+     pill already sat at 2.75rem -- two 2rem-wide controls starting on the same
+     pixel. It read as one corrupt glyph, which is how it was reported. */
+  --pw-edge: 0.5rem;   /* gap from the right edge of the field */
+  --pw-btn: 2rem;      /* width of one overlaid icon button */
+  --pw-slot: 0.1rem;   /* gap between neighbouring overlaid controls */
+}
+
+.password-display .copy-btn { right: var(--pw-edge); }
+.password-display .keep-btn { right: calc(var(--pw-edge) + var(--pw-btn) + var(--pw-slot)); }
+.password-display .length-pill {
+  right: calc(var(--pw-edge) + 2 * (var(--pw-btn) + var(--pw-slot)));
+}
+/* Text must stop before the pill, whose own width varies with the digit count. */
+.password-display .password-input.has-length-pill {
+  padding-right: calc(var(--pw-edge) + 2 * (var(--pw-btn) + var(--pw-slot)) + 2.6rem);
 }
 
 /* This was an <input type="text">, which cannot wrap: a password longer than
@@ -752,7 +776,8 @@ details[open].card-collapse > summary .collapse-chevron {
      almost never wants less, and partial drags kept grabbing fragments. */
   user-select: all;
   padding: var(--pw-pad);
-  padding-right: 3rem;
+  /* Room for the two overlaid controls, copy and keep. */
+  padding-right: 5.1rem;
   background: var(--background);
   border: 2px solid var(--border-strong);
   line-height: var(--pw-line);
@@ -813,6 +838,193 @@ details[open].card-collapse > summary .collapse-chevron {
 .copy-btn:hover {
   background: var(--border);
   color: var(--text);
+}
+
+/* Keep-to-vault (9a). Sits beside copy, inside the output field, because the
+   moment to file a password is the moment it exists -- a vault you have to
+   navigate to and paste into is a notebook nobody opens twice. */
+.keep-wrap {
+  position: static;
+}
+
+/* In the history strip the button anchors its own panel, since there is no
+   output field to hang it from. */
+.keep-wrap.keep-compact {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.history-row .history-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-keep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-min);
+  min-height: var(--control-min);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.history-keep:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.history-keep.kept {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.keep-btn {
+  right: 2.6rem;
+}
+
+.keep-btn.kept {
+  color: var(--success);
+}
+
+.keep-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Anchored to the output field rather than the button, so it cannot hang off
+   the edge of a narrow screen -- and opening UPWARD, because the field lives
+   in a bar docked at the bottom of the viewport: downward put the panel
+   off-screen, measured, exactly as it did for the settings gear. */
+.keep-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 20;
+  width: min(20rem, calc(100vw - 2.5rem));
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.keep-panel p {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.keep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.keep-field > span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.keep-field input {
+  padding: 0.45rem 0.6rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.keep-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.keep-actions .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* Adopting a generated password as the vault passphrase makes it the single
+   unrecoverable key to everything in the vault, so the instruction to record
+   it is the loudest thing in the panel and the button waits behind a tick. */
+.keep-writedown {
+  border: 2px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.7rem;
+}
+
+.keep-writedown-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.4rem !important;
+  color: var(--warning);
+  font-weight: 700;
+  font-size: 0.85rem !important;
+}
+
+.keep-writedown p {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.keep-writedown-pw {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.045em;
+  color: var(--text);
+  word-break: break-all;
+  user-select: all;
+}
+
+.keep-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.keep-ack input {
+  margin-top: 0.15rem;
+  width: var(--control-min);
+  height: var(--control-min);
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+
+.keep-error {
+  margin-bottom: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 0.8rem;
 }
 
 .copy-btn.copied {
@@ -1192,6 +1404,36 @@ details[open].card-collapse > summary .collapse-chevron {
 .slot-remove:hover { background: var(--overlay-strong); }
 
 .slot-remove { margin-left: auto; color: var(--error); }
+
+/* Slot-pill controls sit on the pill's tint, not on --surface, and the rules
+   above were written for --surface. Two separate problems came out of that.
+
+   The colour: --error on the four tints measured 3.28-4.41:1 across both
+   themes -- all eight combinations failed. Each --badge-*-fg is already
+   verified against its own --badge-*-bg, so inheriting the pill's foreground
+   is correct by construction and stays correct if a tint is ever retuned. The
+   destructive meaning does not depend on red: the glyph is an unambiguous
+   remove affordance and the button carries an aria-label, and a red that
+   cannot be read communicates less than a legible colour that is not red.
+
+   The fill: --overlay-soft/--overlay-strong darken the tint in light and
+   lighten it in dark, so the glyph is not on the tint the badge pair was
+   verified against. At rest that cost light teal its margin (4.26:1); on
+   hover --overlay-strong took light teal to 3.53:1 and dark amber to 4.38:1.
+   So no fill inside a pill, and a currentColor ring for the hover affordance
+   -- a ring sits beside the glyph rather than underneath it, so it cannot
+   move the contrast at all. */
+.slot-pill .slot-arrow,
+.slot-pill .slot-remove {
+  color: inherit;
+  background: none;
+}
+
+.slot-pill .slot-arrow:not(:disabled):hover,
+.slot-pill .slot-remove:hover {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
 
 .slot-cat-select {
   font-size: 0.75rem;
@@ -1659,6 +1901,11 @@ details[open].card-collapse > summary .collapse-chevron {
   font-variant-numeric: tabular-nums;
 }
 
+/* The active row lays --focus-tint over the card, which lifts the backdrop out
+   from under --text-secondary: 4.00:1 in dark, just under the line. The token
+   was verified against --surface, and this row is no longer --surface. */
+.history-item-active .history-bits { color: var(--text); }
+
 /* The strength meter. Color is never the only signal -- the tier word sits
    beside the bar, the bits are stated, and width alone separates good from
    strong. Every color is a status token, so the meter follows the palette and
@@ -1700,3 +1947,21 @@ details[open].card-collapse > summary .collapse-chevron {
 .entropy-tier.meter-fair   { color: var(--warning); }
 .entropy-tier.meter-good   { color: var(--success); }
 .entropy-tier.meter-strong { color: var(--success); }
+
+/* "Your vault entry is waiting", shown on the generator when you arrived from
+   a half-finished entry. On the page band, so it takes band colours -- see the
+   --band-* note in tokens.css. */
+.vault-return {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.25rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--band-text-dim);
+}
+
+.vault-return a {
+  color: var(--band-text);
+  font-weight: 600;
+}

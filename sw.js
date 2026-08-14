@@ -11,7 +11,7 @@
 // the cache. The browser re-fetches sw.js on navigation, sees a new byte
 // sequence, installs the new worker, and activate() below drops the old
 // cache. Assets are cache-first *within* a version, never across versions.
-const VERSION = '2.24.0'
+const VERSION = '3.0.0'
 const CACHE = 'pwgen-' + VERSION
 
 const PRECACHE = [
@@ -22,6 +22,7 @@ const PRECACHE = [
   '/about.html',
   '/legal.html',
   '/roadmap.html',
+  '/vault.html',
   '/ROADMAP.md',
   '/manifest.webmanifest',
   '/favicon.ico',
@@ -30,7 +31,17 @@ const PRECACHE = [
   '/src/markdown.js',
   '/src/lib.js',
   '/src/entropy.js',
+  '/src/generators.js',
+  '/src/clipboard-clear.js',
   '/src/history-crypto.js',
+  '/src/vault-crypto.js',
+  '/src/passphrase-strength.js',
+  '/src/common-passwords.js',
+  '/src/totp.js',
+  '/src/vault-store.js',
+  '/src/vault-transfer.js',
+  '/src/vault-session.js',
+  '/src/vault-app.js',
   '/src/theme.js',
   '/src/palettes.js',
   '/src/site-header.js',
@@ -38,6 +49,7 @@ const PRECACHE = [
   '/src/site-footer.js',
   '/src/settings-panel.js',
   '/src/style.css',
+  '/src/vault.css',
   '/src/tokens.css',
   '/src/prose-page.css',
   '/src/settings-panel.css',

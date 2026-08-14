@@ -11,6 +11,7 @@
 // nav entry and its header identity stay in one place.
 export const PAGES = [
   { href: '/', label: 'Generator', icon: 'mdi-key-variant', subtitle: 'Generate secure passwords with multiple customization options' },
+  { href: '/vault.html', label: 'Vault', icon: 'mdi-shield-key-outline', subtitle: 'Keep what you generate, encrypted on this device' },
   { href: '/docs.html', label: 'Docs', icon: 'mdi-book-open-outline', subtitle: 'Documentation & Reference' },
   { href: '/changelog.html', label: 'Changelog', icon: 'mdi-history', subtitle: 'Release history' },
   { href: '/about.html', label: 'About', icon: 'mdi-information-outline', subtitle: 'What this is and who made it' },

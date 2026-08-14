@@ -527,6 +527,16 @@
          than a scroll handler, so it works without JS, is focusable, and
          announces itself. #top carries tabindex=-1 so focus follows the
          scroll instead of staying stranded at the bottom of the page. */
+      /* The one place in the docs that carries a real caution rather than an
+         explanation. Bordered so it is not skimmed as another paragraph. */
+      .vault-doc-warn {
+        padding: 0.6rem 0.75rem;
+        border: 1px solid var(--warning);
+        border-radius: 6px;
+        color: var(--warning);
+      }
+      .vault-doc-warn strong { color: var(--text); }
+
       .to-top {
         display: inline-flex;
         align-items: center;
@@ -591,6 +601,18 @@
           <a class="nav-sub nav-item" href="#shared-tab">Active Tab</a>
           <div class="nav-divider"></div>
           <a class="nav-item" href="#entropy"><span class="mdi mdi-gauge"></span> Strength &amp; Entropy</a>
+          <div class="nav-divider"></div>
+          <a class="nav-item" href="#vault"><span class="mdi mdi-shield-key-outline"></span> The Vault</a>
+          <a class="nav-sub nav-item" href="#vault-crypto">Encryption</a>
+          <a class="nav-sub nav-item" href="#vault-lock">Locking</a>
+          <a class="nav-sub nav-item" href="#vault-entries">Entry fields</a>
+          <a class="nav-sub nav-item" href="#vault-generate">Generating</a>
+          <a class="nav-sub nav-item" href="#vault-organise">Groups &amp; sorting</a>
+          <a class="nav-sub nav-item" href="#vault-tags">Tags</a>
+          <a class="nav-sub nav-item" href="#vault-otp">One-time codes</a>
+          <a class="nav-sub nav-item" href="#vault-reuse">Reused passwords</a>
+          <a class="nav-sub nav-item" href="#vault-backup">Backup &amp; import</a>
+          <a class="nav-sub nav-item" href="#vault-passphrase">Passphrase</a>
           <div class="nav-divider"></div>
           <a class="nav-item" href="#appearance"><span class="mdi mdi-cog-outline"></span> Appearance &amp; Settings</a>
           <div class="nav-divider"></div>
@@ -665,6 +687,11 @@
               <span class="mdi mdi-gauge"></span>
               <div class="intro-tile-name">Strength &amp; Entropy</div>
               <div class="intro-tile-desc">How the bits are counted</div>
+            </a>
+            <a class="intro-tile" href="#vault">
+              <span class="mdi mdi-shield-key-outline"></span>
+              <div class="intro-tile-name">The Vault</div>
+              <div class="intro-tile-desc">Keeping what you generate</div>
             </a>
             <a class="intro-tile" href="#appearance">
               <span class="mdi mdi-cog-outline"></span>
@@ -1789,6 +1816,572 @@
                   the model statistically — character-type frequencies in Simple match the displayed model (and
                   rule out the naive combined-pool formula), every Numbers output gets a finite, matching surprisal,
                   and Words draws match the word list's own letter distribution.
+                </div>
+              </div>
+            </div>
+
+            <a class="to-top" href="#top">
+              <span class="mdi mdi-arrow-up" aria-hidden="true"></span> Back to top
+            </a>
+          </div>
+        </section>
+
+        <!-- ── THE VAULT ───────────────────────────────────────────── -->
+        <section id="vault" class="section-card">
+          <div class="section-head">
+            <div class="section-icon teal"><span class="mdi mdi-shield-key-outline"></span></div>
+            <div class="section-title">
+              <h2>The Vault</h2>
+              <p>Somewhere for a password to go after you generate it — encrypted with a passphrase you choose, stored on this device, and belonging to no account.</p>
+            </div>
+          </div>
+          <div class="section-body">
+
+            <div class="option-group">
+              <div class="option-group-label">What it is</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    A generator is a moment-tool: you arrive, take a password, and leave. With the clipboard
+                    timer on, the only copy is gone thirty seconds later. The vault is where that password can
+                    go instead — a list of entries, encrypted as a single sealed blob in this browser's storage,
+                    unlocked with a passphrase only you know.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>There is no account and no server.</strong> Nothing is uploaded, nothing is
+                    synchronised, and nobody — including us — can open your vault or reset your passphrase. That
+                    is the whole point, and it is also the whole cost: see
+                    <a href="#vault-backup" style="color:var(--primary);">Backups</a>, because it means the
+                    only copy is the one you keep.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Vault vs. History</div>
+                <div class="option-desc">
+                  Two different things, deliberately kept apart.
+                  <a href="#shared-history" style="color:var(--primary);">History</a> is a short list of what you
+                  recently generated, encrypted with a key the browser holds for you, and it forgets on its own.
+                  The vault is a deliberate act: you name an entry and put it there, and it stays until you
+                  remove it. Turning History off does not touch the vault, and nothing in history is ever
+                  promoted to the vault without you pressing <strong>Keep</strong>.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-crypto" class="option-group">
+              <div class="option-group-label">How it is encrypted</div>
+              <div class="option-row">
+                <div class="option-name">Key derivation</div>
+                <div class="option-desc">
+                  Your passphrase is stretched into an encryption key with <strong>PBKDF2-SHA256 at 1,000,000
+                  iterations</strong> — comfortably above the 600,000 OWASP recommends as a floor for that
+                  combination. The stretching is what makes a guessing attack expensive: an attacker with your
+                  encrypted vault file must pay those 1,000,000 rounds for <em>every</em> passphrase they try,
+                  which turns billions of guesses per second into a few thousand.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Why not ten million?</div>
+                <div class="option-desc">
+                  <p>
+                    Because it would barely help. An attacker's cost rises <em>linearly</em> with the iteration
+                    count, so the strength it buys rises only logarithmically. Going from 600,000 to 10,000,000
+                    is 16.7&times; the work, which is
+                    <strong>log<sub>2</sub>(16.7) ≈ 4.1 bits</strong> — less than one extra random lowercase
+                    letter. It would cost about a second of waiting every time you unlock on a fast computer,
+                    and several on a phone.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>Adding one more word to your passphrase beats it outright, and costs nothing.</strong>
+                    A word from the generator's list is worth
+                    <a href="#entropy" style="color:var(--primary);">14.1 bits</a> — more than three times what
+                    a sixteen-fold slowdown buys. That is the same arithmetic the rest of this page runs on:
+                    bits come from the number of random choices made, and stretching only raises the price of
+                    each guess.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Why not Argon2id?</div>
+                <div class="option-desc">
+                  It is the better algorithm, and we would rather use it. PBKDF2 is merely <em>slow</em>;
+                  Argon2id is <em>memory-hard</em>, which is what actually blunts an attacker running thousands
+                  of guesses in parallel on a graphics card — and no iteration count fixes that, because
+                  iterations raise the cost of each guess without limiting how many run at once. The obstacle
+                  is that browsers do not implement it: the built-in crypto offers PBKDF2 and nothing
+                  comparable, so Argon2id would have to arrive as a compiled WebAssembly bundle sitting in the
+                  most security-critical path in the app. For a site whose whole claim is that you can read the
+                  source, that is a trade to make deliberately rather than quietly. Each vault records the
+                  parameters it was sealed with, so switching later will not strand anything.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">The sealed vault</div>
+                <div class="option-desc">
+                  Entries are encrypted together as one blob with <strong>AES-256-GCM</strong>, under a random
+                  salt and a fresh random IV each time it is written. GCM is authenticated, so a vault that has
+                  been tampered with fails to open rather than opening with quietly altered contents. Nothing
+                  outside the blob reveals how many entries there are or what they are called.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Where the key lives</div>
+                <div class="option-desc">
+                  In memory, only while the vault is unlocked, as a non-extractable
+                  <code>CryptoKey</code> — a handle the page can encrypt with but cannot read the bytes of.
+                  Locking discards it. The passphrase itself is never stored anywhere, in any form.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Raising the bar later</div>
+                <div class="option-desc">
+                  The iteration count is recorded inside each vault, so raising the default in a future version
+                  never strands an older vault. If yours was made at a lower count, the vault page says so and
+                  changing the passphrase re-encrypts it at the current one.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-lock" class="option-group">
+              <div class="option-group-label">Locking</div>
+              <div class="option-row">
+                <div class="option-name">Auto-lock</div>
+                <div class="option-desc">
+                  The vault locks itself after a period with no activity — 15 minutes by default, adjustable in
+                  the settings gear (<strong>Vault lock</strong>: Every page, 1, 5, 15 or 60 minutes). Locked means
+                  the key has been discarded, not merely hidden; reopening needs the passphrase again. The
+                  deadline is checked against the clock rather than trusted to a timer, so a laptop that slept
+                  through it locks on waking rather than staying open.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Moving between pages</div>
+                <div class="option-desc">
+                  <p>
+                    Within that same window, walking from the generator to the vault does not ask for the
+                    passphrase again. Making that work costs something specific and worth knowing: the vault key
+                    is written to browser storage, wrapped under a second key the browser holds, so the next
+                    page can pick it up. For the length of the window, that is a slightly weaker position than
+                    "the key exists only in memory".
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Setting <strong>Vault lock</strong> to <em>Every page</em> switches this off entirely:
+                    nothing is stored, the key is never even made exportable, and every page asks. The same
+                    setting governs both the idle timeout and this window, so there is one number to reason
+                    about rather than two.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-entries" class="option-group">
+              <div class="option-group-label">What an entry holds</div>
+              <div class="option-row">
+                <div class="option-name">Label &amp; password</div>
+                <div class="option-desc">
+                  The password, a label for it, and — when the entry came from <strong>Keep</strong> — the exact
+                  entropy the generator computed at the time, shown as a coloured pill so a weak old entry is
+                  visible at a glance. Passwords are masked until you reveal them, and copying one starts the
+                  same <a href="#appearance" style="color:var(--primary);">clipboard-clear timer</a> the
+                  generator uses.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Username &amp; web addresses</div>
+                <div class="option-desc">
+                  A username, and any number of web addresses — one per line when editing, shown by host so a
+                  long link does not swamp the row. Both are searchable along with the label and note.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Anything else</div>
+                <div class="option-desc">
+                  Named fields you add yourself, for whatever the account actually needs — a second
+                  login, a PIN, a customer number, a support passphrase. Mark one <strong>secret</strong>
+                  and it behaves like the password: masked until revealed, copied through the
+                  clipboard timer, and it can be generated. Leave it plain and it is just text,
+                  because hiding a customer number behind a row of dots helps nobody.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Security questions</div>
+                <div class="option-desc">
+                  <p>
+                    Question and answer pairs, masked and copyable exactly like the password, because that is
+                    what they are: a second password with a friendlier name. They are covered by the clipboard
+                    timer too.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>The answers need not be true.</strong> Your real mother's maiden name and the street
+                    you grew up on are matters of public record; an invented answer stored here is strictly
+                    stronger, and the only reason people use the true one is that they have nowhere to keep the
+                    invented one. Now you do.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-generate" class="option-group">
+              <div class="option-group-label">Generating into an entry</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    Every password field in the vault has a <strong>Generate</strong> button beside it and a
+                    picker for which of the seven generators to use. It runs that generator with
+                    <em>its own current settings</em> — whatever the Words tab is set to is what the Words
+                    option produces here. There is deliberately no second copy of the options: one place to
+                    configure a generator, and it is that generator's tab.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    The entropy comes back with the password and is stored on the entry, so something generated
+                    here carries the same exact figure as something filed with
+                    <strong>Keep</strong> — not an estimate. The two paths run the same code.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Security answers too</div>
+                <div class="option-desc">
+                  The same button sits on every security answer. An answer that came out of the generator is
+                  the strongest possible version of a field whose usual content is a fact about you that other
+                  people know.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-organise" class="option-group">
+              <div class="option-group-label">Groups &amp; sorting</div>
+              <div class="option-row">
+                <div class="option-name">Groups</div>
+                <div class="option-desc">
+                  A free-text field, not a managed folder tree. Type anything — <em>Finance</em>,
+                  <em>Work</em>, <em>Household</em> — and it joins the suggestions offered on every other
+                  entry. A vault of a few dozen entries does not need a taxonomy, and the cost of imposing one
+                  is that every new entry becomes a filing decision. Leave it blank and the entry sits under
+                  <strong>Ungrouped</strong>, which is a perfectly good place to stay.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">How the list is arranged</div>
+                <div class="option-desc">
+                  Groups are the outer order, sorting the inner one — entries are sorted within their group,
+                  and the group headings appear only once something is actually filed. Ungrouped sorts last:
+                  it is where things sit when nobody has decided, and leading with the undecided pile would be
+                  an odd headline.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Choosing which groups to show</div>
+                <div class="option-desc">
+                  The group button opens a list of checkboxes, so you can show several at once rather than one
+                  at a time. Ticking nothing means <em>all</em> groups, not none — an empty list is never what
+                  anyone wanted. With exactly one group ticked, a new entry starts in it; with several, it
+                  starts blank, because guessing between them would be worse than not guessing.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Group them <span class="plain">(the toggle)</span></div>
+                <div class="option-desc">
+                  <p>
+                    Turn grouping off and the list becomes one flat run in pure sort order. This matters more
+                    than it sounds. With grouping on, <strong>Weakest first</strong> means
+                    weakest-<em>within-each-group</em>, so the worst password in the whole vault can sit
+                    halfway down the page under a heading.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    A four-entry vault at 128, 56, 26 and 56 bits sorts grouped as
+                    <strong>56, 128, 26, 56</strong> and flat as <strong>26, 56, 56, 128</strong>. The first is
+                    right for finding an entry you already know about; the second is right for auditing. No
+                    single default serves both, which is why it is a switch rather than a decision.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Sort orders</div>
+                <div class="option-desc">
+                  <p>
+                    <strong>Newest first</strong> (the default, because the thing you just saved is the thing
+                    you most likely want back), <strong>Oldest first</strong>, <strong>Name</strong>, and
+                    <strong>Weakest first</strong>.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Weakest-first is the audit view: it orders by the stored entropy so the entries worth
+                    changing come to the top. Entries with <em>no</em> recorded figure sort to the
+                    <em>bottom</em>, not the top — an unknown number is not evidence of a weak password, and
+                    putting the unknowns first would bury the ones you can actually act on. Anything without a
+                    date sorts as oldest, because an entry predating the date field genuinely is.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-tags" class="option-group">
+              <div class="option-group-label">Tags</div>
+              <div class="option-row">
+                <div class="option-name">Why both</div>
+                <div class="option-desc">
+                  A group is one dimension: an entry is filed in exactly one, the way a piece of paper is in
+                  exactly one drawer. Tags are as many dimensions as you like. The company credit card really
+                  is both <em>Work</em> and <em>Finance</em>, and forcing that into a single folder means
+                  losing one of the two answers. Groups still decide where the entry <em>lives</em>; tags
+                  describe what it <em>is</em>.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">How they are stored</div>
+                <div class="option-desc">
+                  Lower-cased, with runs of whitespace collapsed, deduplicated and kept in alphabetical order.
+                  So <em>Work</em> and <em>work</em> are the same tag rather than two that look identical in a
+                  list. Thirty per entry, forty characters each — limits high enough that nobody will meet
+                  them by accident and low enough that a bad import cannot fill the vault with them.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Filtering is <em>and</em>, not <em>or</em></div>
+                <div class="option-desc">
+                  This is the one thing worth stating outright, because the tag menu looks exactly like the
+                  group menu and does the opposite. Ticking two groups shows entries in <em>either</em>: an
+                  entry has one group, so <em>and</em> would always return nothing. Ticking two tags shows
+                  entries with <em>both</em>: an entry has many, and <em>work</em> plus <em>needs-2fa</em>
+                  means the things that are both. The menu says so above the list rather than leaving it to
+                  be inferred from the results.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Adding them</div>
+                <div class="option-desc">
+                  Type and press Enter, or pick from the tags already in use — every existing tag is offered
+                  as a chip below the field, and clicking one toggles it. A tag on a saved entry is a button:
+                  clicking it filters the vault to that tag, which is the entire reason for having tagged
+                  anything. With tags ticked in the filter, a new entry starts with them already applied.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">In exports</div>
+                <div class="option-desc">
+                  Tags survive the encrypted backup and the plain JSON export intact, and the CSV has a
+                  <code>tags</code> column of its own — space-separated, which is the shape 1Password and
+                  Bitwarden both read. Imports recognise <code>tags</code>, <code>tag</code> and
+                  <code>labels</code>, so a 1Password CSV arrives tagged rather than flattened.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-otp" class="option-group">
+              <div class="option-group-label">One-time codes</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p class="vault-doc-warn">
+                    <strong>Lose this vault and you are locked out.</strong> The seed lives only
+                    here. If this browser's data goes and there is no backup, the password is gone
+                    <em>and</em> so is the second factor &mdash; which is exactly the situation the
+                    second factor exists to survive. Keep an
+                    <a href="#vault-backup" style="color:inherit;text-decoration:underline;">encrypted
+                    backup</a>, and keep the provider's own recovery codes somewhere else entirely.
+                  </p>
+                  <p class="vault-doc-warn" style="margin-top:0.5rem;">
+                    <strong>And it weakens two-factor authentication.</strong> A one-time code is a
+                    <em>second factor</em> only while it is kept apart from the first. Storing the
+                    seed in the same vault as the password collapses two factors into one: whoever
+                    opens the vault has both, and an attacker who gets in needs nothing else.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    It is still a real gain against the common case — a password leaked from the
+                    site's own database, where the attacker never touches your device. And it is the
+                    same trade every password manager offering this feature makes. The difference is
+                    that here it is said before you paste the secret rather than discovered
+                    afterwards. If you would rather not make the trade, keep the codes in a separate
+                    app; that is the stronger arrangement and always was.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Adding one</div>
+                <div class="option-desc">
+                  Paste the <code>otpauth://</code> link or the base32 secret. Most sites put both
+                  behind a "can't scan the QR code?" link. The full link is better: it carries the
+                  digit count, interval and hash algorithm, so nothing has to be assumed. A secret
+                  with an invalid character is rejected rather than accepted and quietly mangled —
+                  six plausible digits that never work is a miserable thing to debug.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Using it</div>
+                <div class="option-desc">
+                  The current code shows on the entry with the seconds remaining, and is not masked
+                  — it expires in under a minute, and a reveal click on the one time-critical thing
+                  in the vault would be pure friction. The countdown turns amber for the last five
+                  seconds, when starting to type it is a mistake.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Correctness</div>
+                <div class="option-desc">
+                  RFC 6238, computed with the browser's own HMAC — no dependency, nothing to trust
+                  beyond the platform. The implementation is checked against the test vectors
+                  published in the RFC itself, for SHA-1, SHA-256 and SHA-512, rather than against
+                  another implementation of the same guesswork.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-reuse" class="option-group">
+              <div class="option-group-label">Reused passwords</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    If two entries share a password, both say so — a badge on the entry naming how many others
+                    use it, a summary line above the list, and a filter to show only those. Editing an entry
+                    warns as you type, before the password is filed under a second name, and names the entries
+                    it collides with.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Reuse is the failure that turns one breach into several: the site that leaks your password
+                    is rarely the site you cared about, and it hands over the one you did. It is also the only
+                    piece of password health a vault like this can assess with <em>certainty</em> — no
+                    guessing, no corpus, no network. It is comparing what is already in front of it.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Exact matches only</div>
+                <div class="option-desc">
+                  <code>Password1</code> and <code>Password2</code> are two passwords, and so are
+                  <code>Password1</code> and <code>password1</code>. There is deliberately no fuzzy matching:
+                  a near-miss flagged as reuse is a guess presented as a finding, and this page does not do
+                  that anywhere else either.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Still nothing leaves the device</div>
+                <div class="option-desc">
+                  The check runs entirely in memory on the vault you have open. This is the local kind of
+                  password health; the remote kind — asking a service whether your passwords appear in a
+                  breach corpus — is on the permanent no list, along with telemetry. See
+                  <a href="/legal.html" style="color:var(--primary);">Legal</a>.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-backup" class="option-group">
+              <div class="option-group-label">Backups, export and import</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  A vault living in one browser profile is one <em>clear site data</em> away from gone, and no
+                  account exists to recover it from. The vault page keeps a quiet line of text — not a modal —
+                  noting how many entries have been added since your last backup.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Encrypted backup</div>
+                <div class="option-desc">
+                  A <code>.json</code> file containing the sealed vault verbatim: still encrypted, safe to keep
+                  in cloud storage or on a drive, and restorable only with the passphrase it was made with — not
+                  necessarily the one your current vault uses. This is the backup, and it is the default.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Plain-text export</div>
+                <div class="option-desc">
+                  <p>
+                    JSON or CSV with your passwords in the clear, behind a confirmation that says so, with
+                    <code>PLAINTEXT</code> in the filename. This exists for one purpose — moving to a different
+                    password manager — and the file should be deleted the moment that is done.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    We would rather not offer it. It ships anyway, because refusing every exit but "another copy
+                    of WordLock" is lock-in, and an escape hatch you cannot use is not an escape hatch. CSV is
+                    additionally lossy: a row is flat, so only the first web address survives and security
+                    questions are folded into the note.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Import</div>
+                <div class="option-desc">
+                  Reads an encrypted WordLock backup, a WordLock plain export, or a CSV from another manager —
+                  the common header names from Bitwarden, LastPass and 1Password are recognised. Importing
+                  <strong>always merges and never deletes</strong>: entries already present are skipped, new ones
+                  are added, and restoring an old backup cannot silently wipe work done since.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-passphrase" class="option-group">
+              <div class="option-group-label">Choosing the passphrase</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    This one passphrase is the only key to everything in the vault, so the page shows a live
+                    strength reading as you type it — and labels it <em>at most N bits</em> rather than a score.
+                    That wording is deliberate. Everywhere else on this site the entropy figure is
+                    <a href="#entropy" style="color:var(--primary);">exact</a>, because the generator made every
+                    random choice itself and can count them. It cannot know what went into a passphrase you
+                    typed. A real attacker's dictionary knows words, names, dates and keyboard patterns that a
+                    few hundred lines of arithmetic do not, so the honest reading is a ceiling: it can tell you a
+                    passphrase is bad, never that one is good.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    The reliable way out of that uncertainty is to
+                    <a href="/" style="color:var(--primary);">generate a passphrase</a> and use it, at which
+                    point the number stops being a guess.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Refused outright</div>
+                <div class="option-desc">
+                  A passphrase on the built-in list of the few hundred passwords attackers try first is
+                  <strong>rejected, not merely scored badly</strong>. Against a vault, such a passphrase is not a
+                  weak key; it is no key at all. The list is compiled offline and shipped with the site — nothing
+                  you type is ever sent anywhere to be checked.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">No recovery</div>
+                <div class="option-desc">
+                  Forgetting it means the vault cannot be opened, by you or by anyone. There is no reset link,
+                  because there is nobody to send one. Deleting the vault also requires the passphrase, so in
+                  practice a forgotten vault sits there until you clear this site's data in your browser.
+                </div>
+              </div>
+            </div>
+
+            <div class="option-group">
+              <div class="option-group-label">Storage</div>
+              <div class="option-row">
+                <div class="option-name">Persistent storage</div>
+                <div class="option-desc">
+                  On creating a vault the page asks the browser not to evict it under storage pressure, via
+                  <code>navigator.storage.persist()</code>, and <em>shows you the answer</em>. It asks again on
+                  every visit, because the answer can change. If the browser has not promised, the vault page
+                  says so rather than letting you find out by losing it.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">If it says it has not promised</div>
+                <div class="option-desc">
+                  <p>
+                    <strong>Install the app.</strong> That is the reliable fix. Chrome and Edge never ask you
+                    about this — they decide, granting it once a site is installed, bookmarked, or used often
+                    enough, and reporting it as <em>refused</em> until then. So "denied" usually means "not
+                    yet", not "no". Use <em>Install</em> or <em>Add to Home Screen</em> in the browser menu
+                    and it is generally granted the next time you open the vault. Firefox does ask, and there
+                    the <strong>Ask again</strong> button is the request.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    It is also worth knowing how unlikely eviction is. Browsers evict under genuine storage
+                    pressure, least-recently-used first, and a vault is tiny — the page shows you its size
+                    against the space available, which is typically a few dozen kilobytes against several
+                    gigabytes.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>None of it replaces a backup.</strong> A promise not to evict is not a promise
+                    against a lost laptop, a reinstalled browser, or your own hand on <em>Clear browsing
+                    data</em> — which ignores the promise entirely. Keep an
+                    <a href="#vault-backup" style="color:var(--primary);">encrypted backup</a>.
+                  </p>
                 </div>
               </div>
             </div>

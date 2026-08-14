@@ -19,6 +19,38 @@ services:
         name: Permissions-Policy
         value: geolocation=(), microphone=(), camera=()
 
+      # Content-Security-Policy. For a vault that never talks to a server, the
+      # directive that earns its keep is connect-src: even if something did run
+      # on this origin, it has nowhere to send what it found. form-action and
+      # img-src close the other two classic exfiltration channels (POST to a
+      # remote endpoint, and a remote image URL with the secret in the path).
+      #
+      # The hashes cover the inline <script> blocks -- the offline registration
+      # and the theme priming that has to run before first paint. They are NOT
+      # hand-maintained: test/csp.test.js recomputes them from the HTML and
+      # fails if this header drifts, because a stale hash here is a blank site.
+      # Hashing is done over LF-normalized content, which is what git stores
+      # and therefore what Render serves; computing them from a CRLF working
+      # tree yields hashes that pass locally and break in production.
+      #
+      # 'unsafe-eval' is required and its absence was measured, not assumed:
+      # the app declares components with Vue's `template:` option, so Vue
+      # compiles templates at runtime through `new Function`, and without it
+      # every page renders blank. It is a real weakening, but a bounded one --
+      # reaching eval requires already executing script, and the hash list is
+      # what stops injected script from executing in the first place. Removing
+      # it means precompiling templates, which means a build step; see
+      # ROADMAP 9f.
+      #
+      # style-src keeps 'unsafe-inline' because CSP hashes do not cover style
+      # attributes and docs.html carries 123 of them. With img-src and
+      # connect-src locked to 'self', the usual CSS-exfiltration trick has no
+      # egress, so this is the cheap half of the trade rather than the costly
+      # one.
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'sha256-7OVHVGTHxy2iG7Icrc/ueRU51TMV7fyiUFzEPUspfdU=' 'sha256-D7pO4R68hLL5gxelrQQLuK0W0lqTaWq0ZcS2IGYeMl4=' 'sha256-EnokG1Ge72acG6K9uT6UQQ6QDbg/Z39S608pC4o2ARc=' 'sha256-JkG5uX2Mhs+bZE5mNn5rqZTEqNmLrcaGKckQZBtSlro=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
+
       # Caching for the vendored third-party assets. Since v2.7.1 these are
       # served from this domain rather than a CDN, so their bytes are ours --
       # and the icon webfont alone is 403 KB, by far the heaviest thing a

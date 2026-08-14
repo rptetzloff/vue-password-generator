@@ -1,0 +1,106 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+import fs from 'node:fs'
+import { renderMarkdown } from '../src/markdown.js'
+
+// The renderer had no tests, which is how it shipped mangling most of the one
+// file it exists to display. Every long bullet in ROADMAP.md is written with a
+// hanging indent, and the renderer treated each wrapped line as the start of a
+// paragraph: 69 of the file's 98 lists were a single item with its own tail
+// ejected underneath it. Nothing looked wrong in the Markdown.
+
+const ROADMAP = fs.readFileSync(new URL('../ROADMAP.md', import.meta.url), 'utf8')
+
+const count = (html, re) => (html.match(re) || []).length
+const textOf = (html) => html.replace(/<[^>]+>/g, '')
+
+test('a wrapped bullet stays one bullet', () => {
+  const html = renderMarkdown([
+    '- [ ] **Porting cost is low.** No build step, no CDN, and `lib.js` is',
+    '      already DOM-free; a shell wraps the existing files unchanged.',
+    '- [ ] A second item.',
+  ].join('\n'))
+
+  assert.equal(count(html, /<ul[ >]/g), 1, 'one list, not one per line')
+  assert.equal(count(html, /<li[ >]/g), 2)
+  assert.equal(count(html, /<p>/g), 0, 'a continuation line is not a paragraph')
+  assert.match(textOf(html), /is already DOM-free/, 'the wrap joins with a space')
+})
+
+test('emphasis spanning a wrap is emphasis, not literal asterisks', () => {
+  // inline() runs once per BLOCK for this reason: run per line, it cannot see
+  // a span that opens on one line and closes on the next, and emits both
+  // markers as text. Seven spans in the roadmap did exactly that.
+  const html = renderMarkdown([
+    '- [ ] **Manifest V3 forces the build step, and it is the same blocker',
+    '      already on the board.** Extension pages get `script-src \'self\'`.',
+  ].join('\n'))
+
+  assert.equal(count(html, /<strong>/g), 1)
+  assert.equal(textOf(html).includes('**'), false, 'no literal ** may survive')
+  assert.match(html, /<code>script-src &#39;self&#39;<\/code>/)
+})
+
+test('a paragraph that wraps mid-emphasis closes it too', () => {
+  const html = renderMarkdown(['**The shape it would take, noted now so it is', 'not designed under pressure.**'].join('\n'))
+  assert.equal(count(html, /<strong>/g), 1)
+  assert.equal(textOf(html).includes('**'), false)
+})
+
+test('a blank line still ends the item', () => {
+  // The continuation rule must not swallow the prose that follows a list.
+  const html = renderMarkdown(['- one', '', 'A following paragraph.'].join('\n'))
+  assert.equal(count(html, /<li[ >]/g), 1)
+  assert.equal(count(html, /<p>/g), 1)
+  assert.match(html, /<\/ul><p>A following paragraph\.<\/p>/)
+})
+
+test('a heading ends the item without a blank line', () => {
+  const html = renderMarkdown(['- one', '## Next'].join('\n'))
+  assert.match(html, /<\/ul><h3 id="next">Next<\/h3>/)
+})
+
+test('strikethrough renders, because the roadmap uses it to mark a reversal', () => {
+  const html = renderMarkdown('- [x] ~~**Plain-text export is not offered.**~~ Reversed.')
+  assert.match(html, /<del><strong>Plain-text export is not offered\.<\/strong><\/del>/)
+  assert.equal(textOf(html).includes('~~'), false)
+})
+
+test('nested bullets survive the buffering', () => {
+  const html = renderMarkdown(['- outer', '  - inner one', '  - inner two', '- outer two'].join('\n'))
+  assert.equal(count(html, /<ul[ >]/g), 2)
+  assert.equal(count(html, /<\/ul>/g), 2)
+  // Four bullets plus the bare <li> that carries the nested <ul>, which is how
+  // a sublist is legally attached to the item above it.
+  assert.equal(count(html, /<li[ >]/g), 5)
+  assert.equal(count(html, /<li><ul>/g), 1)
+})
+
+test('the real roadmap renders with balanced tags and no leaked markup', () => {
+  // The guard that matters: this runs against the file as it actually is, so
+  // a construct the renderer does not know fails here rather than on the page.
+  const html = renderMarkdown(ROADMAP)
+
+  for (const tag of ['li', 'ul', 'p', 'span', 'td', 'tr']) {
+    assert.equal(count(html, new RegExp(`<${tag}[ >]`, 'g')), count(html, new RegExp(`</${tag}>`, 'g')),
+      `${tag} tags are unbalanced`)
+  }
+
+  const text = textOf(html)
+  for (const [name, re] of [['bold', /\*\*/g], ['strikethrough', /~~/g], ['heading', /^#{1,6} /gm]]) {
+    assert.equal((text.match(re) || []).length, 0, `${name} markup leaked into the rendered text`)
+  }
+})
+
+test('every roadmap list holds the items its Markdown declares', () => {
+  // The count is the whole bug: a list of five bullets must render as one list
+  // of five, not five lists of one.
+  const html = renderMarkdown(ROADMAP)
+  const lists = html.match(/<ul[^>]*>(?:(?!<\/ul>)[\s\S])*?<\/ul>/g) || []
+  const singles = lists.filter((u) => count(u, /<li[ >]/g) === 1).length
+
+  const declared = (ROADMAP.match(/^\s*- /gm) || []).length
+  assert.equal(count(html, /<li[ >]/g) - count(html, /<li><ul>/g), declared,
+    'every bullet in the file should be exactly one rendered item')
+  assert.ok(singles < 10, `${singles} one-item lists; there were 69 when each wrap started a new list`)
+})

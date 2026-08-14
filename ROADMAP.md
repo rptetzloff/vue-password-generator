@@ -1,6 +1,6 @@
 # Roadmap
 
-Planned work for the password generator, grouped so related items ship together.
+Planned work for WordLock, grouped so related items ship together.
 
 This is planning, not a set of promises. Items get added, reordered and
 abandoned, and a ticked box means the work shipped — not that it is perfect.
@@ -11,6 +11,723 @@ beside each epic.
 Numbers in here were measured against the codebase rather than estimated, but
 they were true when written. Where a measurement has since changed, the entry
 usually says so rather than being quietly updated — the trail is the point.
+
+**How this file is arranged.** Live work is at the top; everything shipped is
+archived at the bottom, in the order it was built. The archive is not filler —
+it is where the reasoning lives, including the measurements that justified each
+decision and the things that were tried and rejected. Nothing was deleted to
+make room.
+
+---
+
+## Where this stands
+
+**Done:** Epics 1, 2, 3, 5, 6 and 7 in full, plus 8a, 8b, and now 9a and 9b.
+Epic 4's remaining boxes are standing notes rather than work. All of it is in
+the archive at the bottom of this file, with the measurements intact.
+
+**Shipped — Epic 9's web half.** The answer to "a standalone generator is a
+little lackluster": everything shipped before it perfected the moment of
+generation and nothing survived it — the clipboard timer erased the only copy
+thirty seconds later. 9a gave that moment somewhere to go (a passphrase-encrypted
+local vault, auto-locking, with Keep beside every password) and 9b gave it a way
+out (encrypted backup, plus plain JSON and CSV behind a warning, importing from
+other managers, and a quiet reminder when the vault has drifted from its last
+backup). Both sit on what already existed: the entropy figure, the clipboard
+timer, the encryption patterns and the offline shell. 9b's one reversal — that
+plain-text export would not be offered — is recorded in place rather than
+quietly edited away.
+
+**Next — 9c, the packaged app.** It only became worth its cost once 9a and 9b
+were good, and it brings the one thing the web genuinely cannot do: autofill
+into other apps. 9b's export file is the bridge between a packaged app's storage
+sandbox and the site's, which is why it was built first.
+
+**Epic 10 is the gap against a mainstream manager**, and it is listed after 9
+rather than inside it because most of it is not about the vault so much as
+about what people expect around one: attachments, importing from the tool they
+are leaving, more than one vault, folder templates, sharing, group accounts.
+It was raised on the assumption that most of it waits for sync. Four of the
+six do not — they need no server at all and could ship on what exists today,
+which changes the order considerably. The two that do need one are also the
+two where the zero-knowledge claim is easiest to lose by accident, and 10f
+spells out exactly how.
+
+**Reading, not work — Epic 8d/8e.** 8d is a documented dead end (the web
+platform cannot hand a password to a manager for another origin, by design) and
+8e is superseded by Epic 9.
+
+**8c is no longer reading.** It was the desktop half of the autofill idea 9c
+covers on mobile, written when there was no vault to fill from. Rewritten in
+place: the extension has to hold a vault rather than talk to the site's, which
+turns it into a decision about which copy is canonical, and Manifest V3's ban
+on `'unsafe-eval'` makes it the deadline for the build step 9f already wants.
+Nothing is scheduled — the decision comes first.
+
+**A note on scope, since Epic 9 changes what this product is.** The decision to
+let WordLock grow into a password manager was made deliberately and is recorded
+in Epic 9's opening, along with the two invariants that constrain it — the
+generator stays first-class and stays the front door, and standalone-offline
+stays a complete mode rather than a trial. Those are not aspirations to revisit
+when a feature gets awkward; they are the conditions under which the rest of
+the epic was agreed to. A future reader deciding "just this once" against
+either of them should treat that as a scope change requiring the same
+deliberation, not an implementation detail.
+
+---
+
+## Epic 9 — The vault, and the app around it
+
+**The theme:** a generator is a moment-tool. You arrive, take a password, and
+leave; the moment ends at the clipboard, and thirty seconds later the clipboard
+timer erases the only copy. Everything shipped so far makes that moment
+excellent. Nothing makes it *stick*. This epic is about what happens after the
+password is generated.
+
+### The reason to build it, written down first
+
+8e's last bullet demands a reason before any code. The reason is not "the world
+needs a fourth password manager" — Bitwarden, KeePass and 1Password are audited
+and synced and better at that than this will be for a long time. It is that
+none of them are *present at the moment a password is created*, and none of
+them will hold a password without an account somewhere in the story.
+
+**Becoming a password manager is an accepted destination** (decided 2026-08-12),
+not something to steer away from. What is not negotiable is how it gets there.
+Two invariants bind every item in this epic, and any feature that cannot be
+built without breaking one does not get built:
+
+1. **The generator stays first-class and stays the front door.** It is the
+   product's name and its reason for existing. It never becomes a modal inside
+   a vault, never loses a mode or an option to make room for storage UI, and
+   never requires an unlocked vault — or an account — to generate a password.
+   Someone who wants nothing but a strong password must be able to arrive,
+   generate, copy and leave, exactly as today, forever.
+2. **Standalone and offline is always a complete mode, never a trial.** Local
+   vault, no account, no network, full function, permanently. If sync is ever
+   built it is strictly additive and strictly optional: not a nag, not a
+   degraded local experience, not a feature gate. "Works with nothing" is the
+   claim the whole site is built on, and a manager that quietly turns it into
+   "works, but…" would be a worse product than no manager at all.
+
+Everything else — vault, autofill, biometrics, eventually sync — is fair game
+if it can be built inside those two lines.
+
+### 9a. The local vault — storage without identity
+
+8e's key insight, adopted: storage and sync are different problems, and only
+sync needs an account. A local vault breaks no published claim.
+
+- [x] **Encrypted with a passphrase you choose**, not with the ambient key
+      pattern history uses. History's AES-GCM key sits unextractable in
+      IndexedDB, which stops disk-scraping but not someone driving your browser
+      profile; a vault must beat that bar. PBKDF2 (or Argon2 if it can be done
+      without a dependency) over a user passphrase, iteration count stated in
+      the UI, key held in memory only while unlocked.
+- [x] **Auto-lock on idle**, with the timeout in the same settings gear as the
+      clipboard timer. Locked means the key is gone from memory, not hidden.
+- [x] **Save from the generator** — a "keep" action beside copy, storing the
+      password, a label, the entropy figure it was generated at, and the date.
+      The entropy is already computed and already stored in history; this is
+      the same data with a name attached.
+- [x] **Never a silent upgrade of history.** History stays what it is: a
+      short, ambient-encrypted list of recent output. The vault is a separate,
+      deliberate act. Conflating them would quietly change what "History: Off"
+      means, and that setting is documented.
+- [x] **Ask for persistent storage** via `navigator.storage.persist()` and
+      *show the answer*. An installed app usually gets it; a tab may not. A
+      vault the browser may evict without warning must say so.
+- [x] **Generate from inside the vault**, rather than sending people to the
+      generator and back. Any of the seven modes, run with that mode's own
+      saved settings, into the password field or any security answer. This is
+      what forced the generators out of `main.js` and into `generators.js`:
+      the alternative was a second copy of the generation logic, and two
+      copies is how the entropy figure starts differing depending on which
+      page you generated from. Because it is the same code, an entry made this
+      way carries the same exact bits as one filed with Keep.
+- [x] **Groups and sorting**, once a vault holds enough to need them. Group is
+      free text with suggestions, not a folder tree -- a taxonomy makes every
+      new entry a filing decision, which is a real cost for a few dozen
+      entries. Sorting is newest, oldest, by name, and weakest-first for
+      auditing; entries with no recorded entropy sort to the bottom of that
+      last one rather than the top, since an unknown figure is not evidence of
+      a weak password and the unknowns would otherwise bury the actionable
+      ones. The group picker takes checkboxes rather than a single choice, and
+      a "Group them" toggle turns bucketing off entirely -- grouping and
+      auditing pull in opposite directions, because weakest-first inside
+      groups can leave the vault's worst password halfway down the page.
+- [x] **Reused-password detection**, which 9e already permits: local health
+      analysis is fine, the remote kind is not. Exact matches only, flagged on
+      the entry, summarised above the list, filterable, and warned about while
+      editing rather than after saving. It is the one health finding a local
+      vault can make with certainty -- everything else about a stored password
+      is either a guess or needs a network.
+- [x] **Custom fields and one-time codes.** Fields are name/value pairs with a
+      secret flag rather than a fixed second username and password, because
+      the fixed answer runs out at the first account that wants a PIN. TOTP is
+      RFC 6238 over Web Crypto's HMAC -- no dependency -- verified against the
+      RFC's own published vectors for SHA-1, SHA-256 and SHA-512.
+
+      TOTP ships with a warning that is not decoration: a one-time code is a
+      second factor only while it is kept apart from the first, and storing
+      the seed beside the password means one compromise yields both. It is
+      still a real gain against the common case, a password leaked at the
+      site's end, and it is the trade every password manager offering this
+      makes quietly. The difference here is that it is stated above the input,
+      before the secret is pasted.
+
+### 9b. Export and import — the portability layer, and the honest sync
+
+- [x] **Encrypted export file.** The vault, sealed with the same passphrase
+      scheme, as a single file the user carries. This is the backup story and
+      the migration story at once.
+- [x] **This is also the sync story, and deliberately so.** The user moves the
+      file; no server holds ciphertext, no identity exists to hold. Slower than
+      real sync, and the honest trade for the claims on the Legal page.
+- [x] **Import merges rather than replaces**, keyed on the password itself, so
+      importing an old backup cannot silently delete newer entries.
+- [x] **Nag gently about exporting.** A vault living in one browser profile is
+      one "clear site data" away from gone. Unexported changes deserve a quiet
+      reminder, not a modal.
+- [x] ~~**Plain-text export is not offered.**~~ **Reversed, deliberately.**
+      The original reasoning still holds about the format: a CSV of passwords
+      is what every other manager regrets supporting. What it got wrong was the
+      alternative. Refusing any exit but "another copy of WordLock" is lock-in,
+      and an escape hatch you cannot use is not an escape hatch -- which is the
+      worse failure for a vault with no account behind it, since nobody can
+      recover your data for you if you get stuck in it. Plain JSON and CSV both
+      ship, behind a confirmation that says exactly what the file is, with
+      PLAINTEXT in the filename, and a warning inside the JSON itself. The
+      encrypted backup remains the default and the only one the export reminder
+      counts. See the header of `src/vault-transfer.js`.
+
+**Richer entries, added along the way.** An entry started as a label, a
+password and a note. Storing logins rather than just generated strings needs
+username, one or more web addresses, and security questions -- whose answers
+are secrets in their own right, get the same reveal/copy/clipboard-wipe
+treatment as the password, and come with the reminder that they need not be
+true. CSV cannot carry all of that, which is stated where the CSV button is
+rather than discovered afterwards.
+
+### 9c. The packaged app — where separation is real
+
+The PWA (8b) is not a second product: installed or in a tab, it is the same
+origin and the same storage. A **packaged** app is different — a Capacitor or
+Tauri shell has its own WebView storage sandbox, so the app's vault and the
+site's vault are genuinely separate installations. That makes 9b's export file
+the bridge between them, which is a reason to build 9b first and well.
+
+- [ ] **Porting cost is low.** No build step, no CDN, and `lib.js` is already
+      DOM-free; a shell wraps the existing files essentially unchanged. The
+      service worker becomes redundant inside the shell.
+- [ ] **The feature that justifies the wrapper: autofill.** iOS and Android
+      both let a native app register as a credential/autofill provider —
+      generate, keep, and fill into *another app's* login form. The web cannot
+      do this at all. This is the mobile analog of 8c, and it is the difference
+      between a packaged website and something worth installing.
+- [ ] **Platform key storage and biometrics.** The vault key can live in the
+      Keychain or Keystore, unlocked by Face ID or a fingerprint instead of
+      retyping the passphrase — a real improvement over what any web page can
+      offer, and the second reason to package.
+- [ ] **Count the cost honestly.** $99/year plus review for Apple, $25 plus
+      review for Google, code signing, and a release cadence, against a site
+      that currently ships by pushing to master. 8c's warning about two stores
+      applies here too.
+- [ ] **Order: 9a and 9b on the web first.** They work in the browser and the
+      PWA immediately, and they are the substance. Wrapping comes after, so
+      the packaged version launches with autofill and biometrics rather than
+      being the website in a trench coat.
+
+### 9d. Sync, if it ever happens — the conditions
+
+Not parked forever, but conditional. Every one of these is a gate, not a
+preference:
+
+- [ ] **Opt-in, and the local mode stays whole.** No account prompt on first
+      run, no feature that exists only for synced users, no reminder that
+      syncing is available. Invariant 2 is the test: if a local-only user's
+      experience is measurably worse after sync ships, sync shipped wrong.
+- [ ] **End-to-end encrypted in 8e's shape** — the server holds ciphertext it
+      cannot read, and the account is an opaque sync identifier, not a profile.
+      No email required, no recovery flow that implies the server can decrypt.
+- [ ] **Rewrite Legal and About in the same release**, not afterward. Both
+      currently say there are no accounts and nothing leaves your device.
+      Shipping optional sync makes the unqualified version of that false even
+      for people who never enable it, because the sentence describes the
+      software, not the session. The honest replacement distinguishes what the
+      software does by default from what it can be asked to do.
+- [ ] **9b's export/import ships first and stays.** It is the sync story until
+      there is a sync story, and the escape hatch afterward.
+
+**The shape it would take, noted now so it is not designed under pressure.**
+None of this is built and none of it should be built yet; it is written down
+because the standard zero-knowledge blueprint is well understood and the time
+to disagree with parts of it is before there is a server to change. If sync
+ever happens, this is the starting point:
+
+- [ ] **Derive once, split twice.** The passphrase stretches to a master key;
+      that key is *never* used directly and never leaves the device. Split or
+      re-derive it into (a) a symmetric vault key that encrypts entries, and
+      (b) a separate authentication hash that is the only derived value the
+      server ever sees. The server verifying a login must be unable to derive
+      the decryption key from what it was sent — that separation is the whole
+      trick, and getting it backwards is the classic way to build a "zero
+      knowledge" system that is not one.
+- [ ] **The server is a dumb blob store.** Opaque sync identifier, KDF
+      parameters, the authentication hash, and the ciphertext. No email
+      required, no profile, no password-reset flow — a reset flow that works
+      is proof the server can decrypt.
+- [ ] **Keep the random per-vault salt; do not switch to email-as-salt.** The
+      common design salts with the user's email so a new device can re-derive
+      without fetching anything first. That is a convenience workaround with a
+      real cost: emails are low-entropy, reused across services, and shared
+      between users of the same provider, which makes cross-account rainbow
+      tables worth building. A random salt fetched alongside the blob is
+      strictly stronger and costs one round trip.
+- [ ] **Authenticated encryption stays.** AES-GCM as today, or
+      XChaCha20-Poly1305. Never a mode without integrity: a server that can
+      flip ciphertext bits undetected is a server that can attack you.
+- [ ] **Session tokens in `HttpOnly` cookies**, never in `localStorage`, so
+      script cannot read them. Note this is only meaningful once there *is* a
+      session; today there are no cookies at all, which is stronger.
+- [ ] **Move the crypto into a Web Worker.** Today the vault key is a
+      non-extractable `CryptoKey`, which already means script cannot read its
+      bytes. With a server in the picture the passphrase-handling path becomes
+      worth isolating too — see the memory-sanitisation limits documented in
+      Legal, which a worker narrows but does not remove.
+- [ ] **The dependency threat gets worse, not better.** A build step and an
+      npm tree are the usual companions of a backend, and one compromised
+      transitive package in the crypto path ends the product. The current
+      answer — zero dependencies, everything vendored and readable — is a
+      security property, not just an aesthetic, and giving it up needs a
+      better reason than convenience.
+
+### 9e. What stays out regardless
+
+- [ ] **No breach-corpus checks, no password health scoring against remote
+      services, no telemetry, no analytics.** All four are normal in a password
+      manager and all four need the network for something the user did not ask
+      for. Health scoring that runs locally — reused passwords, weak entries,
+      age — is fine and needs no server; it is the *remote* version that is out.
+
+### 9f. Hardening the primitives
+
+Neither of these is a defect. Both are places where the honest answer today is
+"this is the best available without a trade the project has not agreed to",
+and both should be revisited deliberately rather than drifted into.
+
+- [ ] **Argon2id instead of PBKDF2.** PBKDF2 is merely slow; Argon2id is
+      memory-hard, which is the property that actually blunts a GPU or ASIC
+      attack. No number of PBKDF2 iterations substitutes, because iterations
+      change the attacker's constant and not their parallelism.
+
+      Why not yet: Web Crypto does not implement it — `deriveBits` offers
+      PBKDF2, HKDF and ECDH only — so it arrives as a WebAssembly blob in the
+      single most security-critical path in the product, for a project whose
+      pitch is that you can read the source. Doable, but the work *is* the
+      provenance: a pinned reproducible build, a recorded hash, and a note in
+      Legal about what is being trusted. A hand-written JS implementation is
+      not the answer; it would be slow enough to need parameters that give the
+      memory-hardness back.
+
+      The migration is already built: the KDF parameters travel inside each
+      envelope, so adding `name: 'Argon2id'` with `m`/`t`/`p` leaves every old
+      vault opening on PBKDF2, and `needsRekey()` upgrades them on the next
+      passphrase change.
+
+- [x] **Iterations raised to 1,000,000** (from OWASP's 2023 floor of 600,000),
+      and deliberately not to 10,000,000. Measured on a 2026 desktop, PBKDF2
+      costs ~0.1ms per thousand iterations: 600k is 54ms, 1M is 93ms, 10M is
+      1032ms. Attacker cost is linear, so 600k → 10M is 16.7×, or **4.1 bits**
+      — less than one extra random lowercase letter — bought with a full
+      second of unlock latency on a fast machine and several on a phone. One
+      more word in the passphrase beats the entire trade for free. The bump to
+      1M is about staying clear of the floor as hardware improves, not about
+      the bits, and the code comment says so.
+
+- [ ] **Recovery codes, if the case for them survives this.** Asked for, with
+      the suspicion that the security model forbids it. It does not -- but the
+      version most people picture is the unsafe one, so the constraints matter
+      more than the feature.
+
+      How it would work: generate a high-entropy recovery key, wrap the vault
+      key under it, and store that second wrapped copy in the envelope
+      alongside the passphrase-derived one. Either key opens the vault.
+
+      The constraint that makes it safe: **the recovery key must be generated,
+      never chosen.** An attacker takes whichever path is cheaper, so the
+      vault's strength becomes the *weaker* of the two. A user-chosen recovery
+      phrase would therefore lower the security of every vault that has one,
+      silently, no matter how good the passphrase is. At 128 bits of generated
+      randomness the recovery path is not attackable at all and the passphrase
+      remains the binding constraint -- so it costs nothing. Between those two
+      is a trap: anything memorable is anything guessable.
+
+      **What it is actually for**, corrected: a first draft of this entry said
+      the encrypted backup already provides recovery and a recovery key merely
+      duplicates it. That is wrong, and worth recording as wrong. A backup
+      protects against *losing the data*. A recovery key protects against
+      *forgetting the passphrase* -- and those are different failures, because
+      a backup you cannot decrypt is as lost as no backup at all. Nothing in
+      the product currently addresses the second one. Forget the passphrase
+      today and every copy you own, including every backup, is ciphertext
+      forever.
+
+      Nor does a recovery key help with the first failure. If the vault is
+      gone and was never exported, no key recovers it; that is what backups
+      and, one day, sync are for. The two mechanisms are complements, not
+      alternatives, and the earlier framing collapsed them.
+
+      **Format.** Words, not a base32 blob, because this gets written on
+      paper and typed back by hand under stress. Sixteen words from the
+      17,576-word list is 225.6 bits, which is preposterous overkill and
+      free; ten words is 141 bits and still far beyond reach. Somewhere in
+      10-20 is right, trading transcription effort against a margin that is
+      already enormous at the bottom of the range. Lower case, space
+      separated, generated -- the same list the Words generator draws from.
+
+      Not started. If it happens: generated only, shown exactly once, behind
+      the same write-it-down gate the adopt flow uses, stated plainly as a
+      second key to everything in the vault, and revocable by re-keying.
+
+- [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
+      for every inline script and `connect-src 'self'`, which is the directive
+      that matters here: whatever runs, it has nowhere to send anything. But
+      `'unsafe-eval'` had to stay, because components are declared with Vue's
+      `template:` option and Vue compiles those at runtime through
+      `new Function` — measured, not assumed: without it every page renders
+      blank.
+
+      Removing it means precompiling templates to render functions, which
+      means a build step. That is a bigger decision than the CSP, and it
+      trades a real property (the deployed site is the readable source) for a
+      bounded gain — reaching `eval` requires already executing script, which
+      the hash list is what prevents. Revisit if a build step arrives for
+      another reason; do not add one for this alone.
+
+---
+
+## Epic 10 — What a password manager is expected to have
+
+Six things a person moving from 1Password or Bitwarden would look for and not
+find. None is started. They are gathered here because they were raised
+together, with the assumption that most would have to wait for sync.
+
+**That assumption is worth correcting, because it changes the order.** Four of
+the six need no server at all:
+
+| | Needs a server? | Real obstacle |
+|---|---|---|
+| 10a Attachments | No | Storage shape, not storage space |
+| 10b Import from other managers | No | One format at a time; KDBX is its own project |
+| 10c More than one vault | No | Deciding what a vault *is* |
+| 10d Folder templates | No | Nothing. This one is small |
+| 10e Sharing | Yes, but only to hold ciphertext | Key never reaches it |
+| 10f Group accounts and SSO | Yes | SSO must not become key custody |
+
+So the sequencing is not "wait for 9d". Attachments, imports, vaults and
+templates could all ship on what exists today, and between them they close
+most of the gap against a mainstream manager. Sharing and group accounts are
+the two that genuinely need 9d first, and they are also the two where the
+zero-knowledge claim is easiest to lose by accident.
+
+### 10a. File attachments — small ones, and the format is the hard part
+
+Recovery codes as a PDF, a scan of a passport, a licence key file. The obvious
+scope is "small files only", and that instinct is right, but not for the
+reason it looks like.
+
+- [ ] **The obstacle is the storage shape, not the quota.** The vault is one
+      sealed blob: every save re-encrypts and rewrites the whole thing. That
+      is fine for a few kilobytes of text and untenable the moment a 2 MB scan
+      is in there, because editing an unrelated entry's label would rewrite
+      the scan too. Attachments force per-item sealing — each attachment its
+      own envelope under the vault key, referenced by id — which is a real
+      change to 9a's design and should be made deliberately rather than
+      discovered halfway through.
+- [ ] **A cap, stated in the UI.** Browsers grant a large quota but a vault
+      that outgrows it gets evicted rather than truncated, and the persistence
+      warning already explains how little we control that. Something like a
+      few MB per attachment and a visible total, refusing rather than silently
+      degrading.
+- [ ] **Export has to change with it, and 1PUX is the right shape to copy** —
+      a zip holding a JSON manifest plus the files. The current backup is a
+      single JSON envelope and cannot carry bytes without base64 inflating
+      them by a third inside an already-encrypted blob.
+- [ ] **A zip writer without a dependency is feasible**, which is the part
+      worth checking before committing: `CompressionStream('deflate-raw')` is
+      in every current browser, so a real deflated zip needs a local header,
+      a central directory and a CRC-32 — roughly a hundred lines and no
+      third-party code. Store-only (uncompressed) is simpler still and legal
+      zip; ciphertext does not compress anyway.
+- [ ] **Keep the encrypted backup encrypted.** The zip is a container, not a
+      security boundary: zip's own password support is not to be used for
+      anything. Each file goes in sealed under the vault key, exactly as the
+      entries are.
+
+### 10b. Import from other managers — one format at a time
+
+Already reads a generic CSV with aliased headers, which covers more than it
+sounds: Bitwarden, LastPass, Chrome, Edge, Firefox and Safari all export CSV,
+and the header mapping already recognises most of their column names. What is
+missing is the rest.
+
+- [ ] **Tier one, nearly free: browser CSVs.** Chrome, Edge, Firefox and
+      Safari differ only in column naming. Mostly a matter of adding aliases
+      and testing against a real export of each.
+- [ ] **Tier two, moderate: 1PUX and Keeper.** 1Password's 1PUX is a zip with
+      JSON inside — reading it needs the unzip half of whatever 10a writes,
+      which is an argument for doing 10a first. Keeper exports JSON directly.
+      Both carry fields WordLock now has homes for: custom fields, TOTP seeds,
+      named URLs.
+- [ ] **Tier three, a project of its own: KeePass KDBX.** Not a format to
+      read casually — KDBX4 is an encrypted binary container with its own KDF
+      (Argon2 or AES-KDF), its own cipher (ChaCha20 or AES), an inner stream
+      cipher for protected values, and a compressed XML payload. Doing it
+      properly means implementing another manager's crypto stack correctly,
+      and doing it improperly means telling someone their import worked when
+      it silently dropped their protected fields. Either build it as its own
+      piece of work with its own tests, or say plainly that KeePass users
+      should export CSV.
+- [ ] **Import must stay non-destructive**, which it already is: merge, never
+      replace, existing entries win. Every format added inherits that.
+- [ ] **Report what did not come across.** Each of these formats carries
+      things WordLock has no field for. Silently dropping them is the failure
+      mode that loses someone's data without telling them; a summary of what
+      was skipped is the minimum.
+
+### 10c. More than one vault — decide what a vault *is* first
+
+Raised as "group/folder membership of some variety... maybe vaults?", and the
+two halves of that are different features.
+
+- [ ] **A group is a label; a vault is an encryption boundary.** Groups exist
+      and are cheap to extend — nesting, or letting an entry belong to
+      several. A second *vault* means a second envelope with its own key,
+      which is the only version that actually separates anything: locking the
+      work vault while the personal one stays open, or a shared vault whose
+      key is wrapped to several people (which is what 10f needs).
+- [ ] **Multiple envelopes are not hard; the UI is the question.** The
+      storage layer already keys by id and could hold several. What needs
+      deciding is whether they unlock independently, whether one passphrase
+      opens all of them, and what the lock button means when two are open.
+- [ ] **If the answer is only "I want folders inside folders", say so and do
+      that instead** — it is a tenth of the work and probably what most of the
+      demand actually is.
+- [x] **Tags shipped, and they are not the same feature.** Raised as an
+      afterthought to this item and it is the more useful half: a folder is
+      one dimension, a tag is *n*. The company card is genuinely both Work and
+      Finance, and a filing system that makes you pick has thrown away one of
+      the two answers. Neither replaces the other — the group still says where
+      an entry *lives*, which is what makes the list scannable; tags say what
+      it *is*. Done in v3.0.0, including the export columns and the
+      and-not-or filter semantics.
+- [ ] **What remains here is the vault-as-boundary question**, unchanged.
+      Tags cover the "I want to slice my vault differently" demand; they do
+      not lock anything separately, and that is the only thing a second
+      envelope buys.
+
+### 10d. Folder templates — the small one
+
+Everything filed under *Banking* gets a PIN field and a security question;
+everything under *Government* gets an SSN field. Applied at creation, not
+enforced afterwards.
+
+- [ ] **Purely local, no dependency, no architecture change.** A template is
+      a list of field names and secret flags stored against a group name, and
+      `startAdd` already lands a new entry in the filtered group. This is the
+      cheapest item in the epic by a wide margin.
+- [ ] **A starting point, not a schema.** Templates must not stop someone
+      deleting a field they do not want, and changing a template must not
+      rewrite existing entries. The moment it validates rather than suggests,
+      it becomes a thing that argues with people about their own data.
+
+### 10e. One-time and individual shares — a server that holds only ciphertext
+
+Send someone a password without emailing it. Needs somewhere to put the
+ciphertext, so it depends on 9d — but only for storage, and the design keeps
+the server ignorant.
+
+- [ ] **The key travels in the URL fragment, which is never sent.** Encrypt
+      client-side with a fresh random key, upload only the ciphertext, and put
+      the key after the `#`. Browsers do not transmit the fragment to the
+      server, so the host holds a blob it cannot read even in principle. This
+      is the established design and it preserves the claim on the Legal page.
+- [ ] **Expiry and burn-after-reading enforced server-side**, because a
+      client cannot be trusted to delete anything. One fetch, or a deadline,
+      whichever comes first.
+- [ ] **Say what a link is.** Anyone holding the URL holds the secret —
+      including whatever logged it, sat in the chat history, or synced the
+      recipient's clipboard. A share link is a password in transit, and the
+      UI should say so rather than implying the encryption makes it safe to
+      paste anywhere.
+
+### 10f. Group accounts and SSO — where the model is easiest to lose
+
+Family and company vaults, with the members' identity provider. The security
+design matters more here than anywhere else in this file, because the natural
+implementation quietly destroys the property everything else protects.
+
+- [ ] **Wrap the key to each member; never hold it centrally.** Each member
+      gets a keypair. A shared vault's key is encrypted once per member's
+      public key. Adding someone is wrapping the key to them; removing them
+      is rotating it. At no point does the server hold anything it can open.
+- [ ] **SSO authenticates a person. It must never custody a key.** This is
+      the trap. "Log in with Okta and see the shared vault" is only possible
+      if something server-side can decrypt on the strength of an SSO
+      assertion — at which point the provider, and anyone who can forge or
+      replay an assertion, can read the vault. SSO can gate *access to the
+      ciphertext* and prove *who you are*; the decryption key still has to
+      come from something the user holds. Any design where an admin can
+      recover a member's data without that member's key is a design where the
+      operator can read everything, and it should be called that.
+- [ ] **Admin recovery is the honest version of the same question.** Every
+      company deployment eventually asks for it. It is buildable — wrap the
+      vault key to an escrow key the organisation holds — but it is precisely
+      the back door described above, and it must be visible to every member
+      rather than a checkbox in an admin console.
+- [ ] **This is the point where "no accounts, nothing leaves your device"
+      stops being true**, in a way that even 9d's optional sync does not
+      reach. Legal and About need rewriting in the same release, and the
+      local-only mode has to keep working exactly as it does now — Epic 9's
+      second invariant, which was agreed before any of this was on the list.
+
+## Epic 8 — Beyond the page
+
+> The footer was templated as part of 8a. It had been six hand-written copies
+> — five pages plus one inside the Vue template — which had already drifted to
+> five different link lists. Both navigations now come from `PAGES` in
+> `src/site-nav.js`, so adding a page updates the header and the footer at once.
+
+Everything so far assumes the product is one web page. These do not. They are
+listed roughly in order of how far each moves away from that, and the last one
+moves furthest.
+
+### 8a. Publish the roadmap on the site — done
+
+- [x] `roadmap.html` alongside About and Legal, using the shared header, footer and `prose-page.css`.
+- [x] **It renders this file rather than copying it.** `src/markdown.js` is a small Markdown subset renderer — headings, task lists, tables, code, links — written rather than installed, because a build step and a dependency are both things this project does not have. The page fetches `/ROADMAP.md` at load, so it cannot drift.
+- [x] Shipped unedited, including the measured failure ratios and the reasoning. The candour is not a liability; the whole pitch is that you can check the claims.
+- [ ] The renderer handles the subset this file uses. If the roadmap grows a construct it does not know, either add it or stop using it -- do not reach for a library.
+
+### 8b. App mode — implement
+
+Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
+
+- [x] **Web app manifest.** Shipped: name, both icons (SVG any-size plus the 200px mark), `display: standalone`, and the theme color follows the chosen palette — theme.js syncs the theme-color meta from the computed `--header-bg` on every theme or palette change.
+- [x] **Service worker.** Shipped: a plain precache list covering every page, script, stylesheet, wordlist and vendored asset. Fully offline on second load. A test walks the filesystem both ways — everything listed exists, everything servable is listed — and caught three files that would have 404d offline before the first commit.
+- [x] **This is the strongest fit for the product's pitch.** A generator that never talks to a server has no reason to require a network. Offline is not a feature bolted on, it is the claim made honest.
+- [x] Watch the update path: the cache is named after the version, the version is pinned to package.json by a test (so bumping it is part of the release, not a thing to remember), the browser refetches sw.js on navigation, and activate() drops old caches. Cache-first within a version, never across versions.
+
+### 8c. Browser extension — explore
+
+**Rewritten after Epic 9.** This item was written when WordLock was only a
+generator, and it described the extension as a way to type a fresh password
+into whatever field you were looking at so that *someone else's* password
+manager would catch it with its own save prompt. That was the right feature for
+a product with nowhere to put a password. It is the wrong one now: WordLock has
+a vault, and the interesting extension fills from it. The old framing is
+recorded here rather than deleted because it explains why the item sat under
+Epic 8 instead of Epic 9.
+
+- [ ] **The decision that comes before any code: where does the vault live?**
+      An extension cannot be a thin client of the site. The vault key exists
+      only in one tab's memory on one origin, and autofill has to work when no
+      WordLock tab is open — that is the entire point of it. So the extension
+      has to *hold* a vault rather than ask the page for one, which makes it a
+      second home for the data and forces a choice between three coherent
+      answers:
+      **(a) extension canonical**, and the site becomes the generator, the docs
+      and a viewer for an imported file;
+      **(b) site canonical**, and the extension holds a copy you refresh by
+      importing a backup — unglamorous, needs no server, and enough for the
+      fill-only case;
+      **(c) both canonical**, which needs 9d, because "the file is the sync"
+      stops working the moment there are two writers.
+      Picking one is the work that makes the rest estimable; starting the code
+      without picking is how a product ends up with two vaults and no story
+      about which is right.
+- [ ] **Manifest V3 forces the build step.** It is the same blocker already on
+      the board. Extension pages get `script-src 'self'` with no
+      `'unsafe-eval'`. Components here are declared with Vue's `template:`
+      option, so Vue compiles them at runtime through `new Function` — the
+      exact reason `render.yaml` still carries `'unsafe-eval'`, measured when
+      the site rendered blank without it. Precompiling templates is the fix in
+      both places at once. See 9f's `'unsafe-eval'` bullet: this is that item
+      arriving with a deadline attached.
+- [ ] **Roughly 2,700 lines port with little or no change.** That is more than
+      it looks. `vault-crypto.js` is portable as it stands — its storage is
+      already injected. `vault-store.js` needs a storage adapter and somewhere
+      other than `localStorage` for the lock window. `totp.js`, `entropy.js`,
+      `vault-transfer.js`, `passphrase-strength.js` and `common-passwords.js`
+      move untouched. What does not move is `main.js` and `vault-app.js` —
+      about 4,600 lines of Vue — which is precisely where the CSP problem
+      lands.
+- [ ] **The hard part of autofill is not the crypto, it is origin matching.**
+      An entry saved for `example.com` must fill on `example.com` and must not
+      fill on `example.com.evil.co`: matched on the registrable domain rather
+      than by substring, and bound to the origin rather than to "the user
+      picked it from a list". Field detection, iframes and SPA re-renders are
+      fiddly; this one is a security boundary, and getting it wrong turns a
+      password manager into a phishing amplifier. Any version of this ships
+      with tests against a list of lookalike hosts or it does not ship.
+- [ ] **It does nothing for mobile.** Android autofill needs a native app
+      implementing the Autofill Framework and iOS needs a Credential Provider
+      Extension, which is 9c. Desktop extension plus two native shells is why
+      every established manager has apps, and it should be counted as three
+      codebases sharing a core rather than one feature.
+- [ ] **What it costs the pitch, stated rather than glossed.** "You can read
+      the deployed source" becomes "you can read the source and trust a
+      store-signed bundle you did not build yourself." That is a real erosion
+      of the one claim this project leads with, and it belongs on Legal in the
+      same release rather than being noticed later. It also adds a new way to
+      lose a vault: uninstalling an extension drops its storage silently, with
+      none of the warning the persistence notice gives on the web.
+- [ ] Cost is real and ongoing, and this part of the original item still
+      stands: two stores with two review processes, and a permissions prompt on
+      a product whose selling point is that it asks for nothing. Host
+      permissions for autofill are a far harder sell than `activeTab` was for
+      generating into a field — the extension has to ask to read every page you
+      visit, which is exactly the request this site has never had to make.
+
+### 8d. Hand a password directly to a password manager — explore, and probably blocked
+
+- [ ] **Check this before planning around it.** The obvious API does not do what it sounds like. `navigator.credentials.store(new PasswordCredential(...))` saves a credential **for the current origin only** — this site could save a password for `wordlock.net` and nothing else. There is no web API for "save this password for `example.com`", by design: it would be a credential-injection primitive.
+- [ ] Support is also narrow. `PasswordCredential` is Chromium-only; Firefox and Safari never shipped it. So even the same-origin version reaches a fraction of users.
+- [ ] What is actually available from a page is what already exists: copy to clipboard, and letting the manager's own heuristics catch the paste. Everything beyond that needs 8c.
+- [ ] Verify the above against current specs before writing it off — this was checked in a Chromium browser and against the API's design intent, not against a fresh reading of every vendor's docs.
+
+### 8e. Password manager mode — explore, and read the tension first
+
+The biggest lift here, and the one that argues with the product.
+
+- [ ] **State the conflict plainly.** The Legal and About pages both say there are no accounts and nothing leaves your device. A manager that syncs needs identity, and identity means accounts. Shipping that quietly would make existing published claims false, which is worse than not shipping it.
+- [ ] **Separate storage from sync — they are not the same problem.** A local-only vault in IndexedDB, encrypted with a key derived from a passphrase, needs no account and breaks no promise. It is only *sync across devices* that needs identity. If the valuable part is "keep the passwords I generate here", that may be reachable without ever adding a login.
+- [ ] **If sync is genuinely wanted**, the honest form is end-to-end encryption where the server holds ciphertext it cannot read and the account is an opaque sync identifier, not a profile. Note that anagrimoire already has optional accounts for syncing stats — so the shape exists in the family, and the sibling-site framing in Epic 5 already has to explain that difference rather than flatten it.
+- [ ] **Do not start this until 8b and 8c are done.** A manager without offline support is unusable, and one without a browser integration is a vault you have to copy out of by hand. Both are prerequisites, and both are useful on their own even if this is never built.
+- [ ] **Be honest about the competition.** Bitwarden, KeePass and 1Password exist and are audited. The reason to build this would be a specific thing they do not do, and that reason should be written down here before any code is.
+
+> **Superseded by Epic 9.** 8e asked whether this should exist and set the
+> conditions. Epic 9 answers yes -- becoming a password manager is an accepted
+> destination -- and replaces "do not build it" with two invariants that bind
+> how: the generator stays first-class and stays the front door, and
+> standalone-offline stays a complete mode rather than a trial. Sync remains
+> conditional rather than parked; see 9d for the gates. Read 8e for the
+> tension, Epic 9 for the plan.
+
+---
+
+## Shipped — the archive
+
+Everything below is done, in build order. Epics 1, 2, 3, 5, 6, 7 and Epic 8's
+first two sections are complete; Epic 4's remaining boxes are standing notes
+rather than work — sources worth watching, a recall ceiling, and a length
+observation that only matters if a cap is ever introduced.
+
+Kept in full rather than summarised, because the measurements and the rejected
+alternatives are the useful part: the contrast ratios that failed, the
+CIEDE2000 figures behind the color-blind marker, why WordNet lexname tagging
+was abandoned, why Orchard Street Medium was declined.
 
 ---
 
@@ -367,49 +1084,6 @@ your password," but "costs 2 bits, and +1 character returns 6.5."
 
 ---
 
-## Suggestions
-
-Not requested — take or leave.
-
-### A zero-dependency test suite
-
-Two of the last handful of releases were regression fixes (#51 Wireless crash,
-v2.4.1 retry bug), and the v2.7.2 RNG change was verified entirely by driving a
-browser by hand. `package.json` currently has **zero dependencies, zero
-devDependencies, one script, and no tests**.
-
-The constraint is that you *deliberately* removed the toolchain in v2.7.1, so
-this shouldn't reintroduce one. Node's built-in runner (`node --test`) needs no
-dependencies. Highest-value first tests: each generator returns non-empty output
-for default settings, `randInt` stays uniform and in range, and Advanced honors
-its min/max constraints.
-
-### Auto-clear the clipboard — done
-
-Shipped in v2.20.0 as a gear setting (Keep / 30s / 60s / 2 min, off by
-default). The wipe is blunt by design: it overwrites whatever is in the
-clipboard at the deadline rather than asking permission to read it first, and
-it waits for focus if the page is backgrounded, since an unfocused page
-cannot touch the clipboard.
-
-### Revisit plaintext history in `localStorage` — done
-
-Encrypted at rest in v2.20.0: AES-GCM ciphertext in localStorage under a
-non-extractable key kept in IndexedDB, with a startup sweep that migrates all
-seven generators' plaintext stores at once (the clearStoredHistories lesson).
-Threat model stated honestly in docs and legal: shields against casual
-inspection and disk scraping, not against full control of the browser
-profile. If WebCrypto is unavailable, history is memory-only — plaintext
-never goes back to disk. The "clear history" control already existed
-(History → Off).
-
-### Offline / PWA
-
-Moved to **Epic 8b**, which states it properly as app mode: manifest, service
-worker and the update path, not just "add a service worker".
-
----
-
 ## Epic 7 — Usability: the site is clunky to operate
 
 The visual layer is in good shape; operating it is not. Everything below was
@@ -476,60 +1150,57 @@ Buttons visible on a single tab, counted:
 
 ---
 
-## Epic 8 — Beyond the page
+## Suggestions
 
-> The footer was templated as part of 8a. It had been six hand-written copies
-> — five pages plus one inside the Vue template — which had already drifted to
-> five different link lists. Both navigations now come from `PAGES` in
-> `src/site-nav.js`, so adding a page updates the header and the footer at once.
+Not requested — take or leave.
 
-Everything so far assumes the product is one web page. These do not. They are
-listed roughly in order of how far each moves away from that, and the last one
-moves furthest.
+### A zero-dependency test suite
 
-### 8a. Publish the roadmap on the site — done
+Two of the last handful of releases were regression fixes (#51 Wireless crash,
+v2.4.1 retry bug), and the v2.7.2 RNG change was verified entirely by driving a
+browser by hand. `package.json` currently has **zero dependencies, zero
+devDependencies, one script, and no tests**.
 
-- [x] `roadmap.html` alongside About and Legal, using the shared header, footer and `prose-page.css`.
-- [x] **It renders this file rather than copying it.** `src/markdown.js` is a small Markdown subset renderer — headings, task lists, tables, code, links — written rather than installed, because a build step and a dependency are both things this project does not have. The page fetches `/ROADMAP.md` at load, so it cannot drift.
-- [x] Shipped unedited, including the measured failure ratios and the reasoning. The candour is not a liability; the whole pitch is that you can check the claims.
-- [ ] The renderer handles the subset this file uses. If the roadmap grows a construct it does not know, either add it or stop using it -- do not reach for a library.
+The constraint is that you *deliberately* removed the toolchain in v2.7.1, so
+this shouldn't reintroduce one. Node's built-in runner (`node --test`) needs no
+dependencies. Highest-value first tests: each generator returns non-empty output
+for default settings, `randInt` stays uniform and in range, and Advanced honors
+its min/max constraints.
 
-### 8b. App mode — implement
+### Auto-clear the clipboard — done
 
-Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
+Shipped in v2.20.0 as a gear setting (Keep / 30s / 60s / 2 min, off by
+default). The wipe is blunt by design: it overwrites whatever is in the
+clipboard at the deadline rather than asking permission to read it first, and
+it waits for focus if the page is backgrounded, since an unfocused page
+cannot touch the clipboard.
 
-- [x] **Web app manifest.** Shipped: name, both icons (SVG any-size plus the 200px mark), `display: standalone`, and the theme color follows the chosen palette — theme.js syncs the theme-color meta from the computed `--header-bg` on every theme or palette change.
-- [x] **Service worker.** Shipped: a plain precache list covering every page, script, stylesheet, wordlist and vendored asset. Fully offline on second load. A test walks the filesystem both ways — everything listed exists, everything servable is listed — and caught three files that would have 404d offline before the first commit.
-- [x] **This is the strongest fit for the product's pitch.** A generator that never talks to a server has no reason to require a network. Offline is not a feature bolted on, it is the claim made honest.
-- [x] Watch the update path: the cache is named after the version, the version is pinned to package.json by a test (so bumping it is part of the release, not a thing to remember), the browser refetches sw.js on navigation, and activate() drops old caches. Cache-first within a version, never across versions.
+### Revisit plaintext history in `localStorage` — done
 
-### 8c. Browser extension — explore
+Encrypted at rest in v2.20.0: AES-GCM ciphertext in localStorage under a
+non-extractable key kept in IndexedDB, with a startup sweep that migrates all
+seven generators' plaintext stores at once (the clearStoredHistories lesson).
+Threat model stated honestly in docs and legal: shields against casual
+inspection and disk scraping, not against full control of the browser
+profile. If WebCrypto is unavailable, history is memory-only — plaintext
+never goes back to disk. The "clear history" control already existed
+(History → Off).
 
-- [ ] **This is the mechanism for "add straight to my password manager", not a separate item.** See 8d: the web platform cannot do that from a page, and an extension can. If the handoff matters, this is the work.
-- [ ] A content script can generate into the focused field of whatever site you are on. The site's own form then submits normally, and the manager's existing save prompt fires by itself — no integration with any specific manager required.
-- [ ] Cost is real and ongoing: two stores with two review processes, Manifest V3, and a permissions prompt (`activeTab` at minimum) on a product whose selling point is that it asks for nothing. That last part deserves thought before starting — the extension's permissions are a harder sell than the site's.
-- [ ] The generator logic is already dependency-free and DOM-free in `src/lib.js`, so the core would port unchanged.
+### Offline / PWA
 
-### 8d. Hand a password directly to a password manager — explore, and probably blocked
-
-- [ ] **Check this before planning around it.** The obvious API does not do what it sounds like. `navigator.credentials.store(new PasswordCredential(...))` saves a credential **for the current origin only** — this site could save a password for `wordlock.net` and nothing else. There is no web API for "save this password for `example.com`", by design: it would be a credential-injection primitive.
-- [ ] Support is also narrow. `PasswordCredential` is Chromium-only; Firefox and Safari never shipped it. So even the same-origin version reaches a fraction of users.
-- [ ] What is actually available from a page is what already exists: copy to clipboard, and letting the manager's own heuristics catch the paste. Everything beyond that needs 8c.
-- [ ] Verify the above against current specs before writing it off — this was checked in a Chromium browser and against the API's design intent, not against a fresh reading of every vendor's docs.
-
-### 8e. Password manager mode — explore, and read the tension first
-
-The biggest lift here, and the one that argues with the product.
-
-- [ ] **State the conflict plainly.** The Legal and About pages both say there are no accounts and nothing leaves your device. A manager that syncs needs identity, and identity means accounts. Shipping that quietly would make existing published claims false, which is worse than not shipping it.
-- [ ] **Separate storage from sync — they are not the same problem.** A local-only vault in IndexedDB, encrypted with a key derived from a passphrase, needs no account and breaks no promise. It is only *sync across devices* that needs identity. If the valuable part is "keep the passwords I generate here", that may be reachable without ever adding a login.
-- [ ] **If sync is genuinely wanted**, the honest form is end-to-end encryption where the server holds ciphertext it cannot read and the account is an opaque sync identifier, not a profile. Note that anagrimoire already has optional accounts for syncing stats — so the shape exists in the family, and the sibling-site framing in Epic 5 already has to explain that difference rather than flatten it.
-- [ ] **Do not start this until 8b and 8c are done.** A manager without offline support is unusable, and one without a browser integration is a vault you have to copy out of by hand. Both are prerequisites, and both are useful on their own even if this is never built.
-- [ ] **Be honest about the competition.** Bitwarden, KeePass and 1Password exist and are audited. The reason to build this would be a specific thing they do not do, and that reason should be written down here before any code is.
+Moved to **Epic 8b**, which states it properly as app mode: manifest, service
+worker and the update path, not just "add a service worker".
 
 ---
 
-## Suggested order
+## Suggested order — as it was planned
+
+Kept as a record rather than a plan: this is the sequence the work was actually
+scheduled in, written when roughly sixty items were still open, and every item
+it names has since shipped. It is here because the *reasoning* about ordering
+outlived the ordering — why defects jump features, why the wordlist had to
+precede the entropy display, why app mode was worth doing before anything that
+depended on it. For what is next, see **Where this stands** at the top.
 
 Epics 1 and 2 are done, and 3 and 5 are down to one real item each, so the old
 ordering no longer says anything useful. Roughly sixty items remain, and they
