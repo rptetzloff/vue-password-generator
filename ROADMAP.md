@@ -53,10 +53,16 @@ which changes the order considerably. The two that do need one are also the
 two where the zero-knowledge claim is easiest to lose by accident, and 10f
 spells out exactly how.
 
-**Reading, not work — Epic 8c/8d/8e.** 8d is a documented dead end (the web
-platform cannot hand a password to a manager for another origin, by design),
-8c is the desktop half of the same autofill idea 9c covers on mobile, and 8e is
-superseded by Epic 9.
+**Reading, not work — Epic 8d/8e.** 8d is a documented dead end (the web
+platform cannot hand a password to a manager for another origin, by design) and
+8e is superseded by Epic 9.
+
+**8c is no longer reading.** It was the desktop half of the autofill idea 9c
+covers on mobile, written when there was no vault to fill from. Rewritten in
+place: the extension has to hold a vault rather than talk to the site's, which
+turns it into a decision about which copy is canonical, and Manifest V3's ban
+on `'unsafe-eval'` makes it the deadline for the build step 9f already wants.
+Nothing is scheduled — the decision comes first.
 
 **A note on scope, since Epic 9 changes what this product is.** The decision to
 let WordLock grow into a password manager was made deliberately and is recorded
@@ -615,10 +621,74 @@ Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
 
 ### 8c. Browser extension — explore
 
-- [ ] **This is the mechanism for "add straight to my password manager", not a separate item.** See 8d: the web platform cannot do that from a page, and an extension can. If the handoff matters, this is the work.
-- [ ] A content script can generate into the focused field of whatever site you are on. The site's own form then submits normally, and the manager's existing save prompt fires by itself — no integration with any specific manager required.
-- [ ] Cost is real and ongoing: two stores with two review processes, Manifest V3, and a permissions prompt (`activeTab` at minimum) on a product whose selling point is that it asks for nothing. That last part deserves thought before starting — the extension's permissions are a harder sell than the site's.
-- [ ] The generator logic is already dependency-free and DOM-free in `src/lib.js`, so the core would port unchanged.
+**Rewritten after Epic 9.** This item was written when WordLock was only a
+generator, and it described the extension as a way to type a fresh password
+into whatever field you were looking at so that *someone else's* password
+manager would catch it with its own save prompt. That was the right feature for
+a product with nowhere to put a password. It is the wrong one now: WordLock has
+a vault, and the interesting extension fills from it. The old framing is
+recorded here rather than deleted because it explains why the item sat under
+Epic 8 instead of Epic 9.
+
+- [ ] **The decision that comes before any code: where does the vault live?**
+      An extension cannot be a thin client of the site. The vault key exists
+      only in one tab's memory on one origin, and autofill has to work when no
+      WordLock tab is open — that is the entire point of it. So the extension
+      has to *hold* a vault rather than ask the page for one, which makes it a
+      second home for the data and forces a choice between three coherent
+      answers:
+      **(a) extension canonical**, and the site becomes the generator, the docs
+      and a viewer for an imported file;
+      **(b) site canonical**, and the extension holds a copy you refresh by
+      importing a backup — unglamorous, needs no server, and enough for the
+      fill-only case;
+      **(c) both canonical**, which needs 9d, because "the file is the sync"
+      stops working the moment there are two writers.
+      Picking one is the work that makes the rest estimable; starting the code
+      without picking is how a product ends up with two vaults and no story
+      about which is right.
+- [ ] **Manifest V3 forces the build step.** It is the same blocker already on
+      the board. Extension pages get `script-src 'self'` with no
+      `'unsafe-eval'`. Components here are declared with Vue's `template:`
+      option, so Vue compiles them at runtime through `new Function` — the
+      exact reason `render.yaml` still carries `'unsafe-eval'`, measured when
+      the site rendered blank without it. Precompiling templates is the fix in
+      both places at once. See 9f's `'unsafe-eval'` bullet: this is that item
+      arriving with a deadline attached.
+- [ ] **Roughly 2,700 lines port with little or no change.** That is more than
+      it looks. `vault-crypto.js` is portable as it stands — its storage is
+      already injected. `vault-store.js` needs a storage adapter and somewhere
+      other than `localStorage` for the lock window. `totp.js`, `entropy.js`,
+      `vault-transfer.js`, `passphrase-strength.js` and `common-passwords.js`
+      move untouched. What does not move is `main.js` and `vault-app.js` —
+      about 4,600 lines of Vue — which is precisely where the CSP problem
+      lands.
+- [ ] **The hard part of autofill is not the crypto, it is origin matching.**
+      An entry saved for `example.com` must fill on `example.com` and must not
+      fill on `example.com.evil.co`: matched on the registrable domain rather
+      than by substring, and bound to the origin rather than to "the user
+      picked it from a list". Field detection, iframes and SPA re-renders are
+      fiddly; this one is a security boundary, and getting it wrong turns a
+      password manager into a phishing amplifier. Any version of this ships
+      with tests against a list of lookalike hosts or it does not ship.
+- [ ] **It does nothing for mobile.** Android autofill needs a native app
+      implementing the Autofill Framework and iOS needs a Credential Provider
+      Extension, which is 9c. Desktop extension plus two native shells is why
+      every established manager has apps, and it should be counted as three
+      codebases sharing a core rather than one feature.
+- [ ] **What it costs the pitch, stated rather than glossed.** "You can read
+      the deployed source" becomes "you can read the source and trust a
+      store-signed bundle you did not build yourself." That is a real erosion
+      of the one claim this project leads with, and it belongs on Legal in the
+      same release rather than being noticed later. It also adds a new way to
+      lose a vault: uninstalling an extension drops its storage silently, with
+      none of the warning the persistence notice gives on the web.
+- [ ] Cost is real and ongoing, and this part of the original item still
+      stands: two stores with two review processes, and a permissions prompt on
+      a product whose selling point is that it asks for nothing. Host
+      permissions for autofill are a far harder sell than `activeTab` was for
+      generating into a field — the extension has to ask to read every page you
+      visit, which is exactly the request this site has never had to make.
 
 ### 8d. Hand a password directly to a password manager — explore, and probably blocked
 
