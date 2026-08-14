@@ -1,10 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
+import fs from 'node:fs'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
   groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
 } from '../src/vault-store.js'
-import { KDF_ITERATIONS } from '../src/vault-crypto.js'
+import { KDF_ITERATIONS, sealVault, deriveKey, newSalt } from '../src/vault-crypto.js'
 
 // Storage and the clock are injected, so the state machine, the auto-lock and
 // the entry rules are all exercised here without a browser. Only the
@@ -767,4 +768,198 @@ test('tagsOf gathers every tag in use, once', () => {
   ])
   assert.deepEqual(tagsOf(list), ['card', 'work'])
   assert.deepEqual(tagsOf([]), [])
+})
+
+// -- The recovery key (ROADMAP 9f) --------------------------------------------
+//
+// The failure this exists for: forgetting the passphrase. A backup does not
+// help, because a backup you cannot decrypt is as lost as no backup at all.
+
+const WORDS = fs
+  .readFileSync(new URL('../data/orchard-street-long.txt', import.meta.url), 'utf8')
+  .split('\n').map((w) => w.trim()).filter(Boolean)
+
+test('a vault has no recovery key until one is asked for', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  assert.equal(store.hasRecoveryKey(), false)
+})
+
+test('the recovery key opens the vault and sets a new passphrase', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'hunter2!' })
+
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+  assert.equal(phrase.split(' ').length, 16)
+  assert.equal(store.hasRecoveryKey(), true)
+
+  store.lock()
+  await store.recoverWithKey(phrase, 'a brand new passphrase')
+  assert.equal(store.state(), 'unlocked')
+  assert.equal(store.list()[0].label, 'email', 'the entries must survive recovery')
+
+  store.lock()
+  await store.unlock('a brand new passphrase')
+  assert.equal(store.list().length, 1)
+})
+
+test('the forgotten passphrase stops working after recovery', async () => {
+  // The whole reason to be on this path is that nobody remembers the old one,
+  // so leaving it live would mean an attacker who learned it still gets in.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+
+  store.lock()
+  await store.recoverWithKey(phrase, 'a brand new passphrase')
+  store.lock()
+  await assert.rejects(() => store.unlock(PASS), 'the old passphrase must be retired')
+})
+
+test('a recovery key is retired by using it', async () => {
+  // It has just been typed into a screen, read off paper, possibly out loud.
+  // A fresh one can be generated; this one should not keep working.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+
+  await store.recoverWithKey(phrase, 'second passphrase')
+  assert.equal(store.hasRecoveryKey(), false, 'recovery is single-use by design')
+  await assert.rejects(() => store.recoverWithKey(phrase, 'third passphrase'),
+    /no recovery key/)
+})
+
+test('generating a second recovery key retires the first', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const first = await store.addRecoveryKey(PASS, WORDS)
+  const second = await store.addRecoveryKey(PASS, WORDS)
+  assert.notEqual(first, second)
+
+  assert.equal(await store.verifyRecoveryKey(second), true)
+  assert.equal(await store.verifyRecoveryKey(first), false, 'the old paper must stop working')
+})
+
+test('adding or removing a recovery key needs the passphrase, not just an open tab', async () => {
+  // Same rule as destroy(). Minting a second permanent key to someone's vault
+  // is not something a person who walked up to an unlocked browser may do.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await assert.rejects(() => store.addRecoveryKey('wrong', WORDS))
+  assert.equal(store.hasRecoveryKey(), false, 'a failed attempt must add nothing')
+
+  await store.addRecoveryKey(PASS, WORDS)
+  await assert.rejects(() => store.removeRecoveryKey('wrong'))
+  assert.equal(store.hasRecoveryKey(), true, 'a failed removal must leave it in place')
+
+  assert.equal(await store.removeRecoveryKey(PASS), true)
+  assert.equal(store.hasRecoveryKey(), false)
+})
+
+test('the phrase is not recoverable from anything the store persists', async () => {
+  const { store, storage } = await freshStore()
+  await store.create(PASS)
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+
+  const onDisk = JSON.stringify(storage.box.value)
+  for (const word of phrase.split(' ')) {
+    assert.ok(!onDisk.includes(word), `"${word}" survives into storage`)
+  }
+})
+
+test('a wrong recovery key changes nothing', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'email', pw: 'hunter2!' })
+  await store.addRecoveryKey(PASS, WORDS)
+  store.lock()
+
+  const wrong = WORDS.slice(0, 16).join(' ')
+  assert.equal(await store.verifyRecoveryKey(wrong), false)
+  await assert.rejects(() => store.recoverWithKey(wrong, 'nope'))
+  assert.equal(store.state(), 'locked', 'a failed recovery must not leave the vault open')
+
+  await store.unlock(PASS)
+  assert.equal(store.list()[0].label, 'email', 'and must not have touched the entries')
+})
+
+test('verifying a recovery key mutates nothing', async () => {
+  const { store, storage } = await freshStore()
+  await store.create(PASS)
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+  const before = storage.box.saves
+  assert.equal(await store.verifyRecoveryKey(phrase), true)
+  assert.equal(storage.box.saves, before, 'a check is not a write')
+})
+
+test('a recovery key is accepted however it was typed back', async () => {
+  // Off paper, months later, in whatever case and spacing happened.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+  const messy = `  ${phrase.toUpperCase().replace(/ /g, '\n')}  `
+  assert.equal(await store.verifyRecoveryKey(messy), true)
+})
+
+test('a vault from before this release upgrades when recovery is added', async () => {
+  // Every vault created before v2 encrypts its data directly under the
+  // passphrase key, with nowhere to put a second wrap. It keeps opening
+  // untouched; the format change happens at the one moment the passphrase is
+  // already in hand and the user asked for something.
+  const salt = newSalt()
+  const kdf = {
+    name: 'PBKDF2', hash: 'SHA-256', iterations: 1000,
+    salt: btoa(String.fromCharCode(...salt)),
+  }
+  const legacy = await sealVault(
+    await deriveKey(PASS, salt, 1000), kdf,
+    [{ id: 'a', label: 'email', pw: 'hunter2!', at: '2026-08-13' }],
+  )
+  assert.equal(legacy.v, 1)
+
+  const storage = fakeStorage()
+  storage.box.value = legacy
+  const store = createVaultStore({ storage, now: fakeClock().now })
+  assert.equal(await store.init(), 'locked')
+
+  // It opens as it always did, and honestly reports that it cannot yet carry
+  // a recovery key.
+  await store.unlock(PASS)
+  assert.equal(store.list()[0].label, 'email')
+  assert.equal(store.hasRecoveryKey(), false)
+
+  const phrase = await store.addRecoveryKey(PASS, WORDS)
+  assert.equal(store.envelope().v, 2, 'adding recovery upgrades the envelope')
+  assert.equal(store.hasRecoveryKey(), true)
+  assert.equal(store.list()[0].label, 'email', 'and the entries come through')
+
+  // Both ways in work on the upgraded vault, and the old cost parameter is
+  // gone with the old format.
+  assert.equal(store.envelope().wraps.passphrase.kdf.iterations, KDF_ITERATIONS)
+  store.lock()
+  await store.unlock(PASS)
+  assert.equal(store.list().length, 1)
+  store.lock()
+  await store.recoverWithKey(phrase, 'a new passphrase')
+  assert.equal(store.list()[0].label, 'email')
+})
+
+test('re-keying a pre-v2 vault upgrades it too', async () => {
+  const salt = newSalt()
+  const kdf = {
+    name: 'PBKDF2', hash: 'SHA-256', iterations: 1000,
+    salt: btoa(String.fromCharCode(...salt)),
+  }
+  const legacy = await sealVault(await deriveKey(PASS, salt, 1000), kdf, [{ id: 'a', pw: 'x' }])
+
+  const storage = fakeStorage()
+  storage.box.value = legacy
+  const store = createVaultStore({ storage, now: fakeClock().now })
+  await store.init()
+  await store.unlock(PASS)
+
+  await store.rekey(PASS, 'another passphrase')
+  assert.equal(store.envelope().v, 2)
+  assert.equal(store.list().length, 1)
 })
