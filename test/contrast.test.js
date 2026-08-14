@@ -474,7 +474,13 @@ test('the notification toast pairs its fill and text correctly in every palette'
 
   const ruleFor = (selector) => {
     // Anchored on `{` so `.notification` does not also match `.notification.success`.
-    const re = new RegExp(`(^|\\n)\\s*${selector.replace(/\./g, '\\.')}\\s*\\{([^}]*)\\}`)
+    //
+    // Every regex metacharacter, not just the dot: escaping one of them and
+    // calling it escaped is the shape of a sanitiser that misses. The same
+    // expression is already used in controls.test.js and further down this
+    // file; this was the one copy that had drifted.
+    const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    const re = new RegExp(`(^|\\n)\\s*${escaped}\\s*\\{([^}]*)\\}`)
     const m = re.exec(css)
     assert.ok(m, `${selector} not found in style.css`)
     return m[2]
