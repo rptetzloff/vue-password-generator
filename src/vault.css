@@ -225,7 +225,9 @@
 }
 
 .vault-empty {
-  color: var(--text-secondary);
+  /* On the gradient, not on a card -- there is no card, that is the whole
+     point of the empty state. --text-secondary measured 1.00:1 in light. */
+  color: var(--band-text-dim);
   font-size: 0.9rem;
   padding: 1.25rem;
   text-align: center;

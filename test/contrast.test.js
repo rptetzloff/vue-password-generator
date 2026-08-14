@@ -640,6 +640,12 @@ const ON_GRADIENT = [
   { file: '../src/vault.css', selector: '.vault-filter-label' },
   { file: '../src/vault.css', selector: '.vault-group-head' },
   { file: '../src/vault.css', selector: '.link-button' },
+  // And the same lesson a second time: the empty state only exists when the
+  // vault is unlocked AND has nothing in it, so both earlier sweeps -- locked,
+  // then unlocked with entries -- walked straight past it. Measured 1.00:1 in
+  // light sky, and failing in dark too (3.69-4.46:1), which is the range that
+  // looks fine and is not.
+  { file: '../src/vault.css', selector: '.vault-empty' },
 ]
 
 /** Tokens calibrated against --surface. Using one on the band is the bug. */
