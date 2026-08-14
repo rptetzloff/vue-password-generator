@@ -329,11 +329,51 @@
         font-size: 0.875rem;
         color: var(--text-secondary);
         line-height: 1.6;
+        /* Grid items default to min-width: auto, so anything with a minimum
+           width -- the recovery diagram, a wide code block -- pushes this cell
+           past its track instead of scrolling inside it. The group above clips
+           with overflow: hidden, so the overflow was not even reachable. */
+        min-width: 0;
+      }
+
+      /* Wide tables were already being clipped by .option-group's overflow
+         hidden, invisibly; letting the cell shrink just made it obvious. Give
+         them their own scroller rather than a cut-off edge. */
+      /* Wide tables overflowed their column and were cut off by
+         .option-group's overflow: hidden -- silently, on every phone. A
+         scroller beats a clipped edge. Applied to the class rather than to
+         `.option-desc table`, because most of them are not in an option row. */
+      .value-table,
+      .option-desc table {
+        display: block;
+        max-width: 100%;
+        overflow-x: auto;
       }
 
       .option-desc strong {
         color: var(--text);
         font-weight: 600;
+      }
+
+      /* The recovery-key diagram. Drawn in currentColor so it follows the
+         theme and every palette without a second set of values to keep in
+         step, and scrollable rather than squashed on a phone -- a diagram
+         reflowed to 320px is a diagram nobody can read. */
+      .vault-diagram {
+        margin: 0.9rem 0 0;
+        padding: 0.5rem;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--background);
+        color: var(--text);
+        overflow-x: auto;
+      }
+
+      .vault-diagram svg {
+        display: block;
+        width: 100%;
+        min-width: 30rem;
+        height: auto;
       }
 
       .section-body a {
@@ -2362,6 +2402,102 @@
                   protects <em>access</em> — a backup you cannot decrypt is as lost as no backup at all.
                   Neither substitutes for the other, and a recovery key does nothing at all for a vault
                   that was never exported and no longer exists.
+                </div>
+              </div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    <strong>How two keys open one vault.</strong> The short version: your passwords are
+                    not encrypted with your passphrase. They are encrypted with a random key, and it is
+                    <em>that</em> key which gets locked up &mdash; once per way in.
+                  </p>
+
+                  <div class="vault-diagram" role="img"
+                       aria-label="Your entries are encrypted with a random master key. The master key is stored twice: once locked by your passphrase, once locked by your recovery key. Either one unlocks the same master key, which then decrypts the entries.">
+                    <svg viewBox="0 0 620 300" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5"
+                                markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                          <path d="M0,0 L10,5 L0,10 z" fill="currentColor" />
+                        </marker>
+                      </defs>
+                      <g fill="none" stroke="currentColor" stroke-width="1.5">
+                        <rect x="14" y="20" width="240" height="74" rx="8" />
+                        <rect x="14" y="128" width="240" height="74" rx="8" />
+                        <rect x="366" y="74" width="240" height="74" rx="8" />
+                        <rect x="366" y="196" width="240" height="74" rx="8" stroke-dasharray="5 4" />
+                        <path d="M254,57 H310 V104 H360" marker-end="url(#arw)" />
+                        <path d="M254,165 H310 V118 H360" marker-end="url(#arw)" />
+                        <path d="M486,148 V190" marker-end="url(#arw)" />
+                      </g>
+                      <g font-size="14" font-weight="600" fill="currentColor">
+                        <text x="30" y="46">Your passphrase</text>
+                        <text x="30" y="154">Your recovery key</text>
+                        <text x="382" y="100">The master key</text>
+                        <text x="382" y="222">Your entries</text>
+                      </g>
+                      <g font-size="12" fill="currentColor" opacity="0.78">
+                        <text x="30" y="66">something you remember</text>
+                        <text x="30" y="82">1,000,000 PBKDF2 rounds</text>
+                        <text x="30" y="174">sixteen words, 225 bits</text>
+                        <text x="30" y="190">1,000,000 PBKDF2 rounds</text>
+                        <text x="382" y="120">256 random bits, never typed</text>
+                        <text x="382" y="136">stored twice, locked each time</text>
+                        <text x="382" y="242">AES-256-GCM, under the master key</text>
+                        <text x="382" y="258">the only thing that touches your data</text>
+                        <text x="268" y="46" font-style="italic">unlocks</text>
+                        <text x="268" y="200" font-style="italic">unlocks</text>
+                        <text x="496" y="176" font-style="italic">decrypts</text>
+                      </g>
+                    </svg>
+                  </div>
+
+                  <p style="margin-top:0.75rem;">
+                    When the vault is created the browser generates a <strong>master key</strong>: 256
+                    random bits, never typed by anyone and not derived from anything you chose. That key
+                    encrypts your entries, and it is the only key that ever touches them. The master key
+                    is then encrypted &mdash; <em>wrapped</em> &mdash; under a key derived from your
+                    passphrase, and the wrapped copy is what gets stored.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Making a recovery key wraps <em>the same master key</em> a second time, under a key
+                    derived from the sixteen words. So the stored vault holds three things: your entries
+                    encrypted under the master key, and two locked copies of that master key. Unlocking
+                    is the same operation either way &mdash; derive a key from whichever secret you have,
+                    use it to unwrap the master key, use the master key to read the entries.
+                  </p>
+
+                  <p style="margin-top:0.75rem;"><strong>What that shape buys, and why it is worth the extra step:</strong></p>
+                  <ul style="margin:0.4rem 0 0; padding-left:1.2rem;">
+                    <li style="margin-bottom:0.4rem;">
+                      <strong>Neither key reveals the other.</strong> Opening the passphrase copy gives
+                      you the master key and nothing else. There is no path from one locked copy to the
+                      other, so holding one does not help you find the second.
+                    </li>
+                    <li style="margin-bottom:0.4rem;">
+                      <strong>Changing the passphrase does not invalidate the recovery key</strong>, and
+                      costs 32 bytes of work rather than re-encrypting the whole vault. The master key
+                      never changed; only the lock around one copy of it did.
+                    </li>
+                    <li style="margin-bottom:0.4rem;">
+                      <strong>Removing the recovery key is deleting one field.</strong> Your entries and
+                      the master key are untouched &mdash; the second copy simply stops existing.
+                    </li>
+                    <li>
+                      <strong>Recovering deliberately breaks that pattern.</strong> It generates a
+                      <em>brand new</em> master key and re-encrypts under it, rather than re-wrapping the
+                      old one. That is the point: the forgotten passphrase&rsquo;s copy does not survive,
+                      so anyone who might have learned it is locked out along with your memory of it.
+                    </li>
+                  </ul>
+
+                  <p style="margin-top:0.75rem;">
+                    The plainest way to picture it: the master key is the key to your house. You put a
+                    copy in two lockboxes, one opening to your passphrase and one to the recovery words.
+                    Changing a lockbox combination does not change the house key, and losing one
+                    combination does not matter as long as you know the other. Lose both and the house
+                    stays shut &mdash; there is no locksmith, because there is no one holding a third copy.
+                  </p>
                 </div>
               </div>
               <div class="option-row">
