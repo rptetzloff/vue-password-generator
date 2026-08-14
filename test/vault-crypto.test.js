@@ -84,10 +84,22 @@ test('resealing with the held key needs no passphrase and no re-derivation', asy
   const { envelope, key, kdf } = await createVault(PASS, ENTRIES)
   const updated = [...ENTRIES, { label: 'new', pw: 'x9!kQ', bits: 30, at: '2026-08-12' }]
 
-  const started = process.hrtime.bigint()
-  const resealed = await sealVault(key, kdf, updated)
-  const ms = Number(process.hrtime.bigint() - started) / 1e6
-  assert.ok(ms < 20, `reseal took ${ms.toFixed(1)}ms; it should be an AES pass, not a KDF run`)
+  // Counted rather than timed, for the reason spelled out on the re-key test
+  // in vault-store.test.js: a wall-clock budget measures the machine's load
+  // as much as the code. Zero PBKDF2 runs is the claim being made anyway.
+  let derivations = 0
+  const real = crypto.subtle.deriveKey.bind(crypto.subtle)
+  crypto.subtle.deriveKey = (algorithm, ...rest) => {
+    if (algorithm && algorithm.name === 'PBKDF2') derivations++
+    return real(algorithm, ...rest)
+  }
+  let resealed
+  try {
+    resealed = await sealVault(key, kdf, updated)
+  } finally {
+    crypto.subtle.deriveKey = real
+  }
+  assert.equal(derivations, 0, 'a reseal should be an AES pass, not a KDF run')
 
   assert.equal(resealed.kdf.salt, envelope.kdf.salt, 'reseal must not re-salt')
   const { data } = await openVault(resealed, PASS)

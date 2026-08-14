@@ -186,18 +186,28 @@ test('re-keying keeps the entries, re-salts, and retires the old passphrase', as
 test('re-keying derives twice, which is the floor', async () => {
   // Two derivations: one to open with the old passphrase, one to seal with
   // the new. A third would be a visible stall on a phone for no reason.
-  const { store } = await freshStore()
-  await store.create(PASS)
-  const started = process.hrtime.bigint()
-  await store.rekey(PASS, 'another passphrase')
-  const ms = Number(process.hrtime.bigint() - started) / 1e6
-  const oneDerivation = await (async () => {
-    const t = process.hrtime.bigint()
-    await store.unlock('another passphrase')
-    return Number(process.hrtime.bigint() - t) / 1e6
-  })()
-  assert.ok(ms < oneDerivation * 2.75,
-    `re-key took ${ms.toFixed(0)}ms against ${oneDerivation.toFixed(0)}ms per derivation; that looks like three`)
+  //
+  // Counted, not timed. This was a wall-clock ratio -- re-key against one
+  // unlock, fail above 2.75x -- which measures the machine as much as the
+  // code: it passes alone at ~425ms and fails in the full suite at ~876ms,
+  // because `node --test` runs files in parallel and the two halves of the
+  // ratio get different amounts of CPU. A count cannot be loaded down.
+  const derivations = []
+  const real = crypto.subtle.deriveKey.bind(crypto.subtle)
+  crypto.subtle.deriveKey = (algorithm, ...rest) => {
+    if (algorithm && algorithm.name === 'PBKDF2') derivations.push(algorithm.iterations)
+    return real(algorithm, ...rest)
+  }
+  try {
+    const { store } = await freshStore()
+    await store.create(PASS)
+    derivations.length = 0
+    await store.rekey(PASS, 'another passphrase')
+    assert.deepEqual(derivations, [KDF_ITERATIONS, KDF_ITERATIONS],
+      `re-key ran ${derivations.length} PBKDF2 derivations; two is the floor and the ceiling`)
+  } finally {
+    crypto.subtle.deriveKey = real
+  }
 })
 
 test('destroying the vault requires the passphrase', async () => {
