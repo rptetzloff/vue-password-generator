@@ -556,6 +556,25 @@ const App = {
       if (!event.target.closest('.vault-tagmenu')) tagMenuOpen.value = false
     }
 
+    // A dropdown anchored to its button's left edge runs off the right of the
+    // screen once the button sits far enough across, and the tag button is the
+    // rightmost thing in the filter row. Measured at 320px: its panel's right
+    // edge landed exactly on the viewport edge, so one more character in the
+    // label ("12 tags") would have put it outside. Nudge it back rather than
+    // right-aligning, which breaks the other way when the row wraps and the
+    // button is the leftmost thing instead.
+    const keepMenuOnScreen = async (selector) => {
+      await nextTick()
+      const panel = document.querySelector(`${selector} .vault-groupmenu-panel`)
+      if (!panel) return
+      panel.style.transform = ''
+      const gap = 8
+      const over = panel.getBoundingClientRect().right - document.documentElement.clientWidth + gap
+      if (over > 0) panel.style.transform = `translateX(${-Math.ceil(over)}px)`
+    }
+
+    watch(groupMenuOpen, (open) => { if (open) keepMenuOnScreen('.vault-groupmenu') })
+
     const groupFilterLabel = computed(() => {
       const n = groupFilter.value.size
       if (n === 0) return 'All groups'
@@ -595,6 +614,7 @@ const App = {
      */
     const tagFilter = ref(new Set())
     const tagMenuOpen = ref(false)
+    watch(tagMenuOpen, (open) => { if (open) keepMenuOnScreen('.vault-tagmenu') })
 
     const toggleTag = (tag) => {
       const next = new Set(tagFilter.value)

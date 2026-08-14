@@ -534,7 +534,11 @@
 
 /* The group picker. A menu of checkboxes rather than a <select>, because
    several groups at once is the point. */
-.vault-groupmenu { position: relative; }
+/* The tag menu reuses every .vault-groupmenu-* child class, so it has to be a
+   positioning context too -- without this its panel resolves against whatever
+   is positioned further up and lands at the top of the page. */
+.vault-groupmenu,
+.vault-tagmenu { position: relative; }
 
 .vault-groupmenu-btn {
   display: inline-flex;

@@ -161,3 +161,33 @@ test('the overlay controls tile without overlapping, at the declared sizes', () 
       `${name} starts at ${start}rem but ${prevName} runs to ${prevEnd}rem — they overlap`)
   }
 })
+
+// An absolutely positioned dropdown resolves against its nearest POSITIONED
+// ancestor, not its markup parent. The tag menu reused every
+// .vault-groupmenu-* child class but its own wrapper was a new class, so it
+// inherited the styling and not the `position: relative` that made the
+// styling work -- and its panel rendered near the top of the document,
+// hundreds of pixels from the button that opened it. Nothing about either
+// file looks wrong on its own; the bug lives in the gap between them.
+test('every dropdown wrapper is a positioning context', () => {
+  const css = fs
+    .readFileSync(new URL('../src/vault.css', import.meta.url), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+  const app = fs.readFileSync(new URL('../src/vault-app.js', import.meta.url), 'utf8')
+
+  // The wrappers are whatever the template actually uses, so a third menu is
+  // covered the day it is added rather than the day it is noticed.
+  const wrappers = new Set()
+  for (const m of app.matchAll(/class="vault-filter (vault-[a-z]+menu)"/g)) wrappers.add(m[1])
+  assert.ok(wrappers.size >= 2, 'expected the group and tag menus to be found in the template')
+
+  const positioned = new Set()
+  for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
+    if (!/position:\s*(relative|absolute|fixed|sticky)/.test(m[2])) continue
+    for (const sel of m[1].split(',')) positioned.add(sel.trim())
+  }
+  for (const w of wrappers) {
+    assert.ok(positioned.has(`.${w}`),
+      `.${w} holds an absolutely positioned panel but is not itself positioned`)
+  }
+})
