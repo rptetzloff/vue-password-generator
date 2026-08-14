@@ -1,8 +1,40 @@
+# Line endings, normalised once so they stop being a source of bugs.
+#
+# Git already stores LF in the index. Without an explicit rule, a Windows
+# checkout materialises CRLF in the working tree, and anything that matches a
+# pattern across a newline then sees something different from what CI sees.
+# That has now cost this project twice:
+#
+#   - The CSP script hashes, computed over a CRLF working tree, passed locally
+#     and would have served a blank site in production, because Render serves
+#     the LF bytes git stored. csp.test.js still normalises for that reason.
+#   - test/controls.test.js matches a two-line CSS selector. It passed on
+#     Linux CI from the day it was written and failed on every Windows clone
+#     -- the worst shape a failure can take, since it is invisible to the
+#     people able to fix it and invisible to the people it inconveniences.
+#
+# eol=lf makes every checkout match the index and match CI.
+* text=auto eol=lf
+
 # Vendored third-party assets are kept byte-identical to their upstream copies,
-# so they must not be line-ending normalized on checkout.
+# so they must not be line-ending normalized on checkout. This has to come
+# after the rule above, because the last matching pattern wins.
 vendor/** -text
 
-# Git hooks are executed by sh. With core.autocrlf=true (the default on Windows)
-# they would otherwise be checked out with CRLF endings, and sh fails on the
-# shebang with "bad interpreter". Force LF.
+# Git hooks are executed by sh. With core.autocrlf=true (the default on
+# Windows) they would otherwise be checked out with CRLF endings, and sh fails
+# on the shebang with "bad interpreter". Covered by the global rule now, but
+# kept explicit: this one breaks the commit path itself, so it should not
+# depend on a line further up staying the way it is.
 .githooks/** text eol=lf
+
+# Binary, so git leaves the bytes alone rather than guessing.
+*.woff2 binary
+*.woff  binary
+*.ttf   binary
+*.eot   binary
+*.png   binary
+*.jpg   binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
