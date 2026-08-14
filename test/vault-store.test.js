@@ -629,3 +629,87 @@ test('the secret flag is a real boolean, whatever was handed in', () => {
 test('an entry with no fields has an empty list, not undefined', () => {
   assert.deepEqual(normalizeEntry({ pw: 'x' }).fields, [])
 })
+
+// --- the in-progress entry ----------------------------------------------------
+
+const draftStorage = () => {
+  let envelope = null
+  let draft = null
+  return {
+    load: async () => envelope,
+    save: async (e) => { envelope = e },
+    clear: async () => { envelope = null; draft = null },
+    loadDraft: async () => draft,
+    saveDraft: async (d) => { draft = d },
+    clearDraft: async () => { draft = null },
+    peek: () => draft,
+  }
+}
+
+test('a draft survives a round trip, and is stored as ciphertext', async () => {
+  const storage = draftStorage()
+  const store = createVaultStore({ storage, now: () => 0 })
+  await store.init()
+  await store.create(PASS)
+
+  const draft = { label: 'Half typed', pw: 'a-secret-in-progress', note: 'not saved yet' }
+  assert.equal(await store.saveDraft(draft), true)
+
+  // What actually landed in storage must not contain the password.
+  const raw = JSON.stringify(storage.peek())
+  assert.ok(!raw.includes('a-secret-in-progress'),
+    'the draft holds a password and must not sit in storage in the clear')
+  assert.ok(!raw.includes('Half typed'))
+
+  assert.deepEqual(await store.loadDraft(), draft)
+  assert.equal(await store.hasDraft(), true)
+})
+
+test('a draft needs the vault open, like everything else', async () => {
+  const storage = draftStorage()
+  const store = createVaultStore({ storage, now: () => 0 })
+  await store.init()
+  await store.create(PASS)
+  await store.saveDraft({ label: 'x', pw: 'y' })
+
+  store.lock()
+  assert.equal(await store.loadDraft(), null, 'a locked vault cannot read its own draft')
+
+  await store.unlock(PASS)
+  assert.deepEqual(await store.loadDraft(), { label: 'x', pw: 'y' })
+})
+
+test('clearing the draft removes it', async () => {
+  const storage = draftStorage()
+  const store = createVaultStore({ storage, now: () => 0 })
+  await store.init()
+  await store.create(PASS)
+  await store.saveDraft({ label: 'x', pw: 'y' })
+  await store.clearDraft()
+  assert.equal(await store.loadDraft(), null)
+  assert.equal(await store.hasDraft(), false)
+})
+
+test('a draft sealed under an old key is discarded, not fatal', async () => {
+  // After a passphrase change the old draft cannot be opened. Losing scratch
+  // is a nuisance; refusing to open the vault over it would not be.
+  const storage = draftStorage()
+  const store = createVaultStore({ storage, now: () => 0 })
+  await store.init()
+  await store.create(PASS)
+  await store.saveDraft({ label: 'stale', pw: 'z' })
+  await store.rekey(PASS, 'an-entirely-different-passphrase')
+
+  assert.equal(await store.loadDraft(), null)
+  assert.equal(await store.hasDraft(), false, 'the unreadable draft is cleared away')
+})
+
+test('destroying the vault takes the draft with it', async () => {
+  const storage = draftStorage()
+  const store = createVaultStore({ storage, now: () => 0 })
+  await store.init()
+  await store.create(PASS)
+  await store.saveDraft({ label: 'x', pw: 'y' })
+  await store.destroy(PASS)
+  assert.equal(storage.peek(), null, 'a destroyed vault must not leave a sealed draft behind')
+})

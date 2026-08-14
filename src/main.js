@@ -2866,9 +2866,20 @@ const App = {
       })
     })
 
+    /**
+     * A vault entry is waiting to be finished.
+     *
+     * Set by the vault before it sends you here to change a setting. The flag
+     * says only that a draft exists -- the draft itself is sealed in the
+     * vault's own storage, and the generator has no business reading it.
+     */
+    const returningToVault = ref(false)
+    try { returningToVault.value = sessionStorage.getItem('vault.hasDraft') === '1' } catch {}
+
     return {
       activeTab,
       tabs,
+      returningToVault,
       historyMax
     }
   },
@@ -2894,6 +2905,15 @@ const App = {
             </button>
           </div>
           <p class="tabs-desc">{{ tabs[activeTab].desc }}</p>
+          <!-- The way back. Arriving here from a half-finished vault entry and
+               having to find the vault yourself, only to discover the entry
+               was dropped, is the failure this pair of features exists to
+               remove. -->
+          <p v-if="returningToVault" class="vault-return">
+            <span class="mdi mdi-shield-key-outline" aria-hidden="true"></span>
+            Your vault entry is waiting.
+            <a href="/vault.html">Finish it</a>
+          </p>
           
           <div class="tab-content">
             <component :is="tabs[activeTab].component" />

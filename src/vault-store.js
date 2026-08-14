@@ -24,6 +24,7 @@ import { mergeEntries } from './vault-transfer.js'
 const DB_NAME = 'pwgen-vault'
 const STORE = 'vault'
 const ENVELOPE_ID = 'envelope-v1'
+const DRAFT_ID = 'draft-v1'
 
 /** Fifteen minutes, matching the lockout scenario the entropy panel quotes. */
 export const DEFAULT_AUTOLOCK_MS = 15 * 60 * 1000
@@ -102,6 +103,42 @@ export const indexedDbStorage = {
     return new Promise((resolve, reject) => {
       const tx = db.transaction(STORE, 'readwrite')
       tx.objectStore(STORE).delete(ENVELOPE_ID)
+      tx.objectStore(STORE).delete(DRAFT_ID)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  },
+
+  /**
+   * The half-finished entry, kept across a trip to the generator and back.
+   *
+   * A separate slot rather than part of the vault, because it is scratch: it
+   * must survive a navigation and nothing more, and folding it into the
+   * envelope would mean rewriting the whole vault on every keystroke-ish save.
+   * It is stored SEALED -- see saveDraft -- so this adapter only moves bytes.
+   */
+  async loadDraft () {
+    const db = await openDb()
+    return new Promise((resolve, reject) => {
+      const rq = db.transaction(STORE).objectStore(STORE).get(DRAFT_ID)
+      rq.onsuccess = () => resolve(rq.result ?? null)
+      rq.onerror = () => reject(rq.error)
+    })
+  },
+  async saveDraft (sealed) {
+    const db = await openDb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite')
+      tx.objectStore(STORE).put(sealed, DRAFT_ID)
+      tx.oncomplete = () => resolve()
+      tx.onerror = () => reject(tx.error)
+    })
+  },
+  async clearDraft () {
+    const db = await openDb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE, 'readwrite')
+      tx.objectStore(STORE).delete(DRAFT_ID)
       tx.oncomplete = () => resolve()
       tx.onerror = () => reject(tx.error)
     })
@@ -413,6 +450,53 @@ export const createVaultStore = ({
     await storage.save(envelope)
   }
 
+  // --- the in-progress entry ---------------------------------------------------
+
+  /**
+   * Keep a half-finished entry across a navigation.
+   *
+   * Going to the generator to change a setting used to lose whatever had been
+   * typed, which made the link a trap. The draft has to survive the round
+   * trip, and a draft contains a password -- so it is sealed with the vault's
+   * own key and stored as ciphertext, exactly like the entries are. Putting it
+   * in sessionStorage would have been four lines and a plaintext secret at
+   * rest, undoing the point of the vault for as long as the tab lived.
+   *
+   * Reuses the vault's kdf block so the sealed draft is self-describing, but
+   * it is never merged into the vault: it is scratch until it is saved.
+   */
+  const saveDraft = async (draft) => {
+    if (!key || !storage.saveDraft) return false
+    await storage.saveDraft(await sealVault(key, kdf, draft))
+    return true
+  }
+
+  /** The draft, or null. Unreadable without the key, so this needs unlocking. */
+  const loadDraft = async () => {
+    if (!key || !storage.loadDraft) return null
+    const sealed = await storage.loadDraft()
+    if (!isVaultEnvelope(sealed)) return null
+    try {
+      // The key is already in hand, so no passphrase and no derivation.
+      const { data } = await openVault(sealed, '', key)
+      return data && typeof data === 'object' ? data : null
+    } catch {
+      // Sealed under a previous key, or corrupt. A draft is scratch: losing
+      // one is a nuisance, and failing to open the vault over it would not be.
+      await clearDraft()
+      return null
+    }
+  }
+
+  const clearDraft = async () => {
+    if (storage.clearDraft) await storage.clearDraft()
+  }
+
+  const hasDraft = async () => {
+    if (!storage.loadDraft) return false
+    return isVaultEnvelope(await storage.loadDraft())
+  }
+
   const create = async (passphrase) => {
     if (envelope) throw new Error('a vault already exists on this device')
     const made = await createVault(passphrase, [], holdsSession)
@@ -538,6 +622,7 @@ export const createVaultStore = ({
     init, state, touch, lock, lockIfIdle, shouldAutoLock,
     create, unlock, rekey, destroy, importEntries,
     list, add, update, remove,
+    saveDraft, loadDraft, clearDraft, hasDraft,
     // The sealed envelope, for 9b's export. Never the key, and never the
     // decrypted entries -- an export is ciphertext by construction.
     envelope: () => envelope,

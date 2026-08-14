@@ -107,7 +107,12 @@ const App = {
     }
 
     const unlock = () => run(
-      async () => { await store.unlock(pass.value); clearPass() },
+      async () => {
+        await store.unlock(pass.value)
+        clearPass()
+        // A draft written before the lock window closed is only readable now.
+        await restoreDraft()
+      },
       'That passphrase did not open the vault.',
     )
 
@@ -123,6 +128,7 @@ const App = {
       else await store.add(payload)
       entries.value = store.list()
       editing.value = null
+      await store.clearDraft()
       flash('Saved.')
     })
 
@@ -241,6 +247,39 @@ const App = {
     const cancelEdit = () => {
       if (editorDirty() && !confirm('Discard the changes to this entry?')) return
       editing.value = null
+      store.clearDraft()
+    }
+
+    /**
+     * Leaving for the generator, and coming back to the same half-typed entry.
+     *
+     * Without this the "Change settings" link was a trap: click it to adjust
+     * the word count and the entry you were partway through was simply gone.
+     * The draft is sealed with the vault key (see vault-store) rather than
+     * dropped into sessionStorage, because it contains a password.
+     *
+     * The marker is separate and deliberately says nothing: the generator only
+     * needs to know that a draft exists, never what is in it.
+     */
+    const DRAFT_FLAG = 'vault.hasDraft'
+    const leaveForGenerator = async (event) => {
+      if (!editing.value) return
+      event.preventDefault()
+      const saved = await store.saveDraft(editing.value)
+      try { sessionStorage.setItem(DRAFT_FLAG, saved ? '1' : '') } catch {}
+      location.href = `/#${genMode.value}`
+    }
+
+    const restoreDraft = async () => {
+      try { sessionStorage.removeItem(DRAFT_FLAG) } catch {}
+      const draft = await store.loadDraft()
+      if (!draft) return
+      editing.value = draft
+      // The snapshot has to be the draft as restored, or returning and
+      // immediately closing would claim there are unsaved changes.
+      await nextTick()
+      editorOpenedAs = snapshot(draft)
+      flash('Picked up where you left off.')
     }
 
     /**
@@ -826,6 +865,7 @@ const App = {
       await readStorageState()
       readEstimate()
       readLastExport()
+      if (store.state() === 'unlocked') restoreDraft()
       timer = setInterval(() => { if (store.lockIfIdle()) revealed.value = new Set() }, 5000)
       // A code is a function of the clock, so it needs its own tick.
       totpTimer = setInterval(refreshTotp, 1000)
@@ -854,6 +894,7 @@ const App = {
       toggleSecret, isRevealed, toggleAllSecrets, allRevealed, hasSeveralSecrets,
       startAdd, startEdit, rekey, destroy, tierOf,
       addQuestion, removeQuestion, addField, removeField, cancelEdit, editorEl,
+      leaveForGenerator,
       codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
       toggleGroupOpen, isGroupOpen, toggleEntryOpen, isEntryOpen, allCollapsed, toggleAll,
       exportVault, importFile, exported,
@@ -1265,8 +1306,8 @@ const App = {
                 </span>
                 <!-- To the tab being used, not to whichever one was open
                      last. The generator reads the hash as a mode id. -->
-                <a class="vault-gen-link" :href="'/#' + genMode"
-                   :title="'Open the ' + (genModes.find(m => m.id === genMode) || {}).label + ' generator'">
+                <a class="vault-gen-link" :href="'/#' + genMode" @click="leaveForGenerator"
+                   :title="'Open the ' + (genModes.find(m => m.id === genMode) || {}).label + ' generator — this entry is kept'">
                   Change settings
                 </a>
               </div>

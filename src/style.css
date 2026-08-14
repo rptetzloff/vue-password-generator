@@ -1947,3 +1947,21 @@ details[open].card-collapse > summary .collapse-chevron {
 .entropy-tier.meter-fair   { color: var(--warning); }
 .entropy-tier.meter-good   { color: var(--success); }
 .entropy-tier.meter-strong { color: var(--success); }
+
+/* "Your vault entry is waiting", shown on the generator when you arrived from
+   a half-finished entry. On the page band, so it takes band colours -- see the
+   --band-* note in tokens.css. */
+.vault-return {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.25rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--band-text-dim);
+}
+
+.vault-return a {
+  color: var(--band-text);
+  font-weight: 600;
+}
