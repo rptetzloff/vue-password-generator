@@ -712,6 +712,28 @@ export const createVaultStore = ({
   }
 
   /**
+   * Put back an entry that was just deleted.
+   *
+   * Deletion is durable the moment it is asked for -- the tombstone is already
+   * written and already on disk -- so this is a genuine re-add rather than a
+   * rollback. It keeps the id, which is what makes it an undelete rather than
+   * a duplicate, and takes a fresh stamp so it beats its own tombstone on
+   * every replica that has already seen the deletion.
+   */
+  const restore = async (entry) => {
+    requireUnlocked()
+    const back = normalizeEntry({ ...entry, updatedAt: stampNow() })
+    if (!back) throw new Error('nothing to restore')
+    // Replace the tombstone in place where it still exists, so the entry does
+    // not jump to the top of the list for having been briefly deleted.
+    const idx = entries.findIndex((e) => e.id === back.id)
+    entries = idx === -1 ? [back, ...entries] : entries.map((e, i) => (i === idx ? back : e))
+    await persist()
+    emit()
+    return back
+  }
+
+  /**
    * Re-key under a new passphrase. Two derivations, which is the floor: one
    * to open with the old, one to seal with the new. Going through a
    * crypto-level changePassphrase() helper cost a third by re-opening what it
@@ -881,7 +903,7 @@ export const createVaultStore = ({
     init, state, touch, lock, lockIfIdle, shouldAutoLock,
     create, unlock, rekey, destroy, importEntries,
     hasRecoveryKey, addRecoveryKey, removeRecoveryKey, verifyRecoveryKey, recoverWithKey,
-    list, raw, add, update, remove,
+    list, raw, add, update, remove, restore,
     saveDraft, loadDraft, clearDraft, hasDraft,
     // The sealed envelope, for 9b's export. Never the key, and never the
     // decrypted entries -- an export is ciphertext by construction.

@@ -1062,3 +1062,38 @@ test('the entry count ignores tombstones', async () => {
   await store.remove(a.id)
   assert.equal(store.list().length, 1)
 })
+
+test('restore puts an entry back, over its own tombstone', async () => {
+  // Undo after a delete. The deletion was already durable, so this is a
+  // re-add that has to out-rank the tombstone rather than a rollback.
+  const { store, clock } = await freshStore()
+  await store.create(PASS)
+  const made = await store.add({ label: 'Bank', pw: 'hunter2!', note: 'joint' })
+  const copy = store.list()[0]
+  await store.remove(made.id)
+  clock.advance(3000)
+
+  const back = await store.restore(copy)
+  assert.equal(store.list().length, 1)
+  assert.equal(back.id, made.id, 'the same entry, not a duplicate')
+  assert.equal(back.note, 'joint', 'with everything it had')
+  assert.ok(back.updatedAt > copy.updatedAt, 'stamped later than the deletion it undoes')
+  assert.equal(store.raw().filter((e) => e.id === made.id).length, 1,
+    'the tombstone is replaced, not left beside it')
+})
+
+test('a restored entry beats the deletion on another replica', async () => {
+  // The reason restore takes a fresh stamp. Without it the tombstone is newer
+  // and the next merge deletes the entry again.
+  const { store, clock } = await freshStore()
+  await store.create(PASS)
+  const made = await store.add({ label: 'Bank', pw: 'hunter2!' })
+  const copy = store.list()[0]
+  await store.remove(made.id)
+  const tombstone = store.raw().find((e) => e.id === made.id)
+
+  clock.advance(3000)
+  await store.restore(copy)
+  const restored = store.raw().find((e) => e.id === made.id)
+  assert.ok(restored.updatedAt > tombstone.deletedAt)
+})

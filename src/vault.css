@@ -1206,3 +1206,49 @@ body.vault-modal-open { overflow: hidden; }
   outline: 2px solid white;
   outline-offset: 2px;
 }
+
+/* The undo toast. Sits with the other page-level notices rather than floating
+   over the list: a floating bar on a phone lands on the bottom nav, and this
+   one has buttons that must not be covered. */
+.vault-undo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--band-control-border);
+  border-radius: var(--radius);
+  /* On the band, like the filter row above it -- see the Add button, which was
+     the same colour as the page until it was given this treatment. */
+  background: var(--band-fill);
+  color: var(--band-text);
+}
+
+.vault-undo-text { flex: 1 1 12rem; }
+.vault-undo-text strong { color: var(--band-text); }
+
+/* The countdown. Tabular figures so it does not jitter as it ticks down, and
+   a fixed floor so 15 and 9 occupy the same width. */
+.vault-undo-count {
+  display: inline-block;
+  min-width: 1.6rem;
+  margin-left: 0.35rem;
+  padding: 0 0.35rem;
+  border-radius: 999px;
+  background: var(--band-control-bg);
+  border: 1px solid var(--band-control-border);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  text-align: center;
+}
+
+.vault-undo-actions {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.vault-undo .btn {
+  border-color: var(--band-control-border);
+}
