@@ -33,6 +33,9 @@ const DRAFT_ID = 'draft-v1'
 /** Fifteen minutes, matching the lockout scenario the entropy panel quotes. */
 export const DEFAULT_AUTOLOCK_MS = 15 * 60 * 1000
 
+/** How long a deletion marker is kept before it is reaped. See reap(). */
+export const TOMBSTONE_TTL_MS = 90 * 24 * 60 * 60 * 1000
+
 export const VAULT_LOCK_KEY = 'global.vaultAutoLock'
 
 /** The configured window, in ms. Shared by the generator and the vault page. */
@@ -265,8 +268,47 @@ const fieldList = (v) => {
     .slice(0, 30)
 }
 
+/**
+ * An ISO-8601 UTC instant, or null. Used for `updatedAt` and `deletedAt`.
+ *
+ * ISO rather than epoch milliseconds because it is readable in an exported
+ * file, and because strings in this format compare lexicographically in the
+ * same order they compare chronologically -- so a merge can sort them without
+ * parsing anything. The existing `at` field stays a plain date: it is what the
+ * UI shows, day granularity is right for that, and two edits on one day would
+ * be indistinguishable if merges relied on it.
+ */
+const stamp = (v) => {
+  if (typeof v !== 'string' || !v) return null
+  const t = Date.parse(v)
+  return Number.isFinite(t) ? new Date(t).toISOString() : null
+}
+
+/**
+ * A deleted entry, kept as a marker rather than removed (ROADMAP: sync-shaped).
+ *
+ * Without this, "deleted here" and "not seen yet" are the same thing to a
+ * merge, so any second replica resurrects everything the first one deleted --
+ * silently, and specifically for the entries someone most wanted gone.
+ *
+ * A tombstone carries no secret: the id, when it died, and nothing else. It is
+ * deliberately not an entry with a `deleted` flag, because then every consumer
+ * of an entry has to remember to check.
+ */
+export const isTombstone = (e) => !!e && typeof e === 'object' && !!e.deletedAt && !e.pw
+
+const normalizeTombstone = (raw) => {
+  const deletedAt = stamp(raw.deletedAt)
+  if (!deletedAt) return null
+  const id = typeof raw.id === 'string' && raw.id ? raw.id : null
+  return id ? { id, deletedAt } : null
+}
+
 export const normalizeEntry = (raw) => {
   if (!raw || typeof raw !== 'object') return null
+  // Checked before the password rule, since a tombstone has no password and
+  // dropping it here is how a deletion gets forgotten.
+  if (raw.deletedAt) return normalizeTombstone(raw)
   if (typeof raw.pw !== 'string' || raw.pw === '') return null
   return {
     id: typeof raw.id === 'string' && raw.id ? raw.id : newId(),
@@ -292,6 +334,12 @@ export const normalizeEntry = (raw) => {
     tags: tagList(raw.tags),
     bits: Number.isFinite(raw.bits) ? raw.bits : null,
     at: typeof raw.at === 'string' && raw.at ? raw.at : null,
+    // When this entry last changed, to the millisecond. `at` is the day it was
+    // created and is what the UI shows; this is what a merge compares. Null on
+    // everything written before this existed, which a merge reads as "older
+    // than anything stamped" -- the safe direction, since it means a replica
+    // that does know the time wins rather than an unknown clobbering it.
+    updatedAt: stamp(raw.updatedAt),
     note: text(raw.note, 2000),
   }
 }
@@ -433,6 +481,10 @@ export const createVaultStore = ({
   let kdf = null
   let entries = null
   let lastActivity = now()
+
+  // Every write is stamped from the injected clock rather than Date.now, so
+  // the merge tests can drive time instead of sleeping.
+  const stampNow = () => new Date(now()).toISOString()
   let loaded = false
 
   const state = () => {
@@ -502,7 +554,22 @@ export const createVaultStore = ({
     return true
   }
 
+  /**
+   * Drop tombstones old enough that every replica has certainly seen them.
+   *
+   * A tombstone that lives forever is a slow leak of what used to be in the
+   * vault -- ids and dates accumulating with nothing to show for them. Ninety
+   * days is far longer than any plausible gap between two replicas syncing,
+   * and the cost of being wrong is one resurrected entry rather than a lost
+   * one, which is the right direction to fail in.
+   */
+  const reap = (list) => {
+    const cutoff = now() - TOMBSTONE_TTL_MS
+    return list.filter((e) => !isTombstone(e) || Date.parse(e.deletedAt) >= cutoff)
+  }
+
   const persist = async () => {
+    entries = reap(entries)
     envelope = await sealVault(key, kdf, entries)
     await storage.save(envelope)
   }
@@ -589,12 +656,25 @@ export const createVaultStore = ({
 
   const list = () => {
     requireUnlocked()
+    return entries.filter((e) => !isTombstone(e)).map((e) => ({ ...e }))
+  }
+
+  /**
+   * Everything, tombstones included. What a replica has to hand over.
+   *
+   * Separate from list() rather than a flag on it, because every existing
+   * caller wants the UI view and would have to remember to filter. The one
+   * caller that must NOT filter is the merge, and making it ask for something
+   * differently named is the point.
+   */
+  const raw = () => {
+    requireUnlocked()
     return entries.map((e) => ({ ...e }))
   }
 
   const add = async (entry) => {
     requireUnlocked()
-    const normalized = normalizeEntry(entry)
+    const normalized = normalizeEntry({ ...entry, updatedAt: stampNow() })
     if (!normalized) throw new Error('an entry needs a password')
     entries = [normalized, ...entries]
     await persist()
@@ -606,7 +686,7 @@ export const createVaultStore = ({
     requireUnlocked()
     const idx = entries.findIndex((e) => e.id === id)
     if (idx === -1) throw new Error('no such entry')
-    const merged = normalizeEntry({ ...entries[idx], ...patch, id })
+    const merged = normalizeEntry({ ...entries[idx], ...patch, id, updatedAt: stampNow() })
     if (!merged) throw new Error('an entry needs a password')
     entries = entries.map((e, i) => (i === idx ? merged : e))
     await persist()
@@ -614,14 +694,43 @@ export const createVaultStore = ({
     return merged
   }
 
+  /**
+   * Delete an entry, leaving a marker behind.
+   *
+   * The secret goes immediately -- the tombstone holds an id and a time and
+   * nothing else -- but the id has to survive, or a replica that still has the
+   * entry will hand it back on the next merge.
+   */
   const remove = async (id) => {
     requireUnlocked()
-    const before = entries.length
-    entries = entries.filter((e) => e.id !== id)
-    if (entries.length === before) return false
+    const idx = entries.findIndex((e) => e.id === id && !isTombstone(e))
+    if (idx === -1) return false
+    entries = entries.map((e, i) => (i === idx ? { id, deletedAt: stampNow() } : e))
     await persist()
     emit()
     return true
+  }
+
+  /**
+   * Put back an entry that was just deleted.
+   *
+   * Deletion is durable the moment it is asked for -- the tombstone is already
+   * written and already on disk -- so this is a genuine re-add rather than a
+   * rollback. It keeps the id, which is what makes it an undelete rather than
+   * a duplicate, and takes a fresh stamp so it beats its own tombstone on
+   * every replica that has already seen the deletion.
+   */
+  const restore = async (entry) => {
+    requireUnlocked()
+    const back = normalizeEntry({ ...entry, updatedAt: stampNow() })
+    if (!back) throw new Error('nothing to restore')
+    // Replace the tombstone in place where it still exists, so the entry does
+    // not jump to the top of the list for having been briefly deleted.
+    const idx = entries.findIndex((e) => e.id === back.id)
+    entries = idx === -1 ? [back, ...entries] : entries.map((e, i) => (i === idx ? back : e))
+    await persist()
+    emit()
+    return back
   }
 
   /**
@@ -794,7 +903,7 @@ export const createVaultStore = ({
     init, state, touch, lock, lockIfIdle, shouldAutoLock,
     create, unlock, rekey, destroy, importEntries,
     hasRecoveryKey, addRecoveryKey, removeRecoveryKey, verifyRecoveryKey, recoverWithKey,
-    list, add, update, remove,
+    list, raw, add, update, remove, restore,
     saveDraft, loadDraft, clearDraft, hasDraft,
     // The sealed envelope, for 9b's export. Never the key, and never the
     // decrypted entries -- an export is ciphertext by construction.

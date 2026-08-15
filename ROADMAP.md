@@ -38,20 +38,154 @@ timer, the encryption patterns and the offline shell. 9b's one reversal — that
 plain-text export would not be offered — is recorded in place rather than
 quietly edited away.
 
-**Next — 9c, the packaged app.** It only became worth its cost once 9a and 9b
-were good, and it brings the one thing the web genuinely cannot do: autofill
+**Also shipped — 9f's recovery key**, which closes the failure the vault had no
+answer to: forgetting the passphrase. Envelope v2 wraps a random master key
+once per way in, so either key opens the vault and neither reveals the other.
+Everything in 9f's entry was measured against the build rather than planned in
+advance; the AAD gap it now records was found by being asked what actually
+deserves scrutiny once both keys run the same mechanism.
+
+---
+
+### Superseded, one message later, and worth reading in order
+
+The section below argued that filling comes before importing, and that the
+desktop extension is the way to get filling. The first half holds. The second
+half does not, and the objection that killed it is short: *all that work, and
+what does it get us? It pushes sync back a little. As soon as there is a second
+thing — desktop app, mobile app, CLI script — it needs to sync, and a desktop
+browser extension does not make sense as the canonical copy.*
+
+That is right, and it invalidates the design work that came with it. **"Which
+copy is canonical" is only a question you are forced to answer if you have
+decided not to build sync.** Accept that a second client is coming — and it is,
+because filling on a desktop does nothing for a phone — and the answer stops
+being a choice: no client is canonical, every client is a replica. Building the
+extension as the source of truth means building an architecture whose only
+purpose is to postpone that, then discarding it. The bridge and its security
+analysis were scaffolding for a shape that should not exist.
+
+Read on for what it got wrong, then see "Sync-shaped, before anything is
+synced" below for what replaces it. Neither is deleted, because the reasoning
+in the first is still what makes the second convincing.
+
+### The next decision, stated plainly: a vault you cannot fill from
+
+**The vault is valuable and it is not yet very usable, and no amount of work
+inside the vault changes that.** Everything in it must be copy-pasted into
+every login, on every site, forever. That is tolerable on a desktop for a
+dozen entries and it is not a password manager.
+
+This reorders what follows, and the correction is worth recording because the
+list below was written believing otherwise. **Importing from another manager
+(10b) looks like the obvious next win and is not.** Bulk-importing two hundred
+passwords into something that cannot fill them produces a very well organised
+museum: it raises the cost of the tedium rather than removing it, and the
+people who would benefit most from the import are exactly the people who would
+notice fastest that every login is now a copy and a paste. Imports are worth
+building *after* filling exists, at which point they load a tool that gets
+used.
+
+**Filling needs the extension, and the extension does not need sync.** Those
+are separate axes and bundling them has been the quiet assumption throughout
+this file. Sync (9d) drags in a server, per-device key wrapping and the whole
+conditions list. The extension does not: 8c's option (b) — the site stays
+canonical, the extension holds a copy refreshed by importing a backup — needs
+no server at all and covers filling completely on one machine. Unglamorous,
+and the version that could actually get built.
+
+So the order is **8c's canonical-vault decision, then the build step, then an
+extension that fills, then imports.** The build step is the real gate and a
+genuine loss rather than a formality: Manifest V3 forbids `'unsafe-eval'`,
+Vue's runtime compiler needs it, so precompiled templates stop being optional —
+and *the deployed site is the source you can read* stops being literally true.
+That is the claim this project leads with. Decide it deliberately, not halfway
+through writing a content script.
+
+**What has not been tested is whether copy-paste is merely annoying or
+actually disqualifying.** Nobody has lived with this vault for a week. That
+answer changes how much the extension is worth and it cannot be reasoned to
+from here.
+
+---
+
+---
+
+### Sync-shaped, before anything is synced
+
+The useful question is not *extension or app*. It is **what makes any second
+client possible at all**, and the answer is cheaper than a server and smaller
+than either.
+
+**The vault's data model cannot currently survive sync.** Deletions are plain
+removals, and `mergeEntries` merges non-destructively and never deletes —
+exactly right for imports and exactly wrong for replicas. Delete an entry on
+the laptop, sync from the phone, and the merge resurrects it. Silently, and
+specifically for the entries someone most wanted gone.
+
+- [ ] **`updatedAt` on every entry**, so a merge can tell newer from older
+      rather than preferring whichever side it happened to read first.
+- [ ] **Tombstones.** A deleted entry becomes `{ id, deletedAt }` instead of
+      vanishing, so "deleted here" is distinguishable from "not seen yet".
+      Reaped after some interval, since a tombstone that lives forever is a
+      slow leak of what used to exist.
+- [ ] **A vault id and a device id**, so two replicas can establish they are
+      the same vault before attempting to reconcile.
+- [ ] **Per-entry merge rather than per-file**, which `mergeEntries` almost
+      does already — it merges by identity, it just has no notion of time or
+      of absence.
+
+None of that needs a network. All of it is testable in node today. It is
+roughly a day of work while there is exactly one client and the migration is
+free, and it is the whole difference between *sync later* and *rewrite later*.
+
+**Then the transport is a separate and deferrable choice**, which is the part
+that protects the claims. A server (9d) means accounts, hosting, liability, and
+"no accounts, nothing leaves your device" stops being true. But sync does not
+require *our* server: the user's own cloud folder does it. Dropbox, iCloud
+Drive, OneDrive, any synced directory. The encrypted file lands there, every
+client reads and writes it, and we see nothing — the zero-knowledge claim stays
+trivially true because there is nothing to be knowledgeable about.
+
+- [ ] **Bring-your-own-storage first, if sync happens at all.** On desktop
+      Chromium the File System Access API can hold a persistent handle to that
+      file, so the *website* could sync with no server and no extension. Not
+      Firefox, not iOS, so it is not the answer — but it is the cheapest
+      possible proof that the replica model works, and it needs no content
+      script to try.
+- [ ] **This is also the CLI answer.** A documented encrypted file in a folder
+      the user controls is the one interface a shell script can use. A vault
+      living inside a browser extension is not.
+
+**Revised order: make it sync-shaped, prove the replica model on one transport,
+then build clients.** The extension still comes, and it still brings the
+usability unlock — but as a replica, where the bridge question shrinks from an
+architectural commitment to a local design detail.
+
+---
+
+**After that — 9c, the packaged app.** It only became worth its cost once 9a and
+9b were good, and it brings the one thing the web genuinely cannot do: autofill
 into other apps. 9b's export file is the bridge between a packaged app's storage
-sandbox and the site's, which is why it was built first.
+sandbox and the site's, which is why it was built first. It is the mobile half
+of the same problem the extension solves on desktop, and it is more expensive in
+every dimension — two stores, two review processes, $124/year — so it waits on
+the extension proving the idea.
 
 **Epic 10 is the gap against a mainstream manager**, and it is listed after 9
 rather than inside it because most of it is not about the vault so much as
 about what people expect around one: attachments, importing from the tool they
 are leaving, more than one vault, folder templates, sharing, group accounts.
 It was raised on the assumption that most of it waits for sync. Four of the
-six do not — they need no server at all and could ship on what exists today,
-which changes the order considerably. The two that do need one are also the
-two where the zero-knowledge claim is easiest to lose by accident, and 10f
-spells out exactly how.
+six do not — they need no server at all and could ship on what exists today.
+The two that do need one are also the two where the zero-knowledge claim is
+easiest to lose by accident, and 10f spells out exactly how.
+
+That four-of-six finding is still true and it is no longer the same argument
+for doing them next. *Could ship* is not *worth shipping first*: see the
+section above, which puts filling ahead of all of it. 10b in particular reads
+like a near-term win throughout this file and is not one until there is
+something to fill with.
 
 **Reading, not work — Epic 8d/8e.** 8d is a documented dead end (the web
 platform cannot hand a password to a manager for another origin, by design) and
@@ -519,7 +653,13 @@ reason it looks like.
       anything. Each file goes in sealed under the vault key, exactly as the
       entries are.
 
-### 10b. Import from other managers — one format at a time
+### 10b. Import from other managers — worth less than it looks, until filling exists
+
+**Read the "next decision" section at the top before scheduling any of this.**
+Importing is the obvious next feature and the wrong one: a bulk import into a
+vault that cannot fill anything raises the cost of the tedium instead of
+removing it. The work below is right; the timing is after the extension, not
+before it.
 
 Already reads a generic CSV with aliased headers, which covers more than it
 sounds: Bitwarden, LastPass, Chrome, Edge, Firefox and Safari all export CSV,
@@ -646,6 +786,52 @@ implementation quietly destroys the property everything else protects.
       local-only mode has to keep working exactly as it does now — Epic 9's
       second invariant, which was agreed before any of this was on the list.
 
+### 10g. A recycle bin — the same feature as undo, with the window opened
+
+Raised as the obvious consequence of shipping undo, and that reading is
+correct: **the fifteen-second undo already is a recycle bin.** It holds the
+whole entry, secret included, and puts it back on request. The only things a
+bin changes are how long the copy lives and where it lives, and the second of
+those is what makes it a different decision rather than a bigger number.
+
+Today the copy sits in a JavaScript variable. It dies when the countdown ends,
+when the vault locks, when the tab closes, and when the machine loses power. It
+is never written anywhere. A bin moves it into the vault itself, and that has
+consequences the toast does not:
+
+| | Undo (shipped) | Recycle bin |
+|---|---|---|
+| Lives in | memory | the encrypted vault |
+| Survives a lock | no | yes |
+| Survives a reboot | no | yes |
+| In your exported backup | no | yes |
+| Synced to every device | no | yes |
+
+The last two are the ones to think about. A bin means a password you deleted
+travels in every backup you make and lands on every replica you own, for the
+length of the retention window. Someone who deletes an entry because they are
+about to hand the laptop over, or because it was pasted in by mistake, has not
+agreed to that.
+
+- [ ] **Opt-in, off by default, with undo as the default behaviour.** Stated
+      where the deleting happens rather than only in settings, and the
+      retention window visible in the same place.
+- [ ] **Decide what an export does with it.** Excluding binned items from the
+      plain and CSV exports is clearly right -- another manager has no concept
+      of them and would import blank rows. The encrypted backup is the
+      interesting one: exclude them and restoring a backup silently empties
+      the bin; include them and the backup carries deleted passwords. Probably
+      include, and say so on the export screen.
+- [ ] **The machinery already exists.** Tombstones, `deletedAt`, the reaper and
+      its TTL, and `store.restore` were all built for sync and undo. A bin is
+      those parts with the secret retained instead of discarded, which is a
+      one-line change in `remove()` and a view -- and that is exactly why it
+      deserves the deliberation above rather than being waved through as easy.
+- [ ] **Reaping becomes user-visible.** Right now a tombstone quietly expires
+      at ninety days and nothing is lost. A bin entry expiring is a password
+      being destroyed on a timer, which needs to be visible before it happens
+      rather than discovered after.
+
 ## Epic 8 — Beyond the page
 
 > The footer was templated as part of 8a. It had been six hand-written copies
@@ -684,7 +870,31 @@ a vault, and the interesting extension fills from it. The old framing is
 recorded here rather than deleted because it explains why the item sat under
 Epic 8 instead of Epic 9.
 
-- [ ] **The decision that comes before any code: where does the vault live?**
+- [x] **The decision that comes before any code has been made, and it is none
+      of the three below.** Every client is a replica; no copy is canonical.
+      The three options were a way of avoiding sync, and avoiding sync only
+      works until the second client — a phone, a CLI script — at which point
+      the chosen answer has to be unbuilt. See "Sync-shaped, before anything is
+      synced" near the top. The extension is still worth building and it is
+      still where filling comes from; it is just not the source of truth, and
+      it should not be started before the entry model can reconcile.
+
+      **Two corrections to what is written below, since it was reasoned out
+      before that.** The build step is *not* forced by an extension existing:
+      MV3 bans `'unsafe-eval'` and Vue's runtime compiler needs it, but the
+      popup — unlock, a list of matches, a fill button — is small enough for
+      plain DOM or render functions, and the portable core uses no Vue at all.
+      A build step is only forced if the *full* vault UI is rendered under
+      extension CSP, which is the strongest-isolation variant rather than the
+      baseline.
+
+      And `connect-src 'self'` does not mean "nowhere to send it", a phrase
+      used loosely here and in the v3.0.0 changelog. It covers fetch, XHR,
+      WebSocket and beacon; it does not cover top-level navigation, and the
+      directive that would have (`navigate-to`) was dropped from the spec.
+      Silent background exfiltration is blocked. `location.href` is not.
+
+- [ ] **The three options, kept for the reasoning rather than the conclusion.**
       An extension cannot be a thin client of the site. The vault key exists
       only in one tab's memory on one origin, and autofill has to work when no
       WordLock tab is open — that is the entire point of it. So the extension

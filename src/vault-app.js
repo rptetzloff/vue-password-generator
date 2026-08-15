@@ -56,6 +56,11 @@ const App = {
       onChange: (s) => {
         state.value = s
         entries.value = s === 'unlocked' ? store.list() : []
+        // Any exit from unlocked -- the Lock button, the idle timer, deleting
+        // the vault -- drops the undo copy. Doing it here rather than in
+        // lock() is the difference between covering one path and all of them;
+        // the idle timer does not go through lock().
+        if (s !== 'unlocked') forgetPending()
         // The envelope is loaded even while locked, so the lock screen can
         // offer recovery only to vaults that actually have a key for it.
         hasRecovery.value = store.hasRecoveryKey()
@@ -124,7 +129,13 @@ const App = {
       'That passphrase did not open the vault.',
     )
 
-    const lock = () => { store.lock(); revealed.value = new Set(); flash('Locked.') }
+    const lock = () => {
+      // The undo copy is dropped by the onChange above, which also catches
+      // the idle timer -- this path is not the only way out of unlocked.
+      store.lock()
+      revealed.value = new Set()
+      flash('Locked.')
+    }
 
     const save = (entry) => run(async () => {
       const payload = { ...entry }
@@ -141,14 +152,65 @@ const App = {
       flash('Saved.')
     })
 
+    /**
+     * Deleting, with fifteen seconds to change your mind.
+     *
+     * The deletion itself is NOT deferred. The tombstone is written and on
+     * disk before the toast appears, so closing the tab, locking, or losing
+     * power leaves the entry deleted -- which is what the word has to mean.
+     * What the window buys is an undo, and the undo works by holding the
+     * entry in memory and re-adding it (see store.restore).
+     *
+     * That in-memory copy is a plaintext password living slightly longer than
+     * the user asked for, which is why it is fifteen seconds rather than
+     * sixty, why "Delete permanently" exists to drop it early, and why
+     * locking the vault discards it immediately.
+     */
+    const UNDO_SECONDS = 15
+    const pending = ref(null)
+    let undoTimer = null
+
+    const forgetPending = () => {
+      if (undoTimer) { clearInterval(undoTimer); undoTimer = null }
+      pending.value = null
+    }
+
     const remove = (entry) => run(async () => {
-      // The label is the only thing safe to echo in a confirm dialog.
-      const what = entry.label || 'this entry'
-      if (!confirm(`Delete ${what}? This cannot be undone.`)) return
+      // Deleting is now reversible for a few seconds, so it no longer needs a
+      // modal confirm in front of it -- the undo IS the confirmation, and it
+      // does not interrupt anyone who meant it.
+      const copy = { ...entry }
       await store.remove(entry.id)
       entries.value = store.list()
-      flash('Deleted.')
+
+      // A second delete while the first toast is up commits the first: two
+      // pending undos would need two toasts, and the older secret should not
+      // sit in memory waiting for a slot.
+      forgetPending()
+      pending.value = { entry: copy, label: copy.label || 'that entry', left: UNDO_SECONDS }
+      undoTimer = setInterval(() => {
+        if (!pending.value) return forgetPending()
+        pending.value = { ...pending.value, left: pending.value.left - 1 }
+        if (pending.value.left <= 0) forgetPending()
+      }, 1000)
     })
+
+    const undoDelete = () => {
+      const held = pending.value
+      if (!held) return
+      forgetPending()
+      return run(async () => {
+        await store.restore(held.entry)
+        entries.value = store.list()
+        flash('Restored.')
+      })
+    }
+
+    /** Drop the in-memory copy now rather than waiting out the countdown. */
+    const finishDelete = () => {
+      forgetPending()
+      flash('Deleted.')
+    }
 
     /**
      * Copy a secret. The wipe timer applies to anything secret, not only the
@@ -1087,6 +1149,7 @@ const App = {
       window.addEventListener('resize', fitModalToChrome)
     })
     onUnmounted(() => {
+      forgetPending()
       clearInterval(timer)
       clearInterval(totpTimer)
       for (const ev of ['pointerdown', 'keydown']) window.removeEventListener(ev, activity, true)
@@ -1112,6 +1175,7 @@ const App = {
       genModes, genMode, generating, generateInto,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
+      pending, undoDelete, finishDelete,
       shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,
       recoveryWords: RECOVERY_WORDS,
       enableRecovery, disableRecovery, dismissPhrase, copyPhrase, downloadPhrase,
@@ -1131,6 +1195,26 @@ const App = {
     <div class="vault">
       <div v-if="error" class="vault-error" role="alert">{{ error }}</div>
       <div v-if="notice" class="vault-notice" role="status" aria-live="polite">{{ notice }}</div>
+
+      <!-- Deleted, with a way back for a few seconds. The entry is already
+           gone from the vault; this holds a copy in memory so Undo can put it
+           back. Announced once, not once per second. -->
+      <div v-if="pending" class="vault-undo" role="status" aria-live="polite">
+        <span class="vault-undo-text">
+          Deleted <strong>{{ pending.label }}</strong>.
+          <span class="vault-undo-count" aria-hidden="true">{{ pending.left }}</span>
+          <span class="sr-only">You can undo this for {{ pending.left }} more seconds.</span>
+        </span>
+        <div class="vault-undo-actions">
+          <button class="btn btn-small" type="button" @click="undoDelete">
+            <span class="mdi mdi-undo" aria-hidden="true"></span> Undo
+          </button>
+          <button class="btn btn-small" type="button" @click="finishDelete"
+                  title="Drop the copy held for undo, now rather than in a few seconds">
+            Delete permanently
+          </button>
+        </div>
+      </div>
 
       <!-- The recovery key, shown exactly once.
            A dialog rather than a panel, because this is the only moment these
