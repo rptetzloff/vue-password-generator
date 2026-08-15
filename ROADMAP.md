@@ -102,10 +102,18 @@ and *the deployed site is the source you can read* stops being literally true.
 That is the claim this project leads with. Decide it deliberately, not halfway
 through writing a content script.
 
-**What has not been tested is whether copy-paste is merely annoying or
-actually disqualifying.** Nobody has lived with this vault for a week. That
-answer changes how much the extension is worth and it cannot be reasoned to
-from here.
+**That question is answered, and it was never really open.** An earlier draft
+here said nobody had lived with this vault for a week, so whether copy-paste
+was merely annoying or actually disqualifying was untested. Proposed three
+times, and each time to someone who has used password managers for years: in
+every one of them autofill *is* the product and copy-paste is the fallback for
+the cases fill cannot reach. A vault offering only the fallback is a place to
+look things up. Take it as settled rather than as an experiment to run.
+
+**But that does not make the extension mandatory, and the distinction matters.**
+It is the price of admission for *filling*, not for the vault. Someone who
+wants a local-only vault in one browser, or only in the app, has chosen a
+supported destination — see invariant 2, extended for exactly this.
 
 ---
 
@@ -243,6 +251,17 @@ built without breaking one does not get built:
    degraded local experience, not a feature gate. "Works with nothing" is the
    claim the whole site is built on, and a manager that quietly turns it into
    "works, but…" would be a worse product than no manager at all.
+
+   **Extended 2026-08-14 to cover every client, not just sync.** This was
+   written when sync was the only thing that could break it; an extension and
+   a packaged app can break it the same way. Someone who wants a local vault
+   in one browser, or only in the app, has chosen a supported destination
+   rather than stalled halfway to the real product. So: no prompt to install
+   an extension, no "filling available with…" banner over a copy button, no
+   feature withheld from the website that could have run there. If the
+   extension is ever *required* to make the vault worth using, the vault was
+   built wrong — filling is the reason to want one, not the reason the other
+   parts work.
 
 Everything else — vault, autofill, biometrics, eventually sync — is fair game
 if it can be built inside those two lines.
