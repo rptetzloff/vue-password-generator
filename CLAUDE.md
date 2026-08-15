@@ -60,7 +60,7 @@ A subject line stating what the change makes true — no conventional-commit
 prefixes, no ticket refs. The body is as long as the reasoning needs, including
 what was measured and what was rejected.
 
-**Development happens on `dev`. Releases are a PR from `dev` into `main`.**
+### Development happens on `dev`. Releases are a PR from `dev` into `main`.
 
 `dev` is what the dev site deploys, so anything that skips it reaches
 production without ever having been looked at somewhere real. Committing
