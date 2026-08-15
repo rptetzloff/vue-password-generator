@@ -1207,6 +1207,39 @@ const App = {
       flash('Folder reconnected.')
     }, 'That folder could not be reopened.')
 
+    /**
+     * Stop using a folder vault here, without touching the vault.
+     *
+     * The missing third option. Delete destroys it for everyone sharing the
+     * folder, and moving it back here takes it away from them; neither is
+     * "I am done with this vault ON THIS COMPUTER", which is the ordinary
+     * thing to want on a work machine, a shared desktop, or a browser you
+     * were only trying. Clearing site data does it today and takes the
+     * settings and every other site's data with it.
+     *
+     * No passphrase, because nothing is destroyed and asking for one would
+     * imply otherwise. What it costs is a click on "Open a vault in a folder"
+     * to come back, and that is the whole risk.
+     */
+    const disconnectFolder = () => {
+      const name = location.value.name || 'that folder'
+      const ok = confirm(
+        `Stop using the vault in ${name} on this browser?\n\n` +
+        'The file stays exactly where it is and other devices go on using it. ' +
+        'This browser locks it, forgets where it was, and offers to make a new one.\n\n' +
+        'You can point it back at that folder any time with "Open a vault in a folder".',
+      )
+      if (!ok) return
+      return run(async () => {
+        useLocation(await releaseFolder())
+        currentDir = null
+        // reload rather than init: this browser is being sent somewhere else
+        // entirely, and reload is what drops the key on the way.
+        await store.reload()
+        flash(`This browser no longer uses the vault in ${name}. The file is untouched.`)
+      })
+    }
+
     const destroy = () => {
       if (!confirm('Delete the entire vault and everything in it? This cannot be undone.')) return
       return run(async () => {
@@ -1330,6 +1363,7 @@ const App = {
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
       location, canFolder, chooseFolder, openFolder, useThisBrowser, reconnectFolder,
+      disconnectFolder,
       pending, undoDelete, finishDelete,
       shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,
       recoveryWords: RECOVERY_WORDS,
@@ -1438,11 +1472,17 @@ const App = {
             <span class="mdi mdi-folder-key-outline" aria-hidden="true"></span>
             {{ busy ? 'Asking…' : 'Reconnect the folder' }}
           </button>
+          <button class="btn" :disabled="busy" @click="disconnectFolder">
+            <span class="mdi mdi-link-variant-off" aria-hidden="true"></span>
+            Stop using it here
+          </button>
         </div>
         <p class="vault-hint">
-          If that folder is gone for good — a different machine, a deleted directory — restore an
-          encrypted backup instead. Moving this browser back to local storage would start an empty
-          vault, not recover that one.
+          If that folder is gone for good — a different machine, a deleted directory —
+          <strong>Stop using it here</strong> is the way out: it forgets the folder and nothing
+          else, and it is the only exit from this screen that is not clearing site data. Then
+          restore an encrypted backup, because starting fresh would give you an empty vault rather
+          than that one.
         </p>
       </section>
 
@@ -2248,6 +2288,10 @@ const App = {
                 <button class="btn" type="button" :disabled="busy" @click="useThisBrowser">
                   Bring it back to this browser
                 </button>
+                <button class="btn" type="button" :disabled="busy" @click="disconnectFolder">
+                  <span class="mdi mdi-link-variant-off" aria-hidden="true"></span>
+                  Stop using it here
+                </button>
               </template>
             </div>
             <p class="vault-hint">
@@ -2256,6 +2300,12 @@ const App = {
               step fails nothing is changed, and a folder that already holds a vault is refused
               rather than overwritten. <strong>Open</strong> is the opposite — it expects a vault to
               be there already, writes nothing, and is how a second computer joins.
+            </p>
+            <p v-if="location.kind === 'folder'" class="vault-hint">
+              <strong>Stop using it here</strong> is the one that changes nothing but this browser.
+              The file stays in the folder and every other device carries on; this one locks the
+              vault and forgets where it was. That is the way off a work machine or a browser you
+              were only trying, without deleting anyone's vault and without clearing site data.
             </p>
           </template>
           <p v-else class="vault-hint">
@@ -2342,7 +2392,18 @@ const App = {
 
         <details class="vault-danger">
           <summary>Delete the vault</summary>
-          <p>Everything in it goes with it. Your passphrase is required.</p>
+          <p v-if="location.kind === 'folder'">
+            This deletes the file in <strong>{{ location.name }}</strong>, so it goes for every
+            device using that folder, not just this one. To leave the vault alone and only stop
+            using it <em>here</em>, use <strong>Stop using it here</strong> above. Your passphrase
+            is required.
+          </p>
+          <p v-else>
+            Everything in it goes with it. This browser is the only copy, so there is no way to
+            remove it from this device without deleting it — export an encrypted backup first, or
+            put the vault in a folder, if you want it to survive somewhere else. Your passphrase is
+            required.
+          </p>
           <form @submit.prevent="destroy">
             <label class="vault-field">
               <span>Passphrase</span>

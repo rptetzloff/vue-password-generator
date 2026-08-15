@@ -194,6 +194,17 @@ trivially true because there is nothing to be knowledgeable about.
 - [ ] **This is also the CLI answer.** A documented encrypted file in a folder
       the user controls is the one interface a shell script can use. A vault
       living inside a browser extension is not.
+- [x] **Leaving is a third operation, not a kind of deleting.** Delete removes
+      the file for every device sharing the folder; moving it back takes it
+      away from them; neither is "I am done with this vault *on this
+      computer*", which is the ordinary thing to want on a work machine or a
+      browser you were only trying. Clearing site data did it, and took the
+      settings and every other stored thing with it. **Stop using it here**
+      forgets the pointer and the local draft, locks what is open, and touches
+      the folder not at all — no passphrase, because nothing is destroyed and
+      asking for one would imply otherwise. It is also the only exit from the
+      `blocked` screen: a folder that is gone for good previously left the page
+      offering to reconnect to something that was never coming back.
 
 **Revised order: make it sync-shaped, prove the replica model on one transport,
 then build clients.** The extension still comes, and it still brings the

@@ -42,13 +42,17 @@ const fakeDir = (files = {}, permission = 'granted') => {
   }
 }
 
-const fakeLocal = (envelope = null) => {
+const fakeLocal = (envelope = null, draft = null) => {
   let held = envelope
+  let scratch = draft
   return {
     cleared: 0,
     load: async () => held,
     save: async (e) => { held = e },
     async clear () { held = null; this.cleared++ },
+    loadDraft: async () => scratch,
+    saveDraft: async (d) => { scratch = d },
+    clearDraft: async () => { scratch = null },
   }
 }
 
@@ -304,6 +308,42 @@ test('letting go of a folder is not a move, so it refuses nothing', async () => 
 
   let saved = 'still here'
   const at = await releaseFolder({ to: local, forget: async () => { saved = null } })
+  assert.equal(saved, null)
+  assert.equal(at.kind, 'local')
+})
+
+
+test('letting go of a folder takes the half-typed entry with it', async () => {
+  // The draft is kept locally even for a folder vault -- deliberately, since
+  // syncing keystrokes into a shared folder helps nobody. So it is still here
+  // after the folder is gone, and it belongs to a vault this browser no longer
+  // holds.
+  const local = fakeLocal(null, { v: 2, wraps: {}, iv: 'x', ct: 'y' })
+  await releaseFolder({ to: local, forget: async () => {} })
+  assert.equal(await local.loadDraft(), null)
+  assert.equal(local.cleared, 0, 'and clear() was NOT called -- that would take the envelope slot')
+})
+
+test('the vault in the folder is not touched by letting go of it', async () => {
+  // The whole point. Delete removes the file for everyone sharing the folder;
+  // this removes nothing, which is what makes it the safe way off one machine.
+  const envelope = await anEnvelope()
+  const dir = fakeDir({ [VAULT_FILENAME]: JSON.stringify(envelope) })
+  await releaseFolder({ to: fakeLocal(null), forget: async () => {} })
+  assert.ok(dir.store[VAULT_FILENAME], 'the file stays')
+  assert.deepEqual(JSON.parse(dir.store[VAULT_FILENAME]), envelope, 'byte for byte')
+})
+
+test('a draft that will not clear does not block letting go', async () => {
+  // Forgetting the pointer is the operation. Refusing to finish because the
+  // scratch slot misbehaved would strand someone on the blocked screen, which
+  // is the exact state this is the escape from.
+  const stubborn = {
+    ...fakeLocal(null),
+    clearDraft: async () => { throw new Error('storage is unavailable') },
+  }
+  let saved = 'here'
+  const at = await releaseFolder({ to: stubborn, forget: async () => { saved = null } })
   assert.equal(saved, null)
   assert.equal(at.kind, 'local')
 })

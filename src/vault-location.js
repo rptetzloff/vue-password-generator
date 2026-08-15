@@ -215,6 +215,13 @@ export const openVaultInFolder = async (dir, { local = indexedDbStorage, remembe
  */
 export const releaseFolder = async ({ to = indexedDbStorage, forget = forgetFolder } = {}) => {
   await forget()
+  // The half-typed entry is scratch belonging to a vault this browser no
+  // longer holds, so it goes too. clearDraft and deliberately not clear():
+  // clear() would take the envelope slot with it, and this is the one
+  // operation in the module that is not supposed to delete a vault anywhere.
+  // A failure here is not worth refusing the release over -- the pointer is
+  // already gone, and stopping now would leave the worse half done.
+  try { await to.clearDraft() } catch {}
   return { kind: 'local', storage: to, dir: null, name: null }
 }
 
