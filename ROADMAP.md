@@ -203,12 +203,27 @@ trivially true because there is nothing to be knowledgeable about.
       | File API — `File`, `Blob`, `FileReader` | yes, since 28 | read a file the user picks, **every time**. No write. |
       | File System Access — `showDirectoryPicker` etc. | **no** | the only write-back-to-a-chosen-path route there is |
       | File System API — OPFS, `navigator.storage.getDirectory()` | yes | a sandboxed private directory. Not the user's Dropbox. |
+      | `FileSystemSyncAccessHandle.write()` | yes, 111+ | a real write — into the OPFS only. See below. |
       | `<a download>` | yes | writes to the downloads folder, cannot overwrite |
       | WebExtension `downloads` | n/a | also downloads-folder-only; Firefox has no `onDeterminingFilename` |
 
       The read column is not the problem — Import already uses the File API and
       works in Firefox today. **There is no write column.** A replica that
       cannot save is a viewer, and mode 2 is defined by both machines writing.
+
+      `FileSystemSyncAccessHandle` is the candidate that looks like it settles
+      this, and it is worth writing down why it does not, because it will be
+      suggested again. It writes, it is fast, and Firefox has had it since 111
+      (Safari since 15.2). But `createSyncAccessHandle()` is defined only for
+      files in the origin private file system and throws `InvalidStateError`
+      for anything else — and in Firefox the question never arises, since there
+      is no picker to get a non-OPFS handle from in the first place.
+
+      Which is the whole rule in one line: **Firefox will let you write inside
+      the sandbox and read outside it. Mode 2 needs writing outside it.** OPFS
+      is IndexedDB with a file-shaped API — same origin-private storage, same
+      invisibility to Dropbox and to the OS file manager. Writing a vault there
+      is what we already do; it is not a folder anyone else can see.
 
       Nor is this a gap waiting to close: Mozilla's published standards
       position on the pickers is *harmful*, and Safari has not implemented them
