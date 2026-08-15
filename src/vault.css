@@ -1110,3 +1110,99 @@ body.vault-modal-open { overflow: hidden; }
 }
 
 .vault-menu-note strong { color: var(--text); }
+
+/* The recovery key, shown exactly once.
+   Reuses the editor's backdrop so the header/nav insets and the no-scroll
+   behaviour behind it are the same ones already measured for the dialog. */
+.vault-phrase-modal {
+  width: min(34rem, 100%);
+  margin: 0 auto;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.vault-phrase-modal h2 { margin: 0 0 0.5rem; font-size: 1.15rem; }
+.vault-phrase-modal p { margin: 0 0 0.75rem; }
+
+/* The words themselves. Monospace and generously spaced because this gets
+   copied onto paper by hand and read back months later -- ambiguity between
+   two words costs an unlock. */
+.vault-phrase {
+  margin: 0 0 0.9rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--background);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-size: 1rem;
+  line-height: 1.9;
+  word-spacing: 0.35rem;
+  /* Never break a word across lines: a hyphen in the middle of one is a word
+     that gets typed back wrong. */
+  overflow-wrap: normal;
+  word-break: keep-all;
+  user-select: all;
+}
+
+/* Copy/Download sit between the words and the warning that follows them, and
+   the row carries no margin of its own -- so it collided with the warning box
+   below it. */
+.vault-phrase-modal .vault-row-actions {
+  margin: 0 0 1rem;
+  gap: 0.5rem;
+}
+
+.vault-phrase-modal .vault-warn,
+.vault-phrase-modal .vault-hint { margin-bottom: 0.9rem; }
+
+.vault-check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.9rem;
+  cursor: pointer;
+}
+
+.vault-check input { margin-top: 0.15rem; }
+
+/* "on" beside the Recovery key summary, so its state is readable without
+   opening the section. */
+.vault-chip-on {
+  display: inline-block;
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--focus-tint);
+  border: 1px solid var(--primary);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+/* The vault bar sits directly on the page gradient, not in a card.
+   --primary IS the gradient's first stop, so a primary button painted with it
+   was rgb(3,105,161) on rgb(3,105,161) in light mode: 1.00:1, the identical
+   colour. Only the white label showed, and the button read as floating text.
+   Dark was 1.59:1 -- less obvious, equally under WCAG 1.4.11's 3:1 for a
+   control's boundary.
+   The band already has tokens for exactly this, used by the header, the footer
+   and the settings panel; the bar's controls just never adopted them. */
+.vault-bar .btn-primary,
+.vault-bar .btn {
+  border: 1.5px solid var(--band-control-border);
+}
+
+.vault-bar .btn-primary:hover,
+.vault-bar .btn:hover {
+  border-color: var(--band-control-border);
+}
+
+/* White on the band, matching the header's controls -- the page behind is dark
+   in both themes here, so the ring does not need to follow the theme. */
+.vault-bar .btn:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}

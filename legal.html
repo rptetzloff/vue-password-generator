@@ -83,8 +83,15 @@
           your device, in your browser — but encrypted with a passphrase only you know, using
           1,000,000 rounds of PBKDF2. That key is never written anywhere and exists only while the
           vault is unlocked, so a copy of your browser profile yields ciphertext rather than
-          passwords. There is no account, no server and no recovery: if you forget the
-          passphrase, nobody can open the vault, including us.
+          passwords. There is no account and no server, so there is nothing for us to reset: if you
+          forget the passphrase, we cannot open the vault and neither can anyone else.
+        </p>
+        <p>
+          You may also generate a <strong>recovery key</strong> — sixteen random words, shown once,
+          which the vault stores your master key encrypted under. It is a second key that
+          <em>you</em> hold, not a back door that we do: it is generated in your browser, never
+          transmitted, and we never see it. If you lose both the passphrase and the recovery key,
+          the vault stays closed, and that is still the design rather than a shortcoming.
         </p>
         <p>
           One honest exception, because it is a real trade rather than a detail. The

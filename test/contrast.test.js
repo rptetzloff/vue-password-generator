@@ -669,6 +669,33 @@ for (const { value } of PALETTES) {
   const pDark = isDefault ? dark : resolveVars({ ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) })
 
   for (const [themeName, tokens] of [['light', pLight], ['dark', pDark]]) {
+    // WCAG 1.4.11: a control needs a 3:1 boundary against what is behind it.
+    //
+    // --primary IS the page gradient's first stop, so a primary button on the
+    // band was painted the identical colour as the band -- measured at
+    // 1.00:1 in light sky, with only its white label visible. Every existing
+    // check passed: --on-primary on --primary is the pair the design intends
+    // and it clears AA comfortably. The pair that mattered was --primary
+    // against --page-gradient, which nothing thought to compare because the
+    // two are not meant to meet.
+    //
+    // The fix is the boundary, not the fill: the --band-control-* tokens the
+    // header and footer already use. This asserts the border they provide is
+    // actually visible on every gradient this site can draw.
+    test(`${value}/${themeName} controls on the band have a visible edge`, () => {
+      const stops = gradientStops(tokens['--page-gradient'])
+      const { hex: colour, alpha } = rgbaToken(tokens['--band-control-border'])
+      for (const stop of stops) {
+        const composited = alpha < 1 ? alphaOver(colour, alpha, stop) : colour
+        const ratio = contrast(composited, stop)
+        assert.ok(
+          ratio >= 3,
+          `${value}/${themeName}: --band-control-border on the gradient stop ${stop} is ` +
+            `${ratio.toFixed(2)}:1, needs 3:1 for a control boundary.`,
+        )
+      }
+    })
+
     test(`${value}/${themeName} band text is legible on the raw gradient`, () => {
       const stops = gradientStops(tokens['--page-gradient'])
       assert.equal(stops.length, 2, `expected two gradient stops for ${value}/${themeName}`)

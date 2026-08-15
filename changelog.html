@@ -308,6 +308,54 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v3.1.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v3.1.0</div>
+            <div class="release-date">2026-08-14</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">A way back in</div>
+                <div class="release-summary">Forgetting the passphrase used to end the story. A recovery key is a second key that you hold &mdash; not a back door that we do.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>A recovery key, for the one failure a backup cannot touch.</strong> Sixteen words, generated here, shown exactly once. A backup protects the <em>data</em>; a recovery key protects <em>access</em>, and a backup you cannot decrypt is as lost as no backup at all. The two are complements and you want both &mdash; a recovery key does nothing for a vault that was never exported and no longer exists, and a backup does nothing for a passphrase nobody remembers. Offered right after the vault is created, where someone is already thinking about losing access, and from settings after that; nobody goes hunting in settings for a feature they do not know exists.</li>
+                    <li><strong>Generated, never chosen, and that restraint is the whole security argument.</strong> There is deliberately no way to supply your own phrase. A vault with two keys is only as strong as the <em>weaker</em> one, because an attacker takes whichever is cheaper to break &mdash; so a memorable recovery phrase would quietly become the real strength of your vault no matter how good the passphrase was. At 225 bits, drawn from the same 17,576-word list the Words generator uses, the recovery path is not attackable at all and the passphrase stays the binding constraint. Between those two positions is a trap: anything memorable is anything guessable. Words rather than base32 because this gets written on paper and typed back by hand months later, and duplicates are allowed, because independent draws are exactly what make the bit count true.</li>
+                    <li><strong>Shown once, and there is no screen that shows it again.</strong> The vault holds your master key encrypted <em>under</em> those words, which is not the same as keeping them &mdash; so there is nothing to show. Lose it and you generate another, which retires the previous one the moment it is made. The dialog gates its own dismissal behind a written-it-down checkbox, offers copy and download, and says plainly that anyone holding the words can read every password in the vault.</li>
+                    <li><strong>Recovering is one operation, not two.</strong> The key and the new passphrase are asked for together, so the vault is never sitting open with no passphrase anyone knows. It re-seals under a brand new master key, which means the forgotten passphrase stops working too &mdash; whoever might have learned it is locked out along with your memory of it. The key is spent by using it, having just been typed onto a screen and possibly read aloud. The lock screen checks the words as you type, so &ldquo;that is 15 words&rdquo; and &ldquo;brambel is not one of the words&rdquo; arrive before a million PBKDF2 rounds rather than after.</li>
+                    <li><strong>Adding or removing one requires the passphrase</strong>, even with the vault already open. An unlocked tab proves a tab is open, not who is asking, and minting a permanent second key to someone&rsquo;s vault is not something a passer-by should manage. The same rule already guarded deleting a vault.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong>The vault envelope is versioned, and v2 wraps a master key.</strong> v1 encrypted the entries directly under the passphrase-derived key, which leaves nowhere to put a second way in: the alternatives were storing the passphrase somewhere, or keeping two full copies of the ciphertext in step. v2 encrypts the data under a random master key and wraps that key once per slot. Two dividends that were not the reason for it: changing the passphrase now re-wraps 32 bytes instead of re-encrypting the whole vault, and revoking recovery is deleting one field. The master key is generated extractable, because <code>wrapKey</code> will not export a key that is not, and immediately re-imported non-extractable for use &mdash; what the page holds still cannot be read out by script.</li>
+                    <li><strong>Existing vaults are untouched until you ask for something.</strong> A pre-v2 vault keeps opening exactly as it did and converts only when a recovery key is added or the passphrase is changed, both moments where the passphrase is already in hand. No vault is silently re-encrypted during what the user thinks is an unlock.</li>
+                    <li><strong>&ldquo;There is no recovery&rdquo; was true and is now not.</strong> That sentence appeared on the create screen, in the docs, on Legal and in the adopt-a-passphrase warning, and a claim this product makes about itself does not get quietly deleted when it stops holding. All four now say what is actually true: there is no account and no server, so there is nothing for <em>us</em> to reset &mdash; and a recovery key is a second key <em>you</em> hold, generated in your browser, never transmitted, never seen by us. Lose both and the vault stays closed, which is still the design rather than a shortcoming.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The Add button was the same colour as the page behind it.</strong> <code>--primary</code> is both the page gradient&rsquo;s first stop and the primary button&rsquo;s fill, and the vault bar sits on the band rather than in a card, so in light mode the button was <code>rgb(3,105,161)</code> on <code>rgb(3,105,161)</code>: <strong>1.00:1</strong>, with only its white label visible. Dark measured 1.59:1 &mdash; less obvious, equally under the 3:1 WCAG 1.4.11 asks of a control&rsquo;s boundary. Every existing check passed, because they all compare the pair the design intends: <code>--on-primary</code> on <code>--primary</code> is 5.93:1. The pair that mattered was one nobody compares, because those two colours are not meant to meet. The bar&rsquo;s controls now use the <code>--band-control-*</code> tokens the header and footer already had.</li>
+                    <li><strong>The recovery dialog opened underneath the fixed header.</strong> It shares the entry editor&rsquo;s backdrop, whose insets are measured on open &mdash; but only from the editor&rsquo;s own watcher, so this dialog inherited whatever the editor last left behind, or nothing at all if the editor had never been opened. Now measured for both, with the page behind it locked.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v3.0.1 -->
         <div class="release">
           <div class="release-meta">

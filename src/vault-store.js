@@ -16,7 +16,11 @@
 // normalization -- is then testable in node without a DOM, which is the same
 // bargain isCurrentPage and shouldCondense already make.
 
-import { createVault, openVault, sealVault, isVaultEnvelope } from './vault-crypto.js'
+import {
+  createVault, openVault, sealVault, isVaultEnvelope,
+  addSlot, removeSlot, needsUpgrade, hasRecovery as cryptoHasRecovery,
+} from './vault-crypto.js'
+import { generateRecoveryPhrase, normalizeRecoveryPhrase } from './recovery-key.js'
 import { normalizeTotp } from './totp.js'
 import * as realSession from './vault-session.js'
 import { mergeEntries } from './vault-transfer.js'
@@ -657,6 +661,121 @@ export const createVaultStore = ({
     emit()
   }
 
+  // -- The recovery key (ROADMAP 9f) ----------------------------------------
+  //
+  // A second way into the vault, for the failure a backup cannot touch:
+  // forgetting the passphrase. See recovery-key.js for why it is generated
+  // rather than chosen, and vault-crypto.js for how two keys reach one
+  // plaintext.
+  //
+  // Every operation below takes the passphrase, even though the vault is
+  // already open. That is deliberate and matches destroy(): minting a second
+  // permanent key to someone's vault, or removing the one they are relying
+  // on, are not things a person who merely walked up to an unlocked browser
+  // should be able to do. Being open proves a tab is open; the passphrase
+  // proves who is asking.
+
+  const hasRecoveryKey = () => cryptoHasRecovery(envelope)
+
+  /**
+   * Generate a recovery key and wrap the master key under it.
+   *
+   * Returns the phrase, once. It is never stored in a form we can read back:
+   * the envelope holds the master key encrypted *under* it, which is not the
+   * same thing. Losing it means generating another, which is why calling this
+   * again simply replaces the slot -- and retires the previous phrase.
+   */
+  const addRecoveryKey = async (passphrase, wordList) => {
+    if (!envelope) throw new Error('no vault to add a recovery key to')
+    const phrase = generateRecoveryPhrase(wordList)
+
+    // The working key is deliberately non-extractable, and wrapKey cannot
+    // export one, so the master is unwrapped again -- extractable this time,
+    // and only for the moment it takes to wrap it under the new key.
+    let live = envelope
+    if (needsUpgrade(live)) {
+      // A v1 vault encrypts data directly under the passphrase key and has
+      // nowhere to put a second wrap. Re-seal it as v2 first: this is the
+      // lazy upgrade, run at the one moment the passphrase is already in hand.
+      const opened = await openVault(live, passphrase)
+      const made = await createVault(passphrase, opened.data, holdsSession)
+      live = made.envelope
+      key = made.key
+      kdf = made.kdf
+      entries = normalizeEntries(opened.data)
+    }
+    const master = (await openVault(live, passphrase, null, true)).key
+
+    envelope = await addSlot(live, 'recovery', phrase, master)
+    kdf = envelope.wraps
+    await storage.save(envelope)
+    touch()
+    emit()
+    return phrase
+  }
+
+  /** Retire the recovery key. The passphrase keeps working; the phrase stops. */
+  const removeRecoveryKey = async (passphrase) => {
+    if (!envelope) throw new Error('no vault')
+    if (!hasRecoveryKey()) return false
+    // Verifying rather than trusting the open tab, as above. Throws on a wrong
+    // passphrase, which leaves the recovery key in place -- the safe direction.
+    await openVault(envelope, passphrase)
+    envelope = removeSlot(envelope, 'recovery')
+    kdf = envelope.wraps
+    await storage.save(envelope)
+    touch()
+    emit()
+    return true
+  }
+
+  /**
+   * Check a recovery key without changing anything, so the unlock screen can
+   * say "that is not the right key" before asking for a new passphrase.
+   */
+  const verifyRecoveryKey = async (phrase) => {
+    if (!envelope || !hasRecoveryKey()) return false
+    try {
+      await openVault(envelope, normalizeRecoveryPhrase(phrase), null, false, 'recovery')
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /**
+   * Open with the recovery key and immediately set a new passphrase.
+   *
+   * One operation rather than two, so the vault is never sitting open with no
+   * passphrase anybody knows. The old passphrase stops working, because the
+   * slot it lived in is replaced -- which is the point, since the reason to be
+   * here is that nobody remembers it.
+   *
+   * The recovery key is retired too. It has just been typed into a screen,
+   * possibly read aloud off a piece of paper, and a key that opens the vault
+   * should not survive its own use by default; a fresh one can be generated
+   * from settings. That is stated in the UI rather than done quietly.
+   */
+  const recoverWithKey = async (phrase, newPassphrase) => {
+    if (!envelope) throw new Error('no vault to recover')
+    if (!hasRecoveryKey()) throw new Error('this vault has no recovery key')
+    const opened = await openVault(
+      envelope, normalizeRecoveryPhrase(phrase), null, false, 'recovery',
+    )
+    // A brand new master key, not a re-wrap: whoever knew the old passphrase
+    // should not still be able to open this vault afterwards.
+    const made = await createVault(newPassphrase, opened.data, holdsSession)
+    envelope = made.envelope
+    key = made.key
+    kdf = made.kdf
+    entries = normalizeEntries(opened.data)
+    await storage.save(envelope)
+    await session.rememberSession(key, kdf, staySignedInMs)
+    touch()
+    emit()
+    return state()
+  }
+
   /**
    * Delete the vault entirely. Requires the passphrase: forgetting a
    * passphrase is the common case, and someone who has merely walked up to an
@@ -674,6 +793,7 @@ export const createVaultStore = ({
   return {
     init, state, touch, lock, lockIfIdle, shouldAutoLock,
     create, unlock, rekey, destroy, importEntries,
+    hasRecoveryKey, addRecoveryKey, removeRecoveryKey, verifyRecoveryKey, recoverWithKey,
     list, add, update, remove,
     saveDraft, loadDraft, clearDraft, hasDraft,
     // The sealed envelope, for 9b's export. Never the key, and never the

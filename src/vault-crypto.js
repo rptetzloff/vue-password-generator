@@ -17,15 +17,42 @@
 //   open, or a keylogger -- no browser-side design can, and the UI should say
 //   so rather than imply otherwise.
 //
-// Format, versioned so the parameters can move without stranding old vaults:
+// Format, versioned so the parameters can move without stranding old vaults.
 //
-//   { v: 1, kdf: { name, hash, iterations, salt }, iv, ct }
+//   v1: { v: 1, kdf: { name, hash, iterations, salt }, iv, ct }
 //
-// The iteration count travels *with* the envelope rather than being read from
-// the constant below, so raising the default later still opens every vault
-// sealed under the old one.
+//       The data is encrypted directly under the passphrase-derived key.
+//       Still opened, never written again.
+//
+//   v2: { v: 2, wraps: { passphrase: SLOT, recovery: SLOT? }, iv, ct }
+//       SLOT = { kdf: { name, hash, iterations, salt }, iv, key }
+//
+//       The data is encrypted under a random master key, and the master key is
+//       wrapped once per way in. Either wrap opens the vault.
+//
+// WHY THE INDIRECTION (ROADMAP 9f). A recovery key has to reach the same
+// plaintext as the passphrase does. With v1 that is impossible without either
+// storing the passphrase somewhere -- absurd -- or keeping two full copies of
+// the ciphertext in step, which is two chances to save one and lose the other.
+// A wrapped master key is the standard answer and it buys two more things:
+// changing the passphrase re-wraps 32 bytes instead of re-encrypting the whole
+// vault, and revoking recovery is deleting one field.
+//
+// The master key is generated extractable, because wrapKey cannot export a key
+// that is not -- and is immediately re-imported non-extractable for use, so
+// what the running page holds still cannot be read out by script. The
+// extractable original is not retained. `holdsSession` is the one exception,
+// exactly as before: "stay unlocked between pages" needs a key it can store.
+//
+// The iteration count travels *with* each slot rather than being read from the
+// constant below, so raising the default later still opens every existing
+// vault -- and each slot carries its own, since the recovery slot may have
+// been added under a different default than the passphrase slot.
 
-export const VAULT_VERSION = 1
+export const VAULT_VERSION = 2
+
+/** Envelope versions this build can open. Writing is always the latest. */
+export const SUPPORTED_VERSIONS = [1, 2]
 
 /**
  * PBKDF2-SHA256 iterations for new vaults. Stated in the UI rather than
@@ -83,7 +110,13 @@ export const newSalt = () => crypto.getRandomValues(new Uint8Array(SALT_BYTES))
  * become readable to script, so a vault open in a tab cannot have its key
  * exfiltrated as a value even if something is running on the origin.
  */
-export const deriveKey = async (passphrase, salt, iterations = KDF_ITERATIONS, extractable = false) => {
+export const deriveKey = async (
+  passphrase, salt, iterations = KDF_ITERATIONS, extractable = false,
+  // A key-encryption key needs wrapKey/unwrapKey; Web Crypto refuses to wrap
+  // with a key that only claims encrypt/decrypt. Defaulted to the data-key
+  // usages so every existing caller is unchanged.
+  usages = ['encrypt', 'decrypt'],
+) => {
   if (typeof passphrase !== 'string' || passphrase === '') {
     throw new Error('a passphrase is required')
   }
@@ -99,13 +132,29 @@ export const deriveKey = async (passphrase, salt, iterations = KDF_ITERATIONS, e
     // because a key that cannot be exported cannot be held for later either
     // -- see vault-session.js for what that costs.
     extractable,
-    ['encrypt', 'decrypt'],
+    usages,
   )
 }
 
-export const isVaultEnvelope = (value) =>
-  !!value && typeof value === 'object' && value.v === VAULT_VERSION &&
-  !!value.kdf && typeof value.ct === 'string' && typeof value.iv === 'string'
+const isSlot = (s) =>
+  !!s && typeof s === 'object' && !!s.kdf &&
+  typeof s.iv === 'string' && typeof s.key === 'string'
+
+export const isVaultEnvelope = (value) => {
+  if (!value || typeof value !== 'object') return false
+  if (typeof value.ct !== 'string' || typeof value.iv !== 'string') return false
+  if (value.v === 1) return !!value.kdf
+  if (value.v === 2) return !!value.wraps && isSlot(value.wraps.passphrase)
+  return false
+}
+
+/** Which ways in an envelope has. v1 has exactly one and cannot grow another. */
+export const slotsOf = (envelope) =>
+  envelope && envelope.v === 2 && envelope.wraps
+    ? Object.keys(envelope.wraps).filter((k) => isSlot(envelope.wraps[k]))
+    : ['passphrase']
+
+export const hasRecovery = (envelope) => slotsOf(envelope).includes('recovery')
 
 /**
  * Encrypt `data` under an already-derived key. A fresh IV every time, which
@@ -120,20 +169,122 @@ export const sealVault = async (key, kdf, data) => {
   const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
   const plaintext = new TextEncoder().encode(JSON.stringify(data))
   const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, plaintext))
-  return { v: VAULT_VERSION, kdf: { ...kdf }, iv: toB64(iv), ct: toB64(ct) }
+  // `kdf` is the whole wraps object on a v2 envelope and the single kdf on a
+  // v1 one; sealing does not care which, it only re-attaches what it was given.
+  const carried = kdf && kdf.passphrase ? { v: 2, wraps: kdf } : { v: 1, kdf: { ...kdf } }
+  return { ...carried, iv: toB64(iv), ct: toB64(ct) }
 }
 
-/** A brand new vault: fresh salt, key derived at the current default cost. */
-export const createVault = async (passphrase, data = [], extractable = false) => {
-  const salt = newSalt()
-  const kdf = {
-    name: 'PBKDF2',
-    hash: 'SHA-256',
-    iterations: KDF_ITERATIONS,
-    salt: toB64(salt),
+const newKdf = (iterations = KDF_ITERATIONS) => ({
+  name: 'PBKDF2',
+  hash: 'SHA-256',
+  iterations,
+  salt: toB64(newSalt()),
+})
+
+const checkKdf = (kdf) => {
+  if (!kdf || kdf.name !== 'PBKDF2' || kdf.hash !== 'SHA-256') {
+    throw new Error(`unsupported kdf: ${kdf && kdf.name}/${kdf && kdf.hash}`)
   }
-  const key = await deriveKey(passphrase, salt, kdf.iterations, extractable)
-  return { envelope: await sealVault(key, kdf, data), key, kdf }
+  if (!Number.isInteger(kdf.iterations) || kdf.iterations < 1) {
+    throw new Error('malformed kdf iterations')
+  }
+  return kdf
+}
+
+/**
+ * A fresh master key. Generated extractable because `wrapKey` refuses to
+ * export a key that is not; `unwrapKey` then produces the non-extractable copy
+ * that actually gets used, and this one is dropped.
+ */
+const newMasterKey = () =>
+  crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt'])
+
+/**
+ * Wrap the master key for one way in. Each slot gets its own salt and its own
+ * IV -- sharing either between the passphrase and recovery slots would relate
+ * two ciphertexts of the same plaintext under different keys, which is exactly
+ * the thing GCM's IV rule exists to prevent.
+ */
+const wrapMaster = async (masterKey, secret, iterations = KDF_ITERATIONS) => {
+  const kdf = newKdf(iterations)
+  // Both usages from one derivation. Creating a vault needs to wrap the master
+  // and then unwrap it again to get the non-extractable working copy, and
+  // deriving twice for that would double the cost of the slowest operation in
+  // the product for no reason -- one million rounds, not two.
+  const kek = await deriveKey(secret, fromB64(kdf.salt), kdf.iterations, false, ['wrapKey', 'unwrapKey'])
+  const iv = crypto.getRandomValues(new Uint8Array(IV_BYTES))
+  const wrapped = new Uint8Array(
+    await crypto.subtle.wrapKey('raw', masterKey, kek, { name: 'AES-GCM', iv }),
+  )
+  return { slot: { kdf, iv: toB64(iv), key: toB64(wrapped) }, kek }
+}
+
+/**
+ * Unwrap the master key from one slot. A wrong secret throws here rather than
+ * further down: GCM authenticates the wrap, so this is where "that passphrase
+ * is not the one" is actually discovered.
+ */
+const unwrapWith = (slot, kek, extractable = false) =>
+  crypto.subtle.unwrapKey(
+    'raw', fromB64(slot.key), kek,
+    { name: 'AES-GCM', iv: fromB64(slot.iv) },
+    { name: 'AES-GCM', length: 256 },
+    extractable,
+    ['encrypt', 'decrypt'],
+  )
+
+const unwrapMaster = async (slot, secret, extractable = false) => {
+  checkKdf(slot.kdf)
+  const kek = await deriveKey(secret, fromB64(slot.kdf.salt), slot.kdf.iterations, false, ['unwrapKey'])
+  return crypto.subtle.unwrapKey(
+    'raw', fromB64(slot.key), kek,
+    { name: 'AES-GCM', iv: fromB64(slot.iv) },
+    { name: 'AES-GCM', length: 256 },
+    extractable,
+    ['encrypt', 'decrypt'],
+  )
+}
+
+/** A brand new vault: a random master key, wrapped under the passphrase. */
+export const createVault = async (passphrase, data = [], extractable = false) => {
+  if (typeof passphrase !== 'string' || passphrase === '') {
+    throw new Error('a passphrase is required')
+  }
+  const master = await newMasterKey()
+  const { slot, kek } = await wrapMaster(master, passphrase)
+  const wraps = { passphrase: slot }
+  // Re-import non-extractable for use, reusing the KEK just derived, and let
+  // the extractable original go.
+  const key = await unwrapWith(slot, kek, extractable)
+  return { envelope: await sealVault(key, wraps, data), key, kdf: wraps }
+}
+
+/**
+ * Add a second way in, given the master key of an already-open vault. Returns
+ * a new envelope; the caller stores it.
+ *
+ * Requires the vault to be unlocked, which is the point: enabling recovery is
+ * something only the person who can already open it may do.
+ */
+export const addSlot = async (envelope, name, secret, masterKey) => {
+  if (envelope.v !== 2) throw new Error('only a v2 envelope has slots')
+  if (!masterKey || !masterKey.extractable) {
+    // Wrapping needs an exportable key, and the working copy deliberately is
+    // not one. The store re-derives an extractable master for this operation.
+    throw new Error('adding a slot needs an extractable master key')
+  }
+  const { slot } = await wrapMaster(masterKey, secret)
+  return { ...envelope, wraps: { ...envelope.wraps, [name]: slot } }
+}
+
+/** Remove a way in. The passphrase slot is not removable -- that is a delete. */
+export const removeSlot = (envelope, name) => {
+  if (envelope.v !== 2 || name === 'passphrase') return envelope
+  if (!envelope.wraps || !envelope.wraps[name]) return envelope
+  const wraps = { ...envelope.wraps }
+  delete wraps[name]
+  return { ...envelope, wraps }
 }
 
 /**
@@ -146,24 +297,35 @@ export const createVault = async (passphrase, data = [], extractable = false) =>
  * vault to someone who mistyped would invite them to start over on top of
  * their real data.
  */
-export const openVault = async (envelope, passphrase, existingKey = null, extractable = false) => {
+export const openVault = async (
+  envelope, passphrase, existingKey = null, extractable = false, slot = 'passphrase',
+) => {
   if (!isVaultEnvelope(envelope)) throw new Error('not a vault envelope')
-  const { kdf } = envelope
-  if (kdf.name !== 'PBKDF2' || kdf.hash !== 'SHA-256') {
-    throw new Error(`unsupported kdf: ${kdf.name}/${kdf.hash}`)
-  }
-  if (!Number.isInteger(kdf.iterations) || kdf.iterations < 1) {
-    throw new Error('malformed kdf iterations')
-  }
+
   // An already-derived key skips the KDF entirely. Used when the key comes
   // back from the session holder after a page navigation -- re-deriving there
   // would need the passphrase, which is the whole thing being avoided. A key
   // that does not match still fails, because GCM authenticates.
-  const key = existingKey || await deriveKey(passphrase, fromB64(kdf.salt), kdf.iterations, extractable)
+  let key = existingKey
+  let kdf
+
+  if (envelope.v === 1) {
+    // v1 has no master key: the passphrase key *is* the data key. Read-only
+    // from here on -- anything that writes upgrades to v2 first.
+    if (slot !== 'passphrase') throw new Error('a v1 vault has no recovery key')
+    kdf = checkKdf(envelope.kdf)
+    if (!key) key = await deriveKey(passphrase, fromB64(kdf.salt), kdf.iterations, extractable)
+  } else {
+    const wrap = envelope.wraps[slot]
+    if (!wrap) throw new Error(`this vault has no ${slot} key`)
+    kdf = envelope.wraps
+    if (!key) key = await unwrapMaster(wrap, passphrase, extractable)
+  }
+
   const pt = await crypto.subtle.decrypt(
     { name: 'AES-GCM', iv: fromB64(envelope.iv) }, key, fromB64(envelope.ct),
   )
-  return { data: JSON.parse(new TextDecoder().decode(pt)), key, kdf }
+  return { data: JSON.parse(new TextDecoder().decode(pt)), key, kdf, version: envelope.v }
 }
 
 // Re-keying lives in vault-store.js rather than here. A helper at this level
@@ -178,5 +340,13 @@ export const openVault = async (envelope, passphrase, existingKey = null, extrac
  * silently -- re-keying needs the passphrase, and asking for it out of
  * nowhere is exactly the pattern phishing imitates.
  */
-export const needsRekey = (envelope) =>
-  isVaultEnvelope(envelope) && envelope.kdf.iterations < KDF_ITERATIONS
+export const needsRekey = (envelope) => {
+  if (!isVaultEnvelope(envelope)) return false
+  // A v1 envelope is behind by definition -- not because its cost is wrong,
+  // but because the format cannot hold a recovery key.
+  if (envelope.v === 1) return true
+  return Object.values(envelope.wraps).some((s) => s.kdf.iterations < KDF_ITERATIONS)
+}
+
+/** Whether the envelope predates the wrapped-master-key format. */
+export const needsUpgrade = (envelope) => isVaultEnvelope(envelope) && envelope.v === 1
