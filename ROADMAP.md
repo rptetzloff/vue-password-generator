@@ -47,6 +47,28 @@ deserves scrutiny once both keys run the same mechanism.
 
 ---
 
+### Superseded, one message later, and worth reading in order
+
+The section below argued that filling comes before importing, and that the
+desktop extension is the way to get filling. The first half holds. The second
+half does not, and the objection that killed it is short: *all that work, and
+what does it get us? It pushes sync back a little. As soon as there is a second
+thing — desktop app, mobile app, CLI script — it needs to sync, and a desktop
+browser extension does not make sense as the canonical copy.*
+
+That is right, and it invalidates the design work that came with it. **"Which
+copy is canonical" is only a question you are forced to answer if you have
+decided not to build sync.** Accept that a second client is coming — and it is,
+because filling on a desktop does nothing for a phone — and the answer stops
+being a choice: no client is canonical, every client is a replica. Building the
+extension as the source of truth means building an architecture whose only
+purpose is to postpone that, then discarding it. The bridge and its security
+analysis were scaffolding for a shape that should not exist.
+
+Read on for what it got wrong, then see "Sync-shaped, before anything is
+synced" below for what replaces it. Neither is deleted, because the reasoning
+in the first is still what makes the second convincing.
+
 ### The next decision, stated plainly: a vault you cannot fill from
 
 **The vault is valuable and it is not yet very usable, and no amount of work
@@ -84,6 +106,61 @@ through writing a content script.
 actually disqualifying.** Nobody has lived with this vault for a week. That
 answer changes how much the extension is worth and it cannot be reasoned to
 from here.
+
+---
+
+---
+
+### Sync-shaped, before anything is synced
+
+The useful question is not *extension or app*. It is **what makes any second
+client possible at all**, and the answer is cheaper than a server and smaller
+than either.
+
+**The vault's data model cannot currently survive sync.** Deletions are plain
+removals, and `mergeEntries` merges non-destructively and never deletes —
+exactly right for imports and exactly wrong for replicas. Delete an entry on
+the laptop, sync from the phone, and the merge resurrects it. Silently, and
+specifically for the entries someone most wanted gone.
+
+- [ ] **`updatedAt` on every entry**, so a merge can tell newer from older
+      rather than preferring whichever side it happened to read first.
+- [ ] **Tombstones.** A deleted entry becomes `{ id, deletedAt }` instead of
+      vanishing, so "deleted here" is distinguishable from "not seen yet".
+      Reaped after some interval, since a tombstone that lives forever is a
+      slow leak of what used to exist.
+- [ ] **A vault id and a device id**, so two replicas can establish they are
+      the same vault before attempting to reconcile.
+- [ ] **Per-entry merge rather than per-file**, which `mergeEntries` almost
+      does already — it merges by identity, it just has no notion of time or
+      of absence.
+
+None of that needs a network. All of it is testable in node today. It is
+roughly a day of work while there is exactly one client and the migration is
+free, and it is the whole difference between *sync later* and *rewrite later*.
+
+**Then the transport is a separate and deferrable choice**, which is the part
+that protects the claims. A server (9d) means accounts, hosting, liability, and
+"no accounts, nothing leaves your device" stops being true. But sync does not
+require *our* server: the user's own cloud folder does it. Dropbox, iCloud
+Drive, OneDrive, any synced directory. The encrypted file lands there, every
+client reads and writes it, and we see nothing — the zero-knowledge claim stays
+trivially true because there is nothing to be knowledgeable about.
+
+- [ ] **Bring-your-own-storage first, if sync happens at all.** On desktop
+      Chromium the File System Access API can hold a persistent handle to that
+      file, so the *website* could sync with no server and no extension. Not
+      Firefox, not iOS, so it is not the answer — but it is the cheapest
+      possible proof that the replica model works, and it needs no content
+      script to try.
+- [ ] **This is also the CLI answer.** A documented encrypted file in a folder
+      the user controls is the one interface a shell script can use. A vault
+      living inside a browser extension is not.
+
+**Revised order: make it sync-shaped, prove the replica model on one transport,
+then build clients.** The extension still comes, and it still brings the
+usability unlock — but as a replica, where the bridge question shrinks from an
+architectural commitment to a local design detail.
 
 ---
 
@@ -747,7 +824,31 @@ a vault, and the interesting extension fills from it. The old framing is
 recorded here rather than deleted because it explains why the item sat under
 Epic 8 instead of Epic 9.
 
-- [ ] **The decision that comes before any code: where does the vault live?**
+- [x] **The decision that comes before any code has been made, and it is none
+      of the three below.** Every client is a replica; no copy is canonical.
+      The three options were a way of avoiding sync, and avoiding sync only
+      works until the second client — a phone, a CLI script — at which point
+      the chosen answer has to be unbuilt. See "Sync-shaped, before anything is
+      synced" near the top. The extension is still worth building and it is
+      still where filling comes from; it is just not the source of truth, and
+      it should not be started before the entry model can reconcile.
+
+      **Two corrections to what is written below, since it was reasoned out
+      before that.** The build step is *not* forced by an extension existing:
+      MV3 bans `'unsafe-eval'` and Vue's runtime compiler needs it, but the
+      popup — unlock, a list of matches, a fill button — is small enough for
+      plain DOM or render functions, and the portable core uses no Vue at all.
+      A build step is only forced if the *full* vault UI is rendered under
+      extension CSP, which is the strongest-isolation variant rather than the
+      baseline.
+
+      And `connect-src 'self'` does not mean "nowhere to send it", a phrase
+      used loosely here and in the v3.0.0 changelog. It covers fetch, XHR,
+      WebSocket and beacon; it does not cover top-level navigation, and the
+      directive that would have (`navigate-to`) was dropped from the spec.
+      Silent background exfiltration is blocked. `location.href` is not.
+
+- [ ] **The three options, kept for the reasoning rather than the conclusion.**
       An extension cannot be a thin client of the site. The vault key exists
       only in one tab's memory on one origin, and autofill has to work when no
       WordLock tab is open — that is the entire point of it. So the extension
