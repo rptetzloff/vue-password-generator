@@ -393,8 +393,47 @@ the bridge between them, which is a reason to build 9b first and well.
 
 ### 9d. Sync, if it ever happens — the conditions
 
-Not parked forever, but conditional. Every one of these is a gate, not a
-preference:
+**Written assuming a server, which now looks like the most expensive option
+and the only one that breaks an invariant.** The gates below still stand and
+still apply, but they were drafted before the entry model existed and before
+anyone costed the alternatives. Sync is a *transport* problem now: the merge is
+built and tested, so what remains is moving one encrypted file between places.
+That can be done four ways, and hosting is the smallest part of the price.
+
+| Transport | Money | Ongoing burden | Breaks "no accounts" |
+|---|---|---|---|
+| Manual export / import (today) | none | none | no |
+| Local file handle + the user's own cloud client | ~none | ~none | no |
+| Provider APIs (Dropbox, Drive, OneDrive) | small | 3–4 review processes, API drift | no |
+| Our own server | small | uptime, abuse, deletion requests | **yes** |
+
+- [ ] **The cheap path is the default, and it uses no provider API at all.**
+      The File System Access API can hold a persistent handle to a file inside
+      the Dropbox or OneDrive folder the user's desktop client *already*
+      syncs. No OAuth, no app registration, no server, no account — their sync
+      client does the work and we never learn which provider it is. Chromium
+      desktop only, so not the whole answer, but it is the cheapest possible
+      proof the replica model works and it needs nothing from anyone.
+- [ ] **Provider APIs cost more in friction than in money.** Each is a separate
+      integration with its own OAuth registration and review. Dropbox is
+      straightforward, Microsoft Graph is manageable, Google Drive is the heavy
+      one — scoping to `drive.file`, where the app only sees files it created,
+      stays out of the restricted-scope tier that triggers a paid third-party
+      security assessment. And **iCloud Drive has no web API**, so it is
+      native-only regardless. Three or four integrations, each with review and
+      permanent drift, for something the row above does for free.
+- [ ] **A server's cost is obligation, not hosting.** Ciphertext blobs are tens
+      of kilobytes and nearly free to store anywhere. What is expensive is
+      being the party that must stay up, handle abuse, answer deletion
+      requests, and explain an outage — plus it needs an identity of some kind
+      even when opaque, which is the line Legal currently draws. Worth it only
+      if the free paths have been tried and genuinely do not cover enough.
+- [ ] **Mobile is 9c's problem, not this section's.** No mobile browser offers
+      persistent file handles, so a phone syncs through the packaged app and
+      the platform file pickers. That is a reason to keep the format a plain
+      encrypted file rather than anything clever.
+
+Every one of these is a gate, not a preference:
 
 - [ ] **Opt-in, and the local mode stays whole.** No account prompt on first
       run, no feature that exists only for synced users, no reminder that
