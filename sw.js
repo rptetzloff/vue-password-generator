@@ -10,8 +10,12 @@
 // VERSION is pinned to package.json by the tests, so every release renames
 // the cache. The browser re-fetches sw.js on navigation, sees a new byte
 // sequence, installs the new worker, and activate() below drops the old
-// cache. Assets are cache-first *within* a version, never across versions.
-const VERSION = '3.0.1'
+// cache.
+//
+// That was once the ONLY way a client got new bytes, and it failed -- see the
+// fetch handler below, which no longer trusts the cache indefinitely. Renaming
+// the cache is now the belt rather than the braces.
+const VERSION = '3.1.0'
 const CACHE = 'pwgen-' + VERSION
 
 const PRECACHE = [
