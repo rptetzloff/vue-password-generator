@@ -308,6 +308,45 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v3.2.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v3.2.0</div>
+            <div class="release-date">2026-08-14</div>
+            <span class="release-badge badge-minor">Minor</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Fifteen seconds to change your mind</div>
+                <div class="release-summary">Deleting an entry is now undoable for a few seconds &mdash; and underneath it, the entry model learned to survive being copied to a second device.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>Undo, for fifteen seconds after a delete.</strong> A toast counts down from fifteen with <strong>Undo</strong> and <strong>Delete permanently</strong> beside it, and the modal confirmation that used to sit in front of every deletion is gone &mdash; the undo <em>is</em> the confirmation, and unlike a dialog it does not interrupt someone who meant it.</li>
+                    <li><strong>The deletion is not deferred, which is the part worth knowing.</strong> The entry is removed and written to disk before the toast appears. Close the tab, reload, lock the vault or lose power during the countdown and it stays deleted, because otherwise the word does not mean anything. What the window buys is an undo, not a delay. Leaving the page forfeits the undo; it does not cancel the deletion.</li>
+                    <li><strong>And the copy that makes undo possible is treated as what it is</strong> &mdash; a plaintext password living slightly longer than you asked. It is held in memory only, never written; fifteen seconds rather than sixty; <strong>Delete permanently</strong> drops it early; and it is discarded the instant the vault locks, including by the idle timer.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>The vault can now survive being copied to a second device.</strong> Nothing syncs yet and no transport exists &mdash; this is the entry model any of that would need, built while there is exactly one client and the migration is free. Every entry carries an <code>updatedAt</code>, deletions leave a marker rather than a hole, and reconciling two copies is a real operation rather than a hopeful one.</li>
+                    <li><strong>The bug it exists to prevent.</strong> Deletions were plain removals, and the import merge is non-destructive by design &mdash; correct for importing someone else&rsquo;s file, catastrophic for two copies of your own. Delete an entry on the laptop, sync from the phone, and the merge hands it straight back. Silently, and specifically for the entries you most wanted gone. A deletion now leaves a tombstone: an id and a time of death, carrying no password and no label, since a label is information too.</li>
+                    <li><strong>Reconciling replicas is deliberately not the same code as importing.</strong> An import must never delete; a replica merge must. Collapsing the two would mean a malformed CSV could carry a delete instruction, and there is a test that fails if anyone tries. Last-writer-wins per entry, which is the honest floor rather than the ideal: two edits between syncs means one loses, and nothing can know which was wanted &mdash; but the loser is one entry&rsquo;s fields, never the vault and never a silent deletion.</li>
+                    <li><strong>Deletion markers are reaped after ninety days</strong>, because a marker that lives forever is a slow leak of what the vault used to contain. Far longer than any plausible gap between two devices, and the cost of being wrong is one resurrected entry rather than one lost, which is the right direction to fail in.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v3.1.0 -->
         <div class="release">
           <div class="release-meta">
