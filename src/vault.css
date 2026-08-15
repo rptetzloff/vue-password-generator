@@ -540,7 +540,49 @@
    positioning context too -- without this its panel resolves against whatever
    is positioned further up and lands at the top of the page. */
 .vault-groupmenu,
-.vault-tagmenu { position: relative; }
+.vault-tagmenu,
+.vault-genmenu { position: relative; }
+
+/* Generate, split. The left half runs the generator in use; the right half
+   picks which. One of these sits beside every secret box, because the mode
+   picker used to live only on the password and filling an answer with a
+   different generator meant a round trip up the form and back. */
+.vault-gensplit {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.vault-gensplit-more {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+/* Two buttons reading as one control: the seam between them is a single
+   border, not two touching edges. */
+.vault-gensplit-go {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.vault-gensplit .vault-gensplit-more {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
+.vault-gensplit-icon .vault-gensplit-more { margin-left: -0.35rem; }
+
+/* Right-aligned, unlike the filter menus. These buttons are the last thing in
+   their row by construction, so a left-anchored panel would hang off the edge
+   of the dialog every time rather than only at narrow widths. */
+.vault-genmenu .vault-groupmenu-panel {
+  left: auto;
+  right: 0;
+}
+
+/* mdi-blank is a real glyph in the font and reserves the tick column, so the
+   labels line up whether or not a mode is the current one. */
+.vault-genmenu .vault-groupmenu-item { white-space: nowrap; }
 
 .vault-groupmenu-btn {
   display: inline-flex;

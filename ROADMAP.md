@@ -194,6 +194,35 @@ trivially true because there is nothing to be knowledgeable about.
 - [ ] **This is also the CLI answer.** A documented encrypted file in a folder
       the user controls is the one interface a shell script can use. A vault
       living inside a browser extension is not.
+- [x] **Firefox cannot do mode 2, and it is not a matter of waiting.** Asked
+      directly — *are we sure?* — and the first answer checked only the picker
+      API, which is not the same as checking the question. The whole surface:
+
+      | API | Firefox | what it gives us |
+      | --- | --- | --- |
+      | File API — `File`, `Blob`, `FileReader` | yes, since 28 | read a file the user picks, **every time**. No write. |
+      | File System Access — `showDirectoryPicker` etc. | **no** | the only write-back-to-a-chosen-path route there is |
+      | File System API — OPFS, `navigator.storage.getDirectory()` | yes | a sandboxed private directory. Not the user's Dropbox. |
+      | `<a download>` | yes | writes to the downloads folder, cannot overwrite |
+      | WebExtension `downloads` | n/a | also downloads-folder-only; Firefox has no `onDeterminingFilename` |
+
+      The read column is not the problem — Import already uses the File API and
+      works in Firefox today. **There is no write column.** A replica that
+      cannot save is a viewer, and mode 2 is defined by both machines writing.
+
+      Nor is this a gap waiting to close: Mozilla's published standards
+      position on the pickers is *harmful*, and Safari has not implemented them
+      either. Notably Mozilla's position on OPFS is *positive* — the objection
+      is specifically to reaching outside the sandbox, which is exactly the
+      part mode 2 needs.
+
+      So the honest support line is Chromium desktop, and the answer for
+      everyone else is not a cleverer file API. It is 9d proper (a server), or
+      a cloud provider's own HTTP API, both of which are network problems that
+      every browser can do. A **read-only Firefox viewer** — pick the vault
+      file, open it, save nothing — is buildable on the File API alone and is a
+      real thing someone might want, but it is a different feature and should
+      not be described as sync.
 - [x] **Leaving is a third operation, not a kind of deleting.** Delete removes
       the file for every device sharing the folder; moving it back takes it
       away from them; neither is "I am done with this vault *on this

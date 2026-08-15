@@ -182,8 +182,13 @@ test('every dropdown wrapper is a positioning context', () => {
   // The wrappers are whatever the template actually uses, so a third menu is
   // covered the day it is added rather than the day it is noticed.
   const wrappers = new Set()
-  for (const m of app.matchAll(/class="vault-filter (vault-[a-z]+menu)"/g)) wrappers.add(m[1])
-  assert.ok(wrappers.size >= 2, 'expected the group and tag menus to be found in the template')
+  // Any element whose class list contains a vault-*menu, wherever it sits.
+  // This was scoped to `class="vault-filter vault-*menu"`, which quietly
+  // stopped covering new menus the moment one appeared outside the filter row
+  // -- and a menu with no positioning context renders at the top of the page,
+  // which is the bug this test exists for.
+  for (const m of app.matchAll(/(?:^|[\s"])(vault-[a-z]+menu)(?=[\s"])/g)) wrappers.add(m[1])
+  assert.ok(wrappers.size >= 3, 'expected the group, tag and generator menus to be found in the template')
 
   const positioned = new Set()
   for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {

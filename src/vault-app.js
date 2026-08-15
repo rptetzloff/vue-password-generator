@@ -394,7 +394,15 @@ const App = {
      */
     const onEditorKey = (event) => {
       if (!editing.value) return
-      if (event.key === 'Escape') { event.preventDefault(); cancelEdit(); return }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        // The innermost thing first. Escape out of an open generator menu must
+        // not also throw away the entry being edited -- that would make trying
+        // the menu cost you the form.
+        if (genMenuOpen.value !== null) { genMenuOpen.value = null; return }
+        cancelEdit()
+        return
+      }
       if (event.key !== 'Tab' || !editorEl.value) return
       const focusable = [...editorEl.value.querySelectorAll(
         'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
@@ -587,6 +595,36 @@ const App = {
     const generating = ref(false)
 
     /**
+     * Which generator to run, chosen at the field you are filling.
+     *
+     * Every secret box had a Generate button but only the password had the
+     * mode picker, so generating an answer with a different generator meant
+     * scrolling up to the password, changing the select, scrolling back down,
+     * and clicking. Three of those four steps are the bug.
+     *
+     * So each Generate is a split button: the left half runs whatever is in
+     * use, the right half opens the list. Picking from the list SETS the mode
+     * rather than running once with it -- there is one generator in use and
+     * the password row shows which, and a per-field override would quietly
+     * make that display a lie.
+     *
+     * Click, not hover. A hover menu cannot be opened from a keyboard or a
+     * touchscreen, and the rest of this page already opens menus by clicking.
+     */
+    const genMenuOpen = ref(null)
+    const genTargetKey = (target) => (
+      target === 'pw' ? 'pw'
+        : target && typeof target === 'object' && 'field' in target ? `field:${target.field}`
+          : `q:${target}`
+    )
+    const toggleGenMenu = (target) => {
+      const key = genTargetKey(target)
+      genMenuOpen.value = genMenuOpen.value === key ? null : key
+    }
+    const genModeLabel = computed(() =>
+      (genModes.find((m) => m.id === genMode.value) || {}).label || genMode.value)
+
+    /**
      * @param target 'pw' for the password, a question index for its answer,
      *               or { field: i } for a custom field's value
      */
@@ -614,6 +652,12 @@ const App = {
       } finally {
         generating.value = false
       }
+    }
+
+    const generateWith = (mode, target) => {
+      genMode.value = mode
+      genMenuOpen.value = null
+      return generateInto(target)
     }
 
     // --- grouping and sorting -------------------------------------------------
@@ -647,13 +691,16 @@ const App = {
     // A menu that only closes by pressing its own button is a menu people
     // leave open over the list they are trying to read.
     const dismissGroupMenu = (event) => {
-      if (!groupMenuOpen.value && !tagMenuOpen.value) return
+      if (!groupMenuOpen.value && !tagMenuOpen.value && genMenuOpen.value === null) return
       if (event.type === 'keydown') {
-        if (event.key === 'Escape') { groupMenuOpen.value = false; tagMenuOpen.value = false }
+        if (event.key === 'Escape') {
+          groupMenuOpen.value = false; tagMenuOpen.value = false; genMenuOpen.value = null
+        }
         return
       }
       if (!event.target.closest('.vault-groupmenu')) groupMenuOpen.value = false
       if (!event.target.closest('.vault-tagmenu')) tagMenuOpen.value = false
+      if (!event.target.closest('.vault-genmenu')) genMenuOpen.value = null
     }
 
     // A dropdown anchored to its button's left edge runs off the right of the
@@ -1360,6 +1407,7 @@ const App = {
       backupNag, lastExport, backups, backupWhen, openTransfer, transferEl,
       newStrength, rekeyStrength,
       genModes, genMode, generating, generateInto,
+      genMenuOpen, toggleGenMenu, generateWith, genModeLabel,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
       location, canFolder, chooseFolder, openFolder, useThisBrowser, reconnectFolder,
@@ -1999,13 +2047,30 @@ const App = {
               <!-- The generator, without leaving the page. Not a second set of
                    options: each mode runs on the settings its own tab holds. -->
               <div class="vault-gen">
-                <select v-model="genMode" class="vault-select" aria-label="Generator to use">
-                  <option v-for="m in genModes" :key="m.id" :value="m.id">{{ m.label }}</option>
-                </select>
-                <button class="btn btn-small" type="button" :disabled="generating"
-                        @click="generateInto('pw')">
-                  <span class="mdi mdi-refresh"></span> {{ generating ? 'Generating…' : 'Generate' }}
-                </button>
+                <!-- The same split button the secret rows use, so the control
+                     that picks a generator looks the same everywhere it is. -->
+                <div class="vault-genmenu vault-gensplit">
+                  <button class="btn btn-small vault-gensplit-go" type="button" :disabled="generating"
+                          @click="generateInto('pw')">
+                    <span class="mdi mdi-refresh"></span>
+                    {{ generating ? 'Generating…' : 'Generate ' + genModeLabel }}
+                  </button>
+                  <button class="btn btn-small vault-gensplit-more" type="button" :disabled="generating"
+                          @click="toggleGenMenu('pw')" aria-haspopup="true"
+                          :aria-expanded="String(genMenuOpen === 'pw')"
+                          aria-label="Choose a generator" title="Choose a generator">
+                    <span class="mdi mdi-menu-down"></span>
+                  </button>
+                  <div v-if="genMenuOpen === 'pw'" class="vault-groupmenu-panel" role="menu"
+                       aria-label="Generator to use">
+                    <button v-for="m in genModes" :key="m.id" class="vault-groupmenu-item" role="menuitem"
+                            type="button" @click="generateWith(m.id, 'pw')">
+                      <span class="mdi" :class="m.id === genMode ? 'mdi-check' : 'mdi-blank'"
+                            aria-hidden="true"></span>
+                      {{ m.label }}
+                    </button>
+                  </div>
+                </div>
                 <span v-if="tierOf(editing.bits)" class="vault-bits" :class="'meter-' + tierOf(editing.bits).id">
                   {{ editing.bits.toFixed(1) }} bits
                 </span>
@@ -2063,11 +2128,29 @@ const App = {
                         aria-hidden="true"></span>
                   <span class="vault-secret-label">Secret</span>
                 </label>
-                <button class="vault-icon" type="button" :disabled="generating"
-                        @click="generateInto({ field: i })"
-                        aria-label="Generate a value" title="Generate a value">
-                  <span class="mdi mdi-refresh"></span>
-                </button>
+                <div class="vault-genmenu vault-gensplit vault-gensplit-icon">
+                  <button class="vault-icon" type="button" :disabled="generating"
+                          @click="generateInto({ field: i })"
+                          :aria-label="'Generate a value with ' + genModeLabel"
+                          :title="'Generate a value with ' + genModeLabel">
+                    <span class="mdi mdi-refresh"></span>
+                  </button>
+                  <button class="vault-icon vault-gensplit-more" type="button" :disabled="generating"
+                          @click="toggleGenMenu({ field: i })" aria-haspopup="true"
+                          :aria-expanded="String(genMenuOpen === 'field:' + i)"
+                          aria-label="Choose a generator" title="Choose a generator">
+                    <span class="mdi mdi-menu-down"></span>
+                  </button>
+                  <div v-if="genMenuOpen === 'field:' + i" class="vault-groupmenu-panel" role="menu"
+                       aria-label="Generator to use">
+                    <button v-for="m in genModes" :key="m.id" class="vault-groupmenu-item" role="menuitem"
+                            type="button" @click="generateWith(m.id, { field: i })">
+                      <span class="mdi" :class="m.id === genMode ? 'mdi-check' : 'mdi-blank'"
+                            aria-hidden="true"></span>
+                      {{ m.label }}
+                    </button>
+                  </div>
+                </div>
                 <button class="vault-icon" type="button" @click="removeField(i)"
                         aria-label="Remove this field" title="Remove">
                   <span class="mdi mdi-close"></span>
@@ -2145,11 +2228,29 @@ const App = {
               <div v-for="(qa, i) in editing.questions" :key="i" class="vault-qa-row">
                 <input v-model="qa.q" type="text" placeholder="Question" />
                 <input v-model="qa.a" type="text" spellcheck="false" placeholder="Answer" />
-                <button class="vault-icon" type="button" :disabled="generating"
-                        @click="generateInto(i)"
-                        aria-label="Generate an answer" title="Generate an answer">
-                  <span class="mdi mdi-refresh"></span>
-                </button>
+                <div class="vault-genmenu vault-gensplit vault-gensplit-icon">
+                  <button class="vault-icon" type="button" :disabled="generating"
+                          @click="generateInto(i)"
+                          :aria-label="'Generate an answer with ' + genModeLabel"
+                          :title="'Generate an answer with ' + genModeLabel">
+                    <span class="mdi mdi-refresh"></span>
+                  </button>
+                  <button class="vault-icon vault-gensplit-more" type="button" :disabled="generating"
+                          @click="toggleGenMenu(i)" aria-haspopup="true"
+                          :aria-expanded="String(genMenuOpen === 'q:' + i)"
+                          aria-label="Choose a generator" title="Choose a generator">
+                    <span class="mdi mdi-menu-down"></span>
+                  </button>
+                  <div v-if="genMenuOpen === 'q:' + i" class="vault-groupmenu-panel" role="menu"
+                       aria-label="Generator to use">
+                    <button v-for="m in genModes" :key="m.id" class="vault-groupmenu-item" role="menuitem"
+                            type="button" @click="generateWith(m.id, i)">
+                      <span class="mdi" :class="m.id === genMode ? 'mdi-check' : 'mdi-blank'"
+                            aria-hidden="true"></span>
+                      {{ m.label }}
+                    </button>
+                  </div>
+                </div>
                 <button class="vault-icon" type="button" @click="removeQuestion(i)"
                         aria-label="Remove this question" title="Remove">
                   <span class="mdi mdi-close"></span>
@@ -2309,9 +2410,12 @@ const App = {
             </p>
           </template>
           <p v-else class="vault-hint">
-            This browser cannot open folders — the File System Access API is Chromium desktop only
-            today. The vault stays in this browser here, and an encrypted backup is the way to move
-            it somewhere else.
+            This browser cannot keep the vault in a folder, and that is unlikely to change. Reading
+            a file you pick works everywhere — that is what Import uses — but writing back to it
+            needs the File System Access API, which is Chromium desktop only: Mozilla's published
+            position on the folder and file pickers is <em>harmful</em>, and Safari has not
+            implemented them. So the vault stays in this browser here, and an encrypted backup is
+            the way to move it somewhere else.
           </p>
         </details>
 
