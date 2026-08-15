@@ -410,6 +410,40 @@ and both should be revisited deliberately rather than drifted into.
       behind the same write-it-down gate the adopt flow uses, stated plainly as
       a second key to everything in the vault, and revocable.
 
+- [ ] **Bind the envelope's metadata into the AEAD.** Raised while explaining
+      v2 to someone who then asked the right question: if both ways in are the
+      same mechanism with different inputs, what actually deserves scrutiny is
+      the encryption itself. This is what that scrutiny found.
+
+      The salts, the iteration counts and the slot structure are plaintext
+      JSON sitting *outside* the authenticated ciphertext. AES-GCM
+      authenticates what it encrypts, and it is not encrypting any of that.
+      Nothing stops someone with write access to the IndexedDB store editing
+      it.
+
+      **What that does and does not get them.** It does not get them
+      plaintext, which is the part worth being clear about. A spliced-in
+      recovery slot wraps a *different* master key, so the entries still will
+      not decrypt; an edited iteration count derives a different key, so the
+      unwrap simply fails. Every path ends in a failed authentication rather
+      than a successful lie. What it does get them is destruction: deleting
+      the recovery slot is a one-field edit, and the owner finds out at the
+      worst possible moment, which is the moment they needed it.
+
+      So this is tamper-evidence and denial of service, not confidentiality.
+      It is also not reachable by the threat the vault is mainly built
+      against -- a stolen copy of the profile, read offline -- since that
+      attacker never writes anything back.
+
+      **The fix is one parameter.** `additionalData` on the AES-GCM calls,
+      covering the envelope's own metadata, so any edit to a salt, a count or
+      a slot list fails loudly instead of quietly. The cost is a format
+      change: envelopes sealed without AAD cannot be opened by code that
+      requires it, so it needs the same lazy upgrade v2 already uses -- open
+      the old shape, re-seal on the next passphrase change or recovery-key
+      operation. Cheap to do, and cheaper still if it rides along with
+      whatever next touches the format rather than being its own migration.
+
 - [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
       for every inline script and `connect-src 'self'`, which is the directive
       that matters here: whatever runs, it has nowhere to send anything. But
