@@ -1252,3 +1252,11 @@ body.vault-modal-open { overflow: hidden; }
 .vault-undo .btn {
   border-color: var(--band-control-border);
 }
+
+/* A divider inside a card, for the "or do this other thing entirely" break on
+   the create screen. */
+.vault-rule {
+  margin: 1.1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+}

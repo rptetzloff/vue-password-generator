@@ -14,7 +14,7 @@ import {
 import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
 import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
 import { canUseFolder, pickFolder } from './vault-fs.js'
-import { resolveLocation, moveVaultToFolder, moveVaultToLocal, unblockFolder } from './vault-location.js'
+import { resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, unblockFolder } from './vault-location.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
@@ -1127,6 +1127,26 @@ const App = {
       flash(`The vault now lives in ${dir.name}.`)
     })
 
+    /**
+     * Point at a folder that already holds a vault -- the second machine.
+     *
+     * Separate from chooseFolder because the two are opposites: that one
+     * requires an empty folder and writes, this one requires a full one and
+     * does not. A single button that guessed would be a button whose
+     * destructive behaviour depended on what it found.
+     */
+    const openFolder = () => run(async () => {
+      let dir
+      try {
+        dir = await pickFolder()
+      } catch {
+        return
+      }
+      useLocation(await openVaultInFolder(dir))
+      await store.init()
+      flash(`Opened the vault in ${dir.name}.`)
+    })
+
     const useThisBrowser = () => run(async () => {
       if (!location.value.dir && location.value.kind !== 'folder') return
       const dir = currentDir
@@ -1262,7 +1282,7 @@ const App = {
       genModes, genMode, generating, generateInto,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
-      location, canFolder, chooseFolder, useThisBrowser, reconnectFolder,
+      location, canFolder, chooseFolder, openFolder, useThisBrowser, reconnectFolder,
       pending, undoDelete, finishDelete,
       shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,
       recoveryWords: RECOVERY_WORDS,
@@ -1424,6 +1444,23 @@ const App = {
             <span class="mdi mdi-lock-plus"></span> {{ busy ? 'Creating…' : 'Create vault' }}
           </button>
         </form>
+
+        <!-- The second machine. Someone whose vault is already in a synced
+             folder should not have to create a new one and import; they should
+             point at the folder and be done. -->
+        <template v-if="canFolder">
+          <hr class="vault-rule" />
+          <p class="vault-hint">
+            <strong>Already have a vault in a folder?</strong> If another computer keeps its vault in
+            a folder this one also syncs — Dropbox, OneDrive, iCloud Drive — open it here instead of
+            starting again. Nothing is copied and nothing is written; this browser just learns where
+            to look, and asks for the same passphrase.
+          </p>
+          <button class="btn" type="button" :disabled="busy" @click="openFolder">
+            <span class="mdi mdi-folder-open-outline" aria-hidden="true"></span>
+            {{ busy ? 'Opening…' : 'Open a vault in a folder…' }}
+          </button>
+        </template>
       </section>
 
       <!-- Locked -->
@@ -2102,11 +2139,16 @@ const App = {
 
           <template v-if="canFolder">
             <div class="vault-row-actions">
-              <button v-if="location.kind !== 'folder'" class="btn" type="button" :disabled="busy"
-                      @click="chooseFolder">
-                <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
-                {{ busy ? 'Moving…' : 'Move it to a folder…' }}
-              </button>
+              <template v-if="location.kind !== 'folder'">
+                <button class="btn" type="button" :disabled="busy" @click="chooseFolder">
+                  <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+                  {{ busy ? 'Moving…' : 'Move it to a folder…' }}
+                </button>
+                <button class="btn" type="button" :disabled="busy" @click="openFolder">
+                  <span class="mdi mdi-folder-open-outline" aria-hidden="true"></span>
+                  Open a vault in a folder…
+                </button>
+              </template>
               <template v-else>
                 <button class="btn" type="button" :disabled="busy" @click="chooseFolder">
                   Move to a different folder…
@@ -2117,9 +2159,11 @@ const App = {
               </template>
             </div>
             <p class="vault-hint">
-              Moving copies the vault, reads it back to check it arrived, records the new location,
-              and only then removes the old copy. If any step fails nothing is changed. A folder that
-              already holds a vault is refused rather than overwritten.
+              <strong>Move</strong> takes the vault from here and puts it there: copy, read it back
+              to check it arrived, record the new location, and only then remove the old copy. If any
+              step fails nothing is changed, and a folder that already holds a vault is refused
+              rather than overwritten. <strong>Open</strong> is the opposite — it expects a vault to
+              be there already, writes nothing, and is how a second computer joins.
             </p>
           </template>
           <p v-else class="vault-hint">

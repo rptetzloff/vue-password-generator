@@ -135,6 +135,37 @@ export const moveVaultToFolder = async (dir, { from = indexedDbStorage, remember
   return { kind: 'folder', storage: target, dir, name: dir.name }
 }
 
+/**
+ * Adopt a vault that is ALREADY in a folder.
+ *
+ * The second-machine case, and the one that makes mode 2 worth having: point a
+ * fresh browser at the folder your other computer already syncs, and the vault
+ * is simply there. Nothing is copied and nothing is written -- this only
+ * records where to look.
+ *
+ * The opposite of moveVaultToFolder in every respect, which is why it is a
+ * separate call rather than a flag. Move refuses when the folder is occupied;
+ * open requires it. Move writes; open does not. Conflating them would mean one
+ * function whose destructive behaviour depends on what it happens to find.
+ */
+export const openVaultInFolder = async (dir, { local = indexedDbStorage, remember = rememberFolder } = {}) => {
+  const target = createFolderStorage(dir)
+  const envelope = await target.load()
+  if (!envelope) {
+    throw new Error('there is no WordLock vault in that folder; use Move if you meant to put one there')
+  }
+
+  // Refuse rather than orphan. Switching away from a local vault would leave
+  // it sitting in this browser, unreachable through the UI and invisible until
+  // someone switches back -- and if they never do, it is simply lost.
+  if (await local.load()) {
+    throw new Error('this browser already holds its own vault; export or delete it before opening another')
+  }
+
+  await remember(dir)
+  return { kind: 'folder', storage: target, dir, name: dir.name }
+}
+
 /** The same journey in reverse, with the same order and the same refusal. */
 export const moveVaultToLocal = async (dir, { to = indexedDbStorage, forget = forgetFolder } = {}) => {
   const source = createFolderStorage(dir)

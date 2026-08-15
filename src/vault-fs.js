@@ -11,8 +11,16 @@
 // would strand everyone who had already pointed at a file.
 //
 //   <chosen folder>/
-//     vault.wrlck        the sealed envelope, exactly as IndexedDB holds it
-//     attachments/       later
+//     wordlock-vault.json    the sealed envelope, exactly as IndexedDB holds it
+//     attachments/           later
+//
+// Named .json because that is what it is. An earlier draft called it
+// vault.wrlck, which confused two different things: .wrlck is the EXPORT
+// container -- a zip holding a manifest and the attachment blobs, for moving a
+// vault somewhere else in one file. A synced folder is not a container. Its
+// files are written and read individually, which is the entire reason a folder
+// works for sync and a zip would not. And the name is prefixed because this
+// lands in a directory the user already keeps things in.
 //
 // WHAT THIS DOES NOT DO YET: reconcile. save() overwrites, which is correct
 // for one device and wrong the moment a second one shares the folder -- the
@@ -29,7 +37,7 @@
 import { indexedDbStorage } from './vault-store.js'
 import { isVaultEnvelope } from './vault-crypto.js'
 
-export const VAULT_FILENAME = 'vault.wrlck'
+export const VAULT_FILENAME = 'wordlock-vault.json'
 
 /** Whether this browser can do any of it. Chromium desktop, today. */
 export const canUseFolder = () =>

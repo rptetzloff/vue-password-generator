@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  resolveLocation, moveVaultToFolder, moveVaultToLocal,
+  resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder,
 } from '../src/vault-location.js'
 import { VAULT_FILENAME } from '../src/vault-fs.js'
 import { createVault } from '../src/vault-crypto.js'
@@ -177,4 +177,54 @@ test('moving back refuses if this browser already holds a vault', async () => {
     /already holds a vault/,
   )
   assert.ok(dir.store[VAULT_FILENAME], 'the folder copy stays put')
+})
+
+test('opening a vault that is already in a folder writes nothing', async () => {
+  // The second-machine case, and the point of mode 2: a fresh browser pointed
+  // at the folder your other computer syncs finds the vault already there.
+  const envelope = await anEnvelope()
+  const before = JSON.stringify(envelope)
+  const dir = fakeDir({ [VAULT_FILENAME]: before })
+  const local = fakeLocal(null)
+  let remembered = null
+
+  const at = await openVaultInFolder(dir, { local, remember: async (d) => { remembered = d } })
+  assert.equal(at.kind, 'folder')
+  assert.equal(remembered, dir)
+  assert.equal(dir.store[VAULT_FILENAME], before, 'the folder copy is untouched')
+  assert.equal(await local.load(), null, 'and nothing was written here either')
+})
+
+test('opening an empty folder says so instead of creating a vault', async () => {
+  const local = fakeLocal(null)
+  await assert.rejects(
+    () => openVaultInFolder(fakeDir(), { local, remember: async () => {} }),
+    /no WordLock vault in that folder/,
+  )
+})
+
+test('opening refuses to orphan the vault already in this browser', async () => {
+  // Switching away would leave it in IndexedDB, unreachable through the UI and
+  // invisible until someone switches back -- and if they never do, it is lost.
+  const dir = fakeDir({ [VAULT_FILENAME]: JSON.stringify(await anEnvelope()) })
+  const local = fakeLocal(await anEnvelope())
+  let remembered = null
+  await assert.rejects(
+    () => openVaultInFolder(dir, { local, remember: async (d) => { remembered = d } }),
+    /already holds its own vault/,
+  )
+  assert.equal(remembered, null, 'and the location was not changed')
+  assert.ok(await local.load(), 'nor was the local vault touched')
+})
+
+test('open and move are opposites, which is why they are separate calls', async () => {
+  // Move requires an empty folder and writes; open requires a full one and
+  // does not. One function whose destructive behaviour depended on what it
+  // happened to find would be the worst of both.
+  const full = () => fakeDir({ [VAULT_FILENAME]: '{"v":2,"wraps":{"passphrase":{"kdf":{},"iv":"x","key":"y"}},"iv":"a","ct":"b"}' })
+  const empty = () => fakeDir()
+  const noop = async () => {}
+
+  await assert.rejects(() => moveVaultToFolder(full(), { from: fakeLocal(null), remember: noop }), /already holds/)
+  await assert.rejects(() => openVaultInFolder(empty(), { local: fakeLocal(null), remember: noop }), /no WordLock vault/)
 })
