@@ -38,20 +38,77 @@ timer, the encryption patterns and the offline shell. 9b's one reversal — that
 plain-text export would not be offered — is recorded in place rather than
 quietly edited away.
 
-**Next — 9c, the packaged app.** It only became worth its cost once 9a and 9b
-were good, and it brings the one thing the web genuinely cannot do: autofill
+**Also shipped — 9f's recovery key**, which closes the failure the vault had no
+answer to: forgetting the passphrase. Envelope v2 wraps a random master key
+once per way in, so either key opens the vault and neither reveals the other.
+Everything in 9f's entry was measured against the build rather than planned in
+advance; the AAD gap it now records was found by being asked what actually
+deserves scrutiny once both keys run the same mechanism.
+
+---
+
+### The next decision, stated plainly: a vault you cannot fill from
+
+**The vault is valuable and it is not yet very usable, and no amount of work
+inside the vault changes that.** Everything in it must be copy-pasted into
+every login, on every site, forever. That is tolerable on a desktop for a
+dozen entries and it is not a password manager.
+
+This reorders what follows, and the correction is worth recording because the
+list below was written believing otherwise. **Importing from another manager
+(10b) looks like the obvious next win and is not.** Bulk-importing two hundred
+passwords into something that cannot fill them produces a very well organised
+museum: it raises the cost of the tedium rather than removing it, and the
+people who would benefit most from the import are exactly the people who would
+notice fastest that every login is now a copy and a paste. Imports are worth
+building *after* filling exists, at which point they load a tool that gets
+used.
+
+**Filling needs the extension, and the extension does not need sync.** Those
+are separate axes and bundling them has been the quiet assumption throughout
+this file. Sync (9d) drags in a server, per-device key wrapping and the whole
+conditions list. The extension does not: 8c's option (b) — the site stays
+canonical, the extension holds a copy refreshed by importing a backup — needs
+no server at all and covers filling completely on one machine. Unglamorous,
+and the version that could actually get built.
+
+So the order is **8c's canonical-vault decision, then the build step, then an
+extension that fills, then imports.** The build step is the real gate and a
+genuine loss rather than a formality: Manifest V3 forbids `'unsafe-eval'`,
+Vue's runtime compiler needs it, so precompiled templates stop being optional —
+and *the deployed site is the source you can read* stops being literally true.
+That is the claim this project leads with. Decide it deliberately, not halfway
+through writing a content script.
+
+**What has not been tested is whether copy-paste is merely annoying or
+actually disqualifying.** Nobody has lived with this vault for a week. That
+answer changes how much the extension is worth and it cannot be reasoned to
+from here.
+
+---
+
+**After that — 9c, the packaged app.** It only became worth its cost once 9a and
+9b were good, and it brings the one thing the web genuinely cannot do: autofill
 into other apps. 9b's export file is the bridge between a packaged app's storage
-sandbox and the site's, which is why it was built first.
+sandbox and the site's, which is why it was built first. It is the mobile half
+of the same problem the extension solves on desktop, and it is more expensive in
+every dimension — two stores, two review processes, $124/year — so it waits on
+the extension proving the idea.
 
 **Epic 10 is the gap against a mainstream manager**, and it is listed after 9
 rather than inside it because most of it is not about the vault so much as
 about what people expect around one: attachments, importing from the tool they
 are leaving, more than one vault, folder templates, sharing, group accounts.
 It was raised on the assumption that most of it waits for sync. Four of the
-six do not — they need no server at all and could ship on what exists today,
-which changes the order considerably. The two that do need one are also the
-two where the zero-knowledge claim is easiest to lose by accident, and 10f
-spells out exactly how.
+six do not — they need no server at all and could ship on what exists today.
+The two that do need one are also the two where the zero-knowledge claim is
+easiest to lose by accident, and 10f spells out exactly how.
+
+That four-of-six finding is still true and it is no longer the same argument
+for doing them next. *Could ship* is not *worth shipping first*: see the
+section above, which puts filling ahead of all of it. 10b in particular reads
+like a near-term win throughout this file and is not one until there is
+something to fill with.
 
 **Reading, not work — Epic 8d/8e.** 8d is a documented dead end (the web
 platform cannot hand a password to a manager for another origin, by design) and
@@ -519,7 +576,13 @@ reason it looks like.
       anything. Each file goes in sealed under the vault key, exactly as the
       entries are.
 
-### 10b. Import from other managers — one format at a time
+### 10b. Import from other managers — worth less than it looks, until filling exists
+
+**Read the "next decision" section at the top before scheduling any of this.**
+Importing is the obvious next feature and the wrong one: a bulk import into a
+vault that cannot fill anything raises the cost of the tedium instead of
+removing it. The work below is right; the timing is after the extension, not
+before it.
 
 Already reads a generic CSV with aliased headers, which covers more than it
 sounds: Bitwarden, LastPass, Chrome, Edge, Firefox and Safari all export CSV,
