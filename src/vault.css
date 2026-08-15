@@ -858,6 +858,79 @@
 
 .vault-editor { margin-top: 0.25rem; }
 
+/* Two devices disagreeing about one entry. Framed as a question rather than an
+   error: neither version is wrong, and the app has no way to know which one
+   the person wants. --warning rather than --error for the same reason, and
+   both are already AA-verified against this surface by the contrast suite. */
+.vault-conflict {
+  margin-bottom: 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.vault-conflict h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--warning);
+}
+
+.vault-conflict p {
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.vault-conflict .vault-bar { margin-top: 0.8rem; }
+.vault-conflict .vault-hint { margin: 0.6rem 0 0; }
+
+.vault-conflict-diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  /* A generated password is one long unbreakable token, and two of them side
+     by side will not fit a phone. Scrolling the table beats truncating the
+     thing being compared. */
+  display: block;
+  overflow-x: auto;
+}
+
+.vault-conflict-diff th,
+.vault-conflict-diff td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--border);
+}
+
+.vault-conflict-diff thead th {
+  border-top: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+/* The values are the point of the table, so they get the stronger colour and
+   a font that distinguishes l from 1 -- these are passwords being compared by
+   eye, which is the one job where that matters. */
+.vault-conflict-diff tbody td {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
+.vault-conflict-diff tbody th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* Backup and transfer. Same box as the danger blocks -- it belongs to the
    same "things below the list" band -- but not framed as a risk. */
 .vault-transfer {

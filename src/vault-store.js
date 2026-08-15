@@ -594,6 +594,16 @@ export const mergeMeta = (mine = {}, theirs = {}) => {
   return { ...theirs, ...mine, exports: exports_ }
 }
 
+/**
+ * Thrown by a save that would have overwritten someone else's change to the
+ * same entry. Carries both versions so the caller can show them; the vault is
+ * untouched and the decision belongs to whoever is looking at it.
+ */
+export const conflictError = (mine, theirs) => Object.assign(
+  new Error('this entry was changed somewhere else while you had it open'),
+  { name: 'VaultConflict', conflict: { mine, theirs } },
+)
+
 // --- the store ---------------------------------------------------------------
 
 /**
@@ -762,7 +772,7 @@ export const createVaultStore = ({
    * honest answer. Overwriting would delete a vault whose new passphrase
    * someone deliberately set.
    */
-  const reconcile = async () => {
+  const reconcile = async (guard = null) => {
     // Nothing read yet means this store created the vault, so there is
     // nothing of anyone else's to merge with.
     if (seenCt === null) return null
@@ -799,18 +809,62 @@ export const createVaultStore = ({
       )
     }
 
+    const theirs = normalizeEntries(remote.entries)
+
+    // Did the entry being saved move underneath us?
+    //
+    // Last-write-wins is right for two devices editing DIFFERENT entries, and
+    // wrong for two editing the same one: "last" means saved last, not knew
+    // most. An edit box open in one browser holds a copy from before the other
+    // browser saved, so its patch lands on stale data and wins on a fresh
+    // timestamp -- silently discarding a password someone deliberately set.
+    // The window is not the milliseconds between read and write; it is however
+    // long the dialog stays open.
+    //
+    // Detectable because the caller passes the entry as it loaded it, so its
+    // updatedAt is the base. A remote copy standing on anything else means the
+    // entry moved on, and the answer to that is a question, not a guess.
+    if (guard) {
+      const remoteCopy = theirs.find((e) => e.id === guard.id)
+      const at = remoteCopy && (remoteCopy.deletedAt || remoteCopy.updatedAt || '')
+      if (remoteCopy && at !== guard.base) throw conflictError(guard.mine, remoteCopy)
+    }
+
     // Ours first: strictly newer wins, and ties keep the local copy, so the
     // edit that triggered this save survives a peer that saved in the same
     // second.
-    const result = mergeReplicas(entries, normalizeEntries(remote.entries))
+    const result = mergeReplicas(entries, theirs)
     entries = result.merged
     meta = mergeMeta(meta, remote.meta)
     seenCt = current.ct
     return result
   }
 
-  const persist = async () => {
-    const folded = await reconcile()
+  /**
+   * Change the entry list and write it, putting memory back if the write is
+   * refused.
+   *
+   * Without the rollback a refused save leaves entries in memory that are on
+   * no disk anywhere -- the list would show a saved-looking row that the next
+   * reload does not have, and any later save would quietly write it after all.
+   * Nothing is lost by undoing it: the editor keeps what was typed, because
+   * the throw stops the caller before it closes.
+   */
+  const commit = async (next, guard = null) => {
+    const beforeEntries = entries
+    const beforeMeta = meta
+    entries = next
+    try {
+      return await persist(guard)
+    } catch (e) {
+      entries = beforeEntries
+      meta = beforeMeta
+      throw e
+    }
+  }
+
+  const persist = async (guard = null) => {
+    const folded = await reconcile(guard)
     entries = reap(entries)
     envelope = await sealVault(key, kdf, payloadOut())
     await storage.save(envelope)
@@ -988,22 +1042,47 @@ export const createVaultStore = ({
     requireUnlocked()
     const normalized = normalizeEntry({ ...entry, updatedAt: stampNow() })
     if (!normalized) throw new Error('an entry needs a password')
-    entries = [normalized, ...entries]
-    await persist()
+    await commit([normalized, ...entries])
     emit()
     return normalized
   }
 
-  const update = async (id, patch) => {
+  /**
+   * @param patch  the entry AS THE CALLER LOADED IT, plus the changes. Its
+   *               updatedAt is read as the base version, which is what makes
+   *               "someone else changed this while you had it open"
+   *               distinguishable from "you made the newer edit".
+   * @param resolve  'mine' to write anyway, after the caller has asked.
+   */
+  const update = async (id, patch, { resolve = null } = {}) => {
     requireUnlocked()
     const idx = entries.findIndex((e) => e.id === id)
     if (idx === -1) throw new Error('no such entry')
     const merged = normalizeEntry({ ...entries[idx], ...patch, id, updatedAt: stampNow() })
     if (!merged) throw new Error('an entry needs a password')
-    entries = entries.map((e, i) => (i === idx ? merged : e))
-    await persist()
+
+    const base = resolve === 'mine' || typeof patch.updatedAt !== 'string'
+      ? null
+      : patch.updatedAt
+    const next = entries.map((e, i) => (i === idx ? merged : e))
+    await commit(next, base === null ? null : { id, base, mine: merged })
     emit()
     return merged
+  }
+
+  /**
+   * Take in what another replica wrote, without writing anything back.
+   *
+   * The "keep theirs" half of resolving a conflict: their version is already
+   * on disk, so there is nothing to save -- this only stops us showing a copy
+   * we know is stale. Also the honest thing to offer a UI that wants to look
+   * before it writes.
+   */
+  const refresh = async () => {
+    requireUnlocked()
+    const folded = await reconcile()
+    if (folded) emit()
+    return folded
   }
 
   /**
@@ -1017,8 +1096,7 @@ export const createVaultStore = ({
     requireUnlocked()
     const idx = entries.findIndex((e) => e.id === id && !isTombstone(e))
     if (idx === -1) return false
-    entries = entries.map((e, i) => (i === idx ? { id, deletedAt: stampNow() } : e))
-    await persist()
+    await commit(entries.map((e, i) => (i === idx ? { id, deletedAt: stampNow() } : e)))
     emit()
     return true
   }
@@ -1039,8 +1117,7 @@ export const createVaultStore = ({
     // Replace the tombstone in place where it still exists, so the entry does
     // not jump to the top of the list for having been briefly deleted.
     const idx = entries.findIndex((e) => e.id === back.id)
-    entries = idx === -1 ? [back, ...entries] : entries.map((e, i) => (i === idx ? back : e))
-    await persist()
+    await commit(idx === -1 ? [back, ...entries] : entries.map((e, i) => (i === idx ? back : e)))
     emit()
     return back
   }
@@ -1062,8 +1139,7 @@ export const createVaultStore = ({
   const importEntries = async (incoming) => {
     requireUnlocked()
     const result = mergeEntries(entries, normalizeEntries(incoming))
-    entries = result.merged
-    await persist()
+    await commit(result.merged)
     emit()
     return { added: result.added, skipped: result.skipped }
   }
@@ -1231,7 +1307,7 @@ export const createVaultStore = ({
     init, reload, state, touch, lock, lockIfIdle, shouldAutoLock,
     create, unlock, rekey, destroy, importEntries,
     hasRecoveryKey, addRecoveryKey, removeRecoveryKey, verifyRecoveryKey, recoverWithKey,
-    list, raw, add, update, remove, restore,
+    list, raw, add, update, remove, restore, refresh,
     // Identity and facts about the vault itself, as opposed to its contents.
     vaultId: () => vaultId,
     lastExport, exports, noteExport,

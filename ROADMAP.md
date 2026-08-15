@@ -199,14 +199,42 @@ writes collide.
   is deduplicated on the timestamp so the same merge run twice gives the same
   list.
 
-**The limit, in the same breath.** This makes two devices safe *in sequence*,
-which is how people actually use two computers. It does not make simultaneous
-writes safe: between the read and the write there is a window, now
-milliseconds wide instead of a whole session, and a peer that writes inside it
-still loses. Nor can it see across the folder's own sync — two machines saving
-while Dropbox is behind produces a *conflicted copy* file, which is Dropbox's
-arbitration and not visible to this page at all. Importing that file merges its
-entries back in, and the UI says so.
+**Same entry on both devices: it asks.** ~~Last-write-wins settles this.~~
+**Corrected within the hour, by the obvious test being run:** open the edit box
+in Chrome, save a new password in Edge, save a new password in Chrome. Chrome
+won and Edge's password vanished without a word.
+
+That is last-write-wins behaving exactly as specified, and the specification
+was wrong. "Last" means *saved* last, not *knew* most: an edit box holds a copy
+from before the other device saved, so its patch lands on stale data and still
+wins on a fresh timestamp. The claim above — safe *in sequence*, with a
+millisecond window — was also wrong, and this is the correction. That sequence
+IS sequential. The real window is however long the dialog stays open.
+
+It is detectable, because the caller passes the entry as it loaded it and so
+its `updatedAt` is the base version. A remote copy standing on anything else
+means the entry moved on, and the answer to that is a question rather than a
+guess: the save stops, nothing is written, and the editor stays open behind a
+dialog showing the fields that differ, with **keep mine**, **keep theirs**, and
+**keep both**. Keep both files yours under a new id — two entries sharing one
+id is not a state the merge can represent, and the next save would pick a
+winner all over again.
+
+A save that is refused now rolls the entry list back. Without that, memory
+holds a saved-looking row that is on no disk anywhere and that some later save
+would write after all. Nothing is lost by undoing it: the throw stops the
+caller before it closes the editor, so what was typed is still on screen.
+
+Deleting on one device while the other has the entry open is the same shape
+with a different loss, and gets the same question.
+
+**The limits that remain.** Two devices editing different entries never
+interrupt each other, which is the common case and is silent by design. Two
+saving in the *same instant* can still lose a write — the read-to-write window
+is milliseconds now, but it is not zero. And none of this sees across the
+folder's own sync: two machines writing while Dropbox is behind produces a
+*conflicted copy* file, which is Dropbox's arbitration and invisible to this
+page. Importing that file merges its entries back in, and the UI says so.
 
 **Then the transport is a separate and deferrable choice**, which is the part
 that protects the claims. A server (9d) means accounts, hosting, liability, and

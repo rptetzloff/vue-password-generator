@@ -1378,8 +1378,13 @@ test('an unreadable replacement stops the save without guessing why', async () =
 
   clock.advance(1000)
   await assert.rejects(() => mine.add({ label: 'Late', pw: 'y' }), /replaced or given a different passphrase/)
-  assert.deepEqual(mine.list().map((e) => e.label), ['Late', 'Mine'],
-    'the failed save leaves what was typed in memory, so nothing has to be retyped')
+  // REVERSED. This used to assert the opposite -- that the typed entry stayed
+  // in memory so nothing had to be retyped. It is the editor that keeps what
+  // was typed, because the throw stops the caller before it closes the dialog;
+  // the LIST must not keep it, or it shows a saved-looking row that is on no
+  // disk anywhere and that a later save would write after all.
+  assert.deepEqual(mine.list().map((e) => e.label), ['Mine'],
+    'a refused save leaves the list exactly as storage has it')
 })
 
 test('a readable vault that claims a different identity is still refused', async () => {

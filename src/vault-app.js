@@ -167,19 +167,100 @@ const App = {
       flash('Locked.')
     }
 
-    const save = (entry) => run(async () => {
+    /**
+     * The entry moved underneath this editor while it was open.
+     *
+     * Held rather than resolved: the two versions are both somebody's
+     * deliberate work, and picking one by rule is how a password someone set
+     * on another machine disappears without anyone being told. See the note in
+     * the store's reconcile() for why the timestamp cannot decide this.
+     */
+    const conflict = ref(null)
+
+    /** Only the fields that actually differ, so the dialog is short. */
+    const FIELD_LABELS = {
+      label: 'Name', username: 'Username', pw: 'Password', note: 'Note',
+      group: 'Group', tags: 'Tags', urls: 'Web addresses',
+      questions: 'Security questions', fields: 'Custom fields', totp: 'One-time code',
+    }
+    const asText = (v) => {
+      if (v === null || v === undefined || v === '') return ''
+      if (Array.isArray(v)) {
+        if (!v.length) return ''
+        return v.map((x) => (typeof x === 'string' ? x : Object.values(x).filter(Boolean).join(' — '))).join(', ')
+      }
+      if (typeof v === 'object') return Object.values(v).filter(Boolean).join(' — ')
+      return String(v)
+    }
+    const conflictFields = computed(() => {
+      if (!conflict.value) return []
+      const { mine, theirs } = conflict.value
+      return Object.keys(FIELD_LABELS)
+        .map((key) => ({ key, label: FIELD_LABELS[key], mine: asText(mine[key]), theirs: asText(theirs[key]) }))
+        .filter((f) => f.mine !== f.theirs)
+    })
+    const conflictDeleted = computed(() => !!(conflict.value && conflict.value.theirs.deletedAt))
+
+    const save = (entry, resolve = null) => run(async () => {
       const payload = { ...entry }
       // Rows now, not a textarea -- urlList drops any with an empty address.
       delete payload.urlText
       // View state, not entry data -- normalizeEntry would drop it anyway, but
       // sending it at all invites someone to start persisting it.
       delete payload.revealPw
-      if (payload.id) await store.update(payload.id, payload)
-      else await store.add(payload)
+      try {
+        if (payload.id) await store.update(payload.id, payload, { resolve })
+        else await store.add(payload)
+      } catch (e) {
+        // Not an error to report and move on from -- it is a question. The
+        // editor stays open behind the dialog holding everything that was
+        // typed, and the vault is untouched until an answer comes back.
+        if (e.name === 'VaultConflict') { conflict.value = e.conflict; return }
+        throw e
+      }
+      conflict.value = null
       entries.value = store.list()
       editing.value = null
       await store.clearDraft()
       flash('Saved.')
+    })
+
+    /** Write what was typed here, now that it has been asked about. */
+    const keepMine = () => save(editing.value, 'mine')
+
+    /** Take the other device's version and abandon this edit. */
+    const keepTheirs = () => run(async () => {
+      await store.refresh()
+      conflict.value = null
+      entries.value = store.list()
+      editing.value = null
+      await store.clearDraft()
+      flash(conflictDeleted.value
+        ? 'Kept the deletion. Your changes were not saved.'
+        : 'Kept the other version. Your changes were not saved.')
+    })
+
+    /**
+     * Keep both, as two entries.
+     *
+     * A new id rather than a second copy of the same one: two entries with one
+     * id is not a state the merge can represent, and the next save on either
+     * device would silently pick a winner all over again.
+     */
+    const keepBoth = () => run(async () => {
+      const mine = { ...editing.value }
+      delete mine.urlText
+      delete mine.revealPw
+      delete mine.id
+      delete mine.updatedAt
+      mine.label = `${mine.label || 'Untitled'} (this device)`
+      await store.refresh()
+      await store.add(mine)
+      conflict.value = null
+      entries.value = store.list()
+      editing.value = null
+      await store.clearDraft()
+      flash('Kept both. Yours is filed separately — delete whichever is wrong.')
     })
 
     /**
@@ -350,6 +431,7 @@ const App = {
      */
     const cancelEdit = () => {
       if (editorDirty() && !confirm('Discard the changes to this entry?')) return
+      conflict.value = null
       editing.value = null
       store.clearDraft()
     }
@@ -1399,6 +1481,7 @@ const App = {
       create, unlock, lock, save, remove, copy, copyText, hostOf,
       toggleSecret, isRevealed, toggleAllSecrets, allRevealed, hasSeveralSecrets,
       startAdd, startEdit, rekey, destroy, tierOf,
+      conflict, conflictFields, conflictDeleted, keepMine, keepTheirs, keepBoth,
       addQuestion, removeQuestion, addField, removeField, cancelEdit, editorEl,
       leaveForGenerator,
       codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
@@ -1985,6 +2068,55 @@ const App = {
               <span class="mdi mdi-close"></span>
             </button>
           </div>
+          <!-- Above the form, not over it: what was typed stays visible and
+               editable behind the question, so "keep mine" is not a promise
+               about something you can no longer see. -->
+          <section v-if="conflict" class="vault-conflict" role="alert">
+            <h3>
+              <span class="mdi mdi-source-branch" aria-hidden="true"></span>
+              {{ conflictDeleted
+                ? 'This entry was deleted on another device'
+                : 'This entry was changed on another device' }}
+            </h3>
+            <p v-if="conflictDeleted">
+              While you had it open, another device using this folder deleted it. Saving would
+              bring it back everywhere. Nothing has been written yet.
+            </p>
+            <p v-else>
+              While you had it open, another device using this folder saved a different version.
+              Saving would replace theirs with yours. Nothing has been written yet.
+            </p>
+
+            <table v-if="!conflictDeleted && conflictFields.length" class="vault-conflict-diff">
+              <thead>
+                <tr><th scope="col">Field</th><th scope="col">Yours</th><th scope="col">Theirs</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="f in conflictFields" :key="f.key">
+                  <th scope="row">{{ f.label }}</th>
+                  <td>{{ f.mine || '—' }}</td>
+                  <td>{{ f.theirs || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+
+            <div class="vault-bar">
+              <button class="btn btn-primary" type="button" :disabled="busy" @click="keepMine">
+                {{ conflictDeleted ? 'Keep mine, and bring it back' : 'Keep mine' }}
+              </button>
+              <button class="btn" type="button" :disabled="busy" @click="keepTheirs">
+                {{ conflictDeleted ? 'Accept the deletion' : 'Keep theirs' }}
+              </button>
+              <button v-if="!conflictDeleted" class="btn" type="button" :disabled="busy" @click="keepBoth">
+                Keep both
+              </button>
+            </div>
+            <p class="vault-hint">
+              <strong>Keep both</strong> files yours as a separate entry so neither password is
+              lost, and leaves you to delete whichever turns out to be wrong.
+            </p>
+          </section>
+
           <form @submit.prevent="save(editing)">
             <label class="vault-field">
               <span>Label</span>
@@ -2366,10 +2498,10 @@ const App = {
           </p>
           <p v-if="location.kind === 'folder'" class="vault-hint">
             <strong>Two computers can share it.</strong> Saving reads what is in the folder first
-            and merges: entries from both survive, the newer edit of the same entry wins, and a
-            deletion stays deleted rather than being brought back by the other machine. If the
-            vault there has been replaced or given a different passphrase, the save stops instead
-            of overwriting it.
+            and merges, so entries from both survive and a deletion stays deleted rather than
+            being brought back by the other machine. If you both changed the <em>same</em> entry,
+            the save stops and asks which to keep rather than picking — so does a vault that has
+            been replaced or given a different passphrase.
           </p>
           <p v-if="location.kind === 'folder'" class="vault-hint">
             What that does <em>not</em> cover is two machines saving while the folder itself is

@@ -365,3 +365,149 @@ test('reload drops the key, because it may be a different vault', async () => {
   assert.equal(store.state(), 'locked')
   assert.throws(() => store.list(), /locked/)
 })
+
+test('an entry changed on the other device while open stops the save', async () => {
+  // Reported from two browsers, and the exact sequence is the test:
+  //   Chrome opens the edit box
+  //   Edge  opens the edit box, saves a new password
+  //   Chrome saves a new password
+  // Chrome used to win on a fresher timestamp and Edge's password vanished --
+  // last-write-wins, where "last" means saved last rather than knew most.
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const chrome = mk()
+  await chrome.init()
+  await chrome.create(PASS)
+  const made = await chrome.add({ label: 'Bank', pw: 'original' })
+
+  const edge = mk()
+  await edge.init()
+  await edge.unlock(PASS)
+
+  // Chrome opens the edit box: it now holds this copy of the entry.
+  const asChromeLoadedIt = chrome.list().find((e) => e.id === made.id)
+
+  clock.advance(1000)
+  await edge.update(made.id, { ...edge.list()[0], pw: 'set-in-edge' })
+
+  clock.advance(1000)
+  const err = await chrome.update(made.id, { ...asChromeLoadedIt, pw: 'set-in-chrome' })
+    .then(() => null, (e) => e)
+
+  assert.ok(err, 'the save must not go through')
+  assert.equal(err.name, 'VaultConflict')
+  assert.equal(err.conflict.mine.pw, 'set-in-chrome')
+  assert.equal(err.conflict.theirs.pw, 'set-in-edge', 'and it hands back what would have been lost')
+
+  // Nothing was written, so Edge's password is still the one in the folder.
+  const fresh = mk()
+  await fresh.init()
+  await fresh.unlock(PASS)
+  assert.equal(fresh.list()[0].pw, 'set-in-edge')
+})
+
+test('resolving the conflict writes exactly what was chosen', async () => {
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const setup = async () => {
+    const a = mk(); await a.init()
+    if (a.state() === 'absent') await a.create(PASS); else await a.unlock(PASS)
+    return a
+  }
+
+  const chrome = await setup()
+  const made = await chrome.add({ label: 'Bank', pw: 'original' })
+  const edge = await setup()
+  const asLoaded = chrome.list().find((e) => e.id === made.id)
+  clock.advance(1000)
+  await edge.update(made.id, { ...edge.list()[0], pw: 'set-in-edge' })
+  clock.advance(1000)
+  await chrome.update(made.id, { ...asLoaded, pw: 'set-in-chrome' }).catch(() => {})
+
+  // Keep mine: write anyway, now that it has been asked.
+  await chrome.update(made.id, { ...asLoaded, pw: 'set-in-chrome' }, { resolve: 'mine' })
+  const after = mk(); await after.init(); await after.unlock(PASS)
+  assert.equal(after.list()[0].pw, 'set-in-chrome')
+  assert.equal(after.list().length, 1, 'and one entry, not two')
+})
+
+test('keep theirs takes the peer\'s copy without writing anything', async () => {
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const chrome = mk(); await chrome.init(); await chrome.create(PASS)
+  const made = await chrome.add({ label: 'Bank', pw: 'original' })
+  const edge = mk(); await edge.init(); await edge.unlock(PASS)
+  clock.advance(1000)
+  await edge.update(made.id, { ...edge.list()[0], pw: 'set-in-edge' })
+
+  const writesBefore = dir.writes
+  await chrome.refresh()
+  assert.equal(chrome.list()[0].pw, 'set-in-edge', 'the stale copy is gone from view')
+  assert.equal(dir.writes, writesBefore, 'and nothing was written -- theirs is already there')
+})
+
+test('an entry deleted on the other device also stops the save', async () => {
+  // Same shape, different loss: saving an edit to something someone deleted
+  // would resurrect it, which is the failure tombstones exist to prevent.
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const chrome = mk(); await chrome.init(); await chrome.create(PASS)
+  const made = await chrome.add({ label: 'Bank', pw: 'original' })
+  const asLoaded = chrome.list().find((e) => e.id === made.id)
+
+  const edge = mk(); await edge.init(); await edge.unlock(PASS)
+  clock.advance(1000)
+  await edge.remove(made.id)
+
+  clock.advance(1000)
+  const err = await chrome.update(made.id, { ...asLoaded, pw: 'edited' }).then(() => null, (e) => e)
+  assert.equal(err && err.name, 'VaultConflict')
+  assert.ok(err.conflict.theirs.deletedAt, 'their side is a tombstone, and the UI can say so')
+})
+
+test('editing different entries on two devices is not a conflict', async () => {
+  // The check has to be narrow, or two people working in the same vault would
+  // interrupt each other constantly for no reason.
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const chrome = mk(); await chrome.init(); await chrome.create(PASS)
+  const bank = await chrome.add({ label: 'Bank', pw: 'b' })
+  const mail = await chrome.add({ label: 'Mail', pw: 'm' })
+  const asLoaded = chrome.list().find((e) => e.id === bank.id)
+
+  const edge = mk(); await edge.init(); await edge.unlock(PASS)
+  clock.advance(1000)
+  await edge.update(mail.id, { ...edge.list().find((e) => e.id === mail.id), pw: 'm2' })
+
+  clock.advance(1000)
+  await chrome.update(bank.id, { ...asLoaded, pw: 'b2' })
+
+  const fresh = mk(); await fresh.init(); await fresh.unlock(PASS)
+  const by = Object.fromEntries(fresh.list().map((e) => [e.label, e.pw]))
+  assert.deepEqual(by, { Bank: 'b2', Mail: 'm2' })
+})
