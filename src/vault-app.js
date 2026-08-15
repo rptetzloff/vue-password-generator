@@ -2364,10 +2364,19 @@ const App = {
             Either way the file is the same ciphertext. Putting it in a synced folder tells your
             cloud provider that a file changed and roughly how big it is — never what is in it.
           </p>
-          <p v-if="location.kind === 'folder'" class="vault-warn">
-            <strong>One device at a time, for now.</strong> Two computers writing the same folder
-            will overwrite each other rather than merging, and the slower one loses. Reconciling two
-            copies is built and tested but not yet wired in.
+          <p v-if="location.kind === 'folder'" class="vault-hint">
+            <strong>Two computers can share it.</strong> Saving reads what is in the folder first
+            and merges: entries from both survive, the newer edit of the same entry wins, and a
+            deletion stays deleted rather than being brought back by the other machine. If the
+            vault there has been replaced or given a different passphrase, the save stops instead
+            of overwriting it.
+          </p>
+          <p v-if="location.kind === 'folder'" class="vault-hint">
+            What that does <em>not</em> cover is two machines saving while the folder itself is
+            out of sync — offline, or within the seconds your cloud client takes to catch up.
+            Then Dropbox or OneDrive makes a second "conflicted copy" file, which is theirs to
+            resolve and not something this page can see. Import that file and the entries merge
+            back in.
           </p>
 
           <template v-if="canFolder">

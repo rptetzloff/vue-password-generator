@@ -23,7 +23,7 @@ import {
 import { generateRecoveryPhrase, normalizeRecoveryPhrase } from './recovery-key.js'
 import { normalizeTotp } from './totp.js'
 import * as realSession from './vault-session.js'
-import { mergeEntries } from './vault-transfer.js'
+import { mergeEntries, mergeReplicas } from './vault-transfer.js'
 
 const DB_NAME = 'pwgen-vault'
 const STORE = 'vault'
@@ -569,6 +569,31 @@ export const readPayload = (data) => {
   }
 }
 
+/**
+ * Reconcile the vault's own metadata between two replicas.
+ *
+ * Only the backup list needs thinking about, and it is a union rather than a
+ * pick: a backup made on the laptop and one made on the desktop are two facts,
+ * not a disagreement about one. Sorted newest first and capped, so two
+ * replicas that have each been backed up five times do not arrive at ten.
+ *
+ * Deduplicated on the timestamp, which is what makes this idempotent -- the
+ * same merge run twice has to give the same list, or every save would grow it.
+ *
+ * lastWriter is deliberately NOT merged. Whoever is writing now is the last
+ * writer; payloadOut stamps it.
+ */
+export const mergeMeta = (mine = {}, theirs = {}) => {
+  const seen = new Set()
+  const exports_ = [...(Array.isArray(mine.exports) ? mine.exports : []),
+    ...(Array.isArray(theirs.exports) ? theirs.exports : [])]
+    .filter((x) => x && typeof x.at === 'string' && Number.isFinite(x.count))
+    .filter((x) => (seen.has(x.at) ? false : seen.add(x.at)))
+    .sort((a, b) => (a.at < b.at ? 1 : a.at > b.at ? -1 : 0))
+    .slice(0, EXPORT_HISTORY)
+  return { ...theirs, ...mine, exports: exports_ }
+}
+
 // --- the store ---------------------------------------------------------------
 
 /**
@@ -636,6 +661,7 @@ export const createVaultStore = ({
     try {
       const stored = await storage.load()
       envelope = isVaultEnvelope(stored) ? stored : null
+      seenCt = envelope ? envelope.ct : null
     } catch {
       // A storage failure must not present as "no vault" -- that would invite
       // creating a second one over the top. Surfaced as a throw instead.
@@ -709,10 +735,91 @@ export const createVaultStore = ({
     return list.filter((e) => !isTombstone(e) || Date.parse(e.deletedAt) >= cutoff)
   }
 
+  /**
+   * The ciphertext this store last read or wrote.
+   *
+   * The whole conflict detector. If what is in storage now is not this, some
+   * other replica has written since we last looked -- another machine sharing
+   * a folder, or just a second tab of this browser over the same IndexedDB.
+   * Comparing ct rather than a version counter means nothing has to be
+   * maintained: every seal produces a fresh IV, so no two writes collide.
+   */
+  let seenCt = null
+
+  /**
+   * Fold in whatever another replica wrote, before writing over it.
+   *
+   * save() overwrote, so the slower of two devices discarded the faster one's
+   * work -- silently, and specifically for the entries someone had just
+   * decided to keep. This is the read half of read-merge-write, and it is why
+   * updatedAt and tombstones exist (ROADMAP 9d).
+   *
+   * The peer's file opens with the master key already in memory: openVault
+   * takes an existing key and skips the KDF entirely, so this costs one AES
+   * pass rather than a million PBKDF2 rounds. It also means a peer that has
+   * been RE-KEYED cannot be opened -- GCM authenticates, so the decrypt throws
+   * rather than producing rubbish, and refusing to write is then the only
+   * honest answer. Overwriting would delete a vault whose new passphrase
+   * someone deliberately set.
+   */
+  const reconcile = async () => {
+    // Nothing read yet means this store created the vault, so there is
+    // nothing of anyone else's to merge with.
+    if (seenCt === null) return null
+
+    // A present-but-unreadable file throws out of load(), and it is allowed to
+    // throw all the way out of the save. Writing over a file we cannot read is
+    // how you destroy the one copy of something.
+    const current = await storage.load()
+    if (!current || current.ct === seenCt) return null
+
+    let opened
+    try {
+      opened = await openVault(current, null, key)
+    } catch {
+      // Deliberately does not guess which. Every vault has its own random
+      // master key, so a re-keyed peer and a different vault entirely fail
+      // here identically -- there is nothing in an unreadable envelope to tell
+      // them apart, and naming one would be a coin flip presented as a fact.
+      throw new Error(
+        'the vault in that place has been replaced or given a different passphrase, so it '
+        + 'can no longer be read from here. This save was stopped rather than overwriting it.',
+      )
+    }
+
+    // Reachable only for a vault that shares our master key and yet claims a
+    // different identity, which the decrypt above has already made unlikely.
+    // Kept because the alternative to checking is interleaving two people's
+    // passwords into one list, and the check costs a string compare.
+    const remote = readPayload(opened.data)
+    if (vaultId && remote.vaultId && remote.vaultId !== vaultId) {
+      throw new Error(
+        'a different vault is in that place now, so this save was stopped rather than '
+        + 'overwriting it',
+      )
+    }
+
+    // Ours first: strictly newer wins, and ties keep the local copy, so the
+    // edit that triggered this save survives a peer that saved in the same
+    // second.
+    const result = mergeReplicas(entries, normalizeEntries(remote.entries))
+    entries = result.merged
+    meta = mergeMeta(meta, remote.meta)
+    seenCt = current.ct
+    return result
+  }
+
   const persist = async () => {
+    const folded = await reconcile()
     entries = reap(entries)
     envelope = await sealVault(key, kdf, payloadOut())
     await storage.save(envelope)
+    // What is in storage is now ours. Every path that re-seals for a reason
+    // other than an ordinary edit lands here, and missing one would make the
+    // NEXT save mistake our own file for a peer's and try to merge with it.
+    seenCt = envelope.ct
+    seenCt = envelope.ct
+    return folded
   }
 
   // --- the in-progress entry ---------------------------------------------------
@@ -772,6 +879,10 @@ export const createVaultStore = ({
     key = made.key
     kdf = made.kdf
     await storage.save(envelope)
+    // What is in storage is now ours. Every path that re-seals for a reason
+    // other than an ordinary edit lands here, and missing one would make the
+    // NEXT save mistake our own file for a peer's and try to merge with it.
+    seenCt = envelope.ct
     await session.rememberSession(key, kdf, staySignedInMs)
     touch()
     emit()
@@ -966,6 +1077,10 @@ export const createVaultStore = ({
     key = made.key
     kdf = made.kdf
     await storage.save(envelope)
+    // What is in storage is now ours. Every path that re-seals for a reason
+    // other than an ordinary edit lands here, and missing one would make the
+    // NEXT save mistake our own file for a peer's and try to merge with it.
+    seenCt = envelope.ct
     await session.rememberSession(key, kdf, staySignedInMs)
     touch()
     emit()
@@ -1019,6 +1134,10 @@ export const createVaultStore = ({
     envelope = await addSlot(live, 'recovery', phrase, master)
     kdf = envelope.wraps
     await storage.save(envelope)
+    // What is in storage is now ours. Every path that re-seals for a reason
+    // other than an ordinary edit lands here, and missing one would make the
+    // NEXT save mistake our own file for a peer's and try to merge with it.
+    seenCt = envelope.ct
     touch()
     emit()
     return phrase
@@ -1034,6 +1153,10 @@ export const createVaultStore = ({
     envelope = removeSlot(envelope, 'recovery')
     kdf = envelope.wraps
     await storage.save(envelope)
+    // What is in storage is now ours. Every path that re-seals for a reason
+    // other than an ordinary edit lands here, and missing one would make the
+    // NEXT save mistake our own file for a peer's and try to merge with it.
+    seenCt = envelope.ct
     touch()
     emit()
     return true
@@ -1080,6 +1203,10 @@ export const createVaultStore = ({
     key = made.key
     kdf = made.kdf
     await storage.save(envelope)
+    // What is in storage is now ours. Every path that re-seals for a reason
+    // other than an ordinary edit lands here, and missing one would make the
+    // NEXT save mistake our own file for a peer's and try to merge with it.
+    seenCt = envelope.ct
     await session.rememberSession(key, kdf, staySignedInMs)
     touch()
     emit()

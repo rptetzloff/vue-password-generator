@@ -169,13 +169,44 @@ None of that needs a network. All of it is testable in node today. It was
 roughly a day of work while there is exactly one client and the migration is
 free, and it is the whole difference between *sync later* and *rewrite later*.
 
-What is still missing is the *use* of it: the folder adapter writes whole
-files, so two devices sharing a folder still lose writes. `mergeReplicas` is
-built and tested; wiring it into save as read-merge-write is the next piece,
-and until it lands the folder is for one device at a time. That gap is a
-failing-by-design test rather than a note — see
-`'two devices sharing a folder still lose writes'`, which starts failing when
-it is fixed.
+**Reversed — and by the test that was planted to reverse it.** This said the
+folder adapter writes whole files, so two devices lose writes, and pointed at
+`'two devices sharing a folder still lose writes, which is the next piece'` as
+a failing-by-design record of the gap. That test started failing, which is what
+it was for. It now reads `'two devices sharing a folder keep each other's
+work'`.
+
+`persist()` is read-merge-write. Before writing it loads what is actually in
+storage, and if the ciphertext is not the one this store last read or wrote —
+a peer has been here — it opens that copy with the master key already in
+memory, merges, and writes the result. Comparing the ciphertext means no
+version counter has to be maintained: every seal makes a fresh IV, so no two
+writes collide.
+
+- It costs one read per save and nothing else. An unchanged ciphertext
+  short-circuits before any decrypt, which is the normal case, and reading the
+  peer's copy skips the KDF entirely — `openVault` takes the key it already
+  has, so this is one AES pass and not a million PBKDF2 rounds.
+- **It also fixes two tabs**, which is the same lost update over one IndexedDB
+  and much more common, since nothing tells you the vault is open twice.
+- **A peer it cannot read stops the save.** Re-keyed elsewhere, or a different
+  vault dropped in that place: both fail identically, because every vault has
+  its own random master key and there is nothing in an unreadable envelope to
+  tell the two apart. So the message names both rather than guessing. What was
+  typed stays in memory, so nothing has to be retyped.
+- The backup list merges as a union rather than a pick — a backup made on the
+  laptop and one made on the desktop are two facts, not a disagreement — and
+  is deduplicated on the timestamp so the same merge run twice gives the same
+  list.
+
+**The limit, in the same breath.** This makes two devices safe *in sequence*,
+which is how people actually use two computers. It does not make simultaneous
+writes safe: between the read and the write there is a window, now
+milliseconds wide instead of a whole session, and a peer that writes inside it
+still loses. Nor can it see across the folder's own sync — two machines saving
+while Dropbox is behind produces a *conflicted copy* file, which is Dropbox's
+arbitration and not visible to this page at all. Importing that file merges its
+entries back in, and the UI says so.
 
 **Then the transport is a separate and deferrable choice**, which is the part
 that protects the claims. A server (9d) means accounts, hosting, liability, and

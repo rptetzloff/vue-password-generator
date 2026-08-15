@@ -52,6 +52,15 @@ const fakeDrafts = () => {
   }
 }
 
+// Merges are decided by updatedAt, so these tests have to be able to say which
+// write came second. A driven clock does that without sleeping.
+const fakeClock = (start = 1_000_000) => {
+  const c = { t: start }
+  c.now = () => c.t
+  c.advance = (ms) => { c.t += ms }
+  return c
+}
+
 const PASS = 'correct horse battery staple'
 
 test('an empty folder reports no vault rather than an error', async () => {
@@ -156,15 +165,16 @@ test('the store drives a folder exactly as it drives IndexedDB', async () => {
   assert.equal(second.list()[0].label, 'Email')
 })
 
-test('two devices sharing a folder still lose writes, which is the next piece', async () => {
-  // Recorded as a failing property rather than left implied. save() overwrites,
-  // so the slower writer discards the faster one's work. mergeReplicas exists
-  // and is tested; wiring it in changes what saving means, and until then this
-  // adapter is for one device.
+test('two devices sharing a folder keep each other\'s work', async () => {
+  // This test used to assert the opposite, and said so: "B is lost today --
+  // when this assertion starts failing, read-merge-write works". It started
+  // failing. save() no longer overwrites; it reads what is in the folder,
+  // merges, and writes the result.
+  const clock = fakeClock()
   const dir = fakeDir()
   const mk = () => createVaultStore({
     storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
-    now: () => 1_000_000,
+    now: clock.now,
   })
 
   const a = mk()
@@ -175,17 +185,135 @@ test('two devices sharing a folder still lose writes, which is the next piece', 
   const b = mk()
   await b.init()
   await b.unlock(PASS)
+  clock.advance(1000)
   await b.add({ label: 'From B', pw: 'bbb' })
 
-  // A saves again, knowing nothing of B.
+  // A saves again, knowing nothing of B until it looks.
+  clock.advance(1000)
   await a.add({ label: 'Also A', pw: 'ccc' })
 
   const fresh = mk()
   await fresh.init()
   await fresh.unlock(PASS)
-  const labels = fresh.list().map((e) => e.label).sort()
-  assert.ok(!labels.includes('From B'),
-    'B is lost today -- when this assertion starts failing, read-merge-write works')
+  assert.deepEqual(fresh.list().map((e) => e.label).sort(),
+    ['Also A', 'From A', 'From B'])
+})
+
+test('a deletion on one device is not resurrected by the other', async () => {
+  // The failure the tombstones were built for, and the one that matters most:
+  // a merge that only ever adds brings back the entry someone most wanted
+  // gone. It has to survive a peer that still holds the entry and saves after.
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const a = mk()
+  await a.init()
+  await a.create(PASS)
+  const doomed = await a.add({ label: 'Old account', pw: 'aaa' })
+
+  // B reads the vault WITH the entry in it, then A deletes it.
+  const b = mk()
+  await b.init()
+  await b.unlock(PASS)
+  assert.equal(b.list().length, 1)
+
+  clock.advance(1000)
+  await a.remove(doomed.id)
+
+  // B now saves something unrelated, still holding its stale copy.
+  clock.advance(1000)
+  await b.add({ label: 'Something else', pw: 'bbb' })
+
+  const fresh = mk()
+  await fresh.init()
+  await fresh.unlock(PASS)
+  assert.deepEqual(fresh.list().map((e) => e.label), ['Something else'],
+    'the deleted entry must stay deleted')
+})
+
+test('the newer edit of the same entry wins, whichever device made it', async () => {
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const a = mk()
+  await a.init()
+  await a.create(PASS)
+  const entry = await a.add({ label: 'Bank', pw: 'first' })
+
+  const b = mk()
+  await b.init()
+  await b.unlock(PASS)
+
+  clock.advance(1000)
+  await a.update(entry.id, { pw: 'from-A' })
+  clock.advance(1000)
+  await b.update(entry.id, { pw: 'from-B-later' })
+
+  const fresh = mk()
+  await fresh.init()
+  await fresh.unlock(PASS)
+  assert.equal(fresh.list()[0].pw, 'from-B-later')
+  assert.equal(fresh.list().length, 1, 'one entry, not two copies of it')
+})
+
+test('a peer re-keyed to a new passphrase stops the save rather than erasing it', async () => {
+  // The one case where merging is impossible and overwriting is unforgivable.
+  // A re-key makes a new master key, so the peer's file will not open with the
+  // one in memory -- GCM authenticates, so this fails loudly rather than
+  // decrypting to rubbish. Someone deliberately set that passphrase.
+  const clock = fakeClock()
+  const dir = fakeDir()
+  const mk = () => createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: clock.now,
+  })
+
+  const a = mk()
+  await a.init()
+  await a.create(PASS)
+  await a.add({ label: 'Bank', pw: 'aaa' })
+
+  const b = mk()
+  await b.init()
+  await b.unlock(PASS)
+  clock.advance(1000)
+  await b.rekey(PASS, 'an entirely different passphrase')
+
+  clock.advance(1000)
+  await assert.rejects(() => a.add({ label: 'Late', pw: 'bbb' }), /different passphrase/)
+
+  // And B's vault is still there, opening with the passphrase B set.
+  const fresh = mk()
+  await fresh.init()
+  await fresh.unlock('an entirely different passphrase')
+  assert.deepEqual(fresh.list().map((e) => e.label), ['Bank'])
+})
+
+test('a save with no peer write does not re-read and merge for nothing', async () => {
+  // The merge costs a read and a decrypt. One device editing its own vault --
+  // which is most of the time -- must not pay for it on every keystroke-sized
+  // save, so an unchanged ciphertext short-circuits.
+  const dir = fakeDir()
+  const storage = createFolderStorage(dir, { drafts: fakeDrafts() })
+  let loads = 0
+  const counted = { ...storage, load: async () => { loads++; return storage.load() } }
+
+  const store = createVaultStore({ storage: counted, now: () => 1_000_000 })
+  await store.init()
+  await store.create(PASS)
+  const before = loads
+  await store.add({ label: 'A', pw: 'x' })
+  await store.add({ label: 'B', pw: 'y' })
+  await store.add({ label: 'C', pw: 'z' })
+  assert.equal(loads - before, 3, 'one look per save, and no more')
 })
 
 test('reload re-reads after the storage underneath changes', async () => {

@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
   groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
-  TOMBSTONE_TTL_MS, isTombstone, EXPORT_HISTORY, deviceNameFrom,
+  TOMBSTONE_TTL_MS, isTombstone, EXPORT_HISTORY, deviceNameFrom, mergeMeta,
 } from '../src/vault-store.js'
 import { KDF_ITERATIONS, sealVault, deriveKey, newSalt, createVault, openVault } from '../src/vault-crypto.js'
 
@@ -1281,4 +1281,126 @@ test('the device name says which browser, and gets the impersonators right', () 
   // It is a label. Nothing may depend on it, including being present.
   assert.equal(deviceNameFrom(''), 'an unknown browser')
   assert.equal(deviceNameFrom(undefined), 'an unknown browser')
+})
+
+// -- read-merge-write ---------------------------------------------------------
+
+test('two tabs of one browser stop overwriting each other too', async () => {
+  // Not only the folder case. Two tabs are two stores over the same IndexedDB,
+  // which is the same lost update with a shorter distance to travel -- and far
+  // more common, since nothing warns you that the vault is open twice.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const mk = () => createVaultStore({ storage, now: clock.now })
+
+  const tabA = mk()
+  await tabA.init()
+  await tabA.create(PASS)
+  const tabB = mk()
+  await tabB.init()
+  await tabB.unlock(PASS)
+
+  await tabA.add({ label: 'Typed in A', pw: 'aaa' })
+  clock.advance(1000)
+  await tabB.add({ label: 'Typed in B', pw: 'bbb' })
+
+  const fresh = mk()
+  await fresh.init()
+  await fresh.unlock(PASS)
+  assert.deepEqual(fresh.list().map((e) => e.label).sort(), ['Typed in A', 'Typed in B'])
+})
+
+test('the merge is not run against our own writes', async () => {
+  // seenCt is what makes the difference between "a peer wrote" and "we wrote".
+  // Every path that re-seals has to record it -- re-key and the recovery slots
+  // seal outside persist(), and missing one would have the next save merge the
+  // vault with itself.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const store = createVaultStore({ storage, now: clock.now })
+  await store.init()
+  await store.create(PASS)
+  await store.add({ label: 'Bank', pw: 'x' })
+
+  for (const step of [
+    () => store.rekey(PASS, 'a second passphrase'),
+    () => store.addRecoveryKey('a second passphrase', WORDS),
+    () => store.removeRecoveryKey('a second passphrase'),
+  ]) {
+    await step()
+    clock.advance(1000)
+    // If seenCt were stale here, this save would re-read our own envelope,
+    // merge it with itself, and the entry count would be the tell.
+    await store.add({ label: `after ${store.list().length}`, pw: 'y' })
+    assert.equal(store.list().filter((e) => e.label === 'Bank').length, 1)
+  }
+  assert.equal(store.list().length, 4)
+})
+
+test('backup records from two devices are a union, not a disagreement', () => {
+  // A backup made on the laptop and one made on the desktop are two facts.
+  const laptop = { exports: [{ at: '2026-08-15T10:00:00.000Z', count: 3, by: 'Chrome on Windows' }] }
+  const desktop = { exports: [{ at: '2026-08-14T09:00:00.000Z', count: 2, by: 'Edge on Windows' }] }
+
+  const merged = mergeMeta(laptop, desktop)
+  assert.deepEqual(merged.exports.map((x) => x.at),
+    ['2026-08-15T10:00:00.000Z', '2026-08-14T09:00:00.000Z'], 'newest first')
+
+  // Idempotent, or every save would grow the list.
+  assert.deepEqual(mergeMeta(merged, desktop), merged)
+  assert.deepEqual(mergeMeta(merged, merged), merged)
+})
+
+test('the backup list is capped after a merge, not just after a backup', async () => {
+  const many = (n, from) => ({
+    exports: Array.from({ length: n }, (_, i) => ({ at: `2026-08-${String(from + i).padStart(2, '0')}T00:00:00.000Z`, count: i })),
+  })
+  const merged = mergeMeta(many(4, 1), many(4, 10))
+  assert.equal(merged.exports.length, EXPORT_HISTORY)
+  assert.equal(merged.exports[0].at, '2026-08-13T00:00:00.000Z', 'the newest survive')
+})
+
+test('an unreadable replacement stops the save without guessing why', async () => {
+  // A peer that re-keyed and a different vault dropped in the same place fail
+  // identically -- both have a master key we do not hold -- so the message
+  // names both rather than picking one. Overwriting either would be the worst
+  // available answer: someone deliberately set that passphrase, or that is
+  // somebody else's vault.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const mine = createVaultStore({ storage, now: clock.now })
+  await mine.init()
+  await mine.create(PASS)
+  await mine.add({ label: 'Mine', pw: 'x' })
+
+  const theirs = await createVault(PASS, { v: 1, vaultId: 'someone-else', entries: [], meta: {} })
+  storage.box.value = theirs.envelope
+
+  clock.advance(1000)
+  await assert.rejects(() => mine.add({ label: 'Late', pw: 'y' }), /replaced or given a different passphrase/)
+  assert.deepEqual(mine.list().map((e) => e.label), ['Late', 'Mine'],
+    'the failed save leaves what was typed in memory, so nothing has to be retyped')
+})
+
+test('a readable vault that claims a different identity is still refused', async () => {
+  // The narrow case the id check is for: same master key, different vaultId.
+  // Buildable only by sealing with the key in hand, which is the point -- it
+  // is what a clone that diverged would look like, and merging two vaults is
+  // interleaving two people's passwords into one list.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const made = await createVault(PASS, { v: 1, vaultId: 'ours', entries: [], meta: {} })
+  storage.box.value = made.envelope
+
+  const store = createVaultStore({ storage, now: clock.now })
+  await store.init()
+  await store.unlock(PASS)
+  await store.add({ label: 'Mine', pw: 'x' })
+
+  // Same key, so it decrypts; different id, so it must not be merged.
+  storage.box.value = await sealVault(made.key, made.kdf, {
+    v: 1, vaultId: 'not-ours', entries: [], meta: {},
+  })
+  clock.advance(1000)
+  await assert.rejects(() => store.add({ label: 'Late', pw: 'y' }), /different vault is in that place/)
 })
