@@ -1,7 +1,13 @@
 services:
   - type: web
-    name: vue-password-generator
+    name: wordlock
     runtime: static
+    # Pinned here rather than left to the dashboard. The deploy branch was
+    # dashboard-only, which meant renaming the default branch would have left
+    # Render watching a branch that no longer existed -- production frozen on
+    # its last deploy, merges silently not shipping, and nothing in the repo
+    # to explain it. In the file, it is reviewable.
+    branch: main
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
     staticPublishPath: ./
