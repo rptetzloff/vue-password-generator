@@ -82,6 +82,17 @@ services:
       # Cache-Control at all. That is the cost of the approach and it is worth
       # it: no header is a knowable default, two headers is a coin flip.
       #
+      # AND THE TRAP THAT MADE THIS TAKE ALL AFTERNOON: Blueprint header sync
+      # is ADDITIVE. Render adds rules you add and updates rules you change,
+      # but deleting one here does NOT delete it from the service. The old
+      # /vendor/* rule stayed live and kept competing with the font rule long
+      # after it left this file, which is why removing the overlap changed
+      # nothing. Deleting a header rule means deleting it here *and* on the
+      # service's Headers page. Verified 2026-08-15: after removing the orphan
+      # by hand, the font returned immutable five times out of five, and the
+      # two LICENSE files -- deliberately uncovered -- fell through to Render's
+      # own max-age=0, s-maxage=300 instead of the phantom 86400.
+      #
       # Checking this against production needs a cache-busting query, or you
       # measure Cloudflare rather than Render -- a plain request returns the
       # edge copy with cf-cache-status: EXPIRED, which is how the first read of
