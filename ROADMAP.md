@@ -786,6 +786,52 @@ implementation quietly destroys the property everything else protects.
       local-only mode has to keep working exactly as it does now — Epic 9's
       second invariant, which was agreed before any of this was on the list.
 
+### 10g. A recycle bin — the same feature as undo, with the window opened
+
+Raised as the obvious consequence of shipping undo, and that reading is
+correct: **the fifteen-second undo already is a recycle bin.** It holds the
+whole entry, secret included, and puts it back on request. The only things a
+bin changes are how long the copy lives and where it lives, and the second of
+those is what makes it a different decision rather than a bigger number.
+
+Today the copy sits in a JavaScript variable. It dies when the countdown ends,
+when the vault locks, when the tab closes, and when the machine loses power. It
+is never written anywhere. A bin moves it into the vault itself, and that has
+consequences the toast does not:
+
+| | Undo (shipped) | Recycle bin |
+|---|---|---|
+| Lives in | memory | the encrypted vault |
+| Survives a lock | no | yes |
+| Survives a reboot | no | yes |
+| In your exported backup | no | yes |
+| Synced to every device | no | yes |
+
+The last two are the ones to think about. A bin means a password you deleted
+travels in every backup you make and lands on every replica you own, for the
+length of the retention window. Someone who deletes an entry because they are
+about to hand the laptop over, or because it was pasted in by mistake, has not
+agreed to that.
+
+- [ ] **Opt-in, off by default, with undo as the default behaviour.** Stated
+      where the deleting happens rather than only in settings, and the
+      retention window visible in the same place.
+- [ ] **Decide what an export does with it.** Excluding binned items from the
+      plain and CSV exports is clearly right -- another manager has no concept
+      of them and would import blank rows. The encrypted backup is the
+      interesting one: exclude them and restoring a backup silently empties
+      the bin; include them and the backup carries deleted passwords. Probably
+      include, and say so on the export screen.
+- [ ] **The machinery already exists.** Tombstones, `deletedAt`, the reaper and
+      its TTL, and `store.restore` were all built for sync and undo. A bin is
+      those parts with the secret retained instead of discarded, which is a
+      one-line change in `remove()` and a view -- and that is exactly why it
+      deserves the deliberation above rather than being waved through as easy.
+- [ ] **Reaping becomes user-visible.** Right now a tombstone quietly expires
+      at ninety days and nothing is lost. A bin entry expiring is a password
+      being destroyed on a timer, which needs to be visible before it happens
+      rather than discovered after.
+
 ## Epic 8 — Beyond the page
 
 > The footer was templated as part of 8a. It had been six hand-written copies
