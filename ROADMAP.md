@@ -102,10 +102,18 @@ and *the deployed site is the source you can read* stops being literally true.
 That is the claim this project leads with. Decide it deliberately, not halfway
 through writing a content script.
 
-**What has not been tested is whether copy-paste is merely annoying or
-actually disqualifying.** Nobody has lived with this vault for a week. That
-answer changes how much the extension is worth and it cannot be reasoned to
-from here.
+**That question is answered, and it was never really open.** An earlier draft
+here said nobody had lived with this vault for a week, so whether copy-paste
+was merely annoying or actually disqualifying was untested. Proposed three
+times, and each time to someone who has used password managers for years: in
+every one of them autofill *is* the product and copy-paste is the fallback for
+the cases fill cannot reach. A vault offering only the fallback is a place to
+look things up. Take it as settled rather than as an experiment to run.
+
+**But that does not make the extension mandatory, and the distinction matters.**
+It is the price of admission for *filling*, not for the vault. Someone who
+wants a local-only vault in one browser, or only in the app, has chosen a
+supported destination — see invariant 2, extended for exactly this.
 
 ---
 
@@ -244,6 +252,17 @@ built without breaking one does not get built:
    claim the whole site is built on, and a manager that quietly turns it into
    "works, but…" would be a worse product than no manager at all.
 
+   **Extended 2026-08-14 to cover every client, not just sync.** This was
+   written when sync was the only thing that could break it; an extension and
+   a packaged app can break it the same way. Someone who wants a local vault
+   in one browser, or only in the app, has chosen a supported destination
+   rather than stalled halfway to the real product. So: no prompt to install
+   an extension, no "filling available with…" banner over a copy button, no
+   feature withheld from the website that could have run there. If the
+   extension is ever *required* to make the vault worth using, the vault was
+   built wrong — filling is the reason to want one, not the reason the other
+   parts work.
+
 Everything else — vault, autofill, biometrics, eventually sync — is fair game
 if it can be built inside those two lines.
 
@@ -365,7 +384,7 @@ the bridge between them, which is a reason to build 9b first and well.
       offer, and the second reason to package.
 - [ ] **Count the cost honestly.** $99/year plus review for Apple, $25 plus
       review for Google, code signing, and a release cadence, against a site
-      that currently ships by pushing to master. 8c's warning about two stores
+      that currently ships by pushing to main. 8c's warning about two stores
       applies here too.
 - [ ] **Order: 9a and 9b on the web first.** They work in the browser and the
       PWA immediately, and they are the substance. Wrapping comes after, so
@@ -374,8 +393,135 @@ the bridge between them, which is a reason to build 9b first and well.
 
 ### 9d. Sync, if it ever happens — the conditions
 
-Not parked forever, but conditional. Every one of these is a gate, not a
-preference:
+**Three modes, after Obsidian's shape.** That model is worth copying because it
+solves the funding problem without compromising the free product: local is
+whole forever, self-managed sync costs nothing and is fully supported, and the
+hosted option pays for the work. Nobody is ever nagged toward a paid tier.
+
+1. **Local only — what exists today.** One device, no network, nothing leaves
+   it. Not a starter tier and not a trial: a supported destination, per
+   invariant 2. Nothing about the other two modes may make this one worse.
+2. **Bring your own cloud.** The encrypted vault lives in a folder the user
+   already syncs — Dropbox, OneDrive, iCloud Drive, a network share. Point the
+   app at a file and their existing sync client does the rest. No account with
+   us, no server of ours, and we never learn which provider it is or that they
+   are using one.
+3. **WordLock Cloud — paid, because it has to be.** Hosting is cheap and
+   obligation is not: uptime, abuse, deletion requests, support. Charging is
+   what makes it sustainable rather than a liability. Supabase to begin with,
+   as a proof of concept — Postgres, row-level security and auth from people
+   who do database security for a living, which beats reinventing it. Possibly
+   our own infrastructure later, if there is ever a reason beyond pride.
+
+- [ ] **Argon2id moves from "nice" to "load-bearing" here.** Today the
+      ciphertext sits on one device the attacker must already have. In modes 2
+      and 3 it sits in a provider's storage, so the realistic attack becomes an
+      offline guess against whatever the passphrase is worth, at whatever rate
+      the KDF permits. PBKDF2 is merely slow and parallelises beautifully on a
+      GPU; Argon2id is memory-hard and does not. Shipping mode 2 or 3 without
+      it means the sync feature is what makes the weak-passphrase case
+      materially worse. See 9f — it should land first, or in the same release.
+- [ ] **The account credential must be unrelated to the vault passphrase.**
+      Never derived from it, never sent, never recoverable from anything the
+      server holds. The test is blunt: hand an attacker the entire production
+      database and they should learn nothing but blob sizes and timestamps.
+      Design for that and a misconfigured RLS policy — the classic Supabase
+      failure, and the reason to pick a backend *after* deciding the model —
+      leaks ciphertext rather than passwords.
+- [ ] **Pad the ciphertext to size buckets.** What a provider still learns is
+      metadata: a blob's size roughly reveals how many entries are in it, and
+      its modification times reveal when passwords are added or changed, which
+      is a behavioural trace. Padding to buckets makes a twelve-entry vault and
+      a forty-entry one indistinguishable, and costs a few lines. Timing is
+      harder and probably not worth chasing.
+- [ ] **Splitting the vault across two providers: considered, and no.**
+      The appeal is that no single provider holds everything. But no provider
+      holds anything readable now — that is what the encryption is for — so
+      splitting defends a flank already covered, while adding two integrations,
+      two failure modes, torn state when one write lands and the other does
+      not, and *reduced* availability, since both must be up to open the vault.
+      The one real benefit is defence in depth against a weak passphrase, and
+      Argon2id buys far more of that per unit of effort, because it addresses
+      the weak point rather than routing around it.
+
+**Where the code already is, as of 2026-08-14.** Mode 2 is closer than it
+looks, because the hard part is done and the remaining part is specific.
+
+Ready: the entry model reconciles (`updatedAt`, tombstones, `mergeReplicas`);
+storage is already injected into `createVaultStore`, so a file-backed adapter
+drops in without touching the state machine; the vault is a single
+self-contained encrypted envelope, which is exactly one file; and the browser
+API exists — verified in Chrome 148, `showSaveFilePicker`, `createWritable`
+and `queryPermission` all present.
+
+- [ ] **The blocker is that `save()` overwrites.** Every write assumes it is
+      the only writer, which is true for one device and false the moment a
+      second one shares a file. Persisting has to become read-merge-write:
+      load the remote copy, decrypt it, merge, re-seal, write back. That is a
+      change to what saving *means*, not a new adapter.
+- [ ] **Which means syncing requires an unlocked vault**, since merging needs
+      the plaintext. A locked vault cannot reconcile, so sync happens on unlock
+      and on save rather than on a background timer. Worth stating early: it
+      shapes the UI.
+- [ ] **Detect the write race.** Two devices writing the same file need the
+      remote's modification time or hash compared before overwriting, or the
+      slower one silently discards the faster one's work.
+- [ ] **Persist the file handle**, which is structured-cloneable and can live
+      in IndexedDB, plus a permission re-grant path for later visits. Without
+      that, mode 2 means picking the file again every single time.
+- [ ] **Chromium desktop only, and say so.** Firefox has no File System Access
+      API and mobile browsers have no persistent handles, so mode 2 on the web
+      is a desktop feature. Phones reach the same file through the packaged app
+      and the platform pickers, which is 9c — and is the reason to keep the
+      format a plain encrypted file rather than anything clever.
+
+**Written assuming a server, which now looks like the most expensive option
+and the only one that breaks an invariant.** The gates below still stand and
+still apply, but they were drafted before the entry model existed and before
+anyone costed the alternatives. Sync is a *transport* problem now: the merge is
+built and tested, so what remains is moving one encrypted file between places.
+That can be done four ways, and hosting is the smallest part of the price.
+
+| Transport | Money | Ongoing burden | Breaks "no accounts" |
+|---|---|---|---|
+| Manual export / import (today) | none | none | no |
+| Local file handle + the user's own cloud client | ~none | ~none | no |
+| Provider APIs (Dropbox, Drive, OneDrive) | small | 3–4 review processes, API drift | no |
+| Our own server | small | uptime, abuse, deletion requests | **yes** |
+
+- [ ] **The cheap path is the default, and it uses no provider API at all.**
+      The File System Access API can hold a persistent handle to a file inside
+      the Dropbox or OneDrive folder the user's desktop client *already*
+      syncs. No OAuth, no app registration, no server, no account — their sync
+      client does the work and we never learn which provider it is. Chromium
+      desktop only, so not the whole answer, but it is the cheapest possible
+      proof the replica model works and it needs nothing from anyone.
+- [ ] **Provider APIs cost more in friction than in money.** Each is a separate
+      integration with its own OAuth registration and review. Dropbox is
+      straightforward, Microsoft Graph is manageable, Google Drive is the heavy
+      one — scoping to `drive.file`, where the app only sees files it created,
+      stays out of the restricted-scope tier that triggers a paid third-party
+      security assessment. And **iCloud Drive has no web API**, so it is
+      native-only regardless. Three or four integrations, each with review and
+      permanent drift, for something the row above does for free.
+- [ ] **A server's cost is obligation, not hosting.** Ciphertext blobs are tens
+      of kilobytes and nearly free to store anywhere. What is expensive is
+      being the party that must stay up, handle abuse, answer deletion
+      requests, and explain an outage — plus it needs an identity of some kind
+      even when opaque, which is the line Legal currently draws. Worth it only
+      if the free paths have been tried and genuinely do not cover enough.
+- [ ] **The sync unit is a folder, not a file.** A vault plus N attachment
+      blobs cannot be one file, so mode 2 points at a *directory* —
+      `showDirectoryPicker`, which is present alongside the rest of the File
+      System Access API. Cheap to decide now and awkward to change after mode 2
+      ships pointing at a single file. Mode 3 gets the same treatment: separate
+      storage objects rather than one row.
+- [ ] **Mobile is 9c's problem, not this section's.** No mobile browser offers
+      persistent file handles, so a phone syncs through the packaged app and
+      the platform file pickers. That is a reason to keep the format a plain
+      encrypted file rather than anything clever.
+
+Every one of these is a gate, not a preference:
 
 - [ ] **Opt-in, and the local mode stays whole.** No account prompt on first
       run, no feature that exists only for synced users, no reminder that
@@ -544,6 +690,55 @@ and both should be revisited deliberately rather than drifted into.
       behind the same write-it-down gate the adopt flow uses, stated plainly as
       a second key to everything in the vault, and revocable.
 
+- [ ] **Seal the secrets inside the vault as well as around it.** Today
+      unlocking means every password in the vault becomes a plaintext
+      JavaScript string for the whole session, sitting beside the passphrase
+      that already cannot be scrubbed. Sealing each secret individually under a
+      subkey means only what is actually revealed, copied or filled gets
+      decrypted, and the rest stay ciphertext in memory.
+
+      **The split is the user's own choice, which is the neat part.** The
+      `secret` flag on a custom field already means masked, clipboard-timed and
+      generatable; it now also means inner-sealed. Password, TOTP seed,
+      security answers and secret fields are inside. Label, username, URLs,
+      note, group, tags and dates are metadata — searchable is the test, and it
+      lines up almost exactly with masked-in-the-UI. Put something sensitive in
+      a plain text field and it is plain text: that is the user's call, made
+      with a checkbox they already understand, and everything is still
+      encrypted at the outer layer regardless.
+
+      **Reuse detection survives via a keyed hash.** Comparing passwords needs
+      plaintext, which defeats the point, so each entry carries an HMAC of its
+      password under a subkey. Reuse still works, the hashes are useless
+      without the key, and nothing gets decrypted to compute it. Two caveats:
+      those hashes must stay *inside* the outer envelope, or a storage provider
+      learns which of your accounts share a password; and reuse becomes
+      per-vault, since separate vaults (10c) have separate keys and there is no
+      fix that does not defeat the point of separating them.
+
+      **What it does not buy: merging without the key.** The metadata is inside
+      the outer envelope, so reading it still needs the vault open, and sync
+      stays an on-unlock operation. What it does buy is that the merge never
+      touches a secret — it shuffles opaque blobs — so a bug there can misplace
+      an entry but cannot leak or corrupt a password. And a corrupt inner blob
+      costs one entry rather than the whole vault.
+
+      **Three things to be honest about.** Export still decrypts everything, so
+      "never decrypt the whole vault" has an exception from day one. The threat
+      it addresses is a passive memory snapshot — crash dump, swap, forensic
+      capture — and it buys much less against an attacker with code execution,
+      who can hook the decrypt path or simply wait. And there is one
+      implementation trap that would erase the benefit entirely: the moment the
+      UI caches decrypted values in the reactive store, which is the natural
+      way to write it and how `entries` works today, every password is back in
+      memory. The decrypted value has to live for one operation and then go.
+
+      **Do it soon rather than carefully later.** This is another envelope
+      version, and format migrations are only expensive once vaults exist in
+      the wild. The vault shipped yesterday and almost certainly nobody is
+      storing real passwords in it yet, so the migration is close to free right
+      now and will not be in six months.
+
 - [ ] **Bind the envelope's metadata into the AEAD.** Raised while explaining
       v2 to someone who then asked the right question: if both ways in are the
       same mechanism with different inputs, what actually deserves scrutiny is
@@ -625,23 +820,42 @@ Recovery codes as a PDF, a scan of a passport, a licence key file. The obvious
 scope is "small files only", and that instinct is right, but not for the
 reason it looks like.
 
-- [ ] **The obstacle is the storage shape, not the quota.** The vault is one
-      sealed blob: every save re-encrypts and rewrites the whole thing. That
-      is fine for a few kilobytes of text and untenable the moment a 2 MB scan
-      is in there, because editing an unrelated entry's label would rewrite
-      the scan too. Attachments force per-item sealing — each attachment its
-      own envelope under the vault key, referenced by id — which is a real
-      change to 9a's design and should be made deliberately rather than
-      discovered halfway through.
+- [x] **The obstacle is the storage shape, not the quota — and the shape is
+      settled.** The vault is one sealed blob: every save re-encrypts and
+      rewrites the whole thing. Fine for a few kilobytes of text, untenable the
+      moment a 2 MB scan is in there, because editing an unrelated entry's
+      label would rewrite the scan too.
+
+      **Decided (2026-08-14): attachments do not live in the vault.** Each is
+      its own blob, encrypted under the same vault key, referenced from the
+      entry by id. That is not a change to the envelope format at all — the
+      entry gains a reference field and the storage layer gains a second
+      location. An earlier draft here claimed attachments "force per-item
+      sealing", implying the vault's own format had to change and that this
+      should therefore be paired with the entry-sealing work in 9f. Both halves
+      were wrong: the two are independent, and each stands on its own merits.
+- [ ] **Attachments need tombstones too.** Deleting an entry has to delete its
+      blobs, on every replica — and a replica that has not synced yet still
+      holds them. Orphaned encrypted blobs quietly accumulating in someone's
+      Dropbox is the failure mode, and it is exactly the shape the reaper
+      already handles for entries.
 - [ ] **A cap, stated in the UI.** Browsers grant a large quota but a vault
       that outgrows it gets evicted rather than truncated, and the persistence
       warning already explains how little we control that. Something like a
       few MB per attachment and a visible total, refusing rather than silently
       degrading.
-- [ ] **Export has to change with it, and 1PUX is the right shape to copy** —
-      a zip holding a JSON manifest plus the files. The current backup is a
-      single JSON envelope and cannot carry bytes without base64 inflating
-      them by a third inside an already-encrypted blob.
+- [ ] **Export becomes a zip with a manifest**, since the current backup is a
+      single JSON envelope and cannot carry bytes without base64 inflating them
+      by a third inside an already-encrypted blob. 1PUX is the right *shape* —
+      manifest plus files — but not worth copying field for field: nothing else
+      reads our export either way, so matching someone else's schema buys
+      nothing and costs a reverse-engineering exercise. A documented
+      `vault.json` plus `attachments/<id>` is easier to write, to read, and to
+      consume from a script.
+
+      Whether it is named `.zip` or `.wrlck` does not matter and is explicitly
+      not worth further discussion; if a custom extension is used it is
+      `.wrlck`. Recorded only so it is not re-litigated.
 - [ ] **A zip writer without a dependency is feasible**, which is the part
       worth checking before committing: `CompressionStream('deflate-raw')` is
       in every current browser, so a real deflated zip needs a local header,

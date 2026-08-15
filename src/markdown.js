@@ -44,6 +44,10 @@ const inline = (raw) => {
 
 const TASK = /^(\s*)- \[( |x|X)\]\s+(.*)$/
 const BULLET = /^(\s*)[-*]\s+(.*)$/
+// Ordered lists. Used by Epic 9's two invariants and 9d's three modes, and
+// unsupported until now -- both rendered as one run-on paragraph with the
+// numbers stranded inline. 8a's rule is add it or stop using it.
+const ORDERED = /^(\s*)\d+[.)]\s+(.*)$/
 const HEADING = /^(#{1,6})\s+(.*)$/
 
 /** Render a Markdown subset to an HTML string. */
@@ -53,7 +57,7 @@ export const renderMarkdown = (src) => {
 
   // Open-block state. Only one list is open at a time; the roadmap nests at
   // most one level, handled by indent rather than by a stack of stacks.
-  let listType = null // 'task' | 'bullet'
+  let listType = null // 'task' | 'bullet' | 'ordered'
   let inPara = false
   let inCode = false
   let nested = false
@@ -76,7 +80,7 @@ export const renderMarkdown = (src) => {
     if (!listType) return
     closeNested()
     flush()
-    out.push('</ul>')
+    out.push(listType === 'ordered' ? '</ol>' : '</ul>')
     listType = null
   }
   const closePara = () => { if (inPara) { flush(); inPara = false } }
@@ -135,13 +139,15 @@ export const renderMarkdown = (src) => {
 
     const task = TASK.exec(line)
     const bullet = task ? null : BULLET.exec(line)
-    if (task || bullet) {
-      const indent = (task ? task[1] : bullet[1]).length
-      const wantType = task ? 'task' : 'bullet'
+    const ordered = task || bullet ? null : ORDERED.exec(line)
+    if (task || bullet || ordered) {
+      const m = task || bullet || ordered
+      const indent = m[1].length
+      const wantType = task ? 'task' : (ordered ? 'ordered' : 'bullet')
       closePara()
       if (listType && listType !== wantType && indent === 0) closeList()
       if (!listType) {
-        out.push(wantType === 'task' ? '<ul class="task-list">' : '<ul>')
+        out.push(wantType === 'task' ? '<ul class="task-list">' : (wantType === 'ordered' ? '<ol>' : '<ul>'))
         listType = wantType
       }
       if (indent >= 2 && !nested) { flush(); out.push('<li><ul>'); nested = true }
@@ -160,7 +166,7 @@ export const renderMarkdown = (src) => {
           text: [task[3]],
         }
       } else {
-        open = { prefix: '<li>', suffix: '</li>', text: [bullet[2]] }
+        open = { prefix: '<li>', suffix: '</li>', text: [(bullet || ordered)[2]] }
       }
       continue
     }
