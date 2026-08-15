@@ -13,6 +13,8 @@ import {
 } from './vault-store.js'
 import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
 import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
+import { canUseFolder, pickFolder } from './vault-fs.js'
+import { resolveLocation, moveVaultToFolder, moveVaultToLocal, unblockFolder } from './vault-location.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
@@ -48,7 +50,32 @@ const App = {
     const oldPass = ref('')
     const newPass = ref('')
 
+    // Where the vault lives. Resolved once on mount, before init, because
+    // the store is built synchronously and the answer is not.
+    //
+    // The store gets a proxy rather than the backend itself, so switching
+    // folders later swaps what is underneath without rebuilding the store or
+    // reloading the page.
+    const location = ref({ kind: 'local', name: null })
+    const canFolder = canUseFolder()
+    let backend = null
+    let currentDir = null
+
+    const at = () => {
+      if (!backend) throw new Error('the vault location has not been resolved yet')
+      return backend
+    }
+    const lazyStorage = {
+      load: () => at().load(),
+      save: (e) => at().save(e),
+      clear: () => at().clear(),
+      loadDraft: () => at().loadDraft(),
+      saveDraft: (sealed) => at().saveDraft(sealed),
+      clearDraft: () => at().clearDraft(),
+    }
+
     const store = createVaultStore({
+      storage: lazyStorage,
       autoLockMs: vaultLockMs(),
       // The same window governs idle auto-lock and staying unlocked between
       // pages, so there is one number for a reader to reason about.
@@ -1075,6 +1102,56 @@ const App = {
       }, 'That recovery key did not open the vault.')
     }
 
+    // -- Where the vault is kept (ROADMAP 9d, mode 2) ------------------------
+
+    /** Adopt a resolved location, swapping what the store's proxy points at. */
+    const useLocation = (resolved) => {
+      backend = resolved.storage
+      currentDir = resolved.dir
+      location.value = { kind: resolved.kind, name: resolved.name, permission: resolved.permission }
+    }
+
+    const chooseFolder = () => run(async () => {
+      let dir
+      try {
+        dir = await pickFolder()
+      } catch {
+        return // The picker was dismissed, which is not an error.
+      }
+      const wasUnlocked = store.state() === 'unlocked'
+      useLocation(await moveVaultToFolder(dir, { from: backend }))
+      // The envelope moved underneath a running store, so re-read it. An
+      // unlocked vault stays unlocked -- the key is in memory and unrelated to
+      // where the ciphertext sits.
+      if (!wasUnlocked) await store.init()
+      flash(`The vault now lives in ${dir.name}.`)
+    })
+
+    const useThisBrowser = () => run(async () => {
+      if (!location.value.dir && location.value.kind !== 'folder') return
+      const dir = currentDir
+      if (!dir) throw new Error('there is no folder to move from')
+      const wasUnlocked = store.state() === 'unlocked'
+      useLocation(await moveVaultToLocal(dir, {}))
+      currentDir = null
+      if (!wasUnlocked) await store.init()
+      flash('The vault is back in this browser.')
+    })
+
+    /**
+     * Ask for the folder back after a permission lapse. Needs a user gesture,
+     * which is why it is a button rather than something tried on load.
+     */
+    const reconnectFolder = () => run(async () => {
+      if (!currentDir) throw new Error('there is no folder to reconnect')
+      if (!await unblockFolder(currentDir)) {
+        throw new Error('the browser did not grant access to that folder')
+      }
+      useLocation(await resolveLocation())
+      await store.init()
+      flash('Folder reconnected.')
+    }, 'That folder could not be reopened.')
+
     const destroy = () => {
       if (!confirm('Delete the entire vault and everything in it? This cannot be undone.')) return
       return run(async () => {
@@ -1124,6 +1201,16 @@ const App = {
     const activity = () => store.touch()
     onMounted(async () => {
       try {
+        const resolved = await resolveLocation()
+        useLocation(resolved)
+        // A folder we cannot read is its own state. Falling through to init
+        // here would report an absent vault and offer to create one, over the
+        // top of a real vault sitting in a folder we simply cannot open --
+        // see the note at the top of vault-location.js.
+        if (resolved.kind === 'blocked') {
+          state.value = 'blocked'
+          return
+        }
         await store.init()
       } catch (e) {
         state.value = 'error'
@@ -1175,6 +1262,7 @@ const App = {
       genModes, genMode, generating, generateInto,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
+      location, canFolder, chooseFolder, useThisBrowser, reconnectFolder,
       pending, undoDelete, finishDelete,
       shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,
       recoveryWords: RECOVERY_WORDS,
@@ -1262,6 +1350,34 @@ const App = {
       </div>
 
       <div v-if="state === 'loading'" class="vault-empty">Opening…</div>
+
+      <!-- A folder is configured and cannot be read. Deliberately NOT the
+           "create a vault" screen: the vault exists, it is just out of reach,
+           and offering to make a new one here is how someone loses the old. -->
+      <section v-else-if="state === 'blocked'" class="vault-card">
+        <h2>Your vault is in a folder this browser cannot open</h2>
+        <p>
+          It is kept in <strong>{{ location.name || 'a folder you chose' }}</strong>, and nothing
+          here can read it right now. <strong>Your vault is not lost</strong> — the file is where
+          you put it, and this is a permission, not a deletion.
+        </p>
+        <p class="vault-hint">
+          Browsers forget folder access after a while, and after a restart. Reconnecting asks for
+          it again, which has to come from a button because a page that could reopen a folder on
+          its own would not need to ask at all.
+        </p>
+        <div class="vault-row-actions">
+          <button class="btn btn-primary" :disabled="busy" @click="reconnectFolder">
+            <span class="mdi mdi-folder-key-outline" aria-hidden="true"></span>
+            {{ busy ? 'Asking…' : 'Reconnect the folder' }}
+          </button>
+        </div>
+        <p class="vault-hint">
+          If that folder is gone for good — a different machine, a deleted directory — restore an
+          encrypted backup instead. Moving this browser back to local storage would start an empty
+          vault, not recover that one.
+        </p>
+      </section>
 
       <!-- No vault yet -->
       <section v-else-if="state === 'absent'" class="vault-card">
@@ -1955,6 +2071,62 @@ const App = {
               and security questions are folded into the note.
             </p>
           </div>
+        </details>
+
+        <details class="vault-danger">
+          <summary>
+            Where the vault is kept
+            <span class="vault-chip-on">{{ location.kind === 'folder' ? location.name : 'this browser' }}</span>
+          </summary>
+
+          <p v-if="location.kind === 'folder'">
+            The encrypted vault is a file in <strong>{{ location.name }}</strong>. If that folder is
+            one your computer already syncs — Dropbox, OneDrive, iCloud Drive — then it is backed up
+            and carried between machines by whatever you already use, and we never see any of it.
+          </p>
+          <p v-else>
+            The vault lives in this browser's storage, on this device only. That works, and it means
+            the vault is exactly as durable as this browser profile: clearing site data takes it with
+            everything else.
+          </p>
+
+          <p class="vault-hint">
+            Either way the file is the same ciphertext. Putting it in a synced folder tells your
+            cloud provider that a file changed and roughly how big it is — never what is in it.
+          </p>
+          <p v-if="location.kind === 'folder'" class="vault-warn">
+            <strong>One device at a time, for now.</strong> Two computers writing the same folder
+            will overwrite each other rather than merging, and the slower one loses. Reconciling two
+            copies is built and tested but not yet wired in.
+          </p>
+
+          <template v-if="canFolder">
+            <div class="vault-row-actions">
+              <button v-if="location.kind !== 'folder'" class="btn" type="button" :disabled="busy"
+                      @click="chooseFolder">
+                <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+                {{ busy ? 'Moving…' : 'Move it to a folder…' }}
+              </button>
+              <template v-else>
+                <button class="btn" type="button" :disabled="busy" @click="chooseFolder">
+                  Move to a different folder…
+                </button>
+                <button class="btn" type="button" :disabled="busy" @click="useThisBrowser">
+                  Bring it back to this browser
+                </button>
+              </template>
+            </div>
+            <p class="vault-hint">
+              Moving copies the vault, reads it back to check it arrived, records the new location,
+              and only then removes the old copy. If any step fails nothing is changed. A folder that
+              already holds a vault is refused rather than overwritten.
+            </p>
+          </template>
+          <p v-else class="vault-hint">
+            This browser cannot open folders — the File System Access API is Chromium desktop only
+            today. The vault stays in this browser here, and an encrypted backup is the way to move
+            it somewhere else.
+          </p>
         </details>
 
         <details class="vault-danger" :open="recoveryOpen || offerRecovery">
