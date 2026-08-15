@@ -44,6 +44,7 @@ const PRECACHE = [
   '/src/common-passwords.js',
   '/src/totp.js',
   '/src/vault-store.js',
+  '/src/vault-fs.js',
   '/src/vault-transfer.js',
   '/src/vault-session.js',
   '/src/vault-app.js',
