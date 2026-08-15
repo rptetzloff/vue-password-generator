@@ -39,6 +39,14 @@ import { isVaultEnvelope } from './vault-crypto.js'
 
 export const VAULT_FILENAME = 'wordlock-vault.json'
 
+/**
+ * What the file was called for about half an hour, before the name was
+ * corrected. Read but never written, so a folder written by that build still
+ * opens and quietly becomes the new name on the next save. Deletable once
+ * nobody has one -- which, since none of this has shipped, is nearly now.
+ */
+const LEGACY_FILENAME = 'vault.wrlck'
+
 /** Whether this browser can do any of it. Chromium desktop, today. */
 export const canUseFolder = () =>
   typeof window !== 'undefined' &&
@@ -90,6 +98,24 @@ const readTextFile = async (dir, name) => {
 }
 
 /**
+ * What is in the folder, for error messages that help.
+ *
+ * "There is no vault in that folder" is unhelpful when the folder plainly has
+ * something in it and the real problem is a name. Listing costs one iteration
+ * and turns a dead end into a diagnosis.
+ */
+export const listFolder = async (dir, limit = 12) => {
+  const names = []
+  try {
+    for await (const name of dir.keys()) {
+      names.push(name)
+      if (names.length >= limit) break
+    }
+  } catch { /* not listable; the caller just gets an empty list */ }
+  return names
+}
+
+/**
  * A storage adapter over a directory handle.
  *
  * @param dir     a FileSystemDirectoryHandle the user has granted readwrite
@@ -110,7 +136,8 @@ export const createFolderStorage = (dir, { drafts = indexedDbStorage } = {}) => 
      * somebody's real one, and the first save would finish the job.
      */
     async load () {
-      const text = await readTextFile(dir, VAULT_FILENAME)
+      let text = await readTextFile(dir, VAULT_FILENAME)
+      if (text === null) text = await readTextFile(dir, LEGACY_FILENAME)
       if (text === null) return null
       let parsed
       try {
@@ -153,11 +180,13 @@ export const createFolderStorage = (dir, { drafts = indexedDbStorage } = {}) => 
      * a story.
      */
     async clear () {
-      try {
-        await dir.removeEntry(VAULT_FILENAME)
-      } catch (e) {
-        if (e && (e.name === 'NotFoundError' || e.code === 8)) return
-        throw e
+      for (const name of [VAULT_FILENAME, LEGACY_FILENAME]) {
+        try {
+          await dir.removeEntry(name)
+        } catch (e) {
+          if (e && (e.name === 'NotFoundError' || e.code === 8)) continue
+          throw e
+        }
       }
     },
 

@@ -19,13 +19,21 @@
 // absent.
 
 import { indexedDbStorage } from './vault-store.js'
-import { createFolderStorage, folderPermission, requestFolderPermission } from './vault-fs.js'
+import { createFolderStorage, folderPermission, requestFolderPermission, listFolder, VAULT_FILENAME } from './vault-fs.js'
 
 // Same database as the vault, a different key. Opened here rather than
 // imported so this module does not need vault-store to expose its internals.
 const DB_NAME = 'pwgen-vault'
 const STORE = 'vault'
 const LOCATION_ID = 'location-v1'
+
+/**
+ * The filenames transferFilename() produces, so an export dropped in a folder
+ * can be recognised and named as one. Matches the dated backup, both plaintext
+ * exports, and the zipped container. Deliberately does not match the vault
+ * file itself, which has no date in it.
+ */
+const EXPORT_PATTERN = /^wordlock-vault-.+\.(json|csv)$|\.wrlck$/i
 
 const openDb = () => new Promise((resolve, reject) => {
   const rq = indexedDB.open(DB_NAME, 1)
@@ -152,7 +160,32 @@ export const openVaultInFolder = async (dir, { local = indexedDbStorage, remembe
   const target = createFolderStorage(dir)
   const envelope = await target.load()
   if (!envelope) {
-    throw new Error('there is no WordLock vault in that folder; use Move if you meant to put one there')
+    // Say what was looked for and what is actually there. "No vault in that
+    // folder" is useless when the folder plainly has things in it and the real
+    // problem is a name or a wrong directory.
+    const found = await listFolder(dir)
+
+    // An export is the near miss worth naming. Someone who dropped a backup
+    // into a folder and pointed at it has done something reasonable, and
+    // "there is no vault here" is both true and unhelpful -- the answer they
+    // need is that a backup is restored through Import, not opened in place.
+    const exports_ = found.filter((n) => EXPORT_PATTERN.test(n))
+    if (exports_.length) {
+      throw new Error(
+        `"${dir.name}" holds an export (${exports_.join(', ')}), not a vault. ` +
+        'An export is a snapshot to restore through Import; a vault is the live ' +
+        'file this reads and writes. Import it into a vault first, or choose ' +
+        'the folder another computer keeps its vault in.',
+      )
+    }
+
+    const saw = found.length
+      ? ` It contains: ${found.join(', ')}.`
+      : ' It appears to be empty.'
+    throw new Error(
+      `no ${VAULT_FILENAME} in "${dir.name}".${saw} ` +
+      'Use Move if you meant to put a vault there.',
+    )
   }
 
   // Refuse rather than orphan. Switching away from a local vault would leave

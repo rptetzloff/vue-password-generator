@@ -38,6 +38,7 @@ const fakeDir = (files = {}, permission = 'granted') => {
       if (!(name in store)) throw notFound()
       delete store[name]
     },
+    async * keys () { yield * Object.keys(store) },
   }
 }
 
@@ -195,12 +196,32 @@ test('opening a vault that is already in a folder writes nothing', async () => {
   assert.equal(await local.load(), null, 'and nothing was written here either')
 })
 
-test('opening an empty folder says so instead of creating a vault', async () => {
+test('opening a folder with no vault says what it looked for and what is there', async () => {
+  // "There is no vault in that folder" is useless when the folder plainly has
+  // things in it and the real problem is a name. That is not hypothetical: the
+  // file was renamed from vault.wrlck to wordlock-vault.json, and the very
+  // next attempt to open an existing folder reported it as empty.
   const local = fakeLocal(null)
   await assert.rejects(
     () => openVaultInFolder(fakeDir(), { local, remember: async () => {} }),
-    /no WordLock vault in that folder/,
+    /no wordlock-vault[.]json in "Vault"[\s\S]*appears to be empty/,
   )
+  await assert.rejects(
+    () => openVaultInFolder(fakeDir({ 'notes.txt': 'x', 'holiday.jpg': 'y' }), { local, remember: async () => {} }),
+    /contains: notes[.]txt, holiday[.]jpg/,
+  )
+})
+
+test('a folder written by the previous build still opens', async () => {
+  // The rename cost nothing because nothing had shipped, but a folder written
+  // half an hour earlier still had the old name in it. Read, never written,
+  // and gone from the folder on the next save.
+  const envelope = await anEnvelope()
+  const dir = fakeDir({ 'vault.wrlck': JSON.stringify(envelope) })
+  const local = fakeLocal(null)
+  const at = await openVaultInFolder(dir, { local, remember: async () => {} })
+  assert.equal(at.kind, 'folder')
+  assert.deepEqual(await at.storage.load(), envelope)
 })
 
 test('opening refuses to orphan the vault already in this browser', async () => {
@@ -226,5 +247,32 @@ test('open and move are opposites, which is why they are separate calls', async 
   const noop = async () => {}
 
   await assert.rejects(() => moveVaultToFolder(full(), { from: fakeLocal(null), remember: noop }), /already holds/)
-  await assert.rejects(() => openVaultInFolder(empty(), { local: fakeLocal(null), remember: noop }), /no WordLock vault/)
+  await assert.rejects(() => openVaultInFolder(empty(), { local: fakeLocal(null), remember: noop }), /no wordlock-vault/)
+})
+
+test('a folder holding an export says so, rather than "no vault"', async () => {
+  // The near miss worth naming. Dropping a backup in a folder and pointing at
+  // it is a reasonable thing to try, and "there is no vault here" is true and
+  // unhelpful -- a backup is restored through Import, not opened in place.
+  const local = fakeLocal(null)
+  for (const name of [
+    'wordlock-vault-2026-08-15.json',
+    'wordlock-vault-PLAINTEXT-2026-08-15.json',
+    'wordlock-vault-PLAINTEXT-2026-08-15.csv',
+  ]) {
+    await assert.rejects(
+      () => openVaultInFolder(fakeDir({ [name]: 'x' }), { local, remember: async () => {} }),
+      /holds an export[\s\S]*not a vault[\s\S]*Import/,
+      `${name} should be recognised as an export`,
+    )
+  }
+})
+
+test('the live vault file is not mistaken for an export', async () => {
+  // It shares the prefix and differs only by having no date, so the pattern
+  // that spots exports must not spot this one.
+  const envelope = await anEnvelope()
+  const dir = fakeDir({ [VAULT_FILENAME]: JSON.stringify(envelope) })
+  const at = await openVaultInFolder(dir, { local: fakeLocal(null), remember: async () => {} })
+  assert.equal(at.kind, 'folder')
 })
