@@ -4,6 +4,7 @@ import fs from 'node:fs'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
   groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
+  TOMBSTONE_TTL_MS, isTombstone,
 } from '../src/vault-store.js'
 import { KDF_ITERATIONS, sealVault, deriveKey, newSalt } from '../src/vault-crypto.js'
 
@@ -961,5 +962,103 @@ test('re-keying a pre-v2 vault upgrades it too', async () => {
 
   await store.rekey(PASS, 'another passphrase')
   assert.equal(store.envelope().v, 2)
+  assert.equal(store.list().length, 1)
+})
+
+// -- Sync-shaped: timestamps and tombstones -----------------------------------
+
+test('every write stamps updatedAt', async () => {
+  const { store, clock } = await freshStore()
+  await store.create(PASS)
+  const made = await store.add({ label: 'Bank', pw: 'hunter2!' })
+  assert.equal(made.updatedAt, new Date(clock.t).toISOString())
+
+  clock.advance(60_000)
+  const changed = await store.update(made.id, { label: 'Bank plc' })
+  assert.equal(changed.updatedAt, new Date(clock.t).toISOString())
+  assert.ok(changed.updatedAt > made.updatedAt, 'an edit must move the stamp forward')
+})
+
+test('a delete leaves a tombstone rather than a hole', async () => {
+  // "Deleted here" and "not seen yet" have to be different things, or the
+  // next replica hands the entry back.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const made = await store.add({ label: 'Bank', pw: 'hunter2!' })
+  await store.remove(made.id)
+
+  assert.equal(store.list().length, 0, 'a tombstone is not shown to anyone')
+  const kept = store.raw().filter((e) => e.id === made.id)
+  assert.equal(kept.length, 1, 'but it is still in the vault')
+  assert.ok(kept[0].deletedAt, 'with a time of death')
+  assert.equal(kept[0].pw, undefined, 'and no secret')
+  assert.equal(kept[0].label, undefined, 'nor a label, which is also information')
+})
+
+test('a tombstone survives a lock and unlock', async () => {
+  const storage = fakeStorage()
+  const first = createVaultStore({ storage, now: fakeClock().now })
+  await first.init()
+  await first.create(PASS)
+  const made = await first.add({ label: 'Bank', pw: 'hunter2!' })
+  await first.remove(made.id)
+
+  const second = createVaultStore({ storage, now: fakeClock().now })
+  await second.init()
+  await second.unlock(PASS)
+  assert.equal(second.list().length, 0)
+  assert.equal(second.raw().filter((e) => e.deletedAt).length, 1,
+    'the deletion has to be in the sealed vault, not just in memory')
+})
+
+test('deleting twice is not an error and does not restamp', async () => {
+  const { store, clock } = await freshStore()
+  await store.create(PASS)
+  const made = await store.add({ label: 'Bank', pw: 'hunter2!' })
+  assert.equal(await store.remove(made.id), true)
+  const first = store.raw().find((e) => e.id === made.id).deletedAt
+
+  clock.advance(60_000)
+  assert.equal(await store.remove(made.id), false, 'nothing left to delete')
+  assert.equal(store.raw().find((e) => e.id === made.id).deletedAt, first,
+    'and the original time of death stands')
+})
+
+test('old tombstones are reaped, recent ones are not', async () => {
+  // A tombstone that lives forever is a slow leak of what used to be here.
+  const { store, clock } = await freshStore()
+  await store.create(PASS)
+  const old = await store.add({ label: 'Gone', pw: 'x' })
+  await store.remove(old.id)
+
+  clock.advance(TOMBSTONE_TTL_MS + 1000)
+  const fresh = await store.add({ label: 'Also gone', pw: 'y' })
+  await store.remove(fresh.id)
+
+  const dead = store.raw().filter((e) => e.deletedAt)
+  assert.equal(dead.length, 1, 'the ninety-day-old marker is gone')
+  assert.equal(dead[0].id, fresh.id)
+})
+
+test('tombstones never reach an export', async () => {
+  // The plain and CSV exports are for other tools, which have no idea what a
+  // deletion marker is and would import it as a blank row.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const keep = await store.add({ label: 'Keep', pw: 'x' })
+  const drop = await store.add({ label: 'Drop', pw: 'y' })
+  await store.remove(drop.id)
+
+  const listed = store.list()
+  assert.deepEqual(listed.map((e) => e.id), [keep.id])
+  assert.ok(!JSON.stringify(listed).includes('deletedAt'))
+})
+
+test('the entry count ignores tombstones', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const a = await store.add({ label: 'A', pw: 'x' })
+  await store.add({ label: 'B', pw: 'y' })
+  await store.remove(a.id)
   assert.equal(store.list().length, 1)
 })

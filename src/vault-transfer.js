@@ -220,6 +220,65 @@ export const mergeEntries = (existing, incoming) => {
   return { merged: [...added, ...existing], added: added.length, skipped }
 }
 
+/**
+ * Reconcile two replicas of the SAME vault (ROADMAP: sync-shaped).
+ *
+ * Deliberately a different function from mergeEntries above, because the two
+ * jobs want opposite things and collapsing them would break both.
+ *
+ *   mergeEntries is for a FOREIGN file -- someone else's export, with no
+ *   shared history and no trustworthy timestamps. Existing always wins,
+ *   nothing is ever deleted, and that is right: an import must not be able to
+ *   remove anything.
+ *
+ *   mergeReplicas is for TWO COPIES OF THIS VAULT, which do share history.
+ *   Here "existing always wins" is wrong in both directions -- it would
+ *   discard every edit made on the other device, and it would resurrect
+ *   everything deleted there.
+ *
+ * Last-writer-wins per entry, which is the honest floor rather than the ideal.
+ * Two edits to the same entry on two devices between syncs means one of them
+ * loses, and nothing here can tell which the person wanted. What it does
+ * guarantee is that the loser is a single field-set on a single entry, never
+ * the whole vault and never a silent deletion.
+ *
+ * An entry with no updatedAt sorts oldest. Everything written before this
+ * existed is in that position, so a replica that knows when it changed beats
+ * one that does not -- the safe direction, since the alternative is an unknown
+ * clobbering a known.
+ */
+const when = (e) => (e && (e.deletedAt || e.updatedAt)) || ''
+
+export const mergeReplicas = (local, remote) => {
+  const out = new Map()
+  const stats = { added: 0, updated: 0, deleted: 0, unchanged: 0 }
+
+  for (const e of local) out.set(e.id, e)
+
+  for (const incoming of remote) {
+    const mine = out.get(incoming.id)
+    if (!mine) {
+      out.set(incoming.id, incoming)
+      // A tombstone for something never seen is not an addition; it is a
+      // deletion arriving before whatever it deletes, which can happen and
+      // must be kept so the entry does not come back later.
+      if (!incoming.deletedAt) stats.added++
+      continue
+    }
+    // Strictly newer wins. Equal timestamps keep the local copy, so the same
+    // merge run twice gives the same answer.
+    if (when(incoming) > when(mine)) {
+      out.set(incoming.id, incoming)
+      if (incoming.deletedAt) stats.deleted++
+      else stats.updated++
+    } else {
+      stats.unchanged++
+    }
+  }
+
+  return { merged: [...out.values()], ...stats }
+}
+
 /** Suggested filename, dated so successive backups do not overwrite. */
 export const transferFilename = (kind, date = new Date().toISOString().slice(0, 10)) => ({
   backup: `wordlock-vault-${date}.json`,
