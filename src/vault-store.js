@@ -454,6 +454,121 @@ export const groupEntries = (entries, sortId) => {
 export const normalizeEntries = (list) =>
   (Array.isArray(list) ? list : []).map(normalizeEntry).filter(Boolean)
 
+// --- the payload -------------------------------------------------------------
+//
+// What sits inside the encrypted envelope. It used to be a bare array of
+// entries, which left nowhere to record anything ABOUT the vault -- so the
+// backup date went into localStorage and was therefore per-browser, and two
+// replicas of the same vault had no way to establish that they were the same
+// vault (ROADMAP 9d).
+//
+//   { v, vaultId, entries: [...], meta: { lastExport, lastWriter } }
+//
+// A bare array still loads and becomes this shape on the next save, so nothing
+// written before today is stranded. The version is the PAYLOAD's, separate
+// from the envelope's: one is what the ciphertext holds, the other is how the
+// ciphertext is wrapped, and conflating them would mean a change to either
+// forcing a migration of both.
+
+export const PAYLOAD_VERSION = 1
+
+/**
+ * How many backup records the vault keeps.
+ *
+ * Five, not all of them: enough to see whether backing up is a habit or a
+ * thing that happened once in March, and few enough that the list cannot
+ * become a slow leak of activity inside the ciphertext.
+ */
+export const EXPORT_HISTORY = 5
+
+const newVaultId = () => (
+  typeof crypto !== 'undefined' && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `v${Date.now().toString(36)}${Math.random().toString(36).slice(2, 10)}`
+)
+
+export const DEVICE_KEY = 'global.vaultDevice'
+
+/**
+ * A stable id for THIS browser, recorded in the vault as lastWriter.
+ *
+ * Not in the payload the way vaultId is -- it identifies the client, not the
+ * vault, so it lives locally and is stamped into each write. It exists so a
+ * merge can say which replica a change came from, and so an unexpected writer
+ * is visible rather than silent. Nothing depends on it being unforgeable; it
+ * is a label, not a credential.
+ */
+export const localDeviceId = () => {
+  try {
+    let id = localStorage.getItem(DEVICE_KEY)
+    if (!id) {
+      id = newVaultId()
+      localStorage.setItem(DEVICE_KEY, id)
+    }
+    return id
+  } catch {
+    // No localStorage (node, or a locked-down browser). An unstable id is
+    // still better than a crash: it degrades the label, nothing else.
+    return 'unknown-device'
+  }
+}
+
+/**
+ * Something a person can read, for the backup list: "Edge on Windows".
+ *
+ * The id above answers "which replica" for a merge; this answers "which of my
+ * browsers" for me, and a UUID in a list of backups is noise. Derived rather
+ * than stored, so it corrects itself after a browser update, and deliberately
+ * coarse -- browser and platform, no versions. It never leaves the vault it is
+ * written into, which is the only reason recording it is reasonable at all.
+ *
+ * Order matters twice over: Edge's UA claims Chrome, and Chrome's claims
+ * Safari. Testing in that sequence is the whole implementation.
+ */
+export const deviceNameFrom = (ua) => {
+  if (typeof ua !== 'string' || !ua) return 'an unknown browser'
+  const browser = /\bEdgA?\//.test(ua) ? 'Edge'
+    : /\bOPR\//.test(ua) ? 'Opera'
+      : /\bFirefox\//.test(ua) ? 'Firefox'
+        : /\bChrome\//.test(ua) ? 'Chrome'
+          : /\bSafari\//.test(ua) ? 'Safari'
+            : 'a browser'
+  const os = /\bWindows\b/.test(ua) ? 'Windows'
+    : /\b(iPhone|iPad|iPod)\b/.test(ua) ? 'iOS'
+      : /\bAndroid\b/.test(ua) ? 'Android'
+        : /\bMac OS X\b|\bMacintosh\b/.test(ua) ? 'macOS'
+          : /\bLinux\b/.test(ua) ? 'Linux'
+            : null
+  return os ? `${browser} on ${os}` : browser
+}
+
+export const localDeviceName = () => deviceNameFrom(
+  typeof navigator !== 'undefined' ? navigator.userAgent : '',
+)
+
+/**
+ * Read whatever was in the envelope, in any shape it has ever had.
+ *
+ * vaultId is minted here when absent rather than left null, so a vault created
+ * before this existed acquires one the first time it is opened and keeps it
+ * from then on -- which is what makes "are these the same vault?" answerable
+ * for vaults that predate the question.
+ */
+export const readPayload = (data) => {
+  if (Array.isArray(data)) {
+    return { v: PAYLOAD_VERSION, vaultId: newVaultId(), entries: data, meta: {} }
+  }
+  if (!data || typeof data !== 'object') {
+    return { v: PAYLOAD_VERSION, vaultId: newVaultId(), entries: [], meta: {} }
+  }
+  return {
+    v: PAYLOAD_VERSION,
+    vaultId: typeof data.vaultId === 'string' && data.vaultId ? data.vaultId : newVaultId(),
+    entries: Array.isArray(data.entries) ? data.entries : [],
+    meta: data.meta && typeof data.meta === 'object' ? { ...data.meta } : {},
+  }
+}
+
 // --- the store ---------------------------------------------------------------
 
 /**
@@ -473,6 +588,8 @@ export const createVaultStore = ({
   // Injectable for the same reason storage and the clock are: the whole
   // stay-unlocked lifecycle is then testable without IndexedDB.
   session = realSession,
+  deviceId = localDeviceId(),
+  deviceName = localDeviceName(),
   onChange = () => {},
 } = {}) => {
   const holdsSession = staySignedInMs > 0
@@ -480,11 +597,30 @@ export const createVaultStore = ({
   let key = null
   let kdf = null
   let entries = null
+  let vaultId = null
+  let meta = {}
   let lastActivity = now()
 
   // Every write is stamped from the injected clock rather than Date.now, so
   // the merge tests can drive time instead of sleeping.
   const stampNow = () => new Date(now()).toISOString()
+
+  /** Take a decrypted payload into memory, in whatever shape it arrived. */
+  const adopt = (data) => {
+    const payload = readPayload(data)
+    vaultId = payload.vaultId
+    meta = payload.meta
+    entries = normalizeEntries(payload.entries)
+    return payload
+  }
+
+  /** What goes back into the envelope. */
+  const payloadOut = () => ({
+    v: PAYLOAD_VERSION,
+    vaultId: vaultId || (vaultId = newVaultId()),
+    entries,
+    meta: { ...meta, lastWriter: deviceId },
+  })
   let loaded = false
 
   const state = () => {
@@ -517,7 +653,7 @@ export const createVaultStore = ({
         const held = await session.recallSession()
         if (held) {
           const opened = await openVault(envelope, null, held.key, holdsSession)
-          entries = normalizeEntries(opened.data)
+          adopt(opened.data)
           key = held.key
           kdf = held.kdf
           touch()
@@ -538,6 +674,11 @@ export const createVaultStore = ({
     key = null
     kdf = null
     entries = null
+    // The payload's own fields go with them. They are not passwords, but they
+    // came out of the ciphertext and one of them is an entry count -- a locked
+    // vault that can still say how much is in it has not really locked.
+    vaultId = null
+    meta = {}
     // Locking on one page must lock every page; leaving the key with the
     // worker would make the lock button a lie.
     session.forgetSession()
@@ -570,7 +711,7 @@ export const createVaultStore = ({
 
   const persist = async () => {
     entries = reap(entries)
-    envelope = await sealVault(key, kdf, entries)
+    envelope = await sealVault(key, kdf, payloadOut())
     await storage.save(envelope)
   }
 
@@ -623,11 +764,13 @@ export const createVaultStore = ({
 
   const create = async (passphrase) => {
     if (envelope) throw new Error('a vault already exists on this device')
-    const made = await createVault(passphrase, [], holdsSession)
+    vaultId = newVaultId()
+    meta = {}
+    entries = []
+    const made = await createVault(passphrase, payloadOut(), holdsSession)
     envelope = made.envelope
     key = made.key
     kdf = made.kdf
-    entries = []
     await storage.save(envelope)
     await session.rememberSession(key, kdf, staySignedInMs)
     touch()
@@ -639,7 +782,7 @@ export const createVaultStore = ({
     if (!envelope) throw new Error('no vault to unlock')
     // Any failure here leaves the store locked rather than half-open.
     const opened = await openVault(envelope, passphrase, null, holdsSession)
-    entries = normalizeEntries(opened.data)
+    adopt(opened.data)
     key = opened.key
     kdf = opened.kdf
     // Hand it to the session holder so the other pages do not ask again.
@@ -666,6 +809,45 @@ export const createVaultStore = ({
     loaded = false
     envelope = null
     return init()
+  }
+
+  /**
+   * The recent encrypted backups: when, from where, and how much was in the
+   * vault at the time. Newest first, EXPORT_HISTORY of them.
+   *
+   * In the vault rather than beside it, because it is a fact about the vault.
+   * It lived in localStorage until now, which made it per-browser: Edge
+   * reported a vault as never backed up an hour after Chrome had exported it,
+   * and with a shared folder that is simply wrong rather than merely unhelpful.
+   *
+   * A list rather than one record because the useful question is not "was
+   * there a backup" but "how long have I been meaning to". Three dated lines
+   * answer that; the whole history would be a log of nothing, and it would
+   * grow inside the ciphertext forever.
+   *
+   * Full timestamps, not dates: two backups on the same afternoon are common,
+   * and a list of identical-looking rows is worse than no list. The device is
+   * recorded because with a shared folder "which machine did that" is the
+   * first thing you want to know.
+   */
+  const exports = () => (Array.isArray(meta.exports) ? meta.exports : [])
+    .filter((x) => x && typeof x.at === 'string' && Number.isFinite(x.count))
+    .slice(0, EXPORT_HISTORY)
+    .map((x) => ({ ...x }))
+
+  const lastExport = () => exports()[0] || null
+
+  const noteExport = async () => {
+    requireUnlocked()
+    const record = {
+      at: stampNow(),
+      count: entries.filter((e) => !isTombstone(e)).length,
+      by: deviceName,
+    }
+    meta = { ...meta, exports: [record, ...exports()].slice(0, EXPORT_HISTORY) }
+    await persist()
+    emit()
+    return { ...record }
   }
 
   const requireUnlocked = () => {
@@ -778,11 +960,11 @@ export const createVaultStore = ({
   const rekey = async (oldPassphrase, newPassphrase) => {
     if (!envelope) throw new Error('no vault to re-key')
     const opened = await openVault(envelope, oldPassphrase)
-    const made = await createVault(newPassphrase, opened.data, holdsSession)
+    adopt(opened.data)
+    const made = await createVault(newPassphrase, payloadOut(), holdsSession)
     envelope = made.envelope
     key = made.key
     kdf = made.kdf
-    entries = normalizeEntries(opened.data)
     await storage.save(envelope)
     await session.rememberSession(key, kdf, staySignedInMs)
     touch()
@@ -826,11 +1008,11 @@ export const createVaultStore = ({
       // nowhere to put a second wrap. Re-seal it as v2 first: this is the
       // lazy upgrade, run at the one moment the passphrase is already in hand.
       const opened = await openVault(live, passphrase)
-      const made = await createVault(passphrase, opened.data, holdsSession)
+      adopt(opened.data)
+      const made = await createVault(passphrase, payloadOut(), holdsSession)
       live = made.envelope
       key = made.key
       kdf = made.kdf
-      entries = normalizeEntries(opened.data)
     }
     const master = (await openVault(live, passphrase, null, true)).key
 
@@ -892,11 +1074,11 @@ export const createVaultStore = ({
     )
     // A brand new master key, not a re-wrap: whoever knew the old passphrase
     // should not still be able to open this vault afterwards.
-    const made = await createVault(newPassphrase, opened.data, holdsSession)
+    adopt(opened.data)
+    const made = await createVault(newPassphrase, payloadOut(), holdsSession)
     envelope = made.envelope
     key = made.key
     kdf = made.kdf
-    entries = normalizeEntries(opened.data)
     await storage.save(envelope)
     await session.rememberSession(key, kdf, staySignedInMs)
     touch()
@@ -923,6 +1105,9 @@ export const createVaultStore = ({
     create, unlock, rekey, destroy, importEntries,
     hasRecoveryKey, addRecoveryKey, removeRecoveryKey, verifyRecoveryKey, recoverWithKey,
     list, raw, add, update, remove, restore,
+    // Identity and facts about the vault itself, as opposed to its contents.
+    vaultId: () => vaultId,
+    lastExport, exports, noteExport,
     saveDraft, loadDraft, clearDraft, hasDraft,
     // The sealed envelope, for 9b's export. Never the key, and never the
     // decrypted entries -- an export is ciphertext by construction.

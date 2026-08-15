@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
-  resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder,
+  resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, releaseFolder,
 } from '../src/vault-location.js'
 import { VAULT_FILENAME } from '../src/vault-fs.js'
 import { createVault } from '../src/vault-crypto.js'
@@ -275,4 +275,35 @@ test('the live vault file is not mistaken for an export', async () => {
   const dir = fakeDir({ [VAULT_FILENAME]: JSON.stringify(envelope) })
   const at = await openVaultInFolder(dir, { local: fakeLocal(null), remember: async () => {} })
   assert.equal(at.kind, 'folder')
+})
+
+
+test('deleting the vault lets go of the folder it was in', async () => {
+  // Reported from two browsers. Chrome deleted a vault from a shared folder,
+  // Edge created a new one in the same folder, and Chrome then announced a
+  // vault ready to open -- someone else's, with a passphrase it had never been
+  // given. Keeping the pointer after the vault is gone is what did that.
+  let saved = { dir: fakeDir(), name: 'Vault' }
+  const forget = async () => { saved = null }
+  const local = fakeLocal(null)
+
+  const at = await releaseFolder({ to: local, forget })
+  assert.equal(saved, null, 'the pointer must be gone')
+  assert.equal(at.kind, 'local')
+  assert.equal(at.storage, local)
+  assert.equal(at.dir, null)
+})
+
+test('letting go of a folder is not a move, so it refuses nothing', async () => {
+  // moveVaultToLocal declines when this browser already holds a vault, because
+  // it would have to overwrite one. There is nothing to copy here, so that
+  // refusal would only strand someone with a dead pointer they cannot clear.
+  const local = fakeLocal(await anEnvelope())
+  await assert.rejects(() => moveVaultToLocal(fakeDir(), { to: local, forget: async () => {} }),
+    /already holds a vault/)
+
+  let saved = 'still here'
+  const at = await releaseFolder({ to: local, forget: async () => { saved = null } })
+  assert.equal(saved, null)
+  assert.equal(at.kind, 'local')
 })

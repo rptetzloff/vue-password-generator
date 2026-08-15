@@ -199,6 +199,25 @@ export const openVaultInFolder = async (dir, { local = indexedDbStorage, remembe
   return { kind: 'folder', storage: target, dir, name: dir.name }
 }
 
+/**
+ * Let go of a folder without moving anything, for when the vault in it is gone.
+ *
+ * Deleting the vault used to leave the pointer behind, and the pointer is not
+ * harmless on its own. Chrome deleted a vault from a shared folder, Edge made a
+ * new one in the same folder, and Chrome then reported a vault waiting for it
+ * -- a different vault, with a different passphrase, that this browser had
+ * never been told about. The other direction is worse: still aimed at someone
+ * else's folder, "create a vault" would write into it.
+ *
+ * Distinct from moveVaultToLocal, which copies and therefore refuses when this
+ * browser already holds a vault. There is nothing to copy here, so there is
+ * nothing to refuse.
+ */
+export const releaseFolder = async ({ to = indexedDbStorage, forget = forgetFolder } = {}) => {
+  await forget()
+  return { kind: 'local', storage: to, dir: null, name: null }
+}
+
 /** The same journey in reverse, with the same order and the same refusal. */
 export const moveVaultToLocal = async (dir, { to = indexedDbStorage, forget = forgetFolder } = {}) => {
   const source = createFolderStorage(dir)

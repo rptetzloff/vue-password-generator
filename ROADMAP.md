@@ -131,21 +131,51 @@ exactly right for imports and exactly wrong for replicas. Delete an entry on
 the laptop, sync from the phone, and the merge resurrects it. Silently, and
 specifically for the entries someone most wanted gone.
 
-- [ ] **`updatedAt` on every entry**, so a merge can tell newer from older
-      rather than preferring whichever side it happened to read first.
-- [ ] **Tombstones.** A deleted entry becomes `{ id, deletedAt }` instead of
-      vanishing, so "deleted here" is distinguishable from "not seen yet".
-      Reaped after some interval, since a tombstone that lives forever is a
+- [x] **`updatedAt` on every entry** (3.2.0), so a merge can tell newer from
+      older rather than preferring whichever side it happened to read first.
+      ISO-8601 UTC, which sorts lexicographically and so needs no parsing.
+- [x] **Tombstones** (3.2.0). A deleted entry becomes `{ id, deletedAt }`
+      instead of vanishing, so "deleted here" is distinguishable from "not seen
+      yet". Reaped after 90 days, since a tombstone that lives forever is a
       slow leak of what used to exist.
-- [ ] **A vault id and a device id**, so two replicas can establish they are
-      the same vault before attempting to reconcile.
-- [ ] **Per-entry merge rather than per-file**, which `mergeEntries` almost
-      does already — it merges by identity, it just has no notion of time or
-      of absence.
+- [x] **A vault id and a device id**, so two replicas can establish they are
+      the same vault before attempting to reconcile. This needed somewhere to
+      *put* them: the payload inside the envelope was a bare array of entries,
+      with no room for a fact about the vault as opposed to its contents. It is
+      now `{ v, vaultId, entries, meta }`, versioned separately from the
+      envelope — one is what the ciphertext holds, the other is how it is
+      wrapped, and a change to either should not force a migration of both. A
+      bare array still loads and gains a `vaultId` on first open, so no vault
+      written before this is stranded.
 
-None of that needs a network. All of it is testable in node today. It is
+      The device id is a label, not a credential, and it is deliberately
+      local-only: `meta.lastWriter` records which replica wrote last so a merge
+      can say where a change came from.
+
+      The first thing it paid for was not sync. The backup-reminder record was
+      in `localStorage`, so Edge called a vault un-backed-up an hour after
+      Chrome had exported it; it is `meta.exports` now and travels with the
+      vault — the last five, each with a full timestamp, the entry count at the
+      time, and which browser made it, shown as a list rather than a single
+      date because the real question is whether backing up is a habit. Both
+      fields are dropped on lock along with the entries: an entry count is a
+      fact about the contents, and a locked vault that can still recite it has
+      not really locked.
+- [x] **Per-entry merge rather than per-file** (3.2.0). `mergeReplicas` is
+      last-writer-wins over `updatedAt`/`deletedAt`, kept separate from
+      `mergeEntries`, which never deletes and is still what import wants.
+
+None of that needs a network. All of it is testable in node today. It was
 roughly a day of work while there is exactly one client and the migration is
 free, and it is the whole difference between *sync later* and *rewrite later*.
+
+What is still missing is the *use* of it: the folder adapter writes whole
+files, so two devices sharing a folder still lose writes. `mergeReplicas` is
+built and tested; wiring it into save as read-merge-write is the next piece,
+and until it lands the folder is for one device at a time. That gap is a
+failing-by-design test rather than a note — see
+`'two devices sharing a folder still lose writes'`, which starts failing when
+it is fixed.
 
 **Then the transport is a separate and deferrable choice**, which is the part
 that protects the claims. A server (9d) means accounts, hosting, liability, and
@@ -341,7 +371,10 @@ sync needs an account. A local vault breaks no published claim.
       importing an old backup cannot silently delete newer entries.
 - [x] **Nag gently about exporting.** A vault living in one browser profile is
       one "clear site data" away from gone. Unexported changes deserve a quiet
-      reminder, not a modal.
+      reminder, not a modal. The date and count behind it were in
+      `localStorage` at first, on the reasoning that the record has to survive
+      being locked; both halves of that were wrong, and it now lives in the
+      payload — see 9d.
 - [x] ~~**Plain-text export is not offered.**~~ **Reversed, deliberately.**
       The original reasoning still holds about the format: a CSV of passwords
       is what every other manager regrets supporting. What it got wrong was the

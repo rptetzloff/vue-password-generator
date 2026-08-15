@@ -719,18 +719,12 @@
   font-weight: 600;
 }
 
-.vault-persist[open] > summary { margin-bottom: 0.6rem; }
-
 .vault-persist p {
-  margin: 0 0 0.6rem;
   color: var(--text);
   line-height: 1.5;
 }
 
-.vault-persist .vault-hint {
-  margin: 0.6rem 0 0;
-  color: var(--text-secondary);
-}
+.vault-persist .vault-hint { color: var(--text-secondary); }
 
 .vault-reuse-warn {
   display: flex;
@@ -838,19 +832,54 @@
   color: var(--text-secondary);
 }
 
-.vault-transfer[open] > summary { margin-bottom: 0.75rem; }
-
 .vault-transfer p {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.5;
-  margin: 0 0 0.7rem;
 }
 
+/* The recent backups. Collapsed, because the answer is usually "yes, recently"
+   and the nag above already says when it is not. */
+.vault-backups > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vault-backups ul {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vault-backups li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.vault-backup-when {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-backups .vault-hint { margin-top: 0.6rem; }
+
 /* The plain-text half, walled off so it does not read as a peer of the
-   encrypted backup above it. */
+   encrypted backup above it -- so a wider gap than the panel rhythm, and
+   specific enough to outrank it. */
+.vault-transfer > .vault-plain {
+  margin-top: 1.15rem;
+}
+
 .vault-plain {
-  margin-top: 1rem;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--warning);
   border-radius: 6px;
@@ -896,13 +925,32 @@
   color: var(--text-secondary);
 }
 
-.vault-danger[open] > summary { margin-bottom: 0.75rem; }
-
 .vault-danger p {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.5;
 }
+
+/* One vertical rhythm for every panel below the list.
+
+   Each is a stack of prose, warning boxes, button rows and forms in no fixed
+   order -- the Move/Open buttons sit between two paragraphs in one panel and
+   under a warning in another -- so the spacing has to belong to the flow
+   rather than to any one element. It did not: measured on the page, every
+   button row (.vault-bar, .vault-row-actions) had margin 0 top and bottom and
+   sat flush against the text on both sides, while the paragraphs around them
+   carried 9.6px, 11.2px or nothing depending on which panel they were in.
+
+   So the children own no vertical margin and the gap between them is set once,
+   here. The exception is spelled out below: .vault-plain gets a wider gap
+   because it is a division rather than a step. */
+.vault-danger > *,
+.vault-transfer > *,
+.vault-persist > * { margin-block: 0; }
+
+.vault-danger > * + *,
+.vault-transfer > * + *,
+.vault-persist > * + * { margin-top: 0.75rem; }
 
 .vault-foot {
   font-size: 0.78rem;

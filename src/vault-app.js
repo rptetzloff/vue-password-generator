@@ -14,7 +14,7 @@ import {
 import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
 import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
 import { canUseFolder, pickFolder } from './vault-fs.js'
-import { resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, unblockFolder } from './vault-location.js'
+import { resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, unblockFolder, releaseFolder } from './vault-location.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
@@ -91,6 +91,9 @@ const App = {
         // The envelope is loaded even while locked, so the lock screen can
         // offer recovery only to vaults that actually have a key for it.
         hasRecovery.value = store.hasRecoveryKey()
+        // The backup record is inside the vault, so it arrives at unlock and
+        // leaves at lock along with everything else it describes.
+        readLastExport()
       },
     })
 
@@ -839,22 +842,37 @@ const App = {
     /**
      * When the vault was last exported, and how much was in it at the time.
      *
-     * A date and a count, nothing else -- this is the one piece of vault state
-     * that has to survive being locked, so it cannot live inside the
-     * ciphertext, and anything more revealing has no business in the clear.
+     * REVERSED. This was a localStorage key, on the reasoning that the record
+     * "has to survive being locked, so it cannot live inside the ciphertext".
+     * The premise was wrong twice over: the nag only renders when entries are
+     * on screen, which means unlocked, and a per-browser record is not a fact
+     * about the vault. Sharing a folder made that visible -- Edge called a
+     * vault un-backed-up an hour after Chrome had exported it. It is now
+     * meta.lastExport inside the payload, so it travels with the vault.
      */
-    const EXPORT_KEY = 'global.vaultExported'
-    const lastExport = ref(null)
+    const backups = ref([])
+    const lastExport = computed(() => backups.value[0] || null)
     const readLastExport = () => {
-      try {
-        const v = JSON.parse(localStorage.getItem(EXPORT_KEY))
-        lastExport.value = v && Number.isFinite(v.count) ? v : null
-      } catch { lastExport.value = null }
+      backups.value = store.state() === 'unlocked' ? store.exports() : []
     }
-    const noteExport = (count) => {
-      const v = { at: new Date().toISOString().slice(0, 10), count }
-      try { localStorage.setItem(EXPORT_KEY, JSON.stringify(v)) } catch {}
-      lastExport.value = v
+
+    /**
+     * A backup's timestamp, in the reader's own locale and clock.
+     *
+     * Stored as full ISO-8601 UTC and rendered here, rather than stored
+     * pre-formatted: the vault is shared between machines that may not agree
+     * on either. Date and time both, since two backups in one afternoon is the
+     * normal case and a list of identical dates would say nothing.
+     */
+    const backupWhen = (at) => {
+      const d = new Date(at)
+      if (Number.isNaN(d.getTime())) return at
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    }
+    const backupDay = (at) => {
+      const d = new Date(at)
+      if (Number.isNaN(d.getTime())) return at
+      return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
     }
 
     /**
@@ -866,17 +884,17 @@ const App = {
     const backupNag = computed(() => {
       if (!entries.value.length) return ''
       if (!lastExport.value) {
-        // Deliberately hedged with "from this browser". The record is in
-        // localStorage, so a vault exported from another browser -- or another
-        // machine sharing the same folder -- reads as never exported here. It
-        // belongs in the vault rather than beside it; see ROADMAP 9d.
+        // No hedge about "this browser" any more: the record is in the vault,
+        // so an export from anywhere that opens it counts here. What differs
+        // between the two is what is actually at risk -- a vault in a folder
+        // is not lost when this browser's storage is.
         return location.value.kind === 'folder'
-          ? 'No backup has been made from this browser. Exports are recorded per browser, so another one may already have.'
+          ? 'This vault has never been exported. The folder is the only copy.'
           : 'This vault has never been exported. If this browser loses its data, it is gone.'
       }
       const drift = entries.value.length - lastExport.value.count
       if (drift > 0) {
-        return `${drift} ${drift === 1 ? 'entry' : 'entries'} added since the last backup on ${lastExport.value.at}.`
+        return `${drift} ${drift === 1 ? 'entry' : 'entries'} added since the last backup on ${backupDay(lastExport.value.at)}.`
       }
       return ''
     })
@@ -901,7 +919,7 @@ const App = {
       setTimeout(() => URL.revokeObjectURL(url), 10_000)
     }
 
-    const exportVault = (kind) => {
+    const exportVault = async (kind) => {
       if (kind !== 'backup') {
         const ok = confirm(
           'This file will contain your passwords in plain text, readable by anything that opens it.\n\n' +
@@ -920,7 +938,13 @@ const App = {
         // Only the encrypted backup counts as a backup. A plaintext file is a
         // migration artefact meant to be deleted, so treating it as one would
         // silence the reminder for something the user is about to shred.
-        if (kind === 'backup') noteExport(store.list().length)
+        //
+        // Recorded after the download has been handed off, and a failure to
+        // record does not un-download the file -- so it is not allowed to
+        // become an error the reader has to act on.
+        if (kind === 'backup') {
+          try { await store.noteExport(); readLastExport() } catch {}
+        }
         flash(kind === 'backup' ? 'Backup saved.' : 'Plain-text file saved — delete it when you are done.')
       } catch (e) {
         error.value = e.message
@@ -1186,9 +1210,21 @@ const App = {
     const destroy = () => {
       if (!confirm('Delete the entire vault and everything in it? This cannot be undone.')) return
       return run(async () => {
+        const wasFolder = location.value.kind === 'folder'
+        const folderName = location.value.name
         await store.destroy(pass.value)
         clearPass()
-        flash('Vault deleted.')
+        // Deleting the vault also lets go of the folder it was in. Keeping the
+        // pointer meant this browser stayed aimed at a folder with nothing of
+        // ours in it -- see releaseFolder for what that then did.
+        if (wasFolder) {
+          useLocation(await releaseFolder())
+          currentDir = null
+          await store.reload()
+        }
+        flash(wasFolder
+          ? `Vault deleted, and this browser no longer points at ${folderName}.`
+          : 'Vault deleted.')
       }, 'That passphrase is not right, so nothing was deleted.')
     }
 
@@ -1288,7 +1324,7 @@ const App = {
       codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
       toggleGroupOpen, isGroupOpen, toggleEntryOpen, isEntryOpen, allCollapsed, toggleAll,
       exportVault, importFile, exported,
-      backupNag, lastExport, openTransfer, transferEl,
+      backupNag, lastExport, backups, backupWhen, openTransfer, transferEl,
       newStrength, rekeyStrength,
       genModes, genMode, generating, generateInto,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
@@ -2097,7 +2133,12 @@ const App = {
 
         <details class="vault-transfer" ref="transferEl">
           <summary>Backup, export and import</summary>
-          <p>
+          <p v-if="location.kind === 'folder'">
+            The vault is a file in <strong>{{ location.name }}</strong>, so it is as safe as that
+            folder is. A backup is still worth having: it is a snapshot, and the file in the folder
+            is not — an entry deleted there is deleted everywhere the folder goes.
+          </p>
+          <p v-else>
             The vault lives in this browser and nowhere else. Clearing site data, losing the device,
             or a browser deciding it needs the space would all take it with them, so keep a backup
             somewhere you would still have it afterwards.
@@ -2120,6 +2161,29 @@ const App = {
             opens with the passphrase it was made with — which is not necessarily the one this vault
             uses now. Importing adds entries; it never removes or overwrites what is already here.
           </p>
+
+          <!-- Recorded inside the vault, so this is every browser's history of
+               it rather than this one's. The count is what the vault held at
+               the time, which is what makes an old backup legible: "3 entries"
+               against today's 40 says more than the date does. -->
+          <details v-if="backups.length" class="vault-backups">
+            <summary>
+              {{ backups.length === 1 ? 'One backup recorded' : backups.length + ' recent backups' }}
+            </summary>
+            <ul>
+              <li v-for="(b, i) in backups" :key="b.at + '-' + i">
+                <span class="vault-backup-when">{{ backupWhen(b.at) }}</span>
+                <span class="vault-backup-what">
+                  {{ b.count }} {{ b.count === 1 ? 'entry' : 'entries' }}<template v-if="b.by"> · {{ b.by }}</template>
+                </span>
+              </li>
+            </ul>
+            <p class="vault-hint">
+              Kept in the vault, not in this browser, so every machine that opens it sees the same
+              list. Only encrypted backups are recorded — a plain-text export is not a backup. This
+              is a note that a file was made, not proof it still exists.
+            </p>
+          </details>
 
           <div class="vault-plain">
             <p>
