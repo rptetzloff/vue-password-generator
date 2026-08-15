@@ -865,7 +865,15 @@ const App = {
      */
     const backupNag = computed(() => {
       if (!entries.value.length) return ''
-      if (!lastExport.value) return 'This vault has never been exported. If this browser loses its data, it is gone.'
+      if (!lastExport.value) {
+        // Deliberately hedged with "from this browser". The record is in
+        // localStorage, so a vault exported from another browser -- or another
+        // machine sharing the same folder -- reads as never exported here. It
+        // belongs in the vault rather than beside it; see ROADMAP 9d.
+        return location.value.kind === 'folder'
+          ? 'No backup has been made from this browser. Exports are recorded per browser, so another one may already have.'
+          : 'This vault has never been exported. If this browser loses its data, it is gone.'
+      }
       const drift = entries.value.length - lastExport.value.count
       if (drift > 0) {
         return `${drift} ${drift === 1 ? 'entry' : 'entries'} added since the last backup on ${lastExport.value.at}.`
@@ -1143,8 +1151,11 @@ const App = {
         return
       }
       useLocation(await openVaultInFolder(dir))
-      await store.init()
-      flash(`Opened the vault in ${dir.name}.`)
+      // reload rather than init: this is a different vault, and init() returns
+      // early once it has run. Without it the page sits on "create a vault"
+      // until you navigate away and back.
+      await store.reload()
+      flash(`Opened the vault in ${dir.name}. Unlock it with its own passphrase.`)
     })
 
     const useThisBrowser = () => run(async () => {
@@ -1606,9 +1617,26 @@ const App = {
         <details v-if="persisted === false" class="vault-warn vault-persist">
           <summary>
             <span class="mdi mdi-database-alert-outline" aria-hidden="true"></span>
-            This browser has not promised to keep the vault
+            {{ location.kind === 'folder'
+              ? 'This browser has not promised to remember where the vault is'
+              : 'This browser has not promised to keep the vault' }}
           </summary>
-          <p>
+
+          <!-- What is actually at risk depends on where the vault lives, and
+               the difference is the whole point of putting it in a folder.
+               Telling someone with a vault in Dropbox that "there is no copy
+               of this anywhere else" is simply false. -->
+          <p v-if="location.kind === 'folder'">
+            Your vault is a file in <strong>{{ location.name }}</strong>, so clearing this
+            browser's storage would not touch it. What this browser keeps is the pointer to that
+            folder — lose it and the vault is still there, but this browser forgets where, and you
+            would open it again with <strong>Open a vault in a folder</strong>.
+            <template v-if="storageEstimate">
+              This site is using about {{ storageEstimate.used }} of roughly
+              {{ storageEstimate.quota }} available.
+            </template>
+          </p>
+          <p v-else>
             Browser storage can be cleared automatically if the device runs short of space. It is
             unlikely
             <template v-if="storageEstimate">

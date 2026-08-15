@@ -649,6 +649,25 @@ export const createVaultStore = ({
     return state()
   }
 
+  /**
+   * Read again, because the storage underneath changed.
+   *
+   * init() returns early once it has run, which is right for a page load and
+   * wrong when the vault moves to a different backend mid-session -- pointing
+   * at a folder left the UI showing "create a vault" until the page was
+   * navigated away from and back, since only a fresh store ever re-read.
+   *
+   * Locks first, deliberately. This may be an entirely different vault, and
+   * carrying a key or a decrypted entry list across that boundary is how one
+   * vault's contents end up displayed under another's name.
+   */
+  const reload = async () => {
+    lock()
+    loaded = false
+    envelope = null
+    return init()
+  }
+
   const requireUnlocked = () => {
     if (!key) throw new Error('the vault is locked')
     touch()
@@ -900,7 +919,7 @@ export const createVaultStore = ({
   }
 
   return {
-    init, state, touch, lock, lockIfIdle, shouldAutoLock,
+    init, reload, state, touch, lock, lockIfIdle, shouldAutoLock,
     create, unlock, rekey, destroy, importEntries,
     hasRecoveryKey, addRecoveryKey, removeRecoveryKey, verifyRecoveryKey, recoverWithKey,
     list, raw, add, update, remove, restore,

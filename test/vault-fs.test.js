@@ -187,3 +187,53 @@ test('two devices sharing a folder still lose writes, which is the next piece', 
   assert.ok(!labels.includes('From B'),
     'B is lost today -- when this assertion starts failing, read-merge-write works')
 })
+
+test('reload re-reads after the storage underneath changes', async () => {
+  // init() returns early once it has run, which is right for a page load and
+  // wrong when the vault moves to a different backend mid-session. Without
+  // reload the UI sat on "create a vault" until the page was navigated away
+  // from and back, because only a fresh store ever re-read.
+  const dir = fakeDir()
+  const folder = createFolderStorage(dir, { drafts: fakeDrafts() })
+
+  // Put a vault in the folder using one store...
+  const first = createVaultStore({ storage: folder, now: () => 1_000_000 })
+  await first.init()
+  await first.create(PASS)
+  await first.add({ label: 'Email', pw: 'hunter2!' })
+
+  // ...and point a second store at local storage, then switch it to the folder.
+  let backing = { load: async () => null, save: async () => {}, clear: async () => {},
+    loadDraft: async () => null, saveDraft: async () => {}, clearDraft: async () => {} }
+  const proxy = {
+    load: () => backing.load(), save: (e) => backing.save(e), clear: () => backing.clear(),
+    loadDraft: () => backing.loadDraft(), saveDraft: (s) => backing.saveDraft(s),
+    clearDraft: () => backing.clearDraft(),
+  }
+  const second = createVaultStore({ storage: proxy, now: () => 1_000_000 })
+  assert.equal(await second.init(), 'absent')
+
+  backing = folder
+  assert.equal(await second.init(), 'absent', 'init alone cannot see the change -- this is the bug')
+  assert.equal(await second.reload(), 'locked', 'reload does')
+  await second.unlock(PASS)
+  assert.equal(second.list()[0].label, 'Email')
+})
+
+test('reload drops the key, because it may be a different vault', async () => {
+  // Carrying a key or a decrypted entry list across a location change is how
+  // one vault's contents end up displayed under another's name.
+  const dir = fakeDir()
+  const store = createVaultStore({
+    storage: createFolderStorage(dir, { drafts: fakeDrafts() }),
+    now: () => 1_000_000,
+  })
+  await store.init()
+  await store.create(PASS)
+  await store.add({ label: 'Email', pw: 'hunter2!' })
+  assert.equal(store.state(), 'unlocked')
+
+  await store.reload()
+  assert.equal(store.state(), 'locked')
+  assert.throws(() => store.list(), /locked/)
+})
