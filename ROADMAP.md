@@ -384,7 +384,7 @@ the bridge between them, which is a reason to build 9b first and well.
       offer, and the second reason to package.
 - [ ] **Count the cost honestly.** $99/year plus review for Apple, $25 plus
       review for Google, code signing, and a release cadence, against a site
-      that currently ships by pushing to master. 8c's warning about two stores
+      that currently ships by pushing to main. 8c's warning about two stores
       applies here too.
 - [ ] **Order: 9a and 9b on the web first.** They work in the browser and the
       PWA immediately, and they are the substance. Wrapping comes after, so

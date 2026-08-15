@@ -23,7 +23,7 @@ than within a day. Credit in the advisory and the changelog if you want it.
 ## Supported versions
 
 The deployed site is the only supported version. There are no release branches
-and no backports: the fix ships to `master`, the service worker's cache is
+and no backports: the fix ships to `main`, the service worker's cache is
 keyed to the version, and the next page load picks it up. If you are running
 a copy, the fix is a `git pull`.
 

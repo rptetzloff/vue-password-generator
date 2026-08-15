@@ -60,9 +60,14 @@ A subject line stating what the change makes true — no conventional-commit
 prefixes, no ticket refs. The body is as long as the reasoning needs, including
 what was measured and what was rejected.
 
-Everything lands on `dev`, which is what the dev site deploys. Committing
-straight to it is normal; branches are fine but they PR into `dev`, never
-`master`. Releases are `dev` → `master`.
+**Development happens on `dev`. Releases are a PR from `dev` into `main`.**
+
+`dev` is what the dev site deploys, so anything that skips it reaches
+production without ever having been looked at somewhere real. Committing
+straight to `dev` is normal and expected — a topic branch is fine when it earns
+one, but it PRs into `dev`, never into `main`. `main` is only ever written by a
+release PR, and the changelog is dated by the day that PR merges, in the
+maintainer's timezone rather than UTC.
 
 ## Files
 

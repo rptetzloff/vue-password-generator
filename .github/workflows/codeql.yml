@@ -8,9 +8,9 @@ name: CodeQL
 
 on:
   push:
-    branches: [master, main, dev]
+    branches: [main, dev]
   pull_request:
-    branches: [master, main]
+    branches: [main]
   schedule:
     # Weekly, so a newly published query reaches this code without waiting for
     # the next commit. Monday morning UTC.
