@@ -393,6 +393,88 @@ the bridge between them, which is a reason to build 9b first and well.
 
 ### 9d. Sync, if it ever happens — the conditions
 
+**Three modes, after Obsidian's shape.** That model is worth copying because it
+solves the funding problem without compromising the free product: local is
+whole forever, self-managed sync costs nothing and is fully supported, and the
+hosted option pays for the work. Nobody is ever nagged toward a paid tier.
+
+1. **Local only — what exists today.** One device, no network, nothing leaves
+   it. Not a starter tier and not a trial: a supported destination, per
+   invariant 2. Nothing about the other two modes may make this one worse.
+2. **Bring your own cloud.** The encrypted vault lives in a folder the user
+   already syncs — Dropbox, OneDrive, iCloud Drive, a network share. Point the
+   app at a file and their existing sync client does the rest. No account with
+   us, no server of ours, and we never learn which provider it is or that they
+   are using one.
+3. **WordLock Cloud — paid, because it has to be.** Hosting is cheap and
+   obligation is not: uptime, abuse, deletion requests, support. Charging is
+   what makes it sustainable rather than a liability. Supabase to begin with,
+   as a proof of concept — Postgres, row-level security and auth from people
+   who do database security for a living, which beats reinventing it. Possibly
+   our own infrastructure later, if there is ever a reason beyond pride.
+
+- [ ] **Argon2id moves from "nice" to "load-bearing" here.** Today the
+      ciphertext sits on one device the attacker must already have. In modes 2
+      and 3 it sits in a provider's storage, so the realistic attack becomes an
+      offline guess against whatever the passphrase is worth, at whatever rate
+      the KDF permits. PBKDF2 is merely slow and parallelises beautifully on a
+      GPU; Argon2id is memory-hard and does not. Shipping mode 2 or 3 without
+      it means the sync feature is what makes the weak-passphrase case
+      materially worse. See 9f — it should land first, or in the same release.
+- [ ] **The account credential must be unrelated to the vault passphrase.**
+      Never derived from it, never sent, never recoverable from anything the
+      server holds. The test is blunt: hand an attacker the entire production
+      database and they should learn nothing but blob sizes and timestamps.
+      Design for that and a misconfigured RLS policy — the classic Supabase
+      failure, and the reason to pick a backend *after* deciding the model —
+      leaks ciphertext rather than passwords.
+- [ ] **Pad the ciphertext to size buckets.** What a provider still learns is
+      metadata: a blob's size roughly reveals how many entries are in it, and
+      its modification times reveal when passwords are added or changed, which
+      is a behavioural trace. Padding to buckets makes a twelve-entry vault and
+      a forty-entry one indistinguishable, and costs a few lines. Timing is
+      harder and probably not worth chasing.
+- [ ] **Splitting the vault across two providers: considered, and no.**
+      The appeal is that no single provider holds everything. But no provider
+      holds anything readable now — that is what the encryption is for — so
+      splitting defends a flank already covered, while adding two integrations,
+      two failure modes, torn state when one write lands and the other does
+      not, and *reduced* availability, since both must be up to open the vault.
+      The one real benefit is defence in depth against a weak passphrase, and
+      Argon2id buys far more of that per unit of effort, because it addresses
+      the weak point rather than routing around it.
+
+**Where the code already is, as of 2026-08-14.** Mode 2 is closer than it
+looks, because the hard part is done and the remaining part is specific.
+
+Ready: the entry model reconciles (`updatedAt`, tombstones, `mergeReplicas`);
+storage is already injected into `createVaultStore`, so a file-backed adapter
+drops in without touching the state machine; the vault is a single
+self-contained encrypted envelope, which is exactly one file; and the browser
+API exists — verified in Chrome 148, `showSaveFilePicker`, `createWritable`
+and `queryPermission` all present.
+
+- [ ] **The blocker is that `save()` overwrites.** Every write assumes it is
+      the only writer, which is true for one device and false the moment a
+      second one shares a file. Persisting has to become read-merge-write:
+      load the remote copy, decrypt it, merge, re-seal, write back. That is a
+      change to what saving *means*, not a new adapter.
+- [ ] **Which means syncing requires an unlocked vault**, since merging needs
+      the plaintext. A locked vault cannot reconcile, so sync happens on unlock
+      and on save rather than on a background timer. Worth stating early: it
+      shapes the UI.
+- [ ] **Detect the write race.** Two devices writing the same file need the
+      remote's modification time or hash compared before overwriting, or the
+      slower one silently discards the faster one's work.
+- [ ] **Persist the file handle**, which is structured-cloneable and can live
+      in IndexedDB, plus a permission re-grant path for later visits. Without
+      that, mode 2 means picking the file again every single time.
+- [ ] **Chromium desktop only, and say so.** Firefox has no File System Access
+      API and mobile browsers have no persistent handles, so mode 2 on the web
+      is a desktop feature. Phones reach the same file through the packaged app
+      and the platform pickers, which is 9c — and is the reason to keep the
+      format a plain encrypted file rather than anything clever.
+
 **Written assuming a server, which now looks like the most expensive option
 and the only one that breaks an invariant.** The gates below still stand and
 still apply, but they were drafted before the entry model existed and before

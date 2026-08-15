@@ -99,8 +99,46 @@ test('every roadmap list holds the items its Markdown declares', () => {
   const lists = html.match(/<ul[^>]*>(?:(?!<\/ul>)[\s\S])*?<\/ul>/g) || []
   const singles = lists.filter((u) => count(u, /<li[ >]/g) === 1).length
 
-  const declared = (ROADMAP.match(/^\s*- /gm) || []).length
+  // Bullets, task items and numbered items all become one <li> each.
+  const declared = (ROADMAP.match(/^\s*(?:- |\d+[.)] )/gm) || []).length
   assert.equal(count(html, /<li[ >]/g) - count(html, /<li><ul>/g), declared,
     'every bullet in the file should be exactly one rendered item')
   assert.ok(singles < 10, `${singles} one-item lists; there were 69 when each wrap started a new list`)
+})
+
+test('a numbered list is a numbered list', () => {
+  // Epic 9's invariants and 9d's three modes both use these. Until they were
+  // supported, each rendered as one run-on paragraph with the numbers
+  // stranded inline mid-sentence.
+  const html = renderMarkdown(['1. First thing', '2. Second thing', '3. Third'].join('\n'))
+  assert.equal(count(html, /<ol>/g), 1)
+  assert.equal(count(html, /<\/ol>/g), 1)
+  assert.equal(count(html, /<li>/g), 3)
+  assert.equal(count(html, /<ul[ >]/g), 0, 'not a bullet list wearing numbers')
+  assert.equal(textOf(html).includes('1.'), false, 'the marker is the list, not text')
+})
+
+test('numbered items wrap like every other item', () => {
+  const html = renderMarkdown([
+    '1. **Local only.** One device, no network, and nothing',
+    '   leaves it.',
+    '2. Second.',
+  ].join('\n'))
+  assert.equal(count(html, /<li>/g), 2)
+  assert.match(textOf(html), /and nothing leaves it\./)
+  assert.equal(count(html, /<strong>/g), 1)
+})
+
+test('both list kinds can follow each other', () => {
+  const html = renderMarkdown(['- a bullet', '', '1. a number'].join('\n'))
+  assert.equal(count(html, /<ul[ >]/g), 1)
+  assert.equal(count(html, /<ol>/g), 1)
+  assert.match(html, /<\/ul>.*<ol>/s, 'the first list must close before the second opens')
+})
+
+test('the roadmap renders its numbered lists as lists', () => {
+  // The two that exist: Epic 9's invariants and 9d's three modes.
+  const html = renderMarkdown(ROADMAP)
+  assert.ok(count(html, /<ol>/g) >= 2, 'both numbered lists should render as ordered lists')
+  assert.equal(count(html, /<ol>/g), count(html, /<\/ol>/g))
 })
