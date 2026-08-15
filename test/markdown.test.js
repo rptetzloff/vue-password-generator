@@ -103,7 +103,14 @@ test('every roadmap list holds the items its Markdown declares', () => {
   const declared = (ROADMAP.match(/^\s*(?:- |\d+[.)] )/gm) || []).length
   assert.equal(count(html, /<li[ >]/g) - count(html, /<li><ul>/g), declared,
     'every bullet in the file should be exactly one rendered item')
-  assert.ok(singles < 10, `${singles} one-item lists; there were 69 when each wrap started a new list`)
+  // A ratio rather than a count, because one-item lists are legitimate here:
+  // a long entry with blank-line-separated paragraphs inside it is one bullet
+  // followed by prose, which is the house style. What this catches is the
+  // regression that prompted it, where every wrapped line began a new list and
+  // 69 of 98 lists held a single item -- 70%. Currently 18%.
+  const ratio = singles / lists.length
+  assert.ok(ratio < 0.4,
+    `${singles} of ${lists.length} lists hold one item (${(ratio * 100).toFixed(0)}%); it was 70% when each wrap started a new list`)
 })
 
 test('a numbered list is a numbered list', () => {

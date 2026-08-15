@@ -510,6 +510,12 @@ That can be done four ways, and hosting is the smallest part of the price.
       requests, and explain an outage — plus it needs an identity of some kind
       even when opaque, which is the line Legal currently draws. Worth it only
       if the free paths have been tried and genuinely do not cover enough.
+- [ ] **The sync unit is a folder, not a file.** A vault plus N attachment
+      blobs cannot be one file, so mode 2 points at a *directory* —
+      `showDirectoryPicker`, which is present alongside the rest of the File
+      System Access API. Cheap to decide now and awkward to change after mode 2
+      ships pointing at a single file. Mode 3 gets the same treatment: separate
+      storage objects rather than one row.
 - [ ] **Mobile is 9c's problem, not this section's.** No mobile browser offers
       persistent file handles, so a phone syncs through the packaged app and
       the platform file pickers. That is a reason to keep the format a plain
@@ -684,6 +690,55 @@ and both should be revisited deliberately rather than drifted into.
       behind the same write-it-down gate the adopt flow uses, stated plainly as
       a second key to everything in the vault, and revocable.
 
+- [ ] **Seal the secrets inside the vault as well as around it.** Today
+      unlocking means every password in the vault becomes a plaintext
+      JavaScript string for the whole session, sitting beside the passphrase
+      that already cannot be scrubbed. Sealing each secret individually under a
+      subkey means only what is actually revealed, copied or filled gets
+      decrypted, and the rest stay ciphertext in memory.
+
+      **The split is the user's own choice, which is the neat part.** The
+      `secret` flag on a custom field already means masked, clipboard-timed and
+      generatable; it now also means inner-sealed. Password, TOTP seed,
+      security answers and secret fields are inside. Label, username, URLs,
+      note, group, tags and dates are metadata — searchable is the test, and it
+      lines up almost exactly with masked-in-the-UI. Put something sensitive in
+      a plain text field and it is plain text: that is the user's call, made
+      with a checkbox they already understand, and everything is still
+      encrypted at the outer layer regardless.
+
+      **Reuse detection survives via a keyed hash.** Comparing passwords needs
+      plaintext, which defeats the point, so each entry carries an HMAC of its
+      password under a subkey. Reuse still works, the hashes are useless
+      without the key, and nothing gets decrypted to compute it. Two caveats:
+      those hashes must stay *inside* the outer envelope, or a storage provider
+      learns which of your accounts share a password; and reuse becomes
+      per-vault, since separate vaults (10c) have separate keys and there is no
+      fix that does not defeat the point of separating them.
+
+      **What it does not buy: merging without the key.** The metadata is inside
+      the outer envelope, so reading it still needs the vault open, and sync
+      stays an on-unlock operation. What it does buy is that the merge never
+      touches a secret — it shuffles opaque blobs — so a bug there can misplace
+      an entry but cannot leak or corrupt a password. And a corrupt inner blob
+      costs one entry rather than the whole vault.
+
+      **Three things to be honest about.** Export still decrypts everything, so
+      "never decrypt the whole vault" has an exception from day one. The threat
+      it addresses is a passive memory snapshot — crash dump, swap, forensic
+      capture — and it buys much less against an attacker with code execution,
+      who can hook the decrypt path or simply wait. And there is one
+      implementation trap that would erase the benefit entirely: the moment the
+      UI caches decrypted values in the reactive store, which is the natural
+      way to write it and how `entries` works today, every password is back in
+      memory. The decrypted value has to live for one operation and then go.
+
+      **Do it soon rather than carefully later.** This is another envelope
+      version, and format migrations are only expensive once vaults exist in
+      the wild. The vault shipped yesterday and almost certainly nobody is
+      storing real passwords in it yet, so the migration is close to free right
+      now and will not be in six months.
+
 - [ ] **Bind the envelope's metadata into the AEAD.** Raised while explaining
       v2 to someone who then asked the right question: if both ways in are the
       same mechanism with different inputs, what actually deserves scrutiny is
@@ -765,23 +820,42 @@ Recovery codes as a PDF, a scan of a passport, a licence key file. The obvious
 scope is "small files only", and that instinct is right, but not for the
 reason it looks like.
 
-- [ ] **The obstacle is the storage shape, not the quota.** The vault is one
-      sealed blob: every save re-encrypts and rewrites the whole thing. That
-      is fine for a few kilobytes of text and untenable the moment a 2 MB scan
-      is in there, because editing an unrelated entry's label would rewrite
-      the scan too. Attachments force per-item sealing — each attachment its
-      own envelope under the vault key, referenced by id — which is a real
-      change to 9a's design and should be made deliberately rather than
-      discovered halfway through.
+- [x] **The obstacle is the storage shape, not the quota — and the shape is
+      settled.** The vault is one sealed blob: every save re-encrypts and
+      rewrites the whole thing. Fine for a few kilobytes of text, untenable the
+      moment a 2 MB scan is in there, because editing an unrelated entry's
+      label would rewrite the scan too.
+
+      **Decided (2026-08-14): attachments do not live in the vault.** Each is
+      its own blob, encrypted under the same vault key, referenced from the
+      entry by id. That is not a change to the envelope format at all — the
+      entry gains a reference field and the storage layer gains a second
+      location. An earlier draft here claimed attachments "force per-item
+      sealing", implying the vault's own format had to change and that this
+      should therefore be paired with the entry-sealing work in 9f. Both halves
+      were wrong: the two are independent, and each stands on its own merits.
+- [ ] **Attachments need tombstones too.** Deleting an entry has to delete its
+      blobs, on every replica — and a replica that has not synced yet still
+      holds them. Orphaned encrypted blobs quietly accumulating in someone's
+      Dropbox is the failure mode, and it is exactly the shape the reaper
+      already handles for entries.
 - [ ] **A cap, stated in the UI.** Browsers grant a large quota but a vault
       that outgrows it gets evicted rather than truncated, and the persistence
       warning already explains how little we control that. Something like a
       few MB per attachment and a visible total, refusing rather than silently
       degrading.
-- [ ] **Export has to change with it, and 1PUX is the right shape to copy** —
-      a zip holding a JSON manifest plus the files. The current backup is a
-      single JSON envelope and cannot carry bytes without base64 inflating
-      them by a third inside an already-encrypted blob.
+- [ ] **Export becomes a zip with a manifest**, since the current backup is a
+      single JSON envelope and cannot carry bytes without base64 inflating them
+      by a third inside an already-encrypted blob. 1PUX is the right *shape* —
+      manifest plus files — but not worth copying field for field: nothing else
+      reads our export either way, so matching someone else's schema buys
+      nothing and costs a reverse-engineering exercise. A documented
+      `vault.json` plus `attachments/<id>` is easier to write, to read, and to
+      consume from a script.
+
+      Whether it is named `.zip` or `.wrlck` does not matter and is explicitly
+      not worth further discussion; if a custom extension is used it is
+      `.wrlck`. Recorded only so it is not re-litigated.
 - [ ] **A zip writer without a dependency is feasible**, which is the part
       worth checking before committing: `CompressionStream('deflate-raw')` is
       in every current browser, so a real deflated zip needs a local header,
