@@ -1,7 +1,7 @@
 {
-  "name": "vue-password-generator",
+  "name": "wordlock",
   "version": "3.2.0",
-  "description": "A modern password generator built with Vue 3",
+  "description": "A password generator and encrypted local vault. No accounts, no server, no build step.",
   "author": "Raymond Tetzloff <ray@raytetzloff.com>",
   "repository": {
     "type": "git",
