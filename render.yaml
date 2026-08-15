@@ -62,37 +62,49 @@ services:
       # and the icon webfont alone is 403 KB, by far the heaviest thing a
       # first-time visitor downloads.
       #
-      # ORDER MATTERS HERE, and an earlier version of this comment claimed the
-      # opposite. It said the paths were "kept non-overlapping rather than
-      # relying on a precedence guess" -- but /vendor/* matches
-      # /vendor/mdi/fonts/... perfectly well, so they always did overlap.
-      # Measured against production on 2026-08-15: the font came back with
-      # max-age=86400, not the year it is supposed to get. The later, more
-      # general rule wins, so the specific ones now come last.
+      # Deliberately scoped narrowly. Render does not document what happens
+      # when two header rules match the same request, so these paths are kept
+      # non-overlapping rather than relying on a precedence guess. (The /*
+      # rules above set different header names, so they do not collide with
+      # Cache-Control.)
       #
-      # Render still does not document this precedence, which is why the fix
-      # is verified by request rather than by reading. See the check in the PR.
+      # That warning was right and the rules broke it anyway: /vendor/* also
+      # matched /vendor/mdi/fonts/..., so the font had two rules claiming it.
+      # Measured against production and dev on 2026-08-15, five requests each,
+      # every one a cf-cache-status: MISS so every one a real origin response:
+      # the font came back immutable three times and max-age=86400 twice. The
+      # same file, the same deploy, a different answer per request. Reordering
+      # the rules changed nothing -- dev, with the order reversed, was equally
+      # split. There is no precedence to guess at, so the paths are enumerated
+      # instead and no request matches two rules.
+      #
+      # Anything added under vendor/ therefore needs a line here or it gets no
+      # Cache-Control at all. That is the cost of the approach and it is worth
+      # it: no header is a knowable default, two headers is a coin flip.
+      #
+      # Checking this against production needs a cache-busting query, or you
+      # measure Cloudflare rather than Render -- a plain request returns the
+      # edge copy with cf-cache-status: EXPIRED, which is how the first read of
+      # this was wrong in the other direction.
       #
       # Nothing is set for /src or the HTML on purpose: those change every
       # release and carry stable filenames, so they should keep revalidating
-      # and pick up deploys immediately. Confirmed serving
-      # max-age=0, s-maxage=300 -- the s-maxage is Render's own Cloudflare
-      # edge, which is also why a deploy can take up to five minutes to appear.
-
-      # Vue and the icon stylesheet have stable, unversioned filenames, so they
-      # must NOT be immutable -- an upgrade would strand cached copies for as
-      # long as the max-age. A day, then revalidate. Listed first so the
-      # narrower rules below can override it.
-      - path: /vendor/*
-        name: Cache-Control
-        value: public, max-age=86400
-      - path: /vendor/mdi/css/*
-        name: Cache-Control
-        value: public, max-age=86400
+      # and pick up deploys immediately.
 
       # The font is requested with a ?v=7.4.47 query, so the URL changes when
-      # the font does. That makes it genuinely safe to treat as immutable --
-      # and it is the one asset where a year rather than a day is worth having.
+      # the font does. That makes it genuinely safe to treat as immutable, and
+      # at 403 KB it is the one asset where a year rather than a day matters.
       - path: /vendor/mdi/fonts/*
         name: Cache-Control
         value: public, max-age=31536000, immutable
+
+      # Vue and the icon stylesheet have stable, unversioned filenames, so they
+      # must NOT be immutable -- an upgrade would strand cached copies for as
+      # long as the max-age. A day, then revalidate. Named individually rather
+      # than as /vendor/*, which would also match the font above.
+      - path: /vendor/mdi/css/*
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /vendor/vue.esm-browser.prod.js
+        name: Cache-Control
+        value: public, max-age=86400
