@@ -244,3 +244,45 @@ test('no list continuation is indented into an accidental code block', () => {
     `${offenders.length} line(s) will render as an indented code block on GitHub.\n`
     + `Indent list continuations to the item's content column:\n${offenders.slice(0, 5).join('\n')}`)
 })
+
+test('a wrapped blockquote is one quote, and its emphasis survives the wrap', () => {
+  // Blockquotes were emitted one per LINE, with inline() run per line. Two
+  // consequences, both live in ROADMAP.md until this was fixed: 42 quoted
+  // lines rendered as 40 separate quote boxes instead of the 7 quotes they
+  // are, and a `**` opening on one line and closing on the next came out as
+  // literal asterisks.
+  //
+  // That is the same bug, and the same fix, as the one list items already had
+  // -- buffer the raw text and run inline() once per block. Quotes were simply
+  // left out of it, and nothing noticed until a quote in 9d wrapped.
+  const html = renderMarkdown([
+    '> **Mode 2 shipped, and six items here went unticked for two',
+    '> releases.** Folder storage and the write race, both built.',
+    '>',
+    '> Two items that look closed are deliberately still open.',
+    '',
+    'Ordinary prose after the quote.',
+  ].join('\n'))
+
+  assert.equal(count(html, /<blockquote>/g), 1, 'one quote, not one per line')
+  assert.equal(count(html, /<blockquote>/g), count(html, /<\/blockquote>/g))
+  assert.equal(count(html, /<strong>/g), 1, 'emphasis spanning the wrap is emphasis')
+  assert.equal(textOf(html).includes('**'), false, 'no literal ** may survive')
+
+  // A bare `>` is a paragraph break inside the quote, not the end of it.
+  const quote = html.slice(html.indexOf('<blockquote>'), html.indexOf('</blockquote>'))
+  assert.equal(count(quote, /<p>/g), 2, 'the bare > separates two paragraphs')
+  assert.match(quote, /deliberately still open/)
+
+  // And the quote must actually end.
+  assert.match(html, /<\/blockquote><p>Ordinary prose after the quote\.<\/p>/)
+})
+
+test('the roadmap renders its quotes as whole quotes', () => {
+  const html = renderMarkdown(ROADMAP)
+  const source = ROADMAP.split(/\r?\n/).reduce((n, l, i, a) => (
+    l.startsWith('>') && !(a[i - 1] || '').startsWith('>') ? n + 1 : n
+  ), 0)
+  assert.equal(count(html, /<blockquote>/g), source,
+    'one <blockquote> per run of quoted lines, not one per line')
+})

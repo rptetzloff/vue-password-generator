@@ -401,6 +401,111 @@ deliberation, not an implementation detail.
 
 ---
 
+## The next release — scope for finishing 9, 10 and 11
+
+Calendar-versioned, `26.8.0` or `26.9.0`, and feature-complete rather than
+incremental. This section is the arithmetic of that claim: what is actually
+left, in what order it can be built, and — the part a scope is for — what is
+being left out on purpose.
+
+**Sixty-nine open items across the three epics** after the 2026-08-16 audit,
+which closed six in 9d that had shipped in 3.3.0 and never been ticked.
+
+| Epic | Open | Of which are decisions already made |
+|---|---|---|
+| 9 — the vault and the app around it | 30 | ~12 in 9d are constraints and rejected options, not work |
+| 10 — what a manager is expected to have | 27 | few; 10 is mostly unstarted build |
+| 11 — one repository, many surfaces | 12 | none; all new |
+
+A checkbox here is not a task. 9d in particular records *decisions* as items —
+"splitting the vault across two providers: considered, and no" is a conclusion,
+not a thing to build — so the true build count is nearer forty. That is still
+not one release, which is why the cut below exists.
+
+### The spine
+
+Four phases, ordered by what genuinely blocks what rather than by epic number.
+
+**Phase 1 — `core/`, and nothing else.** 11a. Every other surface waits on it
+and it waits on nothing. Mostly `git mv`: nothing in the logic layer imports
+Vue. Ships alone, and is worth shipping even if the rest of this is abandoned.
+
+**Phase 2 — the two web sites.** 11b and 11d. Render's two services, the
+publish-root problem and its committed-assembly answer, per-service CSP, the
+DNS move, and the claims rewritten per surface. Independent of all crypto work,
+so it can run alongside phase 3.
+
+**Phase 3 — the crypto that sync forces, in this order.** The ASVS 5.0 V11
+read-through comes *first*, because it may change what follows and is worthless
+after the format is fixed. Then the format change, once: Argon2id, the AEAD
+metadata binding, and sealing secrets inside the vault all require touching the
+envelope, and 9f already says the AAD work should ride along with whatever next
+touches it rather than being its own migration. Then derive-once-split-twice,
+ciphertext padding, and moving the crypto into a Web Worker.
+
+Doing these as one format change is the whole point. Three migrations of an
+encrypted store is three chances to strand a vault.
+
+**Phase 4 — sync, then the surfaces that want it.** 11c's route list and its
+test, the blob-store server, `HttpOnly` sessions, the opt-in invariant actually
+verified against a built thing rather than asserted, and Legal and About
+rewritten in the same release as 9d requires. Then 9c's packaged app, which
+needs `core/` from phase 1 and gains from sync existing.
+
+### In
+
+Everything in 11. From 9: 9c, 9f, and 9d's mode 3. From 10: **10a**
+attachments, **10b tier one only** (browser CSVs — Chrome, Edge, Firefox and
+Safari all export a similar shape and it is nearly free), **10d** folder
+templates, and **10g** the recycle bin, whose machinery already exists in
+tombstones, `deletedAt` and the reaper.
+
+### Out, and why — this is the half that makes it a scope
+
+- **10c, more than one vault.** The prerequisite is unresolved: 10c's own first
+  item says a group is a label and a vault is an encryption boundary, and until
+  someone decides which of those people actually want, the UI question cannot be
+  answered. Shipping the wrong answer here is expensive to reverse.
+
+- **10e, one-time shares.** Needs the server, so it is not blocked by anything
+  except sequence — but it introduces a second thing the server does, one
+  release after establishing that the server does exactly one thing. Worth
+  letting 11c's route list prove itself first.
+
+- **10f, group accounts and SSO.** This is a product, not a feature. It is also
+  where 8e's tension is at maximum: SSO authenticates a person and must never
+  custody a key, and admin recovery is a back door with better manners. Not
+  something to decide inside a release that is already this large.
+
+- **10b tiers two and three.** 1PUX, Keeper and KDBX. Tier one is nearly free
+  and covers the common case; KDBX is a project of its own.
+
+- **The browser extension (8c).** The tree in 11a makes room for it and `core/`
+  unblocks it, but it is Epic 8 and not part of finishing 9, 10 and 11. Worth
+  saying so rather than letting the folder imply a commitment.
+
+### Decisions needed before code, not during
+
+- [ ] **Is mobile Capacitor-plus-native, or fully native?** 11a assumes a shared
+  web layer with native autofill either side. If it is fully native, `core/`
+  needs a second life as a Swift and Kotlin port, and the estimate for the whole
+  epic changes shape rather than size.
+
+- [ ] **Does `26.8.0` mean the release ships in August 2026?** Calendar
+  versioning invites that reading. If the number is a date, a slipped release
+  either renumbers or lies, and it is worth deciding which before the first
+  changelog entry is written under the new scheme.
+
+- [ ] **What is a vault?** Not in scope to build (10c is out), but the answer
+  constrains the sync format, and getting it wrong costs a migration later.
+  Worth writing down even while 10c stays closed.
+
+- [ ] **Does the paid tier exist in this release?** 11a notes a monorepo mixes
+  MIT core with non-MIT product code and that per-directory licences solve it.
+  Cheap to arrange up front, awkward to retrofit once the tree is settled.
+
+---
+
 ## Epic 11 — One repository, many surfaces
 
 **The theme:** the next release is feature-complete rather than incremental —
@@ -795,6 +900,23 @@ the bridge between them, which is a reason to build 9b first and well.
 > restriction should be a test over a declared route list rather than a
 > convention, because a folder called `api` enforces nothing.
 
+> **Mode 2 shipped in 3.3.0, and six items here went unticked for two
+> releases.** Folder storage, the write race, the persisted handle and its
+> re-grant path, the folder-not-file unit, the Chromium-desktop limit stated
+> out loud — all built, all still showing as open until this file was audited
+> against the code on 2026-08-16. That is the failure this document's own
+> introduction warns about, repeated: Epics 1 and 3 sat fully implemented and
+> unticked for several releases too.
+>
+> Two items that *look* closed are deliberately still open. "Opt-in, and the
+> local mode stays whole" and "9b's export/import ships first and stays" are
+> conditions **on sync**, and sync does not exist — there is nothing yet for
+> them to have been verified against. A condition met by absence has not been
+> met.
+>
+> What remains open here is therefore mode 3, the server, and the crypto that
+> mode 3 forces. The cheap path is done.
+
 **Three modes, after Obsidian's shape.** That model is worth copying because it
 solves the funding problem without compromising the free product: local is
 whole forever, self-managed sync costs nothing and is fully supported, and the
@@ -861,17 +983,17 @@ and `queryPermission` all present.
   second one shares a file. Persisting has to become read-merge-write:
   load the remote copy, decrypt it, merge, re-seal, write back. That is a
   change to what saving *means*, not a new adapter.
-- [ ] **Which means syncing requires an unlocked vault**, since merging needs
+- [x] **Which means syncing requires an unlocked vault**, since merging needs
   the plaintext. A locked vault cannot reconcile, so sync happens on unlock
   and on save rather than on a background timer. Worth stating early: it
   shapes the UI.
-- [ ] **Detect the write race.** Two devices writing the same file need the
+- [x] **Detect the write race.** Two devices writing the same file need the
   remote's modification time or hash compared before overwriting, or the
   slower one silently discards the faster one's work.
-- [ ] **Persist the file handle**, which is structured-cloneable and can live
+- [x] **Persist the file handle**, which is structured-cloneable and can live
   in IndexedDB, plus a permission re-grant path for later visits. Without
   that, mode 2 means picking the file again every single time.
-- [ ] **Chromium desktop only, and say so.** Firefox has no File System Access
+- [x] **Chromium desktop only, and say so.** Firefox has no File System Access
   API and mobile browsers have no persistent handles, so mode 2 on the web
   is a desktop feature. Phones reach the same file through the packaged app
   and the platform pickers, which is 9c — and is the reason to keep the
@@ -891,7 +1013,7 @@ That can be done four ways, and hosting is the smallest part of the price.
 | Provider APIs (Dropbox, Drive, OneDrive) | small | 3–4 review processes, API drift | no |
 | Our own server | small | uptime, abuse, deletion requests | **yes** |
 
-- [ ] **The cheap path is the default, and it uses no provider API at all.**
+- [x] **The cheap path is the default, and it uses no provider API at all.**
   The File System Access API can hold a persistent handle to a file inside
   the Dropbox or OneDrive folder the user's desktop client *already*
   syncs. No OAuth, no app registration, no server, no account — their sync
@@ -912,7 +1034,7 @@ That can be done four ways, and hosting is the smallest part of the price.
   requests, and explain an outage — plus it needs an identity of some kind
   even when opaque, which is the line Legal currently draws. Worth it only
   if the free paths have been tried and genuinely do not cover enough.
-- [ ] **The sync unit is a folder, not a file.** A vault plus N attachment
+- [x] **The sync unit is a folder, not a file.** A vault plus N attachment
   blobs cannot be one file, so mode 2 points at a *directory* —
   `showDirectoryPicker`, which is present alongside the rest of the File
   System Access API. Cheap to decide now and awkward to change after mode 2

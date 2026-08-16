@@ -80,6 +80,16 @@ export const renderMarkdown = (src) => {
   // looking like part of the entry.
   let itemSuffix = null
 
+  /**
+   * The close tag of the open <blockquote>, or null.
+   *
+   * Quotes are buffered for the same reason list items are. Emitting one per
+   * line ran inline() per line, so a `**` opening on one line and closing on
+   * the next came out as literal asterisks -- and 42 quoted lines in the
+   * roadmap became 40 separate quote boxes instead of the six quotes they are.
+   */
+  let quoteSuffix = null
+
   const flush = () => {
     if (!open) return
     out.push(open.prefix, inline(open.text.join(' ')), open.suffix)
@@ -118,7 +128,13 @@ export const renderMarkdown = (src) => {
     return 'block'
   }
   const closePara = () => { if (inPara) { flush(); inPara = false } }
-  const closeAll = () => { closeList(); closePara() }
+  const closeQuote = () => {
+    flush()
+    if (!quoteSuffix) return
+    out.push(quoteSuffix)
+    quoteSuffix = null
+  }
+  const closeAll = () => { closeList(); closePara(); closeQuote() }
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
@@ -128,6 +144,10 @@ export const renderMarkdown = (src) => {
       continue
     }
     if (inCode) { out.push(escapeHtml(line) + '\n'); continue }
+
+    // Anything that is not a quoted line ends the quote, whatever it is. One
+    // guard here rather than a closeQuote() in every branch below.
+    if (quoteSuffix && !line.startsWith('>')) closeQuote()
 
     if (!line.trim()) {
       if (itemSuffix) {
@@ -153,9 +173,18 @@ export const renderMarkdown = (src) => {
       continue
     }
 
-    if (line.startsWith('> ')) {
-      closeAll()
-      out.push(`<blockquote>${inline(line.slice(2))}</blockquote>`)
+    if (line.startsWith('>')) {
+      const content = line.replace(/^>\s?/, '')
+      if (!quoteSuffix) {
+        closeList()
+        closePara()
+        out.push('<blockquote>')
+        quoteSuffix = '</blockquote>'
+      }
+      // A bare `>` is a paragraph break inside the quote, not the end of it.
+      if (!content.trim()) { flush(); continue }
+      if (open) open.text.push(content)
+      else open = { prefix: '<p>', suffix: '</p>', text: [content] }
       continue
     }
 
