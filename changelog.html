@@ -229,6 +229,18 @@
       .dot-removed  { background: var(--group-removed); }
       .dot-security { background: var(--group-security); }
 
+      /* Known limits is not a change category, it is a different kind of
+         statement -- so it is distinguished by FORM rather than hue. A sixth
+         colour would have to stay separable from five others under protan,
+         deutan and tritan vision, which is a real constraint to spend on a
+         group that is not competing with them for meaning. Hollow, in the
+         text colour the rest of the page already uses. */
+      .dot-limits {
+        background: none;
+        border: 2px solid var(--text-secondary);
+      }
+      .label-limits { color: var(--text-secondary); }
+
       .label-added    { color: var(--group-added); }
       .label-improved { color: var(--group-improved); }
       .label-fixed    { color: var(--group-fixed); }
@@ -369,7 +381,22 @@
                 </div>
 
                 <div class="change-group">
-                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Known limits</span></div>
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The word lists were being downloaded again on every visit to a word-based tab.</strong> Switching between Words, Passphrase, Wireless and Mad&nbsp;Lib twice cost nine downloads and 264&nbsp;KB where two and 73&nbsp;KB would do. The shared loader has always cached; four generators had their own private copies of it that did not, left behind by an earlier tidy-up. Spotted in a browser&rsquo;s network tab, which is the only place it was visible.</li>
+                    <li><strong>The word lists are also allowed to be cached between visits now.</strong> They carried no caching instruction at all, so a browser re-checked them on every page load. A day, and not longer, because the filenames carry no version and an updated list still has to be able to reach you.</li>
+                    <li><strong>&ldquo;Change settings&rdquo; in the entry editor did nothing.</strong> The link that takes you to the full generator, keeping your half-typed entry, had been dead since folder storage shipped &mdash; a variable named <code>location</code> for <em>where the vault is kept</em> was shadowing the browser&rsquo;s own <code>location</code>, so the line that should navigate was quietly setting a property on the wrong object. No error, no warning, nothing in the console.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Folder storage is no longer offered on phones.</strong> Chrome and Edge on Android both have the API, so the buttons appeared there &mdash; and then the folder permission did not survive a page <em>refresh</em>. Not each time you opened the app: each time the page loaded, and twice over, since the site asked to reconnect and then Android asked as well. Their file picker also lists local storage rather than the cloud locations your provider&rsquo;s own app shows, so there was nothing to sync with even after all that. A button that relocates the only copy of your vault should not lead somewhere that awkward.</li>
+                    <li><strong>If you already moved a vault to a folder on a phone, you can still get it back.</strong> That screen keeps both of its exits &mdash; reconnect for this session, or let go of the folder and leave the file where it is &mdash; on exactly the platform where the feature is no longer offered.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-limits"></span><span class="label-limits">Known limits</span></div>
                   <ul class="change-list">
                     <li><strong>It is not smaller, despite the smaller Vue.</strong> Compiled render functions are bigger than the markup they replace: 198&nbsp;KB more code against 58&nbsp;KB less compiler. Compressed, which is how it actually travels, that nets out to roughly 7&nbsp;KB saved &mdash; a wash. The reasons for doing it are the policy and the extension path, not the byte count, and an earlier claim of a 58&nbsp;KB saving counted only the half that helped.</li>
                     <li><strong>The project now has a development dependency</strong>, which it has not had since Vite was removed. Nothing is fetched to <em>run</em> the site &mdash; runtime dependencies are still zero &mdash; but building the templates needs Vue's compiler, and contributors need <code>npm ci</code> to regenerate them or run that one test. The browser build of the compiler cannot do it: it refuses the mode that emits modules, and the mode it will do emits code that is illegal inside one.</li>
@@ -434,7 +461,7 @@
                 </div>
 
                 <div class="change-group">
-                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Known limits</span></div>
+                  <div class="change-group-label"><span class="dot dot-limits"></span><span class="label-limits">Known limits</span></div>
                   <ul class="change-list">
                     <li><strong>Firefox and Safari cannot do this, and it is not a matter of waiting.</strong> Reading a file you pick works everywhere &mdash; that is what Import uses. Writing back to it needs the File System Access API, which neither has implemented; Mozilla's published position on the folder and file pickers is <em>harmful</em>, while its position on the sandboxed origin-private filesystem is positive. The objection is precisely to the part this needs. A replica that cannot save is a viewer, not a replica.</li>
                     <li><strong>Merging cannot see across your cloud provider's own sync.</strong> Two machines saving while the folder is out of step &mdash; offline, or inside the seconds your client takes to catch up &mdash; produces a <em>conflicted copy</em> file, which is Dropbox's arbitration and invisible to this page. Import that file and its entries merge back in.</li>
