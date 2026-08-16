@@ -484,25 +484,103 @@ tombstones, `deletedAt` and the reaper.
   unblocks it, but it is Epic 8 and not part of finishing 9, 10 and 11. Worth
   saying so rather than letting the folder imply a commitment.
 
-### Decisions needed before code, not during
+### Decisions made before code, rather than during
 
-- [ ] **Is mobile Capacitor-plus-native, or fully native?** 11a assumes a shared
-  web layer with native autofill either side. If it is fully native, `core/`
-  needs a second life as a Swift and Kotlin port, and the estimate for the whole
-  epic changes shape rather than size.
+All four answered 2026-08-16, before any file moved. What each one constrains
+is recorded with it, because a decision whose consequences are not written down
+gets re-litigated the first time it is inconvenient.
 
-- [ ] **Does `26.8.0` mean the release ships in August 2026?** Calendar
-  versioning invites that reading. If the number is a date, a slipped release
-  either renumbers or lies, and it is worth deciding which before the first
-  changelog entry is written under the new scheme.
+- [x] **Mobile is Capacitor plus native.** Capacitor if it can do what is
+  needed, and nothing found says it cannot. How much of the native half is
+  required is a separate question, and it is the item below rather than part of
+  this answer.
 
-- [ ] **What is a vault?** Not in scope to build (10c is out), but the answer
-  constrains the sync format, and getting it wrong costs a migration later.
-  Worth writing down even while 10c stays closed.
+  A Capacitor iOS app is an ordinary Xcode project, so the credential provider
+  is an *additional target* in it rather than a reason to abandon the approach.
+  Both the app target and the extension target need the
+  `com.apple.developer.authentication-services.autofill-credential-provider`
+  entitlement and the matching capability, and the extension's minimum
+  deployment version has to be low enough or it silently never appears in
+  Settings.
 
-- [ ] **Does the paid tier exist in this release?** 11a notes a monorepo mixes
-  MIT core with non-MIT product code and that per-directory licences solve it.
-  Cheap to arrange up front, awkward to retrofit once the tree is settled.
+  Capacitor's own autofill guide covers the *other* direction —
+  `SavePassword.promptDialog()` putting your app's own credentials into the
+  system password manager, which is being a *client* of autofill. Being the
+  provider is a separate thing the guide does not cover, and its absence is
+  easy to misread as its impossibility.
+
+  ~~The extension cannot practically host the webview, so the envelope needs a
+  second implementation in Swift and Kotlin.~~ **Asserted, not established, and
+  withdrawn the same day.** What was actually found was a 20 MB limit on
+  `FileProvider` — a different extension type — and some iOS 26 WKWebView crash
+  reports. Neither is a documented limit on credential providers. The honest
+  position is that this is not yet known, and it was stated as though it were.
+
+- [ ] **Spike: how much of the credential provider has to be native?** The
+  question that actually moves the estimate, and not one documentation can
+  answer — the constraint is memory and launch latency under a system that
+  terminates the extension at will, which only appears when it is run.
+
+  Build the smallest thing that settles it: an extension that opens a real v2
+  envelope and lists one entry. Share the JavaScript first, then native, and see
+  which survives contact.
+
+  **What rides on it.** If the extension can reach the JS, `core/` stays one
+  implementation. If it cannot, `vault-crypto` needs a second and third life in
+  Swift and Kotlin — not all of `core/`, since the entry rules, TOTP and entropy
+  stay in the app, but the crypto specifically, which is the one part of this
+  codebase where implementations that disagree produce a vault nobody can open.
+  That would make a cross-implementation test a requirement: seal in
+  JavaScript, open in Swift and Kotlin, and the reverse. And if the three cannot
+  be held in agreement, *that* is the real argument for going fully native.
+
+- [x] **The version is the date of release, not a deadline.** `26.8.0` means it
+  shipped in August 2026. It does not mean it is due then. The number is
+  assigned at merge, from the merge — exactly as the changelog date already is,
+  from the same event and the same clock.
+
+  One consequence, and it binds this document: **no planning entry may name a
+  version before it ships.** Where Epic 11 says "26.8.0 or 26.9.0" that is
+  illustration of the scheme, not a commitment to a month. A roadmap that names
+  a version has quietly turned a description into a promise.
+
+- [x] **A vault is the unit of sharing.** A container for passwords whose
+  defining property is that it can be handed, whole, to another person or to a
+  group. That is what separates it from a group or a tag: a group is a label
+  *inside* one encryption boundary, a vault *is* the boundary.
+
+  It needs its own encryption. It does not need its own passphrase — a second
+  vault may be opened by the same one.
+
+  **Envelope v2 already anticipates this, without having been designed for it.**
+  v2 encrypts under a random master key and wraps that key once per way in,
+  today for the passphrase and the recovery key. Sharing a vault is one more
+  wrap, to another person's key. So group access is *more slots*, not a format
+  change — which is a materially different cost from what 10f looked like when
+  it was written, and worth knowing even though 10f stays out.
+
+  Two things this pins down now. The sync unit is a vault, which is consistent
+  with 9d's already-shipped "the sync unit is a folder, not a file". And the
+  format must not assume exactly one vault per device, even while the UI does.
+
+- [x] ~~**Does the paid tier exist in this release?** A monorepo mixes MIT core
+  with non-MIT product code.~~ **Wrong question, withdrawn.** MIT permits
+  selling — it permits use, modification, distribution, sublicensing and sale,
+  requiring only that the notice travel with the code. Nothing about charging
+  for this conflicts with it, and the item quietly assumed a wish to close part
+  of the source that nobody has expressed.
+
+  **The real licence risk in this restructure is the wordlist, and it is
+  unguarded.** `data/orchard-street-long.txt` is CC BY-SA 4.0 and is deliberately
+  its own file so the share-alike terms never reach `words.json` or the MIT
+  code. That boundary is currently kept by nothing but the directory layout and
+  a paragraph in the readme — and this epic rearranges the directory layout.
+  Folding the list into `core/generate/` beside MIT source is exactly how a
+  licence boundary gets erased by a `git mv`.
+
+  So: keep `data/` a sibling of `core/` rather than a child, and add the test
+  that never existed — the CC BY-SA file stays outside any MIT-labelled
+  directory, and fails the build if it moves.
 
 ---
 
