@@ -224,12 +224,25 @@ const main = () => {
       continue
     }
     const target = new URL(bundle.out, ROOT)
-    const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null
-    const same = existing !== null && normalise(existing) === normalise(text)
     built += 1
 
+    // --check reads and never writes; a build writes and never reads. Keeping
+    // the two apart is the point rather than a tidy-up.
+    //
+    // This used to read the output first to decide whether writing would change
+    // anything, so it could log "unchanged" instead of "wrote". That is a
+    // check-then-use pair (CWE-367), and CodeQL was right that the file can
+    // change between the two. Nothing security-critical rested on it -- the
+    // paths are constants, this never reaches a browser, and the answer either
+    // way was to write the freshly compiled output -- but it was buying a log
+    // line at the price of the pattern, so the pattern goes rather than being
+    // argued with.
+    //
+    // Writing every time costs an mtime. It costs nothing in the repository,
+    // because identical bytes are not a diff.
     if (check) {
-      if (!same) {
+      const existing = fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : null
+      if (existing === null || normalise(existing) !== normalise(text)) {
         drift += 1
         console.error(`  DRIFT  ${bundle.out} does not match its templates`)
       } else {
@@ -238,13 +251,9 @@ const main = () => {
       continue
     }
 
-    if (same) {
-      console.log(`  unchanged  ${bundle.out}`)
-    } else {
-      fs.writeFileSync(target, text)
-      const n = templatesIn(bundle.dir).length
-      console.log(`  wrote      ${bundle.out}  (${n} templates, ${(Buffer.byteLength(text) / 1024).toFixed(1)} KB)`)
-    }
+    fs.writeFileSync(target, text)
+    const n = templatesIn(bundle.dir).length
+    console.log(`  wrote  ${bundle.out}  (${n} templates, ${(Buffer.byteLength(text) / 1024).toFixed(1)} KB)`)
   }
 
   if (!built) {
