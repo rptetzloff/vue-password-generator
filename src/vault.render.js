@@ -939,7 +939,7 @@ export function renderApp(_ctx, _cache) {
             _App_hoisted_30,
             _createElementVNode("p", null, [
               _createTextVNode(" It is kept in "),
-              _createElementVNode("strong", null, _toDisplayString(_ctx.location.name || 'a folder you chose'), 1),
+              _createElementVNode("strong", null, _toDisplayString(_ctx.vaultLocation.name || 'a folder you chose'), 1),
               _createTextVNode(", and nothing here can read it right now. "),
               _App_hoisted_31,
               _createTextVNode(" — the file is where you put it, and this is a permission, not a deletion. ")
@@ -1306,14 +1306,14 @@ export function renderApp(_ctx, _cache) {
                     ? (_openBlock(), _createElementBlock("details", _App_hoisted_123, [
                         _createElementVNode("summary", null, [
                           _App_hoisted_124,
-                          _createTextVNode(" " + _toDisplayString(_ctx.location.kind === 'folder'
+                          _createTextVNode(" " + _toDisplayString(_ctx.vaultLocation.kind === 'folder'
           ? 'This browser has not promised to remember where the vault is'
           : 'This browser has not promised to keep the vault'), 1)
                         ]),
-                        (_ctx.location.kind === 'folder')
+                        (_ctx.vaultLocation.kind === 'folder')
                           ? (_openBlock(), _createElementBlock("p", _App_hoisted_125, [
                               _createTextVNode(" Your vault is a file in "),
-                              _createElementVNode("strong", null, _toDisplayString(_ctx.location.name), 1),
+                              _createElementVNode("strong", null, _toDisplayString(_ctx.vaultLocation.name), 1),
                               _createTextVNode(", so clearing this browser's storage would not touch it. What this browser keeps is the pointer to that folder — lose it and the vault is still there, but this browser forgets where, and you would open it again with "),
                               _App_hoisted_126,
                               _createTextVNode(". "),
@@ -2236,10 +2236,10 @@ export function renderApp(_ctx, _cache) {
                     : _createCommentVNode("", true),
                   _createElementVNode("details", _App_hoisted_344, [
                     _App_hoisted_345,
-                    (_ctx.location.kind === 'folder')
+                    (_ctx.vaultLocation.kind === 'folder')
                       ? (_openBlock(), _createElementBlock("p", _App_hoisted_346, [
                           _createTextVNode(" The vault is a file in "),
-                          _createElementVNode("strong", null, _toDisplayString(_ctx.location.name), 1),
+                          _createElementVNode("strong", null, _toDisplayString(_ctx.vaultLocation.name), 1),
                           _createTextVNode(", so it is as safe as that folder is. A backup is still worth having: it is a snapshot, and the file in the folder is not — an entry deleted there is deleted everywhere the folder goes. ")
                         ]))
                       : (_openBlock(), _createElementBlock("p", _App_hoisted_347, " The vault lives in this browser and nowhere else. Clearing site data, losing the device, or a browser deciding it needs the space would all take it with them, so keep a backup somewhere you would still have it afterwards. ")),
@@ -2310,17 +2310,17 @@ export function renderApp(_ctx, _cache) {
                   _createElementVNode("details", _App_hoisted_366, [
                     _createElementVNode("summary", null, [
                       _createTextVNode(" Where the vault is kept "),
-                      _createElementVNode("span", _App_hoisted_367, _toDisplayString(_ctx.location.kind === 'folder' ? _ctx.location.name : 'this browser'), 1)
+                      _createElementVNode("span", _App_hoisted_367, _toDisplayString(_ctx.vaultLocation.kind === 'folder' ? _ctx.vaultLocation.name : 'this browser'), 1)
                     ]),
-                    (_ctx.location.kind === 'folder')
+                    (_ctx.vaultLocation.kind === 'folder')
                       ? (_openBlock(), _createElementBlock("p", _App_hoisted_368, [
                           _createTextVNode(" The encrypted vault is a file in "),
-                          _createElementVNode("strong", null, _toDisplayString(_ctx.location.name), 1),
+                          _createElementVNode("strong", null, _toDisplayString(_ctx.vaultLocation.name), 1),
                           _createTextVNode(". If that folder is one your computer already syncs — Dropbox, OneDrive, iCloud Drive — then it is backed up and carried between machines by whatever you already use, and we never see any of it. ")
                         ]))
                       : (_openBlock(), _createElementBlock("p", _App_hoisted_369, " The vault lives in this browser's storage, on this device only. That works, and it means the vault is exactly as durable as this browser profile: clearing site data takes it with everything else. ")),
                     _App_hoisted_370,
-                    (_ctx.location.kind === 'folder')
+                    (_ctx.vaultLocation.kind === 'folder')
                       ? (_openBlock(), _createElementBlock("p", _App_hoisted_371, [
                           _App_hoisted_372,
                           _createTextVNode(" Saving reads what is in the folder first and merges, so entries from both survive and a deletion stays deleted rather than being brought back by the other machine. If you both changed the "),
@@ -2328,7 +2328,7 @@ export function renderApp(_ctx, _cache) {
                           _createTextVNode(" entry, the save stops and asks which to keep rather than picking — so does a vault that has been replaced or given a different passphrase. ")
                         ]))
                       : _createCommentVNode("", true),
-                    (_ctx.location.kind === 'folder')
+                    (_ctx.vaultLocation.kind === 'folder')
                       ? (_openBlock(), _createElementBlock("p", _App_hoisted_374, [
                           _createTextVNode(" What that does "),
                           _App_hoisted_375,
@@ -2338,7 +2338,7 @@ export function renderApp(_ctx, _cache) {
                     (_ctx.canFolder)
                       ? (_openBlock(), _createElementBlock(_Fragment, { key: 4 }, [
                           _createElementVNode("div", _App_hoisted_376, [
-                            (_ctx.location.kind !== 'folder')
+                            (_ctx.vaultLocation.kind !== 'folder')
                               ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
                                   _createElementVNode("button", {
                                     class: "btn",
@@ -2384,7 +2384,7 @@ export function renderApp(_ctx, _cache) {
                                 ], 64))
                           ]),
                           _App_hoisted_385,
-                          (_ctx.location.kind === 'folder')
+                          (_ctx.vaultLocation.kind === 'folder')
                             ? (_openBlock(), _createElementBlock("p", _App_hoisted_386, [
                                 _App_hoisted_387,
                                 _createTextVNode(" is the one that changes nothing but this browser. The file stays in the folder and every other device carries on; this one locks the vault and forgets where it was. That is the way off a work machine or a browser you were only trying, without deleting anyone's vault and without clearing site data. ")
@@ -2504,10 +2504,10 @@ export function renderApp(_ctx, _cache) {
                   ], 8, _App_hoisted_406),
                   _createElementVNode("details", _App_hoisted_418, [
                     _App_hoisted_419,
-                    (_ctx.location.kind === 'folder')
+                    (_ctx.vaultLocation.kind === 'folder')
                       ? (_openBlock(), _createElementBlock("p", _App_hoisted_420, [
                           _createTextVNode(" This deletes the file in "),
-                          _createElementVNode("strong", null, _toDisplayString(_ctx.location.name), 1),
+                          _createElementVNode("strong", null, _toDisplayString(_ctx.vaultLocation.name), 1),
                           _createTextVNode(", so it goes for every device using that folder, not just this one. To leave the vault alone and only stop using it "),
                           _App_hoisted_421,
                           _createTextVNode(", use "),

@@ -144,3 +144,36 @@ test('nothing is declared as a runtime dependency', () => {
   const pkg = JSON.parse(fs.readFileSync(new URL('package.json', ROOT), 'utf8'))
   assert.deepEqual(pkg.dependencies ?? {}, {})
 })
+
+test('nothing shadows a browser global that gets used bare', () => {
+  // `const location = ref(...)` in vault-app.js shadowed window.location for
+  // the whole of setup(), so `location.href = '/#words'` in the Change
+  // settings handler set a property on a Vue ref and navigated nowhere.
+  //
+  // Silent in every direction: no error, no warning, the assignment is legal,
+  // and the tests could not see it because they do not run a browser. It
+  // shipped with folder storage and was found by someone clicking the button.
+  //
+  // The rule is the shadowing, not the assignment. Renaming one call site to
+  // window.location fixes today's bug and leaves the trap for whoever next
+  // writes location.reload() or location.search in that file.
+  // Narrowed to the globals this codebase actually uses bare: window.location
+  // for navigation and window.navigator for storage and the user agent. A
+  // broader list caught a block-scoped `const length` inside an entropy
+  // calculation, which shadows nothing anyone would reach for -- a rule that
+  // cries wolf gets deleted, and then it protects nothing.
+  const GLOBALS = ['location', 'navigator']
+  const root = new URL('../', import.meta.url)
+  for (const f of fs.readdirSync(new URL('src/', root)).filter((n) => n.endsWith('.js'))) {
+    const text = fs.readFileSync(new URL('src/' + f, root), 'utf8')
+    for (const g of GLOBALS) {
+      // Declarations only -- a property called `name` or a destructured
+      // parameter is fine; it is `const name = ...` at statement level that
+      // captures every later bare use in the file.
+      const re = new RegExp(String.raw`(?:^|[;{]\s*|\n\s*)(?:const|let|var)\s+${g}\s*=`, 'm')
+      assert.ok(!re.test(text),
+        `src/${f} declares a variable named "${g}", which shadows window.${g} ` +
+        'for the rest of the scope. Rename it.')
+    }
+  }
+})

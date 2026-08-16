@@ -58,7 +58,7 @@ const App = {
     // The store gets a proxy rather than the backend itself, so switching
     // folders later swaps what is underneath without rebuilding the store or
     // reloading the page.
-    const location = ref({ kind: 'local', name: null })
+    const vaultLocation = ref({ kind: 'local', name: null })
     const canFolder = canUseFolder()
     let backend = null
     let currentDir = null
@@ -448,7 +448,10 @@ const App = {
       event.preventDefault()
       const saved = await store.saveDraft(editing.value)
       try { sessionStorage.setItem(DRAFT_FLAG, saved ? '1' : '') } catch {}
-      location.href = `/#${genMode.value}`
+      // window.location explicitly: a `location` in scope here used to be
+      // the vault's location ref, and this line silently set a property
+      // on it instead of navigating.
+      window.location.href = `/#${genMode.value}`
     }
 
     const restoreDraft = async () => {
@@ -1012,7 +1015,7 @@ const App = {
         // so an export from anywhere that opens it counts here. What differs
         // between the two is what is actually at risk -- a vault in a folder
         // is not lost when this browser's storage is.
-        return location.value.kind === 'folder'
+        return vaultLocation.value.kind === 'folder'
           ? 'This vault has never been exported. The folder is the only copy.'
           : 'This vault has never been exported. If this browser loses its data, it is gone.'
       }
@@ -1264,7 +1267,7 @@ const App = {
     const useLocation = (resolved) => {
       backend = resolved.storage
       currentDir = resolved.dir
-      location.value = { kind: resolved.kind, name: resolved.name, permission: resolved.permission }
+      vaultLocation.value = { kind: resolved.kind, name: resolved.name, permission: resolved.permission }
     }
 
     const chooseFolder = () => run(async () => {
@@ -1307,7 +1310,7 @@ const App = {
     })
 
     const useThisBrowser = () => run(async () => {
-      if (!location.value.dir && location.value.kind !== 'folder') return
+      if (!vaultLocation.value.dir && vaultLocation.value.kind !== 'folder') return
       const dir = currentDir
       if (!dir) throw new Error('there is no folder to move from')
       const wasUnlocked = store.state() === 'unlocked'
@@ -1346,7 +1349,7 @@ const App = {
      * to come back, and that is the whole risk.
      */
     const disconnectFolder = () => {
-      const name = location.value.name || 'that folder'
+      const name = vaultLocation.value.name || 'that folder'
       const ok = confirm(
         `Stop using the vault in ${name} on this browser?\n\n` +
         'The file stays exactly where it is and other devices go on using it. ' +
@@ -1367,8 +1370,8 @@ const App = {
     const destroy = () => {
       if (!confirm('Delete the entire vault and everything in it? This cannot be undone.')) return
       return run(async () => {
-        const wasFolder = location.value.kind === 'folder'
-        const folderName = location.value.name
+        const wasFolder = vaultLocation.value.kind === 'folder'
+        const folderName = vaultLocation.value.name
         await store.destroy(pass.value)
         clearPass()
         // Deleting the vault also lets go of the folder it was in. Keeping the
@@ -1489,7 +1492,7 @@ const App = {
       genMenuOpen, toggleGenMenu, generateWith, genModeLabel,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
-      location, canFolder, chooseFolder, openFolder, useThisBrowser, reconnectFolder,
+      vaultLocation, canFolder, chooseFolder, openFolder, useThisBrowser, reconnectFolder,
       disconnectFolder,
       pending, undoDelete, finishDelete,
       shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,

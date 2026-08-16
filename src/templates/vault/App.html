@@ -75,7 +75,7 @@
   <section v-else-if="state === 'blocked'" class="vault-card">
     <h2>Your vault is in a folder this browser cannot open</h2>
     <p>
-      It is kept in <strong>{{ location.name || 'a folder you chose' }}</strong>, and nothing
+      It is kept in <strong>{{ vaultLocation.name || 'a folder you chose' }}</strong>, and nothing
       here can read it right now. <strong>Your vault is not lost</strong> — the file is where
       you put it, and this is a permission, not a deletion.
     </p>
@@ -310,7 +310,7 @@
     <details v-if="persisted === false" class="vault-warn vault-persist">
       <summary>
         <span class="mdi mdi-database-alert-outline" aria-hidden="true"></span>
-        {{ location.kind === 'folder'
+        {{ vaultLocation.kind === 'folder'
           ? 'This browser has not promised to remember where the vault is'
           : 'This browser has not promised to keep the vault' }}
       </summary>
@@ -319,8 +319,8 @@
            the difference is the whole point of putting it in a folder.
            Telling someone with a vault in Dropbox that "there is no copy
            of this anywhere else" is simply false. -->
-      <p v-if="location.kind === 'folder'">
-        Your vault is a file in <strong>{{ location.name }}</strong>, so clearing this
+      <p v-if="vaultLocation.kind === 'folder'">
+        Your vault is a file in <strong>{{ vaultLocation.name }}</strong>, so clearing this
         browser's storage would not touch it. What this browser keeps is the pointer to that
         folder — lose it and the vault is still there, but this browser forgets where, and you
         would open it again with <strong>Open a vault in a folder</strong>.
@@ -903,8 +903,8 @@
 
     <details class="vault-transfer" ref="transferEl">
       <summary>Backup, export and import</summary>
-      <p v-if="location.kind === 'folder'">
-        The vault is a file in <strong>{{ location.name }}</strong>, so it is as safe as that
+      <p v-if="vaultLocation.kind === 'folder'">
+        The vault is a file in <strong>{{ vaultLocation.name }}</strong>, so it is as safe as that
         folder is. A backup is still worth having: it is a snapshot, and the file in the folder
         is not — an entry deleted there is deleted everywhere the folder goes.
       </p>
@@ -975,11 +975,11 @@
     <details class="vault-danger">
       <summary>
         Where the vault is kept
-        <span class="vault-chip-on">{{ location.kind === 'folder' ? location.name : 'this browser' }}</span>
+        <span class="vault-chip-on">{{ vaultLocation.kind === 'folder' ? vaultLocation.name : 'this browser' }}</span>
       </summary>
 
-      <p v-if="location.kind === 'folder'">
-        The encrypted vault is a file in <strong>{{ location.name }}</strong>. If that folder is
+      <p v-if="vaultLocation.kind === 'folder'">
+        The encrypted vault is a file in <strong>{{ vaultLocation.name }}</strong>. If that folder is
         one your computer already syncs — Dropbox, OneDrive, iCloud Drive — then it is backed up
         and carried between machines by whatever you already use, and we never see any of it.
       </p>
@@ -993,14 +993,14 @@
         Either way the file is the same ciphertext. Putting it in a synced folder tells your
         cloud provider that a file changed and roughly how big it is — never what is in it.
       </p>
-      <p v-if="location.kind === 'folder'" class="vault-hint">
+      <p v-if="vaultLocation.kind === 'folder'" class="vault-hint">
         <strong>Two computers can share it.</strong> Saving reads what is in the folder first
         and merges, so entries from both survive and a deletion stays deleted rather than
         being brought back by the other machine. If you both changed the <em>same</em> entry,
         the save stops and asks which to keep rather than picking — so does a vault that has
         been replaced or given a different passphrase.
       </p>
-      <p v-if="location.kind === 'folder'" class="vault-hint">
+      <p v-if="vaultLocation.kind === 'folder'" class="vault-hint">
         What that does <em>not</em> cover is two machines saving while the folder itself is
         out of sync — offline, or within the seconds your cloud client takes to catch up.
         Then Dropbox or OneDrive makes a second "conflicted copy" file, which is theirs to
@@ -1010,7 +1010,7 @@
 
       <template v-if="canFolder">
         <div class="vault-row-actions">
-          <template v-if="location.kind !== 'folder'">
+          <template v-if="vaultLocation.kind !== 'folder'">
             <button class="btn" type="button" :disabled="busy" @click="chooseFolder">
               <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
               {{ busy ? 'Moving…' : 'Move it to a folder…' }}
@@ -1040,7 +1040,7 @@
           rather than overwritten. <strong>Open</strong> is the opposite — it expects a vault to
           be there already, writes nothing, and is how a second computer joins.
         </p>
-        <p v-if="location.kind === 'folder'" class="vault-hint">
+        <p v-if="vaultLocation.kind === 'folder'" class="vault-hint">
           <strong>Stop using it here</strong> is the one that changes nothing but this browser.
           The file stays in the folder and every other device carries on; this one locks the
           vault and forgets where it was. That is the way off a work machine or a browser you
@@ -1134,8 +1134,8 @@
 
     <details class="vault-danger">
       <summary>Delete the vault</summary>
-      <p v-if="location.kind === 'folder'">
-        This deletes the file in <strong>{{ location.name }}</strong>, so it goes for every
+      <p v-if="vaultLocation.kind === 'folder'">
+        This deletes the file in <strong>{{ vaultLocation.name }}</strong>, so it goes for every
         device using that folder, not just this one. To leave the vault alone and only stop
         using it <em>here</em>, use <strong>Stop using it here</strong> above. Your passphrase
         is required.
