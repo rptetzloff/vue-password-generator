@@ -25,6 +25,21 @@ services:
         name: Permissions-Policy
         value: geolocation=(), microphone=(), camera=()
 
+      # HSTS. The site is HTTPS-only already, but without this a first visit
+      # typed as "wordlock.net" is one plaintext request that can be answered
+      # by something other than us -- and what it would be answering with is
+      # the page someone types a vault passphrase into. Two years, which is
+      # the preload floor, and includeSubDomains because dev.wordlock.net
+      # serves the same application from the same registrable domain.
+      #
+      # Deliberately NOT `preload` yet: submitting to the preload list is
+      # effectively irreversible on browser timescales, and it would commit
+      # every future subdomain of wordlock.net to HTTPS forever. Worth doing,
+      # worth doing on purpose rather than as a line in a security pass.
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=63072000; includeSubDomains
+
       # Content-Security-Policy. For a vault that never talks to a server, the
       # directive that earns its keep is connect-src: even if something did run
       # on this origin, it has nowhere to send what it found. form-action and

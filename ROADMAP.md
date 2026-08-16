@@ -932,8 +932,43 @@ and both should be revisited deliberately rather than drifted into.
       means a build step. That is a bigger decision than the CSP, and it
       trades a real property (the deployed site is the readable source) for a
       bounded gain — reaching `eval` requires already executing script, which
-      the hash list is what prevents. Revisit if a build step arrives for
-      another reason; do not add one for this alone.
+      the hash list is what prevents. ~~Revisit if a build step arrives for
+      another reason; do not add one for this alone.~~
+
+      **Reversed. Scheduled, not deferred.** The maintainer's call, and the
+      reasoning above was too narrow rather than wrong. It weighed the CSP
+      alone; `'unsafe-eval'` is not one item, it is the same blocker turning up
+      in three places — the MV3 extension path (8e), the build step 9f wants
+      for sealing, and now a pre-release security pass where it is the single
+      weakest line in an otherwise tight policy. Three bounded gains that share
+      one cause are not three small things, and "do not add a build step for
+      this alone" stopped applying the moment it was not alone.
+
+      The property to protect while doing it is the one the original argument
+      was right about: the deployed site should stay readable. That means a
+      build whose output is legible and diffable, and a test that the built
+      render functions correspond to the templates in the repo — not a
+      minifier.
+
+- [ ] **Read the envelope design against OWASP ASVS V6.** Scanners answer
+      "does this code have a known bad pattern"; they cannot answer "is this
+      cryptographic design right for what it claims". V6 (Cryptography) is a
+      structured checklist for exactly that — key lifecycle, algorithm choice,
+      random sources, key storage, and what happens at rotation — and it is a
+      read-through rather than a tool run. V2 (Authentication) is worth the
+      same pass for the passphrase and recovery slots.
+
+      Queued rather than done: it is a deliberate exercise against the threat
+      model, not a pre-release gate, and doing it badly in a hurry would be
+      worse than the honest gap.
+
+- [ ] **Split the large files.** `main.js` and `vault-app.js` are both far
+      past readable and are named as known exceptions in CLAUDE.md, to be
+      reduced by extraction rather than rewritten. Extraction has started:
+      `vault-diff.js` came out of `vault-app.js` during the security pass,
+      and pulling it out is what made its rule testable rather than something
+      you check by opening a dialog and looking. That is the pattern to
+      follow — extract where it buys a test, not to hit a line count.
 
 ---
 

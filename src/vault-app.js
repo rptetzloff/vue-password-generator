@@ -14,6 +14,7 @@ import {
 import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
 import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
 import { canUseFolder, pickFolder } from './vault-fs.js'
+import { diffEntries, diffHasSecrets, diffHasTotp } from './vault-diff.js'
 import { resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, unblockFolder, releaseFolder } from './vault-location.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
@@ -177,28 +178,21 @@ const App = {
      */
     const conflict = ref(null)
 
-    /** Only the fields that actually differ, so the dialog is short. */
-    const FIELD_LABELS = {
-      label: 'Name', username: 'Username', pw: 'Password', note: 'Note',
-      group: 'Group', tags: 'Tags', urls: 'Web addresses',
-      questions: 'Security questions', fields: 'Custom fields', totp: 'One-time code',
-    }
-    const asText = (v) => {
-      if (v === null || v === undefined || v === '') return ''
-      if (Array.isArray(v)) {
-        if (!v.length) return ''
-        return v.map((x) => (typeof x === 'string' ? x : Object.values(x).filter(Boolean).join(' — '))).join(', ')
-      }
-      if (typeof v === 'object') return Object.values(v).filter(Boolean).join(' — ')
-      return String(v)
-    }
-    const conflictFields = computed(() => {
-      if (!conflict.value) return []
-      const { mine, theirs } = conflict.value
-      return Object.keys(FIELD_LABELS)
-        .map((key) => ({ key, label: FIELD_LABELS[key], mine: asText(mine[key]), theirs: asText(theirs[key]) }))
-        .filter((f) => f.mine !== f.theirs)
-    })
+    // The diff itself is pure and lives in vault-diff.js, so the rule it holds
+    // -- compare the real values, render the masked ones, never the seed -- is
+    // asserted by test rather than by opening the dialog and looking.
+    const revealConflict = ref(false)
+    const conflictFields = computed(() => (conflict.value
+      ? diffEntries(conflict.value.mine, conflict.value.theirs, { reveal: revealConflict.value })
+      : []))
+    const conflictHasSecrets = computed(() => diffHasSecrets(conflictFields.value))
+    const conflictHasTotp = computed(() => diffHasTotp(conflictFields.value))
+
+    // Closing the dialog re-hides. A watcher rather than a line in each of the
+    // four exits, because two of the four had already been missed by hand and
+    // the failure is a dialog that opens pre-revealed.
+    watch(conflict, (open) => { if (!open) revealConflict.value = false })
+
     const conflictDeleted = computed(() => !!(conflict.value && conflict.value.theirs.deletedAt))
 
     const save = (entry, resolve = null) => run(async () => {
@@ -1482,6 +1476,7 @@ const App = {
       toggleSecret, isRevealed, toggleAllSecrets, allRevealed, hasSeveralSecrets,
       startAdd, startEdit, rekey, destroy, tierOf,
       conflict, conflictFields, conflictDeleted, keepMine, keepTheirs, keepBoth,
+      revealConflict, conflictHasSecrets, conflictHasTotp,
       addQuestion, removeQuestion, addField, removeField, cancelEdit, editorEl,
       leaveForGenerator,
       codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
@@ -2099,6 +2094,17 @@ const App = {
                 </tr>
               </tbody>
             </table>
+            <p v-if="conflictHasTotp" class="vault-hint">
+              The one-time code differs between the two. The seed itself is not shown here — it is
+              not shown anywhere in WordLock — so check the issuer and account above, and re-scan
+              from the site if you are unsure which is current.
+            </p>
+            <button v-if="conflictHasSecrets" class="link-button" type="button"
+                    @click="revealConflict = !revealConflict"
+                    :aria-pressed="String(revealConflict)">
+              <span class="mdi" :class="revealConflict ? 'mdi-eye-off' : 'mdi-eye'" aria-hidden="true"></span>
+              {{ revealConflict ? 'Hide the values' : 'Show the values' }}
+            </button>
 
             <div class="vault-bar">
               <button class="btn btn-primary" type="button" :disabled="busy" @click="keepMine">

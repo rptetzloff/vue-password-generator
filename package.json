@@ -21,6 +21,9 @@
   },
   "homepage": "https://wordlock.net",
   "type": "module",
+  "devDependencies": {
+    "vue": "3.4.0"
+  },
   "scripts": {
     "dev": "npx --yes serve . --listen 5173",
     "test": "node --test"
