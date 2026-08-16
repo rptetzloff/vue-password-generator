@@ -2,27 +2,32 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 
-// render.yaml declares two services, and the reason to test it is that nothing
-// else can.
+// render.yaml, and the reason to test a file nobody runs locally.
 //
-// A Blueprint is applied by a hosted service against a file nobody runs
-// locally, so a mistake here is invisible until it is in production -- and the
-// history of this file is that its mistakes have all been invisible: a
+// It is applied by a hosted service against a repo, so every mistake it has
+// ever produced was invisible in review and only observable in production: a
 // /vendor/* rule overlapping the font rule and turning a cache header into a
-// coin flip, a deleted rule that stayed live because sync is additive, and a
-// dev service that sat on the wrong branch for a fortnight because its branch
-// was a dashboard fact rather than a reviewable one.
+// coin flip; a deleted rule that stayed live because sync is additive; and a
+// branch pin that silently held dev.wordlock.net on main for weeks.
 //
-// Parsed with regexes rather than a YAML library on purpose: this project has
-// no runtime dependencies and adding one to read four fields would be a poor
-// trade. The parsing is deliberately strict, so a shape it does not understand
-// fails loudly instead of quietly matching nothing.
+// THE FACT THAT EXPLAINS THE LAST ONE, and the reason this file exists:
+// ONE service definition here is applied by TWO Blueprints -- one linked to
+// main which serves wordlock.net, one linked to dev which serves
+// dev.wordlock.net. Each applies the whole file, and each appends its own
+// suffix to what it creates. So anything branch-specific written here is
+// imposed on both deployments, and any second service declared here is
+// created twice.
+//
+// Parsed with regexes rather than a YAML library: this project has no runtime
+// dependencies and adding one to read four fields would be a poor trade.
 
 const RENDER_YAML = fs.readFileSync(new URL('../render.yaml', import.meta.url), 'utf8')
 
-/** Split the file into one blob per `- type: web` entry. */
+/** Lines outside comments, so a rule discussed in prose does not read as set. */
+const CODE = RENDER_YAML.split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n')
+
 const services = (() => {
-  const parts = RENDER_YAML.split(/^ {2}- type:\s*web\s*$/m).slice(1)
+  const parts = CODE.split(/^ {2}- type:\s*web\s*$/m).slice(1)
   return parts.map((body) => {
     const field = (name) => {
       const m = new RegExp(`^ {4}${name}:\\s*(.+)$`, 'm').exec(body)
@@ -31,50 +36,38 @@ const services = (() => {
     const headers = [...body.matchAll(
       /^ {6}- path:\s*(\S+)\s*\n\s+name:\s*(\S+)\s*\n\s+value:\s*(.+)$/gm,
     )].map((m) => ({ path: m[1], name: m[2], value: m[3].trim().replace(/^"|"$/g, '') }))
-    const domains = [...body.matchAll(/^ {6}- (\S+\.\S+)\s*$/gm)].map((m) => m[1])
-    return {
-      name: field('name'),
-      branch: field('branch'),
-      publish: field('staticPublishPath'),
-      domains,
-      headers,
-    }
+    return { name: field('name'), branch: field('branch'), publish: field('staticPublishPath'), headers }
   })
 })()
 
-test('the file describes both deployments, not just production', () => {
-  // The gap that caused the problem: dev existed only in the dashboard, so
-  // "which branch does dev follow" was not a question the repo could answer.
-  assert.equal(services.length, 2, 'expected a production and a dev service')
-  const byName = Object.fromEntries(services.map((s) => [s.name, s]))
-
-  assert.ok(byName.wordlock, 'the production service must be declared')
-  assert.equal(byName.wordlock.branch, 'main')
-
-  assert.ok(byName['wordlock-dev'], 'the dev service must be declared')
-  assert.equal(byName['wordlock-dev'].branch, 'dev',
-    'dev.wordlock.net follows dev -- this being in the file is the whole point')
+test('exactly one service is declared', () => {
+  // Two Blueprints each apply this whole file, so a second service here is
+  // created twice -- including a second copy of production. Measured: adding
+  // the dev service produced a review screen offering to create BOTH
+  // `wordlock-cl9q` and `wordlock-dev-cl9q`, from a file naming one of each.
+  assert.equal(services.length, 1,
+    'a second service here is created once per Blueprint, not once')
+  assert.equal(services[0].name, 'wordlock')
 })
 
-test('every service is served as-is, with no build step', () => {
-  // The product claim: the deployed source is the source you can read.
-  for (const s of services) {
-    assert.equal(s.publish, './', `${s.name} should publish the repo root`)
-  }
+test('the deploy branch is NOT pinned here', () => {
+  // The regression this test exists for, and it was self-inflicted. `branch:
+  // main` was added so that renaming the default branch could not silently
+  // freeze production. But the dev Blueprint reads this same file and applies
+  // it too, so dev.wordlock.net was handed main -- it served the wrong branch
+  // for weeks, switching it in the dashboard worked only until the next sync,
+  // and it surfaced as a 404 on a module committed hours earlier.
+  //
+  // With no branch declared, each Blueprint deploys the branch it is linked
+  // to. The protection originally wanted is real and cannot be bought here.
+  assert.equal(services[0].branch, null,
+    'pinning a branch here imposes it on every Blueprint that reads this file')
+  assert.ok(!/^\s*branch:/m.test(CODE),
+    'no service in this file may declare a branch')
 })
 
-test('the two services carry identical headers', () => {
-  // The cost of declaring them separately, and the guard against paying it.
-  // The reasoning for each rule lives once, on production; duplicating a
-  // hundred lines of comment would guarantee the copies disagree. This is what
-  // makes the duplication safe, and it fails the moment one is edited alone.
-  const [prod, dev] = services
-  const shape = (s) => s.headers
-    .map((h) => `${h.path}\t${h.name}\t${h.value}`)
-    .sort()
-
-  assert.deepEqual(shape(dev), shape(prod),
-    'a header added to one service must be added to the other')
+test('the site is served as-is, with no build step', () => {
+  assert.equal(services[0].publish, './')
 })
 
 test('no request matches two header rules of the same name', () => {
@@ -85,7 +78,7 @@ test('no request matches two header rules of the same name', () => {
   // rely on, so the paths must not overlap.
   const matches = (pattern, path) => (pattern.endsWith('/*')
     ? path.startsWith(pattern.slice(0, -1))
-    : pattern === '/*' ? true : pattern === path)
+    : pattern === path)
 
   for (const s of services) {
     const byHeader = {}
@@ -95,61 +88,33 @@ test('no request matches two header rules of the same name', () => {
         for (const b of paths) {
           if (a === b) continue
           assert.ok(!matches(a, b.replace('/*', '/x')),
-            `${s.name}: "${a}" and "${b}" both claim ${name} for the same request`)
+            `"${a}" and "${b}" both claim ${name} for the same request`)
         }
       }
     }
   }
 })
 
-test('the security headers are on every service, not just production', () => {
-  // A dev site with a weaker policy cannot tell you whether the policy works,
-  // and dev.wordlock.net is a real password manager on a public domain.
+test('every security header is set, and therefore set on both deployments', () => {
+  // The upside of one shared definition: dev cannot drift to a weaker policy,
+  // because there is only one policy. A dev site with a weaker CSP cannot tell
+  // you whether the CSP works, and dev.wordlock.net is a real password manager
+  // on a public domain.
   const required = [
     'X-Frame-Options', 'X-Content-Type-Options', 'Referrer-Policy',
     'Permissions-Policy', 'Strict-Transport-Security', 'Content-Security-Policy',
   ]
-  for (const s of services) {
-    const names = new Set(s.headers.filter((h) => h.path === '/*').map((h) => h.name))
-    for (const r of required) {
-      assert.ok(names.has(r), `${s.name} is missing ${r}`)
-    }
-  }
+  const names = new Set(services[0].headers.filter((h) => h.path === '/*').map((h) => h.name))
+  for (const r of required) assert.ok(names.has(r), `missing ${r}`)
 })
 
 test('HSTS is long, covers subdomains, and does not claim preload', () => {
   // preload is close to irreversible on browser timescales and would commit
   // every future subdomain of wordlock.net to HTTPS forever. Worth doing one
-  // day, and worth doing deliberately rather than as a line in a security
-  // pass -- so if it appears here, it should be because someone decided to.
-  for (const s of services) {
-    const hsts = s.headers.find((h) => h.name === 'Strict-Transport-Security')
-    const maxAge = Number(/max-age=(\d+)/.exec(hsts.value)[1])
-    assert.ok(maxAge >= 31536000, `${s.name}: HSTS max-age should be a year or more`)
-    assert.match(hsts.value, /includeSubDomains/)
-    assert.ok(!/preload/.test(hsts.value),
-      `${s.name}: preload is a separate, near-irreversible decision`)
-  }
-})
-
-
-test('no service is named for an accident of Render name generation', () => {
-  // `wordlock-cl9q` was a generated name, and writing it into this file taught
-  // us that a Blueprint does not adopt an existing service by name -- it made
-  // `wordlock-cl9q-cl9q` instead. The services are named for what they are now.
-  for (const s of services) {
-    assert.ok(!/-cl9q/.test(s.name),
-      `${s.name} is named after a generated suffix; name it for what it is`)
-  }
-})
-
-test('the dev domain is declared; production\'s deliberately is not', () => {
-  // Asymmetric on purpose, and the asymmetry is the safe half. The dev service
-  // is created from scratch with nothing attached, so declaring its domain
-  // costs nothing and makes it reviewable. Production's domain is attached and
-  // working, and there is no version of touching it that is worth the upside.
-  const byName = Object.fromEntries(services.map((s) => [s.name, s]))
-  assert.deepEqual(byName['wordlock-dev'].domains, ['dev.wordlock.net'])
-  assert.deepEqual(byName.wordlock.domains, [],
-    "production's domain stays attached by hand, on purpose")
+  // day, deliberately -- so if it appears here it should be because someone
+  // decided to, not because a security pass added it in passing.
+  const hsts = services[0].headers.find((h) => h.name === 'Strict-Transport-Security')
+  assert.ok(Number(/max-age=(\d+)/.exec(hsts.value)[1]) >= 31536000)
+  assert.match(hsts.value, /includeSubDomains/)
+  assert.ok(!/preload/.test(hsts.value), 'preload is a separate, near-irreversible decision')
 })

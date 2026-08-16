@@ -1,43 +1,48 @@
-# Both services, because the one that was missing is the one that went wrong.
+# ONE service definition, applied by TWO Blueprints. That is the thing to
+# understand before editing this file, and it is not obvious from the file.
 #
-#   wordlock        -> wordlock.net,     branch main
-#   wordlock-cl9q   -> dev.wordlock.net, branch dev
+#   Blueprint "wordlock"       tracks main -> creates `wordlock`      -> wordlock.net
+#   Blueprint "Dev.WordLock.net" tracks dev -> creates `wordlock-cl9q` -> dev.wordlock.net
 #
-# The dev service was created outside this Blueprint, so its branch was a fact
-# only the dashboard knew. It sat deployed from `main` for an unknown stretch
-# while everyone assumed it followed `dev`, and it surfaced as a 404 on a
-# module committed hours earlier: fourteen commits of work had never been on
-# the dev site at all. Switching it by hand had been tried before and did not
-# stick, which is the failure a dashboard-only setting produces -- nobody can
-# review a setting nobody can see.
+# Each Blueprint applies the WHOLE file and appends its own suffix to every
+# service it creates -- which is where the `-cl9q` came from; it was never a
+# collision suffix. Two consequences, both learned the hard way in one evening:
 #
-# Adopting an existing service is supported rather than a trick: Render's
-# Infrastructure as Code docs say to add an existing resource by writing its
-# details into the Blueprint as you would a new one, and an apply shows the
-# list of changes for review before it deploys. The one documented hazard is
-# adopting a resource ALREADY managed by a different Blueprint -- neither of
-# these is. Check the review screen names both services and creates neither.
+#   1. NEVER pin `branch:` here. See below.
+#   2. Never declare a second service here. Both Blueprints would create both,
+#      and you would get four services -- including a duplicate of production.
+#      Tried it: the review screen offered `wordlock-cl9q` and
+#      `wordlock-dev-cl9q` side by side, which is a duplicate prod service and
+#      a dev service, from a file that names one of each.
 #
-# Still dashboard-only, deliberately: the custom domains. They are attached and
-# working on both services, declaring them here would be a change to something
-# already correct, and this file is being extended to fix a specific problem
-# rather than to become exhaustive. So this is not yet the whole deployment.
-#
-# One rule when editing: header sync is ADDITIVE. Removing a rule here does not
-# remove it from the running service; see the note on the Cache-Control rules.
-# That applies per service, so a deletion is now three steps, not two.
+# Everything else in the file is shared on purpose: both deployments get the
+# same headers, the same CSP, the same HSTS. A dev site with a weaker policy
+# cannot tell you whether the policy works.
 
 services:
-  # --- production ------------------------------------------------------------
   - type: web
     name: wordlock
     runtime: static
-    # Pinned here rather than left to the dashboard. The deploy branch was
-    # dashboard-only, which meant renaming the default branch would have left
-    # Render watching a branch that no longer existed -- production frozen on
-    # its last deploy, merges silently not shipping, and nothing in the repo
-    # to explain it. In the file, it is reviewable.
-    branch: main
+
+    # NO `branch:` HERE. It was pinned to main earlier today, reasoning that a
+    # dashboard-only deploy branch would break if the default branch were
+    # renamed -- "the more useful half", the commit said. It was the half that
+    # broke dev.
+    #
+    # The dev Blueprint reads THIS FILE from the dev branch and applies
+    # everything in it, so `branch: main` was handed to the dev service too.
+    # dev.wordlock.net silently served main; switching it in the dashboard
+    # worked until the next sync put it back, which is exactly the "why does it
+    # keep switching" that went unexplained for weeks. It came to light as a
+    # 404 on a module committed hours earlier: fourteen commits of work had
+    # never been on the dev site at all.
+    #
+    # With no branch declared, each Blueprint uses the branch it is linked to,
+    # which is the arrangement that worked before the pin was added. The
+    # protection that was wanted -- a rename not silently freezing a deploy --
+    # is real, but it cannot be bought here without breaking the other
+    # deployment. test/render-config.test.js fails if this comes back.
+
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
     staticPublishPath: ./
@@ -158,71 +163,6 @@ services:
       # must NOT be immutable -- an upgrade would strand cached copies for as
       # long as the max-age. A day, then revalidate. Named individually rather
       # than as /vendor/*, which would also match the font above.
-      - path: /vendor/mdi/css/*
-        name: Cache-Control
-        value: public, max-age=86400
-      - path: /vendor/vue.esm-browser.prod.js
-        name: Cache-Control
-        value: public, max-age=86400
-
-  # --- dev -------------------------------------------------------------------
-  # Same application, same headers, different branch. The reasoning for every
-  # rule below lives once, on the production service above -- duplicating a
-  # hundred lines of it here would guarantee the two copies disagree within a
-  # month. What stops them disagreeing is test/render-config.test.js, which
-  # fails if the two services' header rules are not identical.
-  #
-  # Dev is a real deployment of a password manager on a public domain, so it
-  # gets the real headers. A dev site with a weaker CSP is a dev site that
-  # cannot tell you whether the CSP works.
-  #
-  # A BLUEPRINT DOES NOT ADOPT AN EXISTING SERVICE BY NAME. Measured, after the
-  # docs said otherwise: writing the existing `wordlock-cl9q` in here produced
-  # a second service called `wordlock-cl9q-cl9q` rather than taking over the
-  # first. Render uniquified the name instead of matching it. Linking an
-  # existing service to a Blueprint appears to be a dashboard action; the file
-  # only manages what the Blueprint itself created.
-  #
-  # So this service is named for what it is rather than for the accident of
-  # what Render generated, and it is created FRESH -- the two older dev
-  # services were deleted first, which is what frees dev.wordlock.net for the
-  # domains block below. Applying this while that domain is still attached
-  # elsewhere will fail, and that ordering is the whole trick.
-  - type: web
-    name: wordlock-dev
-    runtime: static
-    # The whole point of the exercise. This being in the file is what makes it
-    # reviewable, and what stops the next person wondering why dev is stale.
-    branch: dev
-    staticPublishPath: ./
-    # Declared here only because this service is being created from scratch and
-    # nothing is attached yet. Production's domain is deliberately NOT declared:
-    # it is attached, correct, and there is no version of touching it tonight
-    # that is worth the upside.
-    domains:
-      - dev.wordlock.net
-    headers:
-      - path: /*
-        name: X-Frame-Options
-        value: DENY
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
-      - path: /*
-        name: Referrer-Policy
-        value: strict-origin-when-cross-origin
-      - path: /*
-        name: Permissions-Policy
-        value: geolocation=(), microphone=(), camera=()
-      - path: /*
-        name: Strict-Transport-Security
-        value: max-age=63072000; includeSubDomains
-      - path: /*
-        name: Content-Security-Policy
-        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'sha256-dyBu1aISuiapW/D0B+MOaUi6eJ9+lL9+rNRgY7+dwAU=' 'sha256-D7pO4R68hLL5gxelrQQLuK0W0lqTaWq0ZcS2IGYeMl4=' 'sha256-EnokG1Ge72acG6K9uT6UQQ6QDbg/Z39S608pC4o2ARc=' 'sha256-JkG5uX2Mhs+bZE5mNn5rqZTEqNmLrcaGKckQZBtSlro=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
-      - path: /vendor/mdi/fonts/*
-        name: Cache-Control
-        value: public, max-age=31536000, immutable
       - path: /vendor/mdi/css/*
         name: Cache-Control
         value: public, max-age=86400
