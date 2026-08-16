@@ -19,3 +19,15 @@ yarn-error.log*
 *.sln
 *.sw?
 .env
+
+# Agent tooling. Same category as .idea and .vscode above: local scratch
+# rather than anything the project needs to build or run.
+#
+# worktrees/ in particular held a FULL SECOND CHECKOUT of this repo, and
+# was covered only by .git/info/exclude -- which is per-clone and does not
+# travel, so the protection existed on exactly one machine. A `git add -A`
+# anywhere else would have committed a duplicate of the entire tree.
+#
+# CLAUDE.md is deliberately NOT in here: it lives at the repo root and is
+# committed, because the house rules are the project's, not the tool's.
+.claude/
