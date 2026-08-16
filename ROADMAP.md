@@ -401,6 +401,198 @@ deliberation, not an implementation detail.
 
 ---
 
+## Epic 11 — One repository, many surfaces
+
+**The theme:** the next release is feature-complete rather than incremental —
+sync, a packaged app, an extension — and every one of those is a new *surface*
+over the same vault. This epic is the shape that has to exist before any of them
+can be built, and the claims that have to be rewritten because they will stop
+being true in their current form.
+
+**Versioning changes here.** `26.8.0` or `26.9.0`, calendar rather than semantic,
+which settles the question left open at 3.3.0. Nothing mechanical resists it —
+the service worker takes its version from `package.json` via a test either way.
+What it does is make the tagging rule *more* load-bearing, not less: once the
+number is a date it carries no magnitude at all, so the release tag and the
+summary become the only thing telling a reader this one is the big one.
+
+### 11a. The shape
+
+The starting condition is better than it looks. **Nothing in the logic layer
+imports Vue** — not one module. Measured across `src/`: roughly 2,000 lines are
+fully pure, and another 1,700 touch nothing but `crypto.subtle`. So `core/` is a
+move, not a rewrite. That happened by accident, as the by-product of extracting
+`generators.js`, `vault-entry.js`, `vault-idb.js` and `vault-diff.js` for
+readability, and it is the single thing that makes this epic affordable.
+
+```
+wordlock/
+  core/         pure logic: no DOM, no framework, no platform
+    generate/     lib, generators, entropy, wordlists
+    vault/        crypto, envelope, entries, transfer, diff, recovery
+    totp.js
+  ui/           shared browser UI: tokens, theme, header, footer, nav, settings
+  site/         wordlock.net -- product, docs, changelog, roadmap, legal
+  app/          app.wordlock.net -- generator + vault
+  api/          the sync service; routes.js declares the whole surface
+  desktop/      one codebase, three targets
+    platform/     keychain: win / mac / linux
+  mobile/
+    shared/       the web layer both wrap
+    ios/          Swift -- credential provider
+    android/      Kotlin -- autofill service
+  extension/    one source
+    manifest.chrome.json, manifest.firefox.json, safari/
+  tools/
+```
+
+- [ ] **`ui/` exists because site and app are a deploy boundary, not a code
+  boundary.** Both need the same header, footer, nav, tokens and settings
+  panel. Without a shared home they get copied, and copies drift -- which is
+  the exact failure the site-wide header extraction fixed once already, when
+  six hand-written footers had become five different link lists.
+
+- [ ] **One repository, and the reason is version skew rather than taste.**
+  Every surface depends on `core`, and a mismatch between `core` and one client
+  is the bug that cannot be debugged: a vault sealed by one envelope version and
+  opened by another. One repository means one commit moves everything, and the
+  format can never be half-migrated across surfaces. Separate repositories would
+  force publishing `@wordlock/core` to a registry, which punctures "no
+  dependencies, read the source" in the most literal way available.
+
+  Two costs, named now rather than discovered. Render needs four services
+  instead of two (11b). And if the product ever grows a paid tier, one
+  repository mixes MIT core with non-MIT product code -- solvable with
+  per-directory licences, much easier to plan than to retrofit.
+
+- [ ] **Where one codebase actually works, measured against what each platform
+  requires rather than assumed.** The instinct that the operating systems differ
+  a lot is right for exactly one of the three.
+
+  | Surface | One codebase? | What is genuinely per-platform |
+  |---|---|---|
+  | Desktop | Yes | Signing, notarization, installers, keychain. Plugin-level. |
+  | Extension | Mostly | Manifest and `chrome.*`/`browser.*`; Safari needs an Xcode wrapper. |
+  | Mobile | **No** | Autofill is native both sides, and autofill is the whole reason for the app. |
+
+  So `desktop/win` and `desktop/mac` as siblings would be two empty folders
+  around one program, but `mobile/ios` and `mobile/android` are real:
+  `ASCredentialProviderExtension` in Swift and `AutofillService` in Kotlin,
+  neither expressible in JavaScript. Let the tree follow the code boundary and
+  not the distribution target.
+
+- [ ] **`core/` extraction ships first and alone.** It is valuable even if no
+  other surface is ever built, it is mostly `git mv`, and it is the prerequisite
+  for all of them. Everything else in this epic is blocked on it; nothing in it
+  is blocked on anything.
+
+### 11b. What Render does when there are two sites
+
+- [ ] **The "never declare a second service" rule in `render.yaml` is right, and
+  it is about the wrong axis to apply here.** It was written after declaring
+  `wordlock` and `wordlock-dev` in one file, which offered a review screen with
+  `wordlock-cl9q` and `wordlock-dev-cl9q` side by side -- a duplicate of
+  *production*, created by the dev Blueprint. The fault was encoding the
+  **environment** in a file that both Blueprints apply whole.
+
+  Site and app split a different axis. Both Blueprints legitimately want both
+  entries, and the result is four services that are all wanted:
+
+  | Blueprint | creates | serves |
+  |---|---|---|
+  | main | `site-<a>`, `app-<a>` | wordlock.net, app.wordlock.net |
+  | dev | `site-<b>`, `app-<b>` | dev.wordlock.net, dev.app.wordlock.net |
+
+  `dev.` prefixes the production hostname rather than the other way round, so
+  the dev name of `app.wordlock.net` is `dev.app.wordlock.net`. Both dev hosts
+  are then two labels deep, which a `*.wordlock.net` wildcard certificate would
+  not cover -- Render issues per-hostname certificates, so this costs nothing
+  here, but it is the sort of thing that only surfaces once a wildcard is
+  introduced for some other reason.
+
+  HSTS needs no change: `includeSubDomains` on `wordlock.net` already reaches
+  every one of these, which is the reason it is set.
+
+  The header in `render.yaml` has to be rewritten to say that, or the next
+  reader takes it as a flat prohibition and stops. `test/render-config.test.js`
+  should assert the distinction rather than the count.
+
+- [ ] **A static service publishes exactly one directory, and this is the
+  constraint that costs something.** With `staticPublishPath: ./site`, nothing
+  outside `site/` is served -- and the site needs `vendor/`, because the header
+  uses the icon font on every page. Shared assets have to physically exist
+  inside both publish roots.
+
+  That collides with the claim this project protects hardest: what a server
+  sends is what is committed, with nothing in between. Four ways out, and only
+  one is in keeping.
+
+  Symlinks are stored by git but Render's builder is unlikely to follow them --
+  fragile, and untested. Duplicating `ui/` and `vendor/` into both roots invites
+  drift on precisely the files whose purpose is to prevent it. Assembling at
+  deploy time is a real build step on the server and breaks the claim outright.
+
+  Assembling in development and committing the output is the deal already struck
+  for `main.render.js`: generated, committed, and a test that rebuilds the
+  inputs and fails when the committed copy no longer matches. That is the
+  answer, and it is not a new concession -- but the exception grows from
+  "templates" to "templates and publish roots", and that belongs in `CLAUDE.md`
+  in the same commit rather than widening quietly.
+
+- [ ] **The CSP becomes per-service.** One header covers every page today, with
+  five hashes that are the union of all inline scripts. Split, and each service
+  should carry only its own pages' hashes -- otherwise each one allows the
+  other's inline scripts for no reason. `test/csp.test.js` recomputes from all
+  HTML and will need to know which files belong to which service.
+
+- [ ] **Moving `wordlock.net` is the one step that touches live DNS.**
+  Blueprints do not adopt an existing service by name; that was established this
+  afternoon at the cost of a duplicate service. A service named `site` is a new
+  service, so the production domain is detached from the old one and attached to
+  the new, with a verification window in between. Plan it; do not discover it.
+
+  Header sync being additive -- the trap that cost an afternoon on 2026-08-15 --
+  helps for once: these are new services and start clean.
+
+### 11c. The API, and what it is allowed to be
+
+- [ ] **Sync needs a network service, and the objection was to the name rather
+  than the thing.** A blob store with sessions and write-race detection is an
+  API by any reasonable definition. What matters is that it stays that and
+  nothing more, and Epic 9d has already argued the shape: an opaque sync
+  identifier, ciphertext the server cannot read, session tokens in `HttpOnly`
+  cookies, and a write race detected rather than resolved.
+
+- [ ] **Make the constraint a test rather than a folder name.** `api/routes.js`
+  declares the entire surface; a test asserts the running service exposes
+  exactly those routes and no others. Then adding an endpoint is a deliberate,
+  reviewed act instead of a Tuesday. This is the same move as `tokens.css` being
+  the only place a colour may exist -- the rule is worth more when something
+  fails on it.
+
+### 11d. The claims, per surface
+
+- [ ] **"Zero runtime dependencies" becomes scoped, and every copy changes in
+  the same release.** It appears in `README.md`, `SECURITY.md`, About, Legal and
+  `package.json`. Mobile, desktop and the extension bring toolchains. The
+  honest version is that the *web app* fetches nothing to run, which is still
+  the half that matters, and it has to be said that way in all five places at
+  once.
+
+- [ ] **"What a server sends is what is in the repository" survives per surface,
+  and only per surface.** Site and app stay literally the committed source.
+  Desktop, mobile and the extension are builds, and the strongest true claim
+  there is "reproducible from committed source" -- weaker, and it should be
+  written as weaker. The API's guarantee is a different one entirely: not that
+  you can read it, but that it cannot read you.
+
+- [ ] **This is the tenth house rule at a scale it has not been tested at.** One
+  pass over five documents caught four false claims on 2026-08-16, in a
+  repository with one surface. This epic multiplies the surfaces by six. Deciding
+  the wording before the move is cheaper than finding the stale copies after it.
+
+---
+
 ## Epic 9 — The vault, and the app around it
 
 **The theme:** a generator is a moment-tool. You arrive, take a password, and
