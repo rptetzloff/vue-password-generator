@@ -7,44 +7,774 @@
 // Committed on purpose: Render serves this repository as-is, so a build
 // that is not committed would mean the deployed site is not the repo.
 
-// --- EntropyPanel ----------------------------------------------------
-import { normalizeStyle as _normalizeStyle, createElementVNode as _createElementVNode, normalizeClass as _normalizeClass, toDisplayString as _toDisplayString, openBlock as _openBlock, createElementBlock as _createElementBlock, createCommentVNode as _createCommentVNode, createTextVNode as _createTextVNode, renderList as _renderList, Fragment as _Fragment } from '../vendor/vue.esm-browser.prod.js'
+import { Fragment as _Fragment, createBlock as _createBlock, createCommentVNode as _createCommentVNode, createElementBlock as _createElementBlock, createElementVNode as _createElementVNode, createTextVNode as _createTextVNode, createVNode as _createVNode, normalizeClass as _normalizeClass, normalizeStyle as _normalizeStyle, openBlock as _openBlock, renderList as _renderList, resolveComponent as _resolveComponent, resolveDynamicComponent as _resolveDynamicComponent, toDisplayString as _toDisplayString, vModelCheckbox as _vModelCheckbox, vModelRadio as _vModelRadio, vModelSelect as _vModelSelect, vModelText as _vModelText, withDirectives as _withDirectives, withKeys as _withKeys, withModifiers as _withModifiers } from '../vendor/vue.esm-browser.prod.js'
 
-const _hoisted_1 = { class: "entropy-summary" }
-const _hoisted_2 = { class: "entropy-total" }
-const _hoisted_3 = ["title"]
-const _hoisted_4 = ["title"]
-const _hoisted_5 = /*#__PURE__*/_createElementVNode("span", {
+// --- AdvancedPassword ------------------------------------------------
+const _AdvancedPassword_hoisted_1 = { class: "password-generator" }
+const _AdvancedPassword_hoisted_2 = { class: "card" }
+const _AdvancedPassword_hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Password Length", -1)
+const _AdvancedPassword_hoisted_4 = { class: "slider-container" }
+const _AdvancedPassword_hoisted_5 = ["onClick"]
+const _AdvancedPassword_hoisted_6 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_7 = [
+  _AdvancedPassword_hoisted_6
+]
+const _AdvancedPassword_hoisted_8 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "6", -1)
+const _AdvancedPassword_hoisted_9 = ["onUpdate:modelValue"]
+const _AdvancedPassword_hoisted_10 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "128", -1)
+const _AdvancedPassword_hoisted_11 = ["onClick"]
+const _AdvancedPassword_hoisted_12 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_13 = [
+  _AdvancedPassword_hoisted_12
+]
+const _AdvancedPassword_hoisted_14 = { class: "slider-value" }
+const _AdvancedPassword_hoisted_15 = { class: "card" }
+const _AdvancedPassword_hoisted_16 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Lowercase Letters", -1)
+const _AdvancedPassword_hoisted_17 = { class: "slider-container" }
+const _AdvancedPassword_hoisted_18 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_19 = ["onClick"]
+const _AdvancedPassword_hoisted_20 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_21 = [
+  _AdvancedPassword_hoisted_20
+]
+const _AdvancedPassword_hoisted_22 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_23 = ["onClick"]
+const _AdvancedPassword_hoisted_24 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_25 = [
+  _AdvancedPassword_hoisted_24
+]
+const _AdvancedPassword_hoisted_26 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_27 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_28 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_29 = ["onClick"]
+const _AdvancedPassword_hoisted_30 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_31 = [
+  _AdvancedPassword_hoisted_30
+]
+const _AdvancedPassword_hoisted_32 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_33 = ["onClick"]
+const _AdvancedPassword_hoisted_34 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_35 = [
+  _AdvancedPassword_hoisted_34
+]
+const _AdvancedPassword_hoisted_36 = { class: "card" }
+const _AdvancedPassword_hoisted_37 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Uppercase Letters", -1)
+const _AdvancedPassword_hoisted_38 = { class: "slider-container" }
+const _AdvancedPassword_hoisted_39 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_40 = ["onClick"]
+const _AdvancedPassword_hoisted_41 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_42 = [
+  _AdvancedPassword_hoisted_41
+]
+const _AdvancedPassword_hoisted_43 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_44 = ["onClick"]
+const _AdvancedPassword_hoisted_45 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_46 = [
+  _AdvancedPassword_hoisted_45
+]
+const _AdvancedPassword_hoisted_47 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_48 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_49 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_50 = ["onClick"]
+const _AdvancedPassword_hoisted_51 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_52 = [
+  _AdvancedPassword_hoisted_51
+]
+const _AdvancedPassword_hoisted_53 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_54 = ["onClick"]
+const _AdvancedPassword_hoisted_55 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_56 = [
+  _AdvancedPassword_hoisted_55
+]
+const _AdvancedPassword_hoisted_57 = { class: "card" }
+const _AdvancedPassword_hoisted_58 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Numbers", -1)
+const _AdvancedPassword_hoisted_59 = { class: "slider-container" }
+const _AdvancedPassword_hoisted_60 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_61 = ["onClick"]
+const _AdvancedPassword_hoisted_62 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_63 = [
+  _AdvancedPassword_hoisted_62
+]
+const _AdvancedPassword_hoisted_64 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_65 = ["onClick"]
+const _AdvancedPassword_hoisted_66 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_67 = [
+  _AdvancedPassword_hoisted_66
+]
+const _AdvancedPassword_hoisted_68 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_69 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_70 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_71 = ["onClick"]
+const _AdvancedPassword_hoisted_72 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_73 = [
+  _AdvancedPassword_hoisted_72
+]
+const _AdvancedPassword_hoisted_74 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_75 = ["onClick"]
+const _AdvancedPassword_hoisted_76 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_77 = [
+  _AdvancedPassword_hoisted_76
+]
+const _AdvancedPassword_hoisted_78 = { class: "card" }
+const _AdvancedPassword_hoisted_79 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Symbols", -1)
+const _AdvancedPassword_hoisted_80 = { class: "slider-container" }
+const _AdvancedPassword_hoisted_81 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_82 = ["onClick"]
+const _AdvancedPassword_hoisted_83 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_84 = [
+  _AdvancedPassword_hoisted_83
+]
+const _AdvancedPassword_hoisted_85 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_86 = ["onClick"]
+const _AdvancedPassword_hoisted_87 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_88 = [
+  _AdvancedPassword_hoisted_87
+]
+const _AdvancedPassword_hoisted_89 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_90 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_91 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_92 = ["onClick"]
+const _AdvancedPassword_hoisted_93 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_94 = [
+  _AdvancedPassword_hoisted_93
+]
+const _AdvancedPassword_hoisted_95 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_96 = ["onClick"]
+const _AdvancedPassword_hoisted_97 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_98 = [
+  _AdvancedPassword_hoisted_97
+]
+const _AdvancedPassword_hoisted_99 = { class: "form-group" }
+const _AdvancedPassword_hoisted_100 = { class: "symbol-chips-header" }
+const _AdvancedPassword_hoisted_101 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Symbol Set", -1)
+const _AdvancedPassword_hoisted_102 = { class: "symbol-chips-actions" }
+const _AdvancedPassword_hoisted_103 = ["onClick"]
+const _AdvancedPassword_hoisted_104 = ["onClick"]
+const _AdvancedPassword_hoisted_105 = ["onClick"]
+const _AdvancedPassword_hoisted_106 = { class: "symbol-chips" }
+const _AdvancedPassword_hoisted_107 = ["onClick"]
+const _AdvancedPassword_hoisted_108 = { class: "checkbox-item exclude-ambiguous" }
+const _AdvancedPassword_hoisted_109 = ["onUpdate:modelValue"]
+const _AdvancedPassword_hoisted_110 = /*#__PURE__*/_createElementVNode("span", null, "Exclude look-alikes (0/O, 1/l/I/|) from every set", -1)
+const _AdvancedPassword_hoisted_111 = ["open", "onToggle"]
+const _AdvancedPassword_hoisted_112 = { class: "card-header" }
+const _AdvancedPassword_hoisted_113 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _AdvancedPassword_hoisted_114 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _AdvancedPassword_hoisted_115 = { class: "slider-container" }
+const _AdvancedPassword_hoisted_116 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_117 = ["onClick"]
+const _AdvancedPassword_hoisted_118 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_119 = [
+  _AdvancedPassword_hoisted_118
+]
+const _AdvancedPassword_hoisted_120 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_121 = ["onClick"]
+const _AdvancedPassword_hoisted_122 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_123 = [
+  _AdvancedPassword_hoisted_122
+]
+const _AdvancedPassword_hoisted_124 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_125 = ["onUpdate:modelValue", "max"]
+const _AdvancedPassword_hoisted_126 = { class: "stepper-label" }
+const _AdvancedPassword_hoisted_127 = ["onClick"]
+const _AdvancedPassword_hoisted_128 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _AdvancedPassword_hoisted_129 = [
+  _AdvancedPassword_hoisted_128
+]
+const _AdvancedPassword_hoisted_130 = { class: "stepper-label-text" }
+const _AdvancedPassword_hoisted_131 = ["onClick"]
+const _AdvancedPassword_hoisted_132 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _AdvancedPassword_hoisted_133 = [
+  _AdvancedPassword_hoisted_132
+]
+const _AdvancedPassword_hoisted_134 = ["onClick", "title", "aria-label"]
+const _AdvancedPassword_hoisted_135 = ["onClick"]
+const _AdvancedPassword_hoisted_136 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant" }, null, -1)
+const _AdvancedPassword_hoisted_137 = { class: "password-display" }
+const _AdvancedPassword_hoisted_138 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _AdvancedPassword_hoisted_139 = ["onClick", "title"]
+const _AdvancedPassword_hoisted_140 = { class: "card" }
+
+export function renderAdvancedPassword(_ctx, _cache) {
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _AdvancedPassword_hoisted_1, [
+    _createElementVNode("div", _AdvancedPassword_hoisted_2, [
+      _AdvancedPassword_hoisted_3,
+      _createElementVNode("div", _AdvancedPassword_hoisted_4, [
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Decrease password length",
+          onClick: $event => (_ctx.passwordLength = Math.max(6, _ctx.passwordLength - 1))
+        }, _AdvancedPassword_hoisted_7, 8, _AdvancedPassword_hoisted_5),
+        _AdvancedPassword_hoisted_8,
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.passwordLength) = $event),
+          type: "range",
+          "aria-label": "Password Length",
+          min: "6",
+          max: "128",
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_9), [
+          [_vModelText, _ctx.passwordLength]
+        ]),
+        _AdvancedPassword_hoisted_10,
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Increase password length",
+          onClick: $event => (_ctx.passwordLength = Math.min(128, _ctx.passwordLength + 1))
+        }, _AdvancedPassword_hoisted_13, 8, _AdvancedPassword_hoisted_11),
+        _createElementVNode("div", _AdvancedPassword_hoisted_14, _toDisplayString(_ctx.passwordLength), 1)
+      ])
+    ]),
+    _createElementVNode("div", _AdvancedPassword_hoisted_15, [
+      _AdvancedPassword_hoisted_16,
+      _createElementVNode("div", _AdvancedPassword_hoisted_17, [
+        _createElementVNode("div", _AdvancedPassword_hoisted_18, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease min lowercase letters",
+            onClick: $event => (_ctx.lowerCase[0] = Math.max(0, _ctx.lowerCase[0] - 1))
+          }, _AdvancedPassword_hoisted_21, 8, _AdvancedPassword_hoisted_19),
+          _createElementVNode("span", _AdvancedPassword_hoisted_22, "Min: " + _toDisplayString(_ctx.lowerCase[0]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase min lowercase letters",
+            onClick: $event => (_ctx.lowerCase[0] = Math.min(_ctx.passwordLength, _ctx.lowerCase[0] + 1))
+          }, _AdvancedPassword_hoisted_25, 8, _AdvancedPassword_hoisted_23)
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.lowerCase[0]) = $event),
+          type: "range",
+          "aria-label": "Lowercase Letters",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_26), [
+          [_vModelText, _ctx.lowerCase[0]]
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.lowerCase[1]) = $event),
+          type: "range",
+          "aria-label": "Lowercase Letters",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_27), [
+          [_vModelText, _ctx.lowerCase[1]]
+        ]),
+        _createElementVNode("div", _AdvancedPassword_hoisted_28, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease max lowercase letters",
+            onClick: $event => (_ctx.lowerCase[1] = Math.max(0, _ctx.lowerCase[1] - 1))
+          }, _AdvancedPassword_hoisted_31, 8, _AdvancedPassword_hoisted_29),
+          _createElementVNode("span", _AdvancedPassword_hoisted_32, "Max: " + _toDisplayString(_ctx.lowerCase[1]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase max lowercase letters",
+            onClick: $event => (_ctx.lowerCase[1] = Math.min(_ctx.passwordLength, _ctx.lowerCase[1] + 1))
+          }, _AdvancedPassword_hoisted_35, 8, _AdvancedPassword_hoisted_33)
+        ])
+      ])
+    ]),
+    _createElementVNode("div", _AdvancedPassword_hoisted_36, [
+      _AdvancedPassword_hoisted_37,
+      _createElementVNode("div", _AdvancedPassword_hoisted_38, [
+        _createElementVNode("div", _AdvancedPassword_hoisted_39, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease min uppercase letters",
+            onClick: $event => (_ctx.upperCase[0] = Math.max(0, _ctx.upperCase[0] - 1))
+          }, _AdvancedPassword_hoisted_42, 8, _AdvancedPassword_hoisted_40),
+          _createElementVNode("span", _AdvancedPassword_hoisted_43, "Min: " + _toDisplayString(_ctx.upperCase[0]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase min uppercase letters",
+            onClick: $event => (_ctx.upperCase[0] = Math.min(_ctx.passwordLength, _ctx.upperCase[0] + 1))
+          }, _AdvancedPassword_hoisted_46, 8, _AdvancedPassword_hoisted_44)
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.upperCase[0]) = $event),
+          type: "range",
+          "aria-label": "Uppercase Letters",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_47), [
+          [_vModelText, _ctx.upperCase[0]]
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.upperCase[1]) = $event),
+          type: "range",
+          "aria-label": "Uppercase Letters",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_48), [
+          [_vModelText, _ctx.upperCase[1]]
+        ]),
+        _createElementVNode("div", _AdvancedPassword_hoisted_49, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease max uppercase letters",
+            onClick: $event => (_ctx.upperCase[1] = Math.max(0, _ctx.upperCase[1] - 1))
+          }, _AdvancedPassword_hoisted_52, 8, _AdvancedPassword_hoisted_50),
+          _createElementVNode("span", _AdvancedPassword_hoisted_53, "Max: " + _toDisplayString(_ctx.upperCase[1]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase max uppercase letters",
+            onClick: $event => (_ctx.upperCase[1] = Math.min(_ctx.passwordLength, _ctx.upperCase[1] + 1))
+          }, _AdvancedPassword_hoisted_56, 8, _AdvancedPassword_hoisted_54)
+        ])
+      ])
+    ]),
+    _createElementVNode("div", _AdvancedPassword_hoisted_57, [
+      _AdvancedPassword_hoisted_58,
+      _createElementVNode("div", _AdvancedPassword_hoisted_59, [
+        _createElementVNode("div", _AdvancedPassword_hoisted_60, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease min numbers",
+            onClick: $event => (_ctx.digits[0] = Math.max(0, _ctx.digits[0] - 1))
+          }, _AdvancedPassword_hoisted_63, 8, _AdvancedPassword_hoisted_61),
+          _createElementVNode("span", _AdvancedPassword_hoisted_64, "Min: " + _toDisplayString(_ctx.digits[0]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase min numbers",
+            onClick: $event => (_ctx.digits[0] = Math.min(_ctx.passwordLength, _ctx.digits[0] + 1))
+          }, _AdvancedPassword_hoisted_67, 8, _AdvancedPassword_hoisted_65)
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.digits[0]) = $event),
+          type: "range",
+          "aria-label": "Numbers",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_68), [
+          [_vModelText, _ctx.digits[0]]
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.digits[1]) = $event),
+          type: "range",
+          "aria-label": "Numbers",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_69), [
+          [_vModelText, _ctx.digits[1]]
+        ]),
+        _createElementVNode("div", _AdvancedPassword_hoisted_70, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease max numbers",
+            onClick: $event => (_ctx.digits[1] = Math.max(0, _ctx.digits[1] - 1))
+          }, _AdvancedPassword_hoisted_73, 8, _AdvancedPassword_hoisted_71),
+          _createElementVNode("span", _AdvancedPassword_hoisted_74, "Max: " + _toDisplayString(_ctx.digits[1]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase max numbers",
+            onClick: $event => (_ctx.digits[1] = Math.min(_ctx.passwordLength, _ctx.digits[1] + 1))
+          }, _AdvancedPassword_hoisted_77, 8, _AdvancedPassword_hoisted_75)
+        ])
+      ])
+    ]),
+    _createElementVNode("div", _AdvancedPassword_hoisted_78, [
+      _AdvancedPassword_hoisted_79,
+      _createElementVNode("div", _AdvancedPassword_hoisted_80, [
+        _createElementVNode("div", _AdvancedPassword_hoisted_81, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease min symbols",
+            onClick: $event => (_ctx.specialChars[0] = Math.max(0, _ctx.specialChars[0] - 1))
+          }, _AdvancedPassword_hoisted_84, 8, _AdvancedPassword_hoisted_82),
+          _createElementVNode("span", _AdvancedPassword_hoisted_85, "Min: " + _toDisplayString(_ctx.specialChars[0]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase min symbols",
+            onClick: $event => (_ctx.specialChars[0] = Math.min(_ctx.passwordLength, _ctx.specialChars[0] + 1))
+          }, _AdvancedPassword_hoisted_88, 8, _AdvancedPassword_hoisted_86)
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.specialChars[0]) = $event),
+          type: "range",
+          "aria-label": "Symbols",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_89), [
+          [_vModelText, _ctx.specialChars[0]]
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.specialChars[1]) = $event),
+          type: "range",
+          "aria-label": "Symbols",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_90), [
+          [_vModelText, _ctx.specialChars[1]]
+        ]),
+        _createElementVNode("div", _AdvancedPassword_hoisted_91, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease max symbols",
+            onClick: $event => (_ctx.specialChars[1] = Math.max(0, _ctx.specialChars[1] - 1))
+          }, _AdvancedPassword_hoisted_94, 8, _AdvancedPassword_hoisted_92),
+          _createElementVNode("span", _AdvancedPassword_hoisted_95, "Max: " + _toDisplayString(_ctx.specialChars[1]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase max symbols",
+            onClick: $event => (_ctx.specialChars[1] = Math.min(_ctx.passwordLength, _ctx.specialChars[1] + 1))
+          }, _AdvancedPassword_hoisted_98, 8, _AdvancedPassword_hoisted_96)
+        ])
+      ]),
+      _createElementVNode("div", _AdvancedPassword_hoisted_99, [
+        _createElementVNode("div", _AdvancedPassword_hoisted_100, [
+          _AdvancedPassword_hoisted_101,
+          _createElementVNode("div", _AdvancedPassword_hoisted_102, [
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectAllSymbols
+            }, "All", 8, _AdvancedPassword_hoisted_103),
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectCommonSymbols
+            }, "Common", 8, _AdvancedPassword_hoisted_104),
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectNoSymbols
+            }, "None", 8, _AdvancedPassword_hoisted_105)
+          ])
+        ]),
+        _createElementVNode("div", _AdvancedPassword_hoisted_106, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.allSymbols, (sym) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: sym,
+              type: "button",
+              class: _normalizeClass(["symbol-chip", { active: _ctx.activeSymbols.has(sym) }]),
+              onClick: $event => (_ctx.toggleSymbol(sym))
+            }, _toDisplayString(sym), 11, _AdvancedPassword_hoisted_107))
+          }), 128))
+        ])
+      ]),
+      _createElementVNode("label", _AdvancedPassword_hoisted_108, [
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.excludeAmbiguous) = $event),
+          type: "checkbox",
+          class: "checkbox"
+        }, null, 8, _AdvancedPassword_hoisted_109), [
+          [_vModelCheckbox, _ctx.excludeAmbiguous]
+        ]),
+        _AdvancedPassword_hoisted_110
+      ])
+    ]),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.emojiOpen,
+      onToggle: $event => (_ctx.emojiOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _AdvancedPassword_hoisted_112, [
+        _createTextVNode("Emoji 🎲"),
+        (_ctx.emojiCount[0] > 0 || _ctx.emojiCount[1] > 0)
+          ? (_openBlock(), _createElementBlock("span", _AdvancedPassword_hoisted_113, "in use"))
+          : _createCommentVNode("", true),
+        _AdvancedPassword_hoisted_114
+      ]),
+      _createElementVNode("div", _AdvancedPassword_hoisted_115, [
+        _createElementVNode("div", _AdvancedPassword_hoisted_116, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease min emoji 🎲",
+            onClick: $event => (_ctx.emojiCount[0] = Math.max(0, _ctx.emojiCount[0] - 1))
+          }, _AdvancedPassword_hoisted_119, 8, _AdvancedPassword_hoisted_117),
+          _createElementVNode("span", _AdvancedPassword_hoisted_120, "Min: " + _toDisplayString(_ctx.emojiCount[0]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase min emoji 🎲",
+            onClick: $event => (_ctx.emojiCount[0] = Math.min(_ctx.passwordLength, _ctx.emojiCount[0] + 1))
+          }, _AdvancedPassword_hoisted_123, 8, _AdvancedPassword_hoisted_121)
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.emojiCount[0]) = $event),
+          type: "range",
+          "aria-label": "Emoji",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_124), [
+          [_vModelText, _ctx.emojiCount[0]]
+        ]),
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.emojiCount[1]) = $event),
+          type: "range",
+          "aria-label": "Emoji 🎲",
+          min: "0",
+          max: _ctx.passwordLength,
+          class: "slider"
+        }, null, 8, _AdvancedPassword_hoisted_125), [
+          [_vModelText, _ctx.emojiCount[1]]
+        ]),
+        _createElementVNode("div", _AdvancedPassword_hoisted_126, [
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Decrease max emoji 🎲",
+            onClick: $event => (_ctx.emojiCount[1] = Math.max(0, _ctx.emojiCount[1] - 1))
+          }, _AdvancedPassword_hoisted_129, 8, _AdvancedPassword_hoisted_127),
+          _createElementVNode("span", _AdvancedPassword_hoisted_130, "Max: " + _toDisplayString(_ctx.emojiCount[1]), 1),
+          _createElementVNode("button", {
+            class: "stepper-btn",
+            "aria-label": "Increase max emoji 🎲",
+            onClick: $event => (_ctx.emojiCount[1] = Math.min(_ctx.passwordLength, _ctx.emojiCount[1] + 1))
+          }, _AdvancedPassword_hoisted_133, 8, _AdvancedPassword_hoisted_131)
+        ])
+      ])
+    ], 40, _AdvancedPassword_hoisted_111),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _AdvancedPassword_hoisted_134),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _AdvancedPassword_hoisted_136,
+        _createTextVNode(" Generate Password ")
+      ], 8, _AdvancedPassword_hoisted_135),
+      _createElementVNode("div", _AdvancedPassword_hoisted_137, [
+        (_openBlock(), _createElementBlock("div", {
+          key: _ctx.password,
+          class: "form-input password-input",
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _AdvancedPassword_hoisted_138, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ])),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _AdvancedPassword_hoisted_139),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        mode: "advanced"
+      }, null, 8, ["entropy", "password"])
+    ], 2),
+    _createElementVNode("div", _AdvancedPassword_hoisted_140, [
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 0,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
+}
+
+// --- AffixPicker -----------------------------------------------------
+const _AffixPicker_hoisted_1 = { class: "affix-block" }
+const _AffixPicker_hoisted_2 = { class: "affix-label" }
+const _AffixPicker_hoisted_3 = { class: "separator-grid" }
+const _AffixPicker_hoisted_4 = ["value", "checked", "onChange"]
+const _AffixPicker_hoisted_5 = {
+  key: 0,
+  class: "cat-meta"
+}
+const _AffixPicker_hoisted_6 = {
+  key: 0,
+  class: "custom-sep-row"
+}
+const _AffixPicker_hoisted_7 = ["value", "onInput"]
+
+export function renderAffixPicker(_ctx, _cache) {
+  return (_openBlock(), _createElementBlock("div", _AffixPicker_hoisted_1, [
+    _createElementVNode("div", _AffixPicker_hoisted_2, _toDisplayString(_ctx.label), 1),
+    _createElementVNode("div", _AffixPicker_hoisted_3, [
+      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.options, (opt) => {
+        return (_openBlock(), _createElementBlock("label", {
+          key: opt.value,
+          class: _normalizeClass(["sep-option", { active: _ctx.modelValue === opt.value }])
+        }, [
+          _createElementVNode("input", {
+            value: opt.value,
+            checked: _ctx.modelValue === opt.value,
+            onChange: $event => (_ctx.onMode(opt.value)),
+            type: "radio",
+            class: "sr-only"
+          }, null, 40, _AffixPicker_hoisted_4),
+          _createElementVNode("span", null, _toDisplayString(opt.label), 1),
+          (_ctx.meta)
+            ? (_openBlock(), _createElementBlock("span", _AffixPicker_hoisted_5, _toDisplayString(_ctx.meta(opt.value)), 1))
+            : _createCommentVNode("", true)
+        ], 2))
+      }), 128))
+    ]),
+    (_ctx.modelValue === 'custom')
+      ? (_openBlock(), _createElementBlock("div", _AffixPicker_hoisted_6, [
+          _createElementVNode("input", {
+            value: _ctx.customValue,
+            onInput: _ctx.onCustom,
+            type: "text",
+            class: "form-input",
+            placeholder: "Type literal text"
+          }, null, 40, _AffixPicker_hoisted_7)
+        ]))
+      : _createCommentVNode("", true)
+  ]))
+}
+
+// --- App -------------------------------------------------------------
+const _App_hoisted_1 = { id: "app" }
+const _App_hoisted_2 = /*#__PURE__*/_createElementVNode("div", { "data-site-header": "" }, null, -1)
+const _App_hoisted_3 = { class: "main" }
+const _App_hoisted_4 = { class: "container" }
+const _App_hoisted_5 = { class: "tabs" }
+const _App_hoisted_6 = ["aria-pressed", "onClick"]
+const _App_hoisted_7 = { class: "tab-name" }
+const _App_hoisted_8 = { class: "tab-desc" }
+const _App_hoisted_9 = { class: "tabs-desc" }
+const _App_hoisted_10 = {
+  key: 0,
+  class: "vault-return"
+}
+const _App_hoisted_11 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-shield-key-outline",
+  "aria-hidden": "true"
+}, null, -1)
+const _App_hoisted_12 = /*#__PURE__*/_createElementVNode("a", { href: "/vault.html" }, "Finish it", -1)
+const _App_hoisted_13 = { class: "tab-content" }
+const _App_hoisted_14 = /*#__PURE__*/_createElementVNode("div", { "data-site-footer": "" }, null, -1)
+
+export function renderApp(_ctx, _cache) {
+  return (_openBlock(), _createElementBlock("div", _App_hoisted_1, [
+    _App_hoisted_2,
+    _createElementVNode("main", _App_hoisted_3, [
+      _createElementVNode("div", _App_hoisted_4, [
+        _createElementVNode("div", _App_hoisted_5, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.tabs, (tab, index) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: tab.id,
+              class: _normalizeClass(['tab', { active: _ctx.activeTab === index }]),
+              "aria-pressed": _ctx.activeTab === index ? 'true' : 'false',
+              onClick: $event => (_ctx.activeTab = index)
+            }, [
+              _createElementVNode("span", {
+                class: _normalizeClass(['mdi', tab.icon]),
+                "aria-hidden": "true"
+              }, null, 2),
+              _createElementVNode("span", _App_hoisted_7, _toDisplayString(tab.name), 1),
+              _createElementVNode("span", _App_hoisted_8, _toDisplayString(tab.desc), 1)
+            ], 10, _App_hoisted_6))
+          }), 128))
+        ]),
+        _createElementVNode("p", _App_hoisted_9, _toDisplayString(_ctx.tabs[_ctx.activeTab].desc), 1),
+        (_ctx.returningToVault)
+          ? (_openBlock(), _createElementBlock("p", _App_hoisted_10, [
+              _App_hoisted_11,
+              _createTextVNode(" Your vault entry is waiting. "),
+              _App_hoisted_12
+            ]))
+          : _createCommentVNode("", true),
+        _createElementVNode("div", _App_hoisted_13, [
+          (_openBlock(), _createBlock(_resolveDynamicComponent(_ctx.tabs[_ctx.activeTab].component)))
+        ])
+      ])
+    ]),
+    _App_hoisted_14
+  ]))
+}
+
+// --- EntropyPanel ----------------------------------------------------
+const _EntropyPanel_hoisted_1 = { class: "entropy-summary" }
+const _EntropyPanel_hoisted_2 = { class: "entropy-total" }
+const _EntropyPanel_hoisted_3 = ["title"]
+const _EntropyPanel_hoisted_4 = ["title"]
+const _EntropyPanel_hoisted_5 = /*#__PURE__*/_createElementVNode("span", {
   class: "entropy-how",
   "aria-hidden": "true"
 }, "how?", -1)
-const _hoisted_6 = {
+const _EntropyPanel_hoisted_6 = {
   key: 1,
   class: "entropy-range",
   title: "Average time to guess, assuming the attacker knows your settings. Open the breakdown for all four scenarios."
 }
-const _hoisted_7 = { class: "entropy-parts" }
-const _hoisted_8 = { class: "ep-bits" }
-const _hoisted_9 = { class: "ep-label" }
-const _hoisted_10 = {
+const _EntropyPanel_hoisted_7 = { class: "entropy-parts" }
+const _EntropyPanel_hoisted_8 = { class: "ep-bits" }
+const _EntropyPanel_hoisted_9 = { class: "ep-label" }
+const _EntropyPanel_hoisted_10 = {
   key: 0,
   class: "ep-note"
 }
-const _hoisted_11 = { class: "entropy-extras" }
-const _hoisted_12 = {
+const _EntropyPanel_hoisted_11 = { class: "entropy-extras" }
+const _EntropyPanel_hoisted_12 = {
   key: 0,
   class: "entropy-extra-line"
 }
-const _hoisted_13 = {
+const _EntropyPanel_hoisted_13 = {
   key: 1,
   class: "entropy-extra-line"
 }
-const _hoisted_14 = { class: "entropy-crack" }
-const _hoisted_15 = /*#__PURE__*/_createElementVNode("div", { class: "entropy-crack-title" }, "average time to guess, if attacked knowing your settings:", -1)
-const _hoisted_16 = ["title"]
-const _hoisted_17 = { class: "crack-label" }
-const _hoisted_18 = { class: "crack-rate" }
-const _hoisted_19 = { class: "crack-time" }
+const _EntropyPanel_hoisted_14 = { class: "entropy-crack" }
+const _EntropyPanel_hoisted_15 = /*#__PURE__*/_createElementVNode("div", { class: "entropy-crack-title" }, "average time to guess, if attacked knowing your settings:", -1)
+const _EntropyPanel_hoisted_16 = ["title"]
+const _EntropyPanel_hoisted_17 = { class: "crack-label" }
+const _EntropyPanel_hoisted_18 = { class: "crack-rate" }
+const _EntropyPanel_hoisted_19 = { class: "crack-time" }
 
 export function renderEntropyPanel(_ctx, _cache) {
   return (_ctx.entropy)
@@ -52,7 +782,7 @@ export function renderEntropyPanel(_ctx, _cache) {
         key: 0,
         class: _normalizeClass(["entropy-panel", { 'entropy-low': _ctx.entropy.total < _ctx.floor }])
       }, [
-        _createElementVNode("summary", _hoisted_1, [
+        _createElementVNode("summary", _EntropyPanel_hoisted_1, [
           _createElementVNode("span", {
             class: _normalizeClass(["entropy-meter", 'meter-' + _ctx.tier.id]),
             "aria-hidden": "true"
@@ -62,21 +792,21 @@ export function renderEntropyPanel(_ctx, _cache) {
               style: _normalizeStyle({ width: _ctx.pct + '%' })
             }, null, 4)
           ], 2),
-          _createElementVNode("span", _hoisted_2, _toDisplayString(_ctx.entropy.total.toFixed(1)) + " bits", 1),
+          _createElementVNode("span", _EntropyPanel_hoisted_2, _toDisplayString(_ctx.entropy.total.toFixed(1)) + " bits", 1),
           _createElementVNode("span", {
             class: _normalizeClass(["entropy-tier", 'meter-' + _ctx.tier.id]),
             title: _ctx.tier.id === 'weak' ? ('Below ' + _ctx.floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + _ctx.floor + ' is the weak line, 60 good, 80 strong.')
-          }, _toDisplayString(_ctx.tier.label), 11, _hoisted_3),
+          }, _toDisplayString(_ctx.tier.label), 11, _EntropyPanel_hoisted_3),
           (_ctx.delta !== null && _ctx.showDelta)
             ? (_openBlock(), _createElementBlock("span", {
                 key: 0,
                 class: _normalizeClass(["entropy-delta", _ctx.delta > 0 ? 'is-up' : 'is-down']),
                 title: 'This password is ' + Math.abs(_ctx.delta).toFixed(1) + ' bits ' + (_ctx.delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'
-              }, _toDisplayString(_ctx.delta > 0 ? '▲' : '▼') + " " + _toDisplayString(Math.abs(_ctx.delta).toFixed(1)) + " vs last", 11, _hoisted_4))
+              }, _toDisplayString(_ctx.delta > 0 ? '▲' : '▼') + " " + _toDisplayString(Math.abs(_ctx.delta).toFixed(1)) + " vs last", 11, _EntropyPanel_hoisted_4))
             : _createCommentVNode("", true),
-          _hoisted_5,
+          _EntropyPanel_hoisted_5,
           (_ctx.range)
-            ? (_openBlock(), _createElementBlock("span", _hoisted_6, [
+            ? (_openBlock(), _createElementBlock("span", _EntropyPanel_hoisted_6, [
                 _createTextVNode("to guess: leaked database "),
                 _createElementVNode("strong", null, _toDisplayString(_ctx.range.fast), 1),
                 _createTextVNode(" · login with lockout "),
@@ -84,23 +814,23 @@ export function renderEntropyPanel(_ctx, _cache) {
               ]))
             : _createCommentVNode("", true)
         ]),
-        _createElementVNode("ul", _hoisted_7, [
+        _createElementVNode("ul", _EntropyPanel_hoisted_7, [
           (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.entropy.parts, (p) => {
             return (_openBlock(), _createElementBlock("li", {
               key: p.label,
               class: _normalizeClass({ 'ep-zero': p.bits === 0 })
             }, [
-              _createElementVNode("span", _hoisted_8, _toDisplayString(p.bits === 0 ? '0' : '+' + p.bits.toFixed(1)), 1),
-              _createElementVNode("span", _hoisted_9, _toDisplayString(p.label), 1),
+              _createElementVNode("span", _EntropyPanel_hoisted_8, _toDisplayString(p.bits === 0 ? '0' : '+' + p.bits.toFixed(1)), 1),
+              _createElementVNode("span", _EntropyPanel_hoisted_9, _toDisplayString(p.label), 1),
               (p.note)
-                ? (_openBlock(), _createElementBlock("span", _hoisted_10, _toDisplayString(p.note), 1))
+                ? (_openBlock(), _createElementBlock("span", _EntropyPanel_hoisted_10, _toDisplayString(p.note), 1))
                 : _createCommentVNode("", true)
             ], 2))
           }), 128))
         ]),
-        _createElementVNode("div", _hoisted_11, [
+        _createElementVNode("div", _EntropyPanel_hoisted_11, [
           (_ctx.perChar !== null)
-            ? (_openBlock(), _createElementBlock("div", _hoisted_12, [
+            ? (_openBlock(), _createElementBlock("div", _EntropyPanel_hoisted_12, [
                 _createTextVNode(_toDisplayString(_ctx.perChar.toFixed(2)) + " bits per character across " + _toDisplayString(_ctx.len) + " characters", 1),
                 (_ctx.charsRef !== null)
                   ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
@@ -110,26 +840,3021 @@ export function renderEntropyPanel(_ctx, _cache) {
               ]))
             : _createCommentVNode("", true),
           (_ctx.listRef !== null)
-            ? (_openBlock(), _createElementBlock("div", _hoisted_13, " the same " + _toDisplayString(_ctx.words) + " words drawn from the flat Words list would carry " + _toDisplayString(_ctx.listRef.toFixed(1)) + " bits ", 1))
+            ? (_openBlock(), _createElementBlock("div", _EntropyPanel_hoisted_13, " the same " + _toDisplayString(_ctx.words) + " words drawn from the flat Words list would carry " + _toDisplayString(_ctx.listRef.toFixed(1)) + " bits ", 1))
             : _createCommentVNode("", true),
-          _createElementVNode("div", _hoisted_14, [
-            _hoisted_15,
+          _createElementVNode("div", _EntropyPanel_hoisted_14, [
+            _EntropyPanel_hoisted_15,
             (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.crackRows, (s) => {
               return (_openBlock(), _createElementBlock("div", {
                 key: s.id,
                 class: "entropy-crack-row",
                 title: s.note
               }, [
-                _createElementVNode("span", _hoisted_17, [
+                _createElementVNode("span", _EntropyPanel_hoisted_17, [
                   _createTextVNode(_toDisplayString(s.label), 1),
-                  _createElementVNode("span", _hoisted_18, _toDisplayString(s.rateLabel), 1)
+                  _createElementVNode("span", _EntropyPanel_hoisted_18, _toDisplayString(s.rateLabel), 1)
                 ]),
-                _createElementVNode("span", _hoisted_19, _toDisplayString(s.time), 1)
-              ], 8, _hoisted_16))
+                _createElementVNode("span", _EntropyPanel_hoisted_19, _toDisplayString(s.time), 1)
+              ], 8, _EntropyPanel_hoisted_16))
             }), 128))
           ])
         ])
       ], 2))
     : _createCommentVNode("", true)
+}
+
+// --- HistoryStrip ----------------------------------------------------
+const _HistoryStrip_hoisted_1 = {
+  key: 0,
+  class: "history-strip"
+}
+const _HistoryStrip_hoisted_2 = /*#__PURE__*/_createElementVNode("div", { class: "history-label" }, "History", -1)
+const _HistoryStrip_hoisted_3 = { class: "history-list" }
+const _HistoryStrip_hoisted_4 = ["onClick", "title"]
+const _HistoryStrip_hoisted_5 = { class: "history-pw" }
+const _HistoryStrip_hoisted_6 = {
+  key: 0,
+  class: "history-bits"
+}
+const _HistoryStrip_hoisted_7 = {
+  key: 1,
+  class: "history-warn-badge",
+  title: "Under 8 characters"
+}
+
+export function renderHistoryStrip(_ctx, _cache) {
+  const _component_KeepButton = _resolveComponent("KeepButton")
+
+  return (_ctx.history.length > 1)
+    ? (_openBlock(), _createElementBlock("div", _HistoryStrip_hoisted_1, [
+        _HistoryStrip_hoisted_2,
+        _createElementVNode("div", _HistoryStrip_hoisted_3, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.history, (entry, i) => {
+            return (_openBlock(), _createElementBlock("div", {
+              key: i,
+              class: "history-row"
+            }, [
+              _createElementVNode("button", {
+                class: _normalizeClass(["history-item", { 'history-item-active': entry.pw === _ctx.current, 'history-item-warn': _ctx.warnSet.has(entry.pw) }]),
+                onClick: $event => (_ctx.$emit('select', entry)),
+                title: _ctx.warnSet.has(entry.pw) ? entry.pw + ' (under 8 characters)' : entry.pw
+              }, [
+                _createElementVNode("span", _HistoryStrip_hoisted_5, _toDisplayString(entry.pw), 1),
+                (entry.bits != null)
+                  ? (_openBlock(), _createElementBlock("span", _HistoryStrip_hoisted_6, _toDisplayString(entry.bits.toFixed(1)) + " bits", 1))
+                  : _createCommentVNode("", true),
+                (_ctx.warnSet.has(entry.pw))
+                  ? (_openBlock(), _createElementBlock("span", _HistoryStrip_hoisted_7, "!"))
+                  : _createCommentVNode("", true)
+              ], 10, _HistoryStrip_hoisted_4),
+              _createVNode(_component_KeepButton, {
+                password: entry.pw,
+                bits: entry.bits,
+                compact: ""
+              }, null, 8, ["password", "bits"])
+            ]))
+          }), 128))
+        ])
+      ]))
+    : _createCommentVNode("", true)
+}
+
+// --- KeepButton ------------------------------------------------------
+const _KeepButton_hoisted_1 = ["onClick", "disabled", "title", "aria-label", "aria-expanded"]
+const _KeepButton_hoisted_2 = ["onClick"]
+const _KeepButton_hoisted_3 = {
+  key: 0,
+  class: "keep-error"
+}
+const _KeepButton_hoisted_4 = { class: "keep-field" }
+const _KeepButton_hoisted_5 = /*#__PURE__*/_createElementVNode("span", null, "Label", -1)
+const _KeepButton_hoisted_6 = ["onUpdate:modelValue", "onKeyup"]
+const _KeepButton_hoisted_7 = { class: "keep-actions" }
+const _KeepButton_hoisted_8 = ["onClick", "disabled"]
+const _KeepButton_hoisted_9 = ["onClick"]
+const _KeepButton_hoisted_10 = { class: "keep-field" }
+const _KeepButton_hoisted_11 = /*#__PURE__*/_createElementVNode("span", null, "Vault passphrase", -1)
+const _KeepButton_hoisted_12 = ["onUpdate:modelValue", "onKeyup"]
+const _KeepButton_hoisted_13 = { class: "keep-actions" }
+const _KeepButton_hoisted_14 = ["onClick", "disabled"]
+const _KeepButton_hoisted_15 = ["onClick"]
+const _KeepButton_hoisted_16 = /*#__PURE__*/_createElementVNode("p", null, "No vault on this device yet. Use this password as the passphrase that protects it?", -1)
+const _KeepButton_hoisted_17 = { class: "keep-writedown" }
+const _KeepButton_hoisted_18 = /*#__PURE__*/_createElementVNode("p", { class: "keep-writedown-head" }, [
+  /*#__PURE__*/_createElementVNode("span", {
+    class: "mdi mdi-alert",
+    "aria-hidden": "true"
+  }),
+  /*#__PURE__*/_createTextVNode(" Write this down, or save it elsewhere, first. ")
+], -1)
+const _KeepButton_hoisted_19 = /*#__PURE__*/_createElementVNode("p", null, [
+  /*#__PURE__*/_createTextVNode(" It becomes the key to your vault, and there is no account and no reset link. Lose it with no recovery key made and everything in the vault is gone for good — not locked out, gone. Put it on paper, in another password manager, or anywhere you will still have it later — "),
+  /*#__PURE__*/_createElementVNode("em", null, "before"),
+  /*#__PURE__*/_createTextVNode(" you continue. ")
+], -1)
+const _KeepButton_hoisted_20 = { class: "keep-writedown-pw" }
+const _KeepButton_hoisted_21 = { class: "keep-ack" }
+const _KeepButton_hoisted_22 = ["onUpdate:modelValue"]
+const _KeepButton_hoisted_23 = /*#__PURE__*/_createElementVNode("span", null, "I have written it down, or saved it somewhere I will still have it.", -1)
+const _KeepButton_hoisted_24 = { class: "keep-actions" }
+const _KeepButton_hoisted_25 = ["onClick", "disabled"]
+const _KeepButton_hoisted_26 = /*#__PURE__*/_createElementVNode("a", {
+  class: "btn",
+  href: "/vault.html"
+}, "Choose my own", -1)
+const _KeepButton_hoisted_27 = { key: 4 }
+
+export function renderKeepButton(_ctx, _cache) {
+  return (_openBlock(), _createElementBlock("span", {
+    class: _normalizeClass(["keep-wrap", { 'keep-compact': _ctx.compact }])
+  }, [
+    _createElementVNode("button", {
+      class: _normalizeClass([_ctx.compact ? 'history-keep' : 'copy-btn keep-btn', { kept: _ctx.kept }]),
+      onClick: _withModifiers(_ctx.start, ["stop"]),
+      disabled: !_ctx.password,
+      title: _ctx.kept ? 'Kept in the vault' : 'Keep in the vault',
+      "aria-label": _ctx.kept ? 'Kept in the vault' : 'Keep in the vault',
+      "aria-expanded": _ctx.open ? 'true' : 'false'
+    }, [
+      _createElementVNode("span", {
+        class: _normalizeClass(['mdi', _ctx.kept ? 'mdi-check-decagram' : 'mdi-shield-key-outline'])
+      }, null, 2)
+    ], 10, _KeepButton_hoisted_1),
+    (_ctx.open)
+      ? (_openBlock(), _createElementBlock("div", {
+          key: 0,
+          class: "keep-panel",
+          role: "dialog",
+          "aria-label": "Keep in the vault",
+          onClick: _withModifiers(() => {}, ["stop"])
+        }, [
+          (_ctx.error)
+            ? (_openBlock(), _createElementBlock("div", _KeepButton_hoisted_3, _toDisplayString(_ctx.error), 1))
+            : _createCommentVNode("", true),
+          (_ctx.state === 'unlocked')
+            ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
+                _createElementVNode("label", _KeepButton_hoisted_4, [
+                  _KeepButton_hoisted_5,
+                  _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((_ctx.label) = $event),
+                    type: "text",
+                    placeholder: "What is this for?",
+                    onKeyup: _withKeys(_ctx.save, ["enter"])
+                  }, null, 40, _KeepButton_hoisted_6), [
+                    [_vModelText, _ctx.label]
+                  ])
+                ]),
+                _createElementVNode("div", _KeepButton_hoisted_7, [
+                  _createElementVNode("button", {
+                    class: "btn btn-primary",
+                    onClick: _ctx.save,
+                    disabled: _ctx.busy
+                  }, "Keep", 8, _KeepButton_hoisted_8),
+                  _createElementVNode("button", {
+                    class: "btn",
+                    onClick: $event => (_ctx.open = false)
+                  }, "Cancel", 8, _KeepButton_hoisted_9)
+                ])
+              ], 64))
+            : (_ctx.state === 'locked')
+              ? (_openBlock(), _createElementBlock(_Fragment, { key: 2 }, [
+                  _createElementVNode("label", _KeepButton_hoisted_10, [
+                    _KeepButton_hoisted_11,
+                    _withDirectives(_createElementVNode("input", {
+                      "onUpdate:modelValue": $event => ((_ctx.pass) = $event),
+                      type: "password",
+                      autocomplete: "current-password",
+                      onKeyup: _withKeys(_ctx.unlock, ["enter"])
+                    }, null, 40, _KeepButton_hoisted_12), [
+                      [_vModelText, _ctx.pass]
+                    ])
+                  ]),
+                  _createElementVNode("div", _KeepButton_hoisted_13, [
+                    _createElementVNode("button", {
+                      class: "btn btn-primary",
+                      onClick: _ctx.unlock,
+                      disabled: _ctx.busy
+                    }, _toDisplayString(_ctx.busy ? 'Unlocking…' : 'Unlock'), 9, _KeepButton_hoisted_14),
+                    _createElementVNode("button", {
+                      class: "btn",
+                      onClick: $event => (_ctx.open = false)
+                    }, "Cancel", 8, _KeepButton_hoisted_15)
+                  ])
+                ], 64))
+              : (_ctx.state === 'absent')
+                ? (_openBlock(), _createElementBlock(_Fragment, { key: 3 }, [
+                    _KeepButton_hoisted_16,
+                    _createElementVNode("div", _KeepButton_hoisted_17, [
+                      _KeepButton_hoisted_18,
+                      _KeepButton_hoisted_19,
+                      _createElementVNode("code", _KeepButton_hoisted_20, _toDisplayString(_ctx.password), 1)
+                    ]),
+                    _createElementVNode("label", _KeepButton_hoisted_21, [
+                      _withDirectives(_createElementVNode("input", {
+                        type: "checkbox",
+                        "onUpdate:modelValue": $event => ((_ctx.acknowledged) = $event)
+                      }, null, 8, _KeepButton_hoisted_22), [
+                        [_vModelCheckbox, _ctx.acknowledged]
+                      ]),
+                      _KeepButton_hoisted_23
+                    ]),
+                    _createElementVNode("div", _KeepButton_hoisted_24, [
+                      _createElementVNode("button", {
+                        class: "btn btn-primary",
+                        onClick: _ctx.adopt,
+                        disabled: _ctx.busy || !_ctx.acknowledged
+                      }, _toDisplayString(_ctx.busy ? 'Creating…' : 'Use as vault passphrase'), 9, _KeepButton_hoisted_25),
+                      _KeepButton_hoisted_26
+                    ])
+                  ], 64))
+                : (_openBlock(), _createElementBlock("p", _KeepButton_hoisted_27, "Opening…"))
+        ], 8, _KeepButton_hoisted_2))
+      : _createCommentVNode("", true)
+  ], 2))
+}
+
+// --- MadLib ----------------------------------------------------------
+const _MadLib_hoisted_1 = { class: "password-generator" }
+const _MadLib_hoisted_2 = { class: "card" }
+const _MadLib_hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Template", -1)
+const _MadLib_hoisted_4 = { class: "separator-grid" }
+const _MadLib_hoisted_5 = ["onUpdate:modelValue", "value", "onChange"]
+const _MadLib_hoisted_6 = { class: "madlib-template-preview" }
+const _MadLib_hoisted_7 = { class: "card" }
+const _MadLib_hoisted_8 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Word Categories", -1)
+const _MadLib_hoisted_9 = { class: "word-cats" }
+const _MadLib_hoisted_10 = {
+  key: 0,
+  class: "wc-ordinal"
+}
+const _MadLib_hoisted_11 = { class: "separator-grid" }
+const _MadLib_hoisted_12 = ["onUpdate:modelValue", "value"]
+const _MadLib_hoisted_13 = {
+  key: 0,
+  class: "cat-meta"
+}
+const _MadLib_hoisted_14 = { class: "card" }
+const _MadLib_hoisted_15 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Word Separator", -1)
+const _MadLib_hoisted_16 = { class: "separator-grid" }
+const _MadLib_hoisted_17 = ["onUpdate:modelValue", "value"]
+const _MadLib_hoisted_18 = { class: "cat-meta" }
+const _MadLib_hoisted_19 = {
+  key: 0,
+  class: "custom-sep-row"
+}
+const _MadLib_hoisted_20 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_21 = { class: "checkbox-item exclude-ambiguous" }
+const _MadLib_hoisted_22 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_23 = /*#__PURE__*/_createElementVNode("span", null, "Exclude look-alikes (0/O, 1/l/I/|) from separators & affixes", -1)
+const _MadLib_hoisted_24 = { class: "card" }
+const _MadLib_hoisted_25 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Capitalization", -1)
+const _MadLib_hoisted_26 = { class: "separator-grid" }
+const _MadLib_hoisted_27 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_28 = /*#__PURE__*/_createElementVNode("span", null, "Title Case", -1)
+const _MadLib_hoisted_29 = { class: "cat-meta" }
+const _MadLib_hoisted_30 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_31 = /*#__PURE__*/_createElementVNode("span", null, "lowercase", -1)
+const _MadLib_hoisted_32 = { class: "cat-meta" }
+const _MadLib_hoisted_33 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_34 = /*#__PURE__*/_createElementVNode("span", null, "UPPERCASE", -1)
+const _MadLib_hoisted_35 = { class: "cat-meta" }
+const _MadLib_hoisted_36 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_37 = /*#__PURE__*/_createElementVNode("span", null, "rAndOm LetTerS", -1)
+const _MadLib_hoisted_38 = { class: "cat-meta" }
+const _MadLib_hoisted_39 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_40 = /*#__PURE__*/_createElementVNode("span", null, "AlTeRnAtInG", -1)
+const _MadLib_hoisted_41 = { class: "cat-meta" }
+const _MadLib_hoisted_42 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_43 = /*#__PURE__*/_createElementVNode("span", null, "lasT letteR", -1)
+const _MadLib_hoisted_44 = { class: "cat-meta" }
+const _MadLib_hoisted_45 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_46 = /*#__PURE__*/_createElementVNode("span", null, "FIRST word only", -1)
+const _MadLib_hoisted_47 = { class: "cat-meta" }
+const _MadLib_hoisted_48 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_49 = /*#__PURE__*/_createElementVNode("span", null, "last word ONLY", -1)
+const _MadLib_hoisted_50 = { class: "cat-meta" }
+const _MadLib_hoisted_51 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_52 = /*#__PURE__*/_createElementVNode("span", null, "WORD word WORD word", -1)
+const _MadLib_hoisted_53 = { class: "cat-meta" }
+const _MadLib_hoisted_54 = ["onUpdate:modelValue"]
+const _MadLib_hoisted_55 = /*#__PURE__*/_createElementVNode("span", null, "WORD word is RANDOM", -1)
+const _MadLib_hoisted_56 = { class: "cat-meta" }
+const _MadLib_hoisted_57 = ["open", "onToggle"]
+const _MadLib_hoisted_58 = { class: "card-header" }
+const _MadLib_hoisted_59 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _MadLib_hoisted_60 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _MadLib_hoisted_61 = { class: "affix-pair" }
+const _MadLib_hoisted_62 = /*#__PURE__*/_createElementVNode("div", { class: "affix-divider" }, null, -1)
+const _MadLib_hoisted_63 = ["open", "onToggle"]
+const _MadLib_hoisted_64 = { class: "card-header" }
+const _MadLib_hoisted_65 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _MadLib_hoisted_66 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _MadLib_hoisted_67 = { class: "form-group" }
+const _MadLib_hoisted_68 = { class: "symbol-chips-header" }
+const _MadLib_hoisted_69 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Leet Speak Substitutions", -1)
+const _MadLib_hoisted_70 = { class: "symbol-chips-actions" }
+const _MadLib_hoisted_71 = ["onClick"]
+const _MadLib_hoisted_72 = ["onClick"]
+const _MadLib_hoisted_73 = { class: "symbol-chips" }
+const _MadLib_hoisted_74 = ["onClick"]
+const _MadLib_hoisted_75 = { class: "emoji-toggle-row" }
+const _MadLib_hoisted_76 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Emoji", -1)
+const _MadLib_hoisted_77 = ["onClick"]
+const _MadLib_hoisted_78 = /*#__PURE__*/_createElementVNode("span", { class: "emoji-toggle-icon" }, "🎲", -1)
+const _MadLib_hoisted_79 = { class: "emoji-toggle-label" }
+const _MadLib_hoisted_80 = ["onClick", "title", "aria-label"]
+const _MadLib_hoisted_81 = ["onClick"]
+const _MadLib_hoisted_82 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant" }, null, -1)
+const _MadLib_hoisted_83 = { class: "password-display" }
+const _MadLib_hoisted_84 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _MadLib_hoisted_85 = {
+  key: 0,
+  class: "length-pill"
+}
+const _MadLib_hoisted_86 = ["onClick", "title"]
+const _MadLib_hoisted_87 = { class: "card" }
+const _MadLib_hoisted_88 = {
+  key: 0,
+  class: "word-pills-row"
+}
+const _MadLib_hoisted_89 = { class: "word-pills" }
+const _MadLib_hoisted_90 = ["onClick"]
+const _MadLib_hoisted_91 = { class: "word-pill-text" }
+const _MadLib_hoisted_92 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant word-pill-icon" }, null, -1)
+const _MadLib_hoisted_93 = ["onClick", "title"]
+const _MadLib_hoisted_94 = {
+  key: 1,
+  class: "madlib-preview-card"
+}
+const _MadLib_hoisted_95 = /*#__PURE__*/_createElementVNode("div", { class: "madlib-preview-label" }, "Readable phrase", -1)
+const _MadLib_hoisted_96 = { class: "madlib-preview-phrase" }
+
+export function renderMadLib(_ctx, _cache) {
+  const _component_AffixPicker = _resolveComponent("AffixPicker")
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _MadLib_hoisted_1, [
+    _createElementVNode("div", _MadLib_hoisted_2, [
+      _MadLib_hoisted_3,
+      _createElementVNode("div", _MadLib_hoisted_4, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.templates, (t) => {
+          return (_openBlock(), _createElementBlock("label", {
+            key: t.id,
+            class: _normalizeClass(["sep-option", { active: _ctx.templateId === t.id }])
+          }, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.templateId) = $event),
+              value: t.id,
+              type: "radio",
+              class: "sr-only",
+              onChange: _ctx.generatePassword
+            }, null, 40, _MadLib_hoisted_5), [
+              [_vModelRadio, _ctx.templateId]
+            ]),
+            _createElementVNode("span", null, _toDisplayString(t.label), 1)
+          ], 2))
+        }), 128))
+      ]),
+      _createElementVNode("div", _MadLib_hoisted_6, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.templates.find(t => t.id === _ctx.templateId)?.template.split(/(\{[^}]+\})/), (token, i) => {
+          return (_openBlock(), _createElementBlock("span", {
+            key: i,
+            class: _normalizeClass(token.match(/^\{(adj|adv|noun|verb)\}$/) ? ('madlib-token slot-' + token.slice(1,-1)) : 'madlib-literal')
+          }, _toDisplayString(token.match(/^\{(adj|adv|noun|verb)\}$/) ? token.slice(1,-1) : token), 3))
+        }), 128))
+      ])
+    ]),
+    _createElementVNode("div", _MadLib_hoisted_7, [
+      _MadLib_hoisted_8,
+      _createElementVNode("div", _MadLib_hoisted_9, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.slotCatRows, (slot, idx) => {
+          return (_openBlock(), _createElementBlock("div", {
+            key: idx,
+            class: "word-cat-row"
+          }, [
+            _createElementVNode("div", {
+              class: _normalizeClass(["word-cat-label", 'wc-label-' + slot.type])
+            }, [
+              _createTextVNode(_toDisplayString(slot.type), 1),
+              (slot.showOrdinal)
+                ? (_openBlock(), _createElementBlock("span", _MadLib_hoisted_10, " " + _toDisplayString(slot.occurrence), 1))
+                : _createCommentVNode("", true)
+            ], 2),
+            _createElementVNode("div", _MadLib_hoisted_11, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.categoryMeta[slot.type], (opt) => {
+                return (_openBlock(), _createElementBlock("label", {
+                  key: opt.id,
+                  class: _normalizeClass(["sep-option", { active: _ctx.slotCats[idx].cat === opt.id }])
+                }, [
+                  _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((_ctx.slotCats[idx].cat) = $event),
+                    value: opt.id,
+                    type: "radio",
+                    class: "sr-only"
+                  }, null, 8, _MadLib_hoisted_12), [
+                    [_vModelRadio, _ctx.slotCats[idx].cat]
+                  ]),
+                  _createElementVNode("span", null, _toDisplayString(opt.label), 1),
+                  (_ctx.catInfo(slot.type, opt.id))
+                    ? (_openBlock(), _createElementBlock("span", _MadLib_hoisted_13, _toDisplayString(_ctx.catInfo(slot.type, opt.id)), 1))
+                    : _createCommentVNode("", true)
+                ], 2))
+              }), 128))
+            ])
+          ]))
+        }), 128))
+      ])
+    ]),
+    _createElementVNode("div", _MadLib_hoisted_14, [
+      _MadLib_hoisted_15,
+      _createElementVNode("div", _MadLib_hoisted_16, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.separatorOptions, (opt) => {
+          return (_openBlock(), _createElementBlock("label", {
+            key: opt.value,
+            class: _normalizeClass(["sep-option", { active: _ctx.separator === opt.value }])
+          }, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.separator) = $event),
+              value: opt.value,
+              type: "radio",
+              class: "sr-only"
+            }, null, 8, _MadLib_hoisted_17), [
+              [_vModelRadio, _ctx.separator]
+            ]),
+            _createElementVNode("span", null, _toDisplayString(opt.label), 1),
+            _createElementVNode("span", _MadLib_hoisted_18, _toDisplayString(_ctx.sepMeta(opt.value)), 1)
+          ], 2))
+        }), 128))
+      ]),
+      (_ctx.separator === 'custom')
+        ? (_openBlock(), _createElementBlock("div", _MadLib_hoisted_19, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.customSeparator) = $event),
+              type: "text",
+              class: "form-input",
+              placeholder: "Type your separator"
+            }, null, 8, _MadLib_hoisted_20), [
+              [_vModelText, _ctx.customSeparator]
+            ])
+          ]))
+        : _createCommentVNode("", true),
+      _createElementVNode("label", _MadLib_hoisted_21, [
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.excludeAmbiguous) = $event),
+          type: "checkbox",
+          class: "checkbox"
+        }, null, 8, _MadLib_hoisted_22), [
+          [_vModelCheckbox, _ctx.excludeAmbiguous]
+        ]),
+        _MadLib_hoisted_23
+      ])
+    ]),
+    _createElementVNode("div", _MadLib_hoisted_24, [
+      _MadLib_hoisted_25,
+      _createElementVNode("div", _MadLib_hoisted_26, [
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'title' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "title",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_27), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_28,
+          _createElementVNode("span", _MadLib_hoisted_29, _toDisplayString(_ctx.capMeta('title')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'none' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "none",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_30), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_31,
+          _createElementVNode("span", _MadLib_hoisted_32, _toDisplayString(_ctx.capMeta('none')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_33), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_34,
+          _createElementVNode("span", _MadLib_hoisted_35, _toDisplayString(_ctx.capMeta('upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_36), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_37,
+          _createElementVNode("span", _MadLib_hoisted_38, _toDisplayString(_ctx.capMeta('random')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'char-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "char-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_39), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_40,
+          _createElementVNode("span", _MadLib_hoisted_41, _toDisplayString(_ctx.capMeta('char-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_42), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_43,
+          _createElementVNode("span", _MadLib_hoisted_44, _toDisplayString(_ctx.capMeta('last-upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'first-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "first-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_45), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_46,
+          _createElementVNode("span", _MadLib_hoisted_47, _toDisplayString(_ctx.capMeta('first-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_48), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_49,
+          _createElementVNode("span", _MadLib_hoisted_50, _toDisplayString(_ctx.capMeta('last-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_51), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_52,
+          _createElementVNode("span", _MadLib_hoisted_53, _toDisplayString(_ctx.capMeta('word-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _MadLib_hoisted_54), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _MadLib_hoisted_55,
+          _createElementVNode("span", _MadLib_hoisted_56, _toDisplayString(_ctx.capMeta('word-random')), 1)
+        ], 2)
+      ])
+    ]),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.affixOpen,
+      onToggle: $event => (_ctx.affixOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _MadLib_hoisted_58, [
+        _createTextVNode("Prefix & Suffix"),
+        (_ctx.prefixMode || _ctx.suffixMode)
+          ? (_openBlock(), _createElementBlock("span", _MadLib_hoisted_59, "in use"))
+          : _createCommentVNode("", true),
+        _MadLib_hoisted_60
+      ]),
+      _createElementVNode("div", _MadLib_hoisted_61, [
+        _createVNode(_component_AffixPicker, {
+          label: "Prefix",
+          modelValue: _ctx.prefixMode,
+          customValue: _ctx.prefixCustom,
+          meta: _ctx.prefixMeta,
+          "onUpdate:modelValue": $event => (_ctx.prefixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.prefixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "meta", "onUpdate:modelValue", "onUpdate:customValue"]),
+        _MadLib_hoisted_62,
+        _createVNode(_component_AffixPicker, {
+          label: "Suffix",
+          modelValue: _ctx.suffixMode,
+          customValue: _ctx.suffixCustom,
+          options: _ctx.suffixOptions,
+          meta: _ctx.suffixMeta,
+          "onUpdate:modelValue": $event => (_ctx.suffixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.suffixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "options", "meta", "onUpdate:modelValue", "onUpdate:customValue"])
+      ])
+    ], 40, _MadLib_hoisted_57),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.extrasOpen,
+      onToggle: $event => (_ctx.extrasOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _MadLib_hoisted_64, [
+        _createTextVNode("Leet Speak & Emoji"),
+        (_ctx.activeLeet.size > 0 || _ctx.useEmoji)
+          ? (_openBlock(), _createElementBlock("span", _MadLib_hoisted_65, "in use"))
+          : _createCommentVNode("", true),
+        _MadLib_hoisted_66
+      ]),
+      _createElementVNode("div", _MadLib_hoisted_67, [
+        _createElementVNode("div", _MadLib_hoisted_68, [
+          _MadLib_hoisted_69,
+          _createElementVNode("div", _MadLib_hoisted_70, [
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectAllLeet
+            }, "All", 8, _MadLib_hoisted_71),
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectNoLeet
+            }, "None", 8, _MadLib_hoisted_72)
+          ])
+        ]),
+        _createElementVNode("div", _MadLib_hoisted_73, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.leetMap, (entry) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: entry.char,
+              type: "button",
+              class: _normalizeClass(["symbol-chip leet-chip", { active: _ctx.activeLeet.has(entry.char) }]),
+              onClick: $event => (_ctx.toggleLeet(entry.char))
+            }, _toDisplayString(entry.label), 11, _MadLib_hoisted_74))
+          }), 128))
+        ])
+      ]),
+      _createElementVNode("div", _MadLib_hoisted_75, [
+        _MadLib_hoisted_76,
+        _createElementVNode("button", {
+          type: "button",
+          class: _normalizeClass(["emoji-toggle-btn", { active: _ctx.useEmoji }]),
+          onClick: $event => (_ctx.useEmoji = !_ctx.useEmoji),
+          title: "Prepend a category-matched emoji to each word"
+        }, [
+          _MadLib_hoisted_78,
+          _createElementVNode("span", _MadLib_hoisted_79, _toDisplayString(_ctx.useEmoji ? 'On' : 'Off'), 1)
+        ], 10, _MadLib_hoisted_77)
+      ])
+    ], 40, _MadLib_hoisted_63),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _MadLib_hoisted_80),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _MadLib_hoisted_82,
+        _createTextVNode(" Generate Mad Lib")
+      ], 8, _MadLib_hoisted_81),
+      _createElementVNode("div", _MadLib_hoisted_83, [
+        _createElementVNode("div", {
+          class: _normalizeClass(['form-input', 'password-input', { 'has-length-pill': _ctx.password.length > 0 }]),
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _MadLib_hoisted_84, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ], 2),
+        (_ctx.password.length > 0)
+          ? (_openBlock(), _createElementBlock("span", _MadLib_hoisted_85, _toDisplayString(_ctx.password.length), 1))
+          : _createCommentVNode("", true),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _MadLib_hoisted_86),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        words: _ctx.slotCatRows.length,
+        mode: "madlib"
+      }, null, 8, ["entropy", "password", "words"])
+    ], 2),
+    _createElementVNode("div", _MadLib_hoisted_87, [
+      (_ctx.rawSegments.some(s => s.isToken))
+        ? (_openBlock(), _createElementBlock("div", _MadLib_hoisted_88, [
+            _createElementVNode("div", _MadLib_hoisted_89, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.rawSegments, (seg, i) => {
+                return (_openBlock(), _createElementBlock(_Fragment, { key: i }, [
+                  (seg.isToken)
+                    ? (_openBlock(), _createElementBlock("button", {
+                        key: 0,
+                        class: _normalizeClass(["word-pill", 'word-pill-' + seg.type]),
+                        onClick: $event => (_ctx.regenWord(i)),
+                        title: "Click to swap this word"
+                      }, [
+                        _createElementVNode("span", _MadLib_hoisted_91, _toDisplayString(seg.word), 1),
+                        _MadLib_hoisted_92
+                      ], 10, _MadLib_hoisted_90))
+                    : _createCommentVNode("", true)
+                ], 64))
+              }), 128))
+            ]),
+            _createElementVNode("button", {
+              class: _normalizeClass(["lock-affixes-btn", { active: _ctx.lockAffixes }]),
+              onClick: $event => (_ctx.lockAffixes = !_ctx.lockAffixes),
+              title: _ctx.lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'
+            }, [
+              _createElementVNode("span", {
+                class: _normalizeClass(['mdi', _ctx.lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline'])
+              }, null, 2)
+            ], 10, _MadLib_hoisted_93)
+          ]))
+        : _createCommentVNode("", true),
+      (_ctx.preview)
+        ? (_openBlock(), _createElementBlock("div", _MadLib_hoisted_94, [
+            _MadLib_hoisted_95,
+            _createElementVNode("div", _MadLib_hoisted_96, _toDisplayString(_ctx.preview), 1)
+          ]))
+        : _createCommentVNode("", true),
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 2,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
+}
+
+// --- NumbersPassword -------------------------------------------------
+const _NumbersPassword_hoisted_1 = { class: "password-generator" }
+const _NumbersPassword_hoisted_2 = { class: "card" }
+const _NumbersPassword_hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Number of Digits", -1)
+const _NumbersPassword_hoisted_4 = { class: "slider-container" }
+const _NumbersPassword_hoisted_5 = ["onClick"]
+const _NumbersPassword_hoisted_6 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _NumbersPassword_hoisted_7 = [
+  _NumbersPassword_hoisted_6
+]
+const _NumbersPassword_hoisted_8 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "4", -1)
+const _NumbersPassword_hoisted_9 = ["onUpdate:modelValue"]
+const _NumbersPassword_hoisted_10 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "32", -1)
+const _NumbersPassword_hoisted_11 = ["onClick"]
+const _NumbersPassword_hoisted_12 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _NumbersPassword_hoisted_13 = [
+  _NumbersPassword_hoisted_12
+]
+const _NumbersPassword_hoisted_14 = { class: "slider-value" }
+const _NumbersPassword_hoisted_15 = { class: "card" }
+const _NumbersPassword_hoisted_16 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Maximum Repeated Digits", -1)
+const _NumbersPassword_hoisted_17 = { class: "slider-container" }
+const _NumbersPassword_hoisted_18 = ["onClick"]
+const _NumbersPassword_hoisted_19 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _NumbersPassword_hoisted_20 = [
+  _NumbersPassword_hoisted_19
+]
+const _NumbersPassword_hoisted_21 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "2", -1)
+const _NumbersPassword_hoisted_22 = ["onUpdate:modelValue"]
+const _NumbersPassword_hoisted_23 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "5", -1)
+const _NumbersPassword_hoisted_24 = ["onClick"]
+const _NumbersPassword_hoisted_25 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _NumbersPassword_hoisted_26 = [
+  _NumbersPassword_hoisted_25
+]
+const _NumbersPassword_hoisted_27 = { class: "slider-value" }
+const _NumbersPassword_hoisted_28 = { class: "card" }
+const _NumbersPassword_hoisted_29 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Maximum Sequential Digits", -1)
+const _NumbersPassword_hoisted_30 = { class: "slider-container" }
+const _NumbersPassword_hoisted_31 = ["onClick"]
+const _NumbersPassword_hoisted_32 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _NumbersPassword_hoisted_33 = [
+  _NumbersPassword_hoisted_32
+]
+const _NumbersPassword_hoisted_34 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "2", -1)
+const _NumbersPassword_hoisted_35 = ["onUpdate:modelValue"]
+const _NumbersPassword_hoisted_36 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "5", -1)
+const _NumbersPassword_hoisted_37 = ["onClick"]
+const _NumbersPassword_hoisted_38 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _NumbersPassword_hoisted_39 = [
+  _NumbersPassword_hoisted_38
+]
+const _NumbersPassword_hoisted_40 = { class: "slider-value" }
+const _NumbersPassword_hoisted_41 = ["onClick", "title", "aria-label"]
+const _NumbersPassword_hoisted_42 = ["onClick"]
+const _NumbersPassword_hoisted_43 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant" }, null, -1)
+const _NumbersPassword_hoisted_44 = { class: "password-display" }
+const _NumbersPassword_hoisted_45 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _NumbersPassword_hoisted_46 = ["onClick", "title"]
+const _NumbersPassword_hoisted_47 = { class: "card" }
+
+export function renderNumbersPassword(_ctx, _cache) {
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _NumbersPassword_hoisted_1, [
+    _createElementVNode("div", _NumbersPassword_hoisted_2, [
+      _NumbersPassword_hoisted_3,
+      _createElementVNode("div", _NumbersPassword_hoisted_4, [
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Decrease number of digits",
+          onClick: $event => (_ctx.passwordLength = Math.max(4, _ctx.passwordLength - 1))
+        }, _NumbersPassword_hoisted_7, 8, _NumbersPassword_hoisted_5),
+        _NumbersPassword_hoisted_8,
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.passwordLength) = $event),
+          type: "range",
+          "aria-label": "Number of Digits",
+          min: "4",
+          max: "32",
+          class: "slider"
+        }, null, 8, _NumbersPassword_hoisted_9), [
+          [_vModelText, _ctx.passwordLength]
+        ]),
+        _NumbersPassword_hoisted_10,
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Increase number of digits",
+          onClick: $event => (_ctx.passwordLength = Math.min(32, _ctx.passwordLength + 1))
+        }, _NumbersPassword_hoisted_13, 8, _NumbersPassword_hoisted_11),
+        _createElementVNode("div", _NumbersPassword_hoisted_14, _toDisplayString(_ctx.passwordLength), 1)
+      ])
+    ]),
+    _createElementVNode("div", _NumbersPassword_hoisted_15, [
+      _NumbersPassword_hoisted_16,
+      _createElementVNode("div", _NumbersPassword_hoisted_17, [
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Decrease maximum repeated digits",
+          onClick: $event => (_ctx.maxRepeated = Math.max(2, _ctx.maxRepeated - 1))
+        }, _NumbersPassword_hoisted_20, 8, _NumbersPassword_hoisted_18),
+        _NumbersPassword_hoisted_21,
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.maxRepeated) = $event),
+          type: "range",
+          "aria-label": "Maximum Repeated Digits",
+          min: "2",
+          max: "5",
+          class: "slider"
+        }, null, 8, _NumbersPassword_hoisted_22), [
+          [_vModelText, _ctx.maxRepeated]
+        ]),
+        _NumbersPassword_hoisted_23,
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Increase maximum repeated digits",
+          onClick: $event => (_ctx.maxRepeated = Math.min(5, _ctx.maxRepeated + 1))
+        }, _NumbersPassword_hoisted_26, 8, _NumbersPassword_hoisted_24),
+        _createElementVNode("div", _NumbersPassword_hoisted_27, _toDisplayString(_ctx.maxRepeated), 1)
+      ])
+    ]),
+    _createElementVNode("div", _NumbersPassword_hoisted_28, [
+      _NumbersPassword_hoisted_29,
+      _createElementVNode("div", _NumbersPassword_hoisted_30, [
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Decrease maximum sequential digits",
+          onClick: $event => (_ctx.maxSequential = Math.max(2, _ctx.maxSequential - 1))
+        }, _NumbersPassword_hoisted_33, 8, _NumbersPassword_hoisted_31),
+        _NumbersPassword_hoisted_34,
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.maxSequential) = $event),
+          type: "range",
+          "aria-label": "Maximum Sequential Digits",
+          min: "2",
+          max: "5",
+          class: "slider"
+        }, null, 8, _NumbersPassword_hoisted_35), [
+          [_vModelText, _ctx.maxSequential]
+        ]),
+        _NumbersPassword_hoisted_36,
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Increase maximum sequential digits",
+          onClick: $event => (_ctx.maxSequential = Math.min(5, _ctx.maxSequential + 1))
+        }, _NumbersPassword_hoisted_39, 8, _NumbersPassword_hoisted_37),
+        _createElementVNode("div", _NumbersPassword_hoisted_40, _toDisplayString(_ctx.maxSequential), 1)
+      ])
+    ]),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _NumbersPassword_hoisted_41),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _NumbersPassword_hoisted_43,
+        _createTextVNode(" Generate Password ")
+      ], 8, _NumbersPassword_hoisted_42),
+      _createElementVNode("div", _NumbersPassword_hoisted_44, [
+        (_openBlock(), _createElementBlock("div", {
+          key: _ctx.password,
+          class: "form-input password-input",
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _NumbersPassword_hoisted_45, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ])),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _NumbersPassword_hoisted_46),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        mode: "numbers"
+      }, null, 8, ["entropy", "password"])
+    ], 2),
+    _createElementVNode("div", _NumbersPassword_hoisted_47, [
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 0,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
+}
+
+// --- Passphrase ------------------------------------------------------
+const _Passphrase_hoisted_1 = { class: "password-generator" }
+const _Passphrase_hoisted_2 = { class: "card" }
+const _Passphrase_hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Word Slots", -1)
+const _Passphrase_hoisted_4 = { class: "slot-add-row" }
+const _Passphrase_hoisted_5 = /*#__PURE__*/_createElementVNode("span", { class: "slot-add-label" }, "Add:", -1)
+const _Passphrase_hoisted_6 = ["onClick", "disabled"]
+const _Passphrase_hoisted_7 = {
+  key: 0,
+  class: "slot-tray"
+}
+const _Passphrase_hoisted_8 = { class: "slot-pill-label" }
+const _Passphrase_hoisted_9 = { class: "slot-pill-actions" }
+const _Passphrase_hoisted_10 = ["onClick", "disabled"]
+const _Passphrase_hoisted_11 = ["onClick", "disabled"]
+const _Passphrase_hoisted_12 = ["onClick"]
+const _Passphrase_hoisted_13 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_14 = ["value"]
+const _Passphrase_hoisted_15 = {
+  key: 1,
+  class: "slot-empty"
+}
+const _Passphrase_hoisted_16 = { class: "card" }
+const _Passphrase_hoisted_17 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Word Separator", -1)
+const _Passphrase_hoisted_18 = { class: "separator-grid" }
+const _Passphrase_hoisted_19 = ["onUpdate:modelValue", "value"]
+const _Passphrase_hoisted_20 = { class: "cat-meta" }
+const _Passphrase_hoisted_21 = {
+  key: 0,
+  class: "custom-sep-row"
+}
+const _Passphrase_hoisted_22 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_23 = { class: "checkbox-item exclude-ambiguous" }
+const _Passphrase_hoisted_24 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_25 = /*#__PURE__*/_createElementVNode("span", null, "Exclude look-alikes (0/O, 1/l/I/|) from separators & affixes", -1)
+const _Passphrase_hoisted_26 = { class: "card" }
+const _Passphrase_hoisted_27 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Capitalization", -1)
+const _Passphrase_hoisted_28 = { class: "separator-grid" }
+const _Passphrase_hoisted_29 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_30 = /*#__PURE__*/_createElementVNode("span", null, "Title Case", -1)
+const _Passphrase_hoisted_31 = { class: "cat-meta" }
+const _Passphrase_hoisted_32 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_33 = /*#__PURE__*/_createElementVNode("span", null, "lowercase", -1)
+const _Passphrase_hoisted_34 = { class: "cat-meta" }
+const _Passphrase_hoisted_35 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_36 = /*#__PURE__*/_createElementVNode("span", null, "UPPERCASE", -1)
+const _Passphrase_hoisted_37 = { class: "cat-meta" }
+const _Passphrase_hoisted_38 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_39 = /*#__PURE__*/_createElementVNode("span", null, "rAndOm LetTerS", -1)
+const _Passphrase_hoisted_40 = { class: "cat-meta" }
+const _Passphrase_hoisted_41 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_42 = /*#__PURE__*/_createElementVNode("span", null, "AlTeRnAtInG", -1)
+const _Passphrase_hoisted_43 = { class: "cat-meta" }
+const _Passphrase_hoisted_44 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_45 = /*#__PURE__*/_createElementVNode("span", null, "lasT letteR", -1)
+const _Passphrase_hoisted_46 = { class: "cat-meta" }
+const _Passphrase_hoisted_47 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_48 = /*#__PURE__*/_createElementVNode("span", null, "FIRST word only", -1)
+const _Passphrase_hoisted_49 = { class: "cat-meta" }
+const _Passphrase_hoisted_50 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_51 = /*#__PURE__*/_createElementVNode("span", null, "last word ONLY", -1)
+const _Passphrase_hoisted_52 = { class: "cat-meta" }
+const _Passphrase_hoisted_53 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_54 = /*#__PURE__*/_createElementVNode("span", null, "WORD word WORD word", -1)
+const _Passphrase_hoisted_55 = { class: "cat-meta" }
+const _Passphrase_hoisted_56 = ["onUpdate:modelValue"]
+const _Passphrase_hoisted_57 = /*#__PURE__*/_createElementVNode("span", null, "WORD word is RANDOM", -1)
+const _Passphrase_hoisted_58 = { class: "cat-meta" }
+const _Passphrase_hoisted_59 = ["open", "onToggle"]
+const _Passphrase_hoisted_60 = { class: "card-header" }
+const _Passphrase_hoisted_61 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _Passphrase_hoisted_62 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _Passphrase_hoisted_63 = { class: "affix-pair" }
+const _Passphrase_hoisted_64 = /*#__PURE__*/_createElementVNode("div", { class: "affix-divider" }, null, -1)
+const _Passphrase_hoisted_65 = ["open", "onToggle"]
+const _Passphrase_hoisted_66 = { class: "card-header" }
+const _Passphrase_hoisted_67 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _Passphrase_hoisted_68 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _Passphrase_hoisted_69 = { class: "form-group" }
+const _Passphrase_hoisted_70 = { class: "symbol-chips-header" }
+const _Passphrase_hoisted_71 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Leet Speak Substitutions", -1)
+const _Passphrase_hoisted_72 = { class: "symbol-chips-actions" }
+const _Passphrase_hoisted_73 = ["onClick"]
+const _Passphrase_hoisted_74 = ["onClick"]
+const _Passphrase_hoisted_75 = { class: "symbol-chips" }
+const _Passphrase_hoisted_76 = ["onClick"]
+const _Passphrase_hoisted_77 = { class: "emoji-toggle-row" }
+const _Passphrase_hoisted_78 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Emoji", -1)
+const _Passphrase_hoisted_79 = ["onClick"]
+const _Passphrase_hoisted_80 = /*#__PURE__*/_createElementVNode("span", { class: "emoji-toggle-icon" }, "🎲", -1)
+const _Passphrase_hoisted_81 = { class: "emoji-toggle-label" }
+const _Passphrase_hoisted_82 = ["onClick", "title", "aria-label"]
+const _Passphrase_hoisted_83 = ["onClick"]
+const _Passphrase_hoisted_84 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant" }, null, -1)
+const _Passphrase_hoisted_85 = { class: "password-display" }
+const _Passphrase_hoisted_86 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _Passphrase_hoisted_87 = {
+  key: 0,
+  class: "length-pill"
+}
+const _Passphrase_hoisted_88 = ["onClick", "title"]
+const _Passphrase_hoisted_89 = { class: "card" }
+const _Passphrase_hoisted_90 = {
+  key: 0,
+  class: "word-pills-row"
+}
+const _Passphrase_hoisted_91 = { class: "word-pills" }
+const _Passphrase_hoisted_92 = ["onClick"]
+const _Passphrase_hoisted_93 = { class: "word-pill-text" }
+const _Passphrase_hoisted_94 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant word-pill-icon" }, null, -1)
+const _Passphrase_hoisted_95 = ["onClick", "title"]
+
+export function renderPassphrase(_ctx, _cache) {
+  const _component_AffixPicker = _resolveComponent("AffixPicker")
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _Passphrase_hoisted_1, [
+    _createElementVNode("div", _Passphrase_hoisted_2, [
+      _Passphrase_hoisted_3,
+      _createElementVNode("div", _Passphrase_hoisted_4, [
+        _Passphrase_hoisted_5,
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.slotTypes, (t) => {
+          return (_openBlock(), _createElementBlock("button", {
+            key: t.type,
+            class: _normalizeClass(["slot-add-btn", t.color]),
+            onClick: $event => (_ctx.addSlot(t.type)),
+            disabled: _ctx.slots.length >= 8
+          }, "+ " + _toDisplayString(t.label), 11, _Passphrase_hoisted_6))
+        }), 128))
+      ]),
+      (_ctx.slots.length > 0)
+        ? (_openBlock(), _createElementBlock("div", _Passphrase_hoisted_7, [
+            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.slots, (slot, idx) => {
+              return (_openBlock(), _createElementBlock("div", {
+                key: slot.id,
+                class: _normalizeClass(["slot-pill", 'slot-' + slot.type])
+              }, [
+                _createElementVNode("span", _Passphrase_hoisted_8, _toDisplayString(slot.type), 1),
+                _createElementVNode("div", _Passphrase_hoisted_9, [
+                  _createElementVNode("button", {
+                    class: "slot-arrow",
+                    onClick: $event => (_ctx.moveSlot(idx, -1)),
+                    disabled: idx === 0,
+                    title: "Move left"
+                  }, "←", 8, _Passphrase_hoisted_10),
+                  _createElementVNode("button", {
+                    class: "slot-arrow",
+                    onClick: $event => (_ctx.moveSlot(idx, 1)),
+                    disabled: idx === _ctx.slots.length - 1,
+                    title: "Move right"
+                  }, "→", 8, _Passphrase_hoisted_11),
+                  _createElementVNode("button", {
+                    class: "slot-remove",
+                    onClick: $event => (_ctx.removeSlot(slot.id)),
+                    title: "Remove"
+                  }, "×", 8, _Passphrase_hoisted_12)
+                ]),
+                _withDirectives(_createElementVNode("select", {
+                  class: "slot-cat-select",
+                  "onUpdate:modelValue": $event => ((slot.cat) = $event)
+                }, [
+                  (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.categoryMeta[slot.type], (opt) => {
+                    return (_openBlock(), _createElementBlock("option", {
+                      key: opt.id,
+                      value: opt.id
+                    }, _toDisplayString(opt.label) + _toDisplayString(_ctx.catInfo(slot.type, opt.id) ? ' — ' + _ctx.catInfo(slot.type, opt.id) : ''), 9, _Passphrase_hoisted_14))
+                  }), 128))
+                ], 8, _Passphrase_hoisted_13), [
+                  [_vModelSelect, slot.cat]
+                ])
+              ], 2))
+            }), 128))
+          ]))
+        : (_openBlock(), _createElementBlock("div", _Passphrase_hoisted_15, " Add word slots above to build your passphrase structure. "))
+    ]),
+    _createElementVNode("div", _Passphrase_hoisted_16, [
+      _Passphrase_hoisted_17,
+      _createElementVNode("div", _Passphrase_hoisted_18, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.separatorOptions, (opt) => {
+          return (_openBlock(), _createElementBlock("label", {
+            key: opt.value,
+            class: _normalizeClass(["sep-option", { active: _ctx.separator === opt.value }])
+          }, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.separator) = $event),
+              value: opt.value,
+              type: "radio",
+              class: "sr-only"
+            }, null, 8, _Passphrase_hoisted_19), [
+              [_vModelRadio, _ctx.separator]
+            ]),
+            _createElementVNode("span", null, _toDisplayString(opt.label), 1),
+            _createElementVNode("span", _Passphrase_hoisted_20, _toDisplayString(_ctx.sepMeta(opt.value)), 1)
+          ], 2))
+        }), 128))
+      ]),
+      (_ctx.separator === 'custom')
+        ? (_openBlock(), _createElementBlock("div", _Passphrase_hoisted_21, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.customSeparator) = $event),
+              type: "text",
+              class: "form-input",
+              placeholder: "Type your separator"
+            }, null, 8, _Passphrase_hoisted_22), [
+              [_vModelText, _ctx.customSeparator]
+            ])
+          ]))
+        : _createCommentVNode("", true),
+      _createElementVNode("label", _Passphrase_hoisted_23, [
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.excludeAmbiguous) = $event),
+          type: "checkbox",
+          class: "checkbox"
+        }, null, 8, _Passphrase_hoisted_24), [
+          [_vModelCheckbox, _ctx.excludeAmbiguous]
+        ]),
+        _Passphrase_hoisted_25
+      ])
+    ]),
+    _createElementVNode("div", _Passphrase_hoisted_26, [
+      _Passphrase_hoisted_27,
+      _createElementVNode("div", _Passphrase_hoisted_28, [
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'title' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "title",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_29), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_30,
+          _createElementVNode("span", _Passphrase_hoisted_31, _toDisplayString(_ctx.capMeta('title')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'none' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "none",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_32), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_33,
+          _createElementVNode("span", _Passphrase_hoisted_34, _toDisplayString(_ctx.capMeta('none')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_35), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_36,
+          _createElementVNode("span", _Passphrase_hoisted_37, _toDisplayString(_ctx.capMeta('upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_38), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_39,
+          _createElementVNode("span", _Passphrase_hoisted_40, _toDisplayString(_ctx.capMeta('random')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'char-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "char-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_41), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_42,
+          _createElementVNode("span", _Passphrase_hoisted_43, _toDisplayString(_ctx.capMeta('char-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_44), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_45,
+          _createElementVNode("span", _Passphrase_hoisted_46, _toDisplayString(_ctx.capMeta('last-upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'first-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "first-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_47), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_48,
+          _createElementVNode("span", _Passphrase_hoisted_49, _toDisplayString(_ctx.capMeta('first-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_50), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_51,
+          _createElementVNode("span", _Passphrase_hoisted_52, _toDisplayString(_ctx.capMeta('last-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_53), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_54,
+          _createElementVNode("span", _Passphrase_hoisted_55, _toDisplayString(_ctx.capMeta('word-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _Passphrase_hoisted_56), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _Passphrase_hoisted_57,
+          _createElementVNode("span", _Passphrase_hoisted_58, _toDisplayString(_ctx.capMeta('word-random')), 1)
+        ], 2)
+      ])
+    ]),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.affixOpen,
+      onToggle: $event => (_ctx.affixOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _Passphrase_hoisted_60, [
+        _createTextVNode("Prefix & Suffix"),
+        (_ctx.prefixMode || _ctx.suffixMode)
+          ? (_openBlock(), _createElementBlock("span", _Passphrase_hoisted_61, "in use"))
+          : _createCommentVNode("", true),
+        _Passphrase_hoisted_62
+      ]),
+      _createElementVNode("div", _Passphrase_hoisted_63, [
+        _createVNode(_component_AffixPicker, {
+          label: "Prefix",
+          modelValue: _ctx.prefixMode,
+          customValue: _ctx.prefixCustom,
+          meta: _ctx.prefixMeta,
+          "onUpdate:modelValue": $event => (_ctx.prefixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.prefixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "meta", "onUpdate:modelValue", "onUpdate:customValue"]),
+        _Passphrase_hoisted_64,
+        _createVNode(_component_AffixPicker, {
+          label: "Suffix",
+          modelValue: _ctx.suffixMode,
+          customValue: _ctx.suffixCustom,
+          options: _ctx.suffixOptions,
+          meta: _ctx.suffixMeta,
+          "onUpdate:modelValue": $event => (_ctx.suffixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.suffixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "options", "meta", "onUpdate:modelValue", "onUpdate:customValue"])
+      ])
+    ], 40, _Passphrase_hoisted_59),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.extrasOpen,
+      onToggle: $event => (_ctx.extrasOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _Passphrase_hoisted_66, [
+        _createTextVNode("Leet Speak & Emoji"),
+        (_ctx.activeLeet.size > 0 || _ctx.useEmoji)
+          ? (_openBlock(), _createElementBlock("span", _Passphrase_hoisted_67, "in use"))
+          : _createCommentVNode("", true),
+        _Passphrase_hoisted_68
+      ]),
+      _createElementVNode("div", _Passphrase_hoisted_69, [
+        _createElementVNode("div", _Passphrase_hoisted_70, [
+          _Passphrase_hoisted_71,
+          _createElementVNode("div", _Passphrase_hoisted_72, [
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectAllLeet
+            }, "All", 8, _Passphrase_hoisted_73),
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectNoLeet
+            }, "None", 8, _Passphrase_hoisted_74)
+          ])
+        ]),
+        _createElementVNode("div", _Passphrase_hoisted_75, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.leetMap, (entry) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: entry.char,
+              type: "button",
+              class: _normalizeClass(["symbol-chip leet-chip", { active: _ctx.activeLeet.has(entry.char) }]),
+              onClick: $event => (_ctx.toggleLeet(entry.char))
+            }, _toDisplayString(entry.label), 11, _Passphrase_hoisted_76))
+          }), 128))
+        ])
+      ]),
+      _createElementVNode("div", _Passphrase_hoisted_77, [
+        _Passphrase_hoisted_78,
+        _createElementVNode("button", {
+          type: "button",
+          class: _normalizeClass(["emoji-toggle-btn", { active: _ctx.useEmoji }]),
+          onClick: $event => (_ctx.useEmoji = !_ctx.useEmoji),
+          title: "Prepend a category-matched emoji to each word"
+        }, [
+          _Passphrase_hoisted_80,
+          _createElementVNode("span", _Passphrase_hoisted_81, _toDisplayString(_ctx.useEmoji ? 'On' : 'Off'), 1)
+        ], 10, _Passphrase_hoisted_79)
+      ])
+    ], 40, _Passphrase_hoisted_65),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _Passphrase_hoisted_82),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _Passphrase_hoisted_84,
+        _createTextVNode(" Generate Passphrase")
+      ], 8, _Passphrase_hoisted_83),
+      _createElementVNode("div", _Passphrase_hoisted_85, [
+        _createElementVNode("div", {
+          class: _normalizeClass(['form-input', 'password-input', { 'has-length-pill': _ctx.password.length > 0 }]),
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _Passphrase_hoisted_86, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ], 2),
+        (_ctx.password.length > 0)
+          ? (_openBlock(), _createElementBlock("span", _Passphrase_hoisted_87, _toDisplayString(_ctx.password.length), 1))
+          : _createCommentVNode("", true),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _Passphrase_hoisted_88),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        words: _ctx.rawWords.length,
+        mode: "passphrase"
+      }, null, 8, ["entropy", "password", "words"])
+    ], 2),
+    _createElementVNode("div", _Passphrase_hoisted_89, [
+      (_ctx.rawWords.length)
+        ? (_openBlock(), _createElementBlock("div", _Passphrase_hoisted_90, [
+            _createElementVNode("div", _Passphrase_hoisted_91, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.rawWords, (w, i) => {
+                return (_openBlock(), _createElementBlock("button", {
+                  key: i,
+                  class: _normalizeClass(["word-pill", 'word-pill-' + _ctx.slots[i]?.type]),
+                  onClick: $event => (_ctx.regenWord(i)),
+                  title: "Click to swap this word"
+                }, [
+                  _createElementVNode("span", _Passphrase_hoisted_93, _toDisplayString(w), 1),
+                  _Passphrase_hoisted_94
+                ], 10, _Passphrase_hoisted_92))
+              }), 128))
+            ]),
+            _createElementVNode("button", {
+              class: _normalizeClass(["lock-affixes-btn", { active: _ctx.lockAffixes }]),
+              onClick: $event => (_ctx.lockAffixes = !_ctx.lockAffixes),
+              title: _ctx.lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'
+            }, [
+              _createElementVNode("span", {
+                class: _normalizeClass(['mdi', _ctx.lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline'])
+              }, null, 2)
+            ], 10, _Passphrase_hoisted_95)
+          ]))
+        : _createCommentVNode("", true),
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 1,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
+}
+
+// --- SimplePassword --------------------------------------------------
+const _SimplePassword_hoisted_1 = { class: "password-generator" }
+const _SimplePassword_hoisted_2 = { class: "card" }
+const _SimplePassword_hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Password Length", -1)
+const _SimplePassword_hoisted_4 = { class: "slider-container" }
+const _SimplePassword_hoisted_5 = ["onClick"]
+const _SimplePassword_hoisted_6 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _SimplePassword_hoisted_7 = [
+  _SimplePassword_hoisted_6
+]
+const _SimplePassword_hoisted_8 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "6", -1)
+const _SimplePassword_hoisted_9 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_10 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "128", -1)
+const _SimplePassword_hoisted_11 = ["onClick"]
+const _SimplePassword_hoisted_12 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _SimplePassword_hoisted_13 = [
+  _SimplePassword_hoisted_12
+]
+const _SimplePassword_hoisted_14 = { class: "slider-value" }
+const _SimplePassword_hoisted_15 = { class: "card" }
+const _SimplePassword_hoisted_16 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Character Types", -1)
+const _SimplePassword_hoisted_17 = { class: "checkbox-group" }
+const _SimplePassword_hoisted_18 = { class: "checkbox-item" }
+const _SimplePassword_hoisted_19 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_20 = /*#__PURE__*/_createElementVNode("span", null, "Lowercase letters (a-z)", -1)
+const _SimplePassword_hoisted_21 = { class: "checkbox-item" }
+const _SimplePassword_hoisted_22 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_23 = /*#__PURE__*/_createElementVNode("span", null, "Uppercase letters (A-Z)", -1)
+const _SimplePassword_hoisted_24 = { class: "checkbox-item" }
+const _SimplePassword_hoisted_25 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_26 = /*#__PURE__*/_createElementVNode("span", null, "Numbers (0-9)", -1)
+const _SimplePassword_hoisted_27 = { class: "checkbox-item" }
+const _SimplePassword_hoisted_28 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_29 = /*#__PURE__*/_createElementVNode("span", null, "Symbols (!@#$%^&*)", -1)
+const _SimplePassword_hoisted_30 = { class: "checkbox-item" }
+const _SimplePassword_hoisted_31 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_32 = /*#__PURE__*/_createElementVNode("span", null, "Emoji 🎲", -1)
+const _SimplePassword_hoisted_33 = { class: "checkbox-item exclude-ambiguous" }
+const _SimplePassword_hoisted_34 = ["onUpdate:modelValue"]
+const _SimplePassword_hoisted_35 = /*#__PURE__*/_createElementVNode("span", null, "Exclude look-alikes (0/O, 1/l/I/|)", -1)
+const _SimplePassword_hoisted_36 = ["onClick", "title", "aria-label"]
+const _SimplePassword_hoisted_37 = ["onClick"]
+const _SimplePassword_hoisted_38 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant" }, null, -1)
+const _SimplePassword_hoisted_39 = { class: "password-display" }
+const _SimplePassword_hoisted_40 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _SimplePassword_hoisted_41 = ["onClick", "title"]
+const _SimplePassword_hoisted_42 = { class: "card" }
+
+export function renderSimplePassword(_ctx, _cache) {
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _SimplePassword_hoisted_1, [
+    _createElementVNode("div", _SimplePassword_hoisted_2, [
+      _SimplePassword_hoisted_3,
+      _createElementVNode("div", _SimplePassword_hoisted_4, [
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Decrease password length",
+          onClick: $event => (_ctx.passwordLength = Math.max(6, _ctx.passwordLength - 1))
+        }, _SimplePassword_hoisted_7, 8, _SimplePassword_hoisted_5),
+        _SimplePassword_hoisted_8,
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.passwordLength) = $event),
+          type: "range",
+          "aria-label": "Password Length",
+          min: "6",
+          max: "128",
+          class: "slider"
+        }, null, 8, _SimplePassword_hoisted_9), [
+          [_vModelText, _ctx.passwordLength]
+        ]),
+        _SimplePassword_hoisted_10,
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Increase password length",
+          onClick: $event => (_ctx.passwordLength = Math.min(128, _ctx.passwordLength + 1))
+        }, _SimplePassword_hoisted_13, 8, _SimplePassword_hoisted_11),
+        _createElementVNode("div", _SimplePassword_hoisted_14, _toDisplayString(_ctx.passwordLength), 1)
+      ])
+    ]),
+    _createElementVNode("div", _SimplePassword_hoisted_15, [
+      _SimplePassword_hoisted_16,
+      _createElementVNode("div", _SimplePassword_hoisted_17, [
+        _createElementVNode("label", _SimplePassword_hoisted_18, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.lowerCase) = $event),
+            type: "checkbox",
+            class: "checkbox"
+          }, null, 8, _SimplePassword_hoisted_19), [
+            [_vModelCheckbox, _ctx.lowerCase]
+          ]),
+          _SimplePassword_hoisted_20
+        ]),
+        _createElementVNode("label", _SimplePassword_hoisted_21, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.upperCase) = $event),
+            type: "checkbox",
+            class: "checkbox"
+          }, null, 8, _SimplePassword_hoisted_22), [
+            [_vModelCheckbox, _ctx.upperCase]
+          ]),
+          _SimplePassword_hoisted_23
+        ]),
+        _createElementVNode("label", _SimplePassword_hoisted_24, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.digits) = $event),
+            type: "checkbox",
+            class: "checkbox"
+          }, null, 8, _SimplePassword_hoisted_25), [
+            [_vModelCheckbox, _ctx.digits]
+          ]),
+          _SimplePassword_hoisted_26
+        ]),
+        _createElementVNode("label", _SimplePassword_hoisted_27, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.specialChars) = $event),
+            type: "checkbox",
+            class: "checkbox"
+          }, null, 8, _SimplePassword_hoisted_28), [
+            [_vModelCheckbox, _ctx.specialChars]
+          ]),
+          _SimplePassword_hoisted_29
+        ]),
+        _createElementVNode("label", _SimplePassword_hoisted_30, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.useEmoji) = $event),
+            type: "checkbox",
+            class: "checkbox"
+          }, null, 8, _SimplePassword_hoisted_31), [
+            [_vModelCheckbox, _ctx.useEmoji]
+          ]),
+          _SimplePassword_hoisted_32
+        ]),
+        _createElementVNode("label", _SimplePassword_hoisted_33, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.excludeAmbiguous) = $event),
+            type: "checkbox",
+            class: "checkbox"
+          }, null, 8, _SimplePassword_hoisted_34), [
+            [_vModelCheckbox, _ctx.excludeAmbiguous]
+          ]),
+          _SimplePassword_hoisted_35
+        ])
+      ])
+    ]),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _SimplePassword_hoisted_36),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _SimplePassword_hoisted_38,
+        _createTextVNode(" Generate Password ")
+      ], 8, _SimplePassword_hoisted_37),
+      _createElementVNode("div", _SimplePassword_hoisted_39, [
+        (_openBlock(), _createElementBlock("div", {
+          key: _ctx.password,
+          class: "form-input password-input",
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _SimplePassword_hoisted_40, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ])),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _SimplePassword_hoisted_41),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        mode: "simple"
+      }, null, 8, ["entropy", "password"])
+    ], 2),
+    _createElementVNode("div", _SimplePassword_hoisted_42, [
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 0,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
+}
+
+// --- WifiWords -------------------------------------------------------
+const _WifiWords_hoisted_1 = { class: "password-generator" }
+const _WifiWords_hoisted_2 = { class: "card" }
+const _WifiWords_hoisted_3 = { class: "card-header card-header-row" }
+const _WifiWords_hoisted_4 = /*#__PURE__*/_createElementVNode("span", null, "Word Slots", -1)
+const _WifiWords_hoisted_5 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_6 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-alpha-a-box" }, null, -1)
+const _WifiWords_hoisted_7 = /*#__PURE__*/_createElementVNode("span", null, "Alliteration", -1)
+const _WifiWords_hoisted_8 = {
+  key: 0,
+  class: "alliteration-letter"
+}
+const _WifiWords_hoisted_9 = { class: "slot-add-row" }
+const _WifiWords_hoisted_10 = /*#__PURE__*/_createElementVNode("span", { class: "slot-add-label" }, "Add:", -1)
+const _WifiWords_hoisted_11 = ["onClick", "disabled"]
+const _WifiWords_hoisted_12 = {
+  key: 0,
+  class: "slot-tray"
+}
+const _WifiWords_hoisted_13 = { class: "slot-pill-label" }
+const _WifiWords_hoisted_14 = { class: "slot-pill-actions" }
+const _WifiWords_hoisted_15 = ["onClick", "disabled"]
+const _WifiWords_hoisted_16 = ["onClick", "disabled"]
+const _WifiWords_hoisted_17 = ["onClick"]
+const _WifiWords_hoisted_18 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_19 = ["value"]
+const _WifiWords_hoisted_20 = {
+  key: 1,
+  class: "slot-empty"
+}
+const _WifiWords_hoisted_21 = { class: "card" }
+const _WifiWords_hoisted_22 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Word Separator", -1)
+const _WifiWords_hoisted_23 = { class: "separator-grid" }
+const _WifiWords_hoisted_24 = ["onUpdate:modelValue", "value"]
+const _WifiWords_hoisted_25 = { class: "cat-meta" }
+const _WifiWords_hoisted_26 = {
+  key: 0,
+  class: "custom-sep-row"
+}
+const _WifiWords_hoisted_27 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_28 = { class: "checkbox-item exclude-ambiguous" }
+const _WifiWords_hoisted_29 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_30 = /*#__PURE__*/_createElementVNode("span", null, "Exclude look-alikes (0/O, 1/l/I/|) from separators & affixes", -1)
+const _WifiWords_hoisted_31 = { class: "card" }
+const _WifiWords_hoisted_32 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Capitalization", -1)
+const _WifiWords_hoisted_33 = { class: "separator-grid" }
+const _WifiWords_hoisted_34 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_35 = /*#__PURE__*/_createElementVNode("span", null, "Title Case", -1)
+const _WifiWords_hoisted_36 = { class: "cat-meta" }
+const _WifiWords_hoisted_37 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_38 = /*#__PURE__*/_createElementVNode("span", null, "lowercase", -1)
+const _WifiWords_hoisted_39 = { class: "cat-meta" }
+const _WifiWords_hoisted_40 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_41 = /*#__PURE__*/_createElementVNode("span", null, "UPPERCASE", -1)
+const _WifiWords_hoisted_42 = { class: "cat-meta" }
+const _WifiWords_hoisted_43 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_44 = /*#__PURE__*/_createElementVNode("span", null, "rAndOm LetTerS", -1)
+const _WifiWords_hoisted_45 = { class: "cat-meta" }
+const _WifiWords_hoisted_46 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_47 = /*#__PURE__*/_createElementVNode("span", null, "AlTeRnAtInG", -1)
+const _WifiWords_hoisted_48 = { class: "cat-meta" }
+const _WifiWords_hoisted_49 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_50 = /*#__PURE__*/_createElementVNode("span", null, "lasT letteR", -1)
+const _WifiWords_hoisted_51 = { class: "cat-meta" }
+const _WifiWords_hoisted_52 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_53 = /*#__PURE__*/_createElementVNode("span", null, "FIRST word only", -1)
+const _WifiWords_hoisted_54 = { class: "cat-meta" }
+const _WifiWords_hoisted_55 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_56 = /*#__PURE__*/_createElementVNode("span", null, "last word ONLY", -1)
+const _WifiWords_hoisted_57 = { class: "cat-meta" }
+const _WifiWords_hoisted_58 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_59 = /*#__PURE__*/_createElementVNode("span", null, "WORD word WORD word", -1)
+const _WifiWords_hoisted_60 = { class: "cat-meta" }
+const _WifiWords_hoisted_61 = ["onUpdate:modelValue"]
+const _WifiWords_hoisted_62 = /*#__PURE__*/_createElementVNode("span", null, "WORD word is RANDOM", -1)
+const _WifiWords_hoisted_63 = { class: "cat-meta" }
+const _WifiWords_hoisted_64 = ["open", "onToggle"]
+const _WifiWords_hoisted_65 = { class: "card-header" }
+const _WifiWords_hoisted_66 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _WifiWords_hoisted_67 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _WifiWords_hoisted_68 = { class: "affix-pair" }
+const _WifiWords_hoisted_69 = /*#__PURE__*/_createElementVNode("div", { class: "affix-divider" }, null, -1)
+const _WifiWords_hoisted_70 = ["open", "onToggle"]
+const _WifiWords_hoisted_71 = { class: "card-header" }
+const _WifiWords_hoisted_72 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _WifiWords_hoisted_73 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _WifiWords_hoisted_74 = { class: "form-group" }
+const _WifiWords_hoisted_75 = { class: "symbol-chips-header" }
+const _WifiWords_hoisted_76 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Leet Speak Substitutions", -1)
+const _WifiWords_hoisted_77 = { class: "symbol-chips-actions" }
+const _WifiWords_hoisted_78 = ["onClick"]
+const _WifiWords_hoisted_79 = ["onClick"]
+const _WifiWords_hoisted_80 = { class: "symbol-chips" }
+const _WifiWords_hoisted_81 = ["onClick"]
+const _WifiWords_hoisted_82 = { class: "emoji-toggle-row" }
+const _WifiWords_hoisted_83 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Emoji", -1)
+const _WifiWords_hoisted_84 = ["onClick"]
+const _WifiWords_hoisted_85 = /*#__PURE__*/_createElementVNode("span", { class: "emoji-toggle-icon" }, "🎲", -1)
+const _WifiWords_hoisted_86 = { class: "emoji-toggle-label" }
+const _WifiWords_hoisted_87 = ["onClick", "title", "aria-label"]
+const _WifiWords_hoisted_88 = ["onClick"]
+const _WifiWords_hoisted_89 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-wifi" }, null, -1)
+const _WifiWords_hoisted_90 = { class: "password-display" }
+const _WifiWords_hoisted_91 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _WifiWords_hoisted_92 = {
+  key: 0,
+  class: "length-pill"
+}
+const _WifiWords_hoisted_93 = ["onClick", "title"]
+const _WifiWords_hoisted_94 = { class: "card" }
+const _WifiWords_hoisted_95 = {
+  key: 0,
+  class: "word-pills-row"
+}
+const _WifiWords_hoisted_96 = { class: "word-pills" }
+const _WifiWords_hoisted_97 = ["onClick"]
+const _WifiWords_hoisted_98 = { class: "word-pill-text" }
+const _WifiWords_hoisted_99 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant word-pill-icon" }, null, -1)
+const _WifiWords_hoisted_100 = ["onClick", "title"]
+
+export function renderWifiWords(_ctx, _cache) {
+  const _component_AffixPicker = _resolveComponent("AffixPicker")
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _WifiWords_hoisted_1, [
+    _createElementVNode("div", _WifiWords_hoisted_2, [
+      _createElementVNode("div", _WifiWords_hoisted_3, [
+        _WifiWords_hoisted_4,
+        _createElementVNode("label", {
+          class: _normalizeClass(["alliteration-toggle", { active: _ctx.alliterationMode }]),
+          title: "All words share the same starting letter"
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            type: "checkbox",
+            "onUpdate:modelValue": $event => ((_ctx.alliterationMode) = $event),
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_5), [
+            [_vModelCheckbox, _ctx.alliterationMode]
+          ]),
+          _WifiWords_hoisted_6,
+          _WifiWords_hoisted_7,
+          (_ctx.alliterationMode && _ctx.alliterationLetter)
+            ? (_openBlock(), _createElementBlock("span", _WifiWords_hoisted_8, _toDisplayString(_ctx.alliterationLetter.toUpperCase()), 1))
+            : _createCommentVNode("", true)
+        ], 2)
+      ]),
+      _createElementVNode("div", _WifiWords_hoisted_9, [
+        _WifiWords_hoisted_10,
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.slotTypes, (t) => {
+          return (_openBlock(), _createElementBlock("button", {
+            key: t.type,
+            class: _normalizeClass(["slot-add-btn", t.color]),
+            onClick: $event => (_ctx.addSlot(t.type)),
+            disabled: _ctx.slots.length >= 8
+          }, "+ " + _toDisplayString(t.label), 11, _WifiWords_hoisted_11))
+        }), 128))
+      ]),
+      (_ctx.slots.length > 0)
+        ? (_openBlock(), _createElementBlock("div", _WifiWords_hoisted_12, [
+            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.slots, (slot, idx) => {
+              return (_openBlock(), _createElementBlock("div", {
+                key: slot.id,
+                class: _normalizeClass(["slot-pill", 'slot-' + slot.type])
+              }, [
+                _createElementVNode("span", _WifiWords_hoisted_13, _toDisplayString(slot.type), 1),
+                _createElementVNode("div", _WifiWords_hoisted_14, [
+                  _createElementVNode("button", {
+                    class: "slot-arrow",
+                    onClick: $event => (_ctx.moveSlot(idx, -1)),
+                    disabled: idx === 0,
+                    title: "Move left"
+                  }, "←", 8, _WifiWords_hoisted_15),
+                  _createElementVNode("button", {
+                    class: "slot-arrow",
+                    onClick: $event => (_ctx.moveSlot(idx, 1)),
+                    disabled: idx === _ctx.slots.length - 1,
+                    title: "Move right"
+                  }, "→", 8, _WifiWords_hoisted_16),
+                  _createElementVNode("button", {
+                    class: "slot-remove",
+                    onClick: $event => (_ctx.removeSlot(slot.id)),
+                    title: "Remove"
+                  }, "×", 8, _WifiWords_hoisted_17)
+                ]),
+                _withDirectives(_createElementVNode("select", {
+                  class: "slot-cat-select",
+                  "onUpdate:modelValue": $event => ((slot.cat) = $event)
+                }, [
+                  (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.categoryMeta[slot.type], (opt) => {
+                    return (_openBlock(), _createElementBlock("option", {
+                      key: opt.id,
+                      value: opt.id
+                    }, _toDisplayString(opt.label) + _toDisplayString(_ctx.catInfo(slot.type, opt.id) ? ' — ' + _ctx.catInfo(slot.type, opt.id) : ''), 9, _WifiWords_hoisted_19))
+                  }), 128))
+                ], 8, _WifiWords_hoisted_18), [
+                  [_vModelSelect, slot.cat]
+                ])
+              ], 2))
+            }), 128))
+          ]))
+        : (_openBlock(), _createElementBlock("div", _WifiWords_hoisted_20, " Add word slots above to build your WiFi password structure. "))
+    ]),
+    _createElementVNode("div", _WifiWords_hoisted_21, [
+      _WifiWords_hoisted_22,
+      _createElementVNode("div", _WifiWords_hoisted_23, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.separatorOptions, (opt) => {
+          return (_openBlock(), _createElementBlock("label", {
+            key: opt.value,
+            class: _normalizeClass(["sep-option", { active: _ctx.separator === opt.value }])
+          }, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.separator) = $event),
+              value: opt.value,
+              type: "radio",
+              class: "sr-only"
+            }, null, 8, _WifiWords_hoisted_24), [
+              [_vModelRadio, _ctx.separator]
+            ]),
+            _createElementVNode("span", null, _toDisplayString(opt.label), 1),
+            _createElementVNode("span", _WifiWords_hoisted_25, _toDisplayString(_ctx.sepMeta(opt.value)), 1)
+          ], 2))
+        }), 128))
+      ]),
+      (_ctx.separator === 'custom')
+        ? (_openBlock(), _createElementBlock("div", _WifiWords_hoisted_26, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.customSeparator) = $event),
+              type: "text",
+              class: "form-input",
+              placeholder: "Type your separator"
+            }, null, 8, _WifiWords_hoisted_27), [
+              [_vModelText, _ctx.customSeparator]
+            ])
+          ]))
+        : _createCommentVNode("", true),
+      _createElementVNode("label", _WifiWords_hoisted_28, [
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.excludeAmbiguous) = $event),
+          type: "checkbox",
+          class: "checkbox"
+        }, null, 8, _WifiWords_hoisted_29), [
+          [_vModelCheckbox, _ctx.excludeAmbiguous]
+        ]),
+        _WifiWords_hoisted_30
+      ])
+    ]),
+    _createElementVNode("div", _WifiWords_hoisted_31, [
+      _WifiWords_hoisted_32,
+      _createElementVNode("div", _WifiWords_hoisted_33, [
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'title' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "title",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_34), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_35,
+          _createElementVNode("span", _WifiWords_hoisted_36, _toDisplayString(_ctx.capMeta('title')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'none' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "none",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_37), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_38,
+          _createElementVNode("span", _WifiWords_hoisted_39, _toDisplayString(_ctx.capMeta('none')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_40), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_41,
+          _createElementVNode("span", _WifiWords_hoisted_42, _toDisplayString(_ctx.capMeta('upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_43), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_44,
+          _createElementVNode("span", _WifiWords_hoisted_45, _toDisplayString(_ctx.capMeta('random')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'char-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "char-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_46), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_47,
+          _createElementVNode("span", _WifiWords_hoisted_48, _toDisplayString(_ctx.capMeta('char-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_49), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_50,
+          _createElementVNode("span", _WifiWords_hoisted_51, _toDisplayString(_ctx.capMeta('last-upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'first-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "first-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_52), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_53,
+          _createElementVNode("span", _WifiWords_hoisted_54, _toDisplayString(_ctx.capMeta('first-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_55), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_56,
+          _createElementVNode("span", _WifiWords_hoisted_57, _toDisplayString(_ctx.capMeta('last-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_58), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_59,
+          _createElementVNode("span", _WifiWords_hoisted_60, _toDisplayString(_ctx.capMeta('word-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WifiWords_hoisted_61), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WifiWords_hoisted_62,
+          _createElementVNode("span", _WifiWords_hoisted_63, _toDisplayString(_ctx.capMeta('word-random')), 1)
+        ], 2)
+      ])
+    ]),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.affixOpen,
+      onToggle: $event => (_ctx.affixOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _WifiWords_hoisted_65, [
+        _createTextVNode("Prefix & Suffix"),
+        (_ctx.prefixMode || _ctx.suffixMode)
+          ? (_openBlock(), _createElementBlock("span", _WifiWords_hoisted_66, "in use"))
+          : _createCommentVNode("", true),
+        _WifiWords_hoisted_67
+      ]),
+      _createElementVNode("div", _WifiWords_hoisted_68, [
+        _createVNode(_component_AffixPicker, {
+          label: "Prefix",
+          modelValue: _ctx.prefixMode,
+          customValue: _ctx.prefixCustom,
+          meta: _ctx.prefixMeta,
+          "onUpdate:modelValue": $event => (_ctx.prefixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.prefixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "meta", "onUpdate:modelValue", "onUpdate:customValue"]),
+        _WifiWords_hoisted_69,
+        _createVNode(_component_AffixPicker, {
+          label: "Suffix",
+          modelValue: _ctx.suffixMode,
+          customValue: _ctx.suffixCustom,
+          options: _ctx.suffixOptions,
+          meta: _ctx.suffixMeta,
+          "onUpdate:modelValue": $event => (_ctx.suffixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.suffixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "options", "meta", "onUpdate:modelValue", "onUpdate:customValue"])
+      ])
+    ], 40, _WifiWords_hoisted_64),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.extrasOpen,
+      onToggle: $event => (_ctx.extrasOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _WifiWords_hoisted_71, [
+        _createTextVNode("Leet Speak & Emoji"),
+        (_ctx.activeLeet.size > 0 || _ctx.useEmoji)
+          ? (_openBlock(), _createElementBlock("span", _WifiWords_hoisted_72, "in use"))
+          : _createCommentVNode("", true),
+        _WifiWords_hoisted_73
+      ]),
+      _createElementVNode("div", _WifiWords_hoisted_74, [
+        _createElementVNode("div", _WifiWords_hoisted_75, [
+          _WifiWords_hoisted_76,
+          _createElementVNode("div", _WifiWords_hoisted_77, [
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectAllLeet
+            }, "All", 8, _WifiWords_hoisted_78),
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectNoLeet
+            }, "None", 8, _WifiWords_hoisted_79)
+          ])
+        ]),
+        _createElementVNode("div", _WifiWords_hoisted_80, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.leetMap, (entry) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: entry.char,
+              type: "button",
+              class: _normalizeClass(["symbol-chip leet-chip", { active: _ctx.activeLeet.has(entry.char) }]),
+              onClick: $event => (_ctx.toggleLeet(entry.char))
+            }, _toDisplayString(entry.label), 11, _WifiWords_hoisted_81))
+          }), 128))
+        ])
+      ]),
+      _createElementVNode("div", _WifiWords_hoisted_82, [
+        _WifiWords_hoisted_83,
+        _createElementVNode("button", {
+          type: "button",
+          class: _normalizeClass(["emoji-toggle-btn", { active: _ctx.useEmoji }]),
+          onClick: $event => (_ctx.useEmoji = !_ctx.useEmoji),
+          title: "Prepend a category-matched emoji to each word"
+        }, [
+          _WifiWords_hoisted_85,
+          _createElementVNode("span", _WifiWords_hoisted_86, _toDisplayString(_ctx.useEmoji ? 'On' : 'Off'), 1)
+        ], 10, _WifiWords_hoisted_84)
+      ])
+    ], 40, _WifiWords_hoisted_70),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _WifiWords_hoisted_87),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _WifiWords_hoisted_89,
+        _createTextVNode(" Generate WiFi Password")
+      ], 8, _WifiWords_hoisted_88),
+      _createElementVNode("div", _WifiWords_hoisted_90, [
+        _createElementVNode("div", {
+          class: _normalizeClass(['form-input', 'password-input', { 'has-length-pill': _ctx.password.length > 0 }]),
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _WifiWords_hoisted_91, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ], 2),
+        (_ctx.password.length > 0)
+          ? (_openBlock(), _createElementBlock("span", _WifiWords_hoisted_92, _toDisplayString(_ctx.password.length), 1))
+          : _createCommentVNode("", true),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _WifiWords_hoisted_93),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        words: _ctx.rawWords.length,
+        mode: "wireless"
+      }, null, 8, ["entropy", "password", "words"])
+    ], 2),
+    _createElementVNode("div", _WifiWords_hoisted_94, [
+      (_ctx.rawWords.length)
+        ? (_openBlock(), _createElementBlock("div", _WifiWords_hoisted_95, [
+            _createElementVNode("div", _WifiWords_hoisted_96, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.rawWords, (w, i) => {
+                return (_openBlock(), _createElementBlock("button", {
+                  key: i,
+                  class: _normalizeClass(["word-pill", 'word-pill-' + _ctx.slots[i]?.type]),
+                  onClick: $event => (_ctx.regenWord(i)),
+                  title: "Click to swap this word"
+                }, [
+                  _createElementVNode("span", _WifiWords_hoisted_98, _toDisplayString(w), 1),
+                  _WifiWords_hoisted_99
+                ], 10, _WifiWords_hoisted_97))
+              }), 128))
+            ]),
+            _createElementVNode("button", {
+              class: _normalizeClass(["lock-affixes-btn", { active: _ctx.lockAffixes }]),
+              onClick: $event => (_ctx.lockAffixes = !_ctx.lockAffixes),
+              title: _ctx.lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'
+            }, [
+              _createElementVNode("span", {
+                class: _normalizeClass(['mdi', _ctx.lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline'])
+              }, null, 2)
+            ], 10, _WifiWords_hoisted_100)
+          ]))
+        : _createCommentVNode("", true),
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        warnSet: _ctx.warnSet,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "warnSet", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 1,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
+}
+
+// --- WordsPassword ---------------------------------------------------
+const _WordsPassword_hoisted_1 = { class: "password-generator" }
+const _WordsPassword_hoisted_2 = { class: "card" }
+const _WordsPassword_hoisted_3 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Number of Words", -1)
+const _WordsPassword_hoisted_4 = { class: "slider-container" }
+const _WordsPassword_hoisted_5 = ["onClick"]
+const _WordsPassword_hoisted_6 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-minus" }, null, -1)
+const _WordsPassword_hoisted_7 = [
+  _WordsPassword_hoisted_6
+]
+const _WordsPassword_hoisted_8 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "2", -1)
+const _WordsPassword_hoisted_9 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_10 = /*#__PURE__*/_createElementVNode("span", {
+  class: "slider-end",
+  "aria-hidden": "true"
+}, "20", -1)
+const _WordsPassword_hoisted_11 = ["onClick"]
+const _WordsPassword_hoisted_12 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-plus" }, null, -1)
+const _WordsPassword_hoisted_13 = [
+  _WordsPassword_hoisted_12
+]
+const _WordsPassword_hoisted_14 = { class: "slider-value" }
+const _WordsPassword_hoisted_15 = { class: "card" }
+const _WordsPassword_hoisted_16 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Word Separator", -1)
+const _WordsPassword_hoisted_17 = { class: "separator-grid" }
+const _WordsPassword_hoisted_18 = ["onUpdate:modelValue", "value"]
+const _WordsPassword_hoisted_19 = { class: "cat-meta" }
+const _WordsPassword_hoisted_20 = {
+  key: 0,
+  class: "custom-sep-row"
+}
+const _WordsPassword_hoisted_21 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_22 = { class: "checkbox-item exclude-ambiguous" }
+const _WordsPassword_hoisted_23 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_24 = /*#__PURE__*/_createElementVNode("span", null, "Exclude look-alikes (0/O, 1/l/I/|) from separators & affixes", -1)
+const _WordsPassword_hoisted_25 = { class: "card" }
+const _WordsPassword_hoisted_26 = /*#__PURE__*/_createElementVNode("div", { class: "card-header" }, "Capitalization", -1)
+const _WordsPassword_hoisted_27 = { class: "separator-grid" }
+const _WordsPassword_hoisted_28 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_29 = /*#__PURE__*/_createElementVNode("span", null, "Title Case", -1)
+const _WordsPassword_hoisted_30 = { class: "cat-meta" }
+const _WordsPassword_hoisted_31 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_32 = /*#__PURE__*/_createElementVNode("span", null, "lowercase", -1)
+const _WordsPassword_hoisted_33 = { class: "cat-meta" }
+const _WordsPassword_hoisted_34 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_35 = /*#__PURE__*/_createElementVNode("span", null, "UPPERCASE", -1)
+const _WordsPassword_hoisted_36 = { class: "cat-meta" }
+const _WordsPassword_hoisted_37 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_38 = /*#__PURE__*/_createElementVNode("span", null, "rAndOm LetTerS", -1)
+const _WordsPassword_hoisted_39 = { class: "cat-meta" }
+const _WordsPassword_hoisted_40 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_41 = /*#__PURE__*/_createElementVNode("span", null, "AlTeRnAtInG", -1)
+const _WordsPassword_hoisted_42 = { class: "cat-meta" }
+const _WordsPassword_hoisted_43 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_44 = /*#__PURE__*/_createElementVNode("span", null, "lasT letteR", -1)
+const _WordsPassword_hoisted_45 = { class: "cat-meta" }
+const _WordsPassword_hoisted_46 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_47 = /*#__PURE__*/_createElementVNode("span", null, "FIRST word only", -1)
+const _WordsPassword_hoisted_48 = { class: "cat-meta" }
+const _WordsPassword_hoisted_49 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_50 = /*#__PURE__*/_createElementVNode("span", null, "last word ONLY", -1)
+const _WordsPassword_hoisted_51 = { class: "cat-meta" }
+const _WordsPassword_hoisted_52 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_53 = /*#__PURE__*/_createElementVNode("span", null, "WORD word WORD word", -1)
+const _WordsPassword_hoisted_54 = { class: "cat-meta" }
+const _WordsPassword_hoisted_55 = ["onUpdate:modelValue"]
+const _WordsPassword_hoisted_56 = /*#__PURE__*/_createElementVNode("span", null, "WORD word is RANDOM", -1)
+const _WordsPassword_hoisted_57 = { class: "cat-meta" }
+const _WordsPassword_hoisted_58 = ["open", "onToggle"]
+const _WordsPassword_hoisted_59 = { class: "card-header" }
+const _WordsPassword_hoisted_60 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _WordsPassword_hoisted_61 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _WordsPassword_hoisted_62 = { class: "affix-pair" }
+const _WordsPassword_hoisted_63 = /*#__PURE__*/_createElementVNode("div", { class: "affix-divider" }, null, -1)
+const _WordsPassword_hoisted_64 = ["open", "onToggle"]
+const _WordsPassword_hoisted_65 = { class: "card-header" }
+const _WordsPassword_hoisted_66 = {
+  key: 0,
+  class: "collapse-inuse"
+}
+const _WordsPassword_hoisted_67 = /*#__PURE__*/_createElementVNode("span", {
+  class: "mdi mdi-chevron-down collapse-chevron",
+  "aria-hidden": "true"
+}, null, -1)
+const _WordsPassword_hoisted_68 = { class: "form-group" }
+const _WordsPassword_hoisted_69 = { class: "symbol-chips-header" }
+const _WordsPassword_hoisted_70 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Leet Speak Substitutions", -1)
+const _WordsPassword_hoisted_71 = { class: "symbol-chips-actions" }
+const _WordsPassword_hoisted_72 = ["onClick"]
+const _WordsPassword_hoisted_73 = ["onClick"]
+const _WordsPassword_hoisted_74 = { class: "symbol-chips" }
+const _WordsPassword_hoisted_75 = ["onClick"]
+const _WordsPassword_hoisted_76 = { class: "emoji-toggle-row" }
+const _WordsPassword_hoisted_77 = /*#__PURE__*/_createElementVNode("label", { class: "form-label" }, "Emoji", -1)
+const _WordsPassword_hoisted_78 = ["onClick"]
+const _WordsPassword_hoisted_79 = /*#__PURE__*/_createElementVNode("span", { class: "emoji-toggle-icon" }, "🎲", -1)
+const _WordsPassword_hoisted_80 = { class: "emoji-toggle-label" }
+const _WordsPassword_hoisted_81 = ["onClick", "title", "aria-label"]
+const _WordsPassword_hoisted_82 = ["onClick"]
+const _WordsPassword_hoisted_83 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant" }, null, -1)
+const _WordsPassword_hoisted_84 = { class: "password-display" }
+const _WordsPassword_hoisted_85 = {
+  key: 0,
+  class: "password-placeholder",
+  "aria-hidden": "true"
+}
+const _WordsPassword_hoisted_86 = {
+  key: 0,
+  class: "length-pill"
+}
+const _WordsPassword_hoisted_87 = ["onClick", "title"]
+const _WordsPassword_hoisted_88 = { class: "card" }
+const _WordsPassword_hoisted_89 = {
+  key: 0,
+  class: "word-pills-row"
+}
+const _WordsPassword_hoisted_90 = { class: "word-pills" }
+const _WordsPassword_hoisted_91 = ["onClick"]
+const _WordsPassword_hoisted_92 = { class: "word-pill-text" }
+const _WordsPassword_hoisted_93 = /*#__PURE__*/_createElementVNode("span", { class: "mdi mdi-shuffle-variant word-pill-icon" }, null, -1)
+const _WordsPassword_hoisted_94 = ["onClick", "title"]
+
+export function renderWordsPassword(_ctx, _cache) {
+  const _component_AffixPicker = _resolveComponent("AffixPicker")
+  const _component_KeepButton = _resolveComponent("KeepButton")
+  const _component_EntropyPanel = _resolveComponent("EntropyPanel")
+  const _component_HistoryStrip = _resolveComponent("HistoryStrip")
+
+  return (_openBlock(), _createElementBlock("div", _WordsPassword_hoisted_1, [
+    _createElementVNode("div", _WordsPassword_hoisted_2, [
+      _WordsPassword_hoisted_3,
+      _createElementVNode("div", _WordsPassword_hoisted_4, [
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Decrease number of words",
+          onClick: $event => (_ctx.wordCount = Math.max(2, _ctx.wordCount - 1))
+        }, _WordsPassword_hoisted_7, 8, _WordsPassword_hoisted_5),
+        _WordsPassword_hoisted_8,
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.wordCount) = $event),
+          type: "range",
+          "aria-label": "Number of Words",
+          min: "2",
+          max: "20",
+          class: "slider"
+        }, null, 8, _WordsPassword_hoisted_9), [
+          [_vModelText, _ctx.wordCount]
+        ]),
+        _WordsPassword_hoisted_10,
+        _createElementVNode("button", {
+          class: "stepper-btn",
+          "aria-label": "Increase number of words",
+          onClick: $event => (_ctx.wordCount = Math.min(20, _ctx.wordCount + 1))
+        }, _WordsPassword_hoisted_13, 8, _WordsPassword_hoisted_11),
+        _createElementVNode("div", _WordsPassword_hoisted_14, _toDisplayString(_ctx.wordCount), 1)
+      ])
+    ]),
+    _createElementVNode("div", _WordsPassword_hoisted_15, [
+      _WordsPassword_hoisted_16,
+      _createElementVNode("div", _WordsPassword_hoisted_17, [
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.separatorOptions, (opt) => {
+          return (_openBlock(), _createElementBlock("label", {
+            key: opt.value,
+            class: _normalizeClass(["sep-option", { active: _ctx.separator === opt.value }])
+          }, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.separator) = $event),
+              value: opt.value,
+              type: "radio",
+              class: "radio sr-only"
+            }, null, 8, _WordsPassword_hoisted_18), [
+              [_vModelRadio, _ctx.separator]
+            ]),
+            _createElementVNode("span", null, _toDisplayString(opt.label), 1),
+            _createElementVNode("span", _WordsPassword_hoisted_19, _toDisplayString(_ctx.sepMeta(opt.value)), 1)
+          ], 2))
+        }), 128))
+      ]),
+      (_ctx.separator === 'custom')
+        ? (_openBlock(), _createElementBlock("div", _WordsPassword_hoisted_20, [
+            _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((_ctx.customSeparator) = $event),
+              type: "text",
+              class: "form-input",
+              placeholder: "Type your separator"
+            }, null, 8, _WordsPassword_hoisted_21), [
+              [_vModelText, _ctx.customSeparator]
+            ])
+          ]))
+        : _createCommentVNode("", true),
+      _createElementVNode("label", _WordsPassword_hoisted_22, [
+        _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((_ctx.excludeAmbiguous) = $event),
+          type: "checkbox",
+          class: "checkbox"
+        }, null, 8, _WordsPassword_hoisted_23), [
+          [_vModelCheckbox, _ctx.excludeAmbiguous]
+        ]),
+        _WordsPassword_hoisted_24
+      ])
+    ]),
+    _createElementVNode("div", _WordsPassword_hoisted_25, [
+      _WordsPassword_hoisted_26,
+      _createElementVNode("div", _WordsPassword_hoisted_27, [
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'title' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "title",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_28), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_29,
+          _createElementVNode("span", _WordsPassword_hoisted_30, _toDisplayString(_ctx.capMeta('title')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'none' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "none",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_31), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_32,
+          _createElementVNode("span", _WordsPassword_hoisted_33, _toDisplayString(_ctx.capMeta('none')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_34), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_35,
+          _createElementVNode("span", _WordsPassword_hoisted_36, _toDisplayString(_ctx.capMeta('upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_37), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_38,
+          _createElementVNode("span", _WordsPassword_hoisted_39, _toDisplayString(_ctx.capMeta('random')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'char-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "char-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_40), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_41,
+          _createElementVNode("span", _WordsPassword_hoisted_42, _toDisplayString(_ctx.capMeta('char-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-upper' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-upper",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_43), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_44,
+          _createElementVNode("span", _WordsPassword_hoisted_45, _toDisplayString(_ctx.capMeta('last-upper')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'first-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "first-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_46), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_47,
+          _createElementVNode("span", _WordsPassword_hoisted_48, _toDisplayString(_ctx.capMeta('first-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'last-only' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "last-only",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_49), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_50,
+          _createElementVNode("span", _WordsPassword_hoisted_51, _toDisplayString(_ctx.capMeta('last-only')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-alt' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-alt",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_52), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_53,
+          _createElementVNode("span", _WordsPassword_hoisted_54, _toDisplayString(_ctx.capMeta('word-alt')), 1)
+        ], 2),
+        _createElementVNode("label", {
+          class: _normalizeClass(["sep-option", { active: _ctx.capitalization === 'word-random' }])
+        }, [
+          _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((_ctx.capitalization) = $event),
+            value: "word-random",
+            type: "radio",
+            class: "sr-only"
+          }, null, 8, _WordsPassword_hoisted_55), [
+            [_vModelRadio, _ctx.capitalization]
+          ]),
+          _WordsPassword_hoisted_56,
+          _createElementVNode("span", _WordsPassword_hoisted_57, _toDisplayString(_ctx.capMeta('word-random')), 1)
+        ], 2)
+      ])
+    ]),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.affixOpen,
+      onToggle: $event => (_ctx.affixOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _WordsPassword_hoisted_59, [
+        _createTextVNode("Prefix & Suffix"),
+        (_ctx.prefixMode || _ctx.suffixMode)
+          ? (_openBlock(), _createElementBlock("span", _WordsPassword_hoisted_60, "in use"))
+          : _createCommentVNode("", true),
+        _WordsPassword_hoisted_61
+      ]),
+      _createElementVNode("div", _WordsPassword_hoisted_62, [
+        _createVNode(_component_AffixPicker, {
+          label: "Prefix",
+          modelValue: _ctx.prefixMode,
+          customValue: _ctx.prefixCustom,
+          meta: _ctx.prefixMeta,
+          "onUpdate:modelValue": $event => (_ctx.prefixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.prefixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "meta", "onUpdate:modelValue", "onUpdate:customValue"]),
+        _WordsPassword_hoisted_63,
+        _createVNode(_component_AffixPicker, {
+          label: "Suffix",
+          modelValue: _ctx.suffixMode,
+          customValue: _ctx.suffixCustom,
+          options: _ctx.suffixOptions,
+          meta: _ctx.suffixMeta,
+          "onUpdate:modelValue": $event => (_ctx.suffixMode = $event),
+          "onUpdate:customValue": $event => (_ctx.suffixCustom = $event)
+        }, null, 8, ["modelValue", "customValue", "options", "meta", "onUpdate:modelValue", "onUpdate:customValue"])
+      ])
+    ], 40, _WordsPassword_hoisted_58),
+    _createElementVNode("details", {
+      class: "card card-collapse",
+      open: _ctx.extrasOpen,
+      onToggle: $event => (_ctx.extrasOpen = $event.target.open)
+    }, [
+      _createElementVNode("summary", _WordsPassword_hoisted_65, [
+        _createTextVNode("Leet Speak & Emoji"),
+        (_ctx.activeLeet.size > 0 || _ctx.useEmoji)
+          ? (_openBlock(), _createElementBlock("span", _WordsPassword_hoisted_66, "in use"))
+          : _createCommentVNode("", true),
+        _WordsPassword_hoisted_67
+      ]),
+      _createElementVNode("div", _WordsPassword_hoisted_68, [
+        _createElementVNode("div", _WordsPassword_hoisted_69, [
+          _WordsPassword_hoisted_70,
+          _createElementVNode("div", _WordsPassword_hoisted_71, [
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectAllLeet
+            }, "All", 8, _WordsPassword_hoisted_72),
+            _createElementVNode("button", {
+              type: "button",
+              class: "chip-action",
+              onClick: _ctx.selectNoLeet
+            }, "None", 8, _WordsPassword_hoisted_73)
+          ])
+        ]),
+        _createElementVNode("div", _WordsPassword_hoisted_74, [
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.leetMap, (entry) => {
+            return (_openBlock(), _createElementBlock("button", {
+              key: entry.char,
+              type: "button",
+              class: _normalizeClass(["symbol-chip leet-chip", { active: _ctx.activeLeet.has(entry.char) }]),
+              onClick: $event => (_ctx.toggleLeet(entry.char))
+            }, _toDisplayString(entry.label), 11, _WordsPassword_hoisted_75))
+          }), 128))
+        ])
+      ]),
+      _createElementVNode("div", _WordsPassword_hoisted_76, [
+        _WordsPassword_hoisted_77,
+        _createElementVNode("button", {
+          type: "button",
+          class: _normalizeClass(["emoji-toggle-btn", { active: _ctx.useEmoji }]),
+          onClick: $event => (_ctx.useEmoji = !_ctx.useEmoji),
+          title: "Prepend a random emoji to each word"
+        }, [
+          _WordsPassword_hoisted_79,
+          _createElementVNode("span", _WordsPassword_hoisted_80, _toDisplayString(_ctx.useEmoji ? 'On' : 'Off'), 1)
+        ], 10, _WordsPassword_hoisted_78)
+      ])
+    ], 40, _WordsPassword_hoisted_64),
+    _createElementVNode("div", {
+      class: _normalizeClass(["card card-generate", { 'bar-unstuck': !_ctx.floatBar }])
+    }, [
+      _createElementVNode("button", {
+        type: "button",
+        class: "bar-pin",
+        onClick: $event => (_ctx.floatBar = !_ctx.floatBar),
+        title: _ctx.floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll',
+        "aria-label": _ctx.floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'
+      }, [
+        _createElementVNode("span", {
+          class: _normalizeClass(['mdi', _ctx.floatBar ? 'mdi-pin-outline' : 'mdi-pin']),
+          "aria-hidden": "true"
+        }, null, 2)
+      ], 8, _WordsPassword_hoisted_81),
+      _createElementVNode("button", {
+        onClick: _ctx.generatePassword,
+        class: "btn btn-primary"
+      }, [
+        _WordsPassword_hoisted_83,
+        _createTextVNode(" Generate Password ")
+      ], 8, _WordsPassword_hoisted_82),
+      _createElementVNode("div", _WordsPassword_hoisted_84, [
+        _createElementVNode("div", {
+          class: _normalizeClass(['form-input', 'password-input', { 'has-length-pill': _ctx.password.length > 0 }]),
+          role: "textbox",
+          "aria-readonly": "true",
+          "aria-label": "Generated password",
+          tabindex: "0"
+        }, [
+          _createTextVNode(_toDisplayString(_ctx.password), 1),
+          (!_ctx.password)
+            ? (_openBlock(), _createElementBlock("span", _WordsPassword_hoisted_85, "Generated password will appear here..."))
+            : _createCommentVNode("", true)
+        ], 2),
+        (_ctx.password.length > 0)
+          ? (_openBlock(), _createElementBlock("span", _WordsPassword_hoisted_86, _toDisplayString(_ctx.password.length), 1))
+          : _createCommentVNode("", true),
+        _createElementVNode("button", {
+          onClick: _ctx.copyPassword,
+          class: _normalizeClass(['copy-btn', { copied: _ctx.copied }]),
+          title: _ctx.copied ? 'Copied!' : 'Copy to clipboard'
+        }, [
+          _createElementVNode("span", {
+            class: _normalizeClass(['mdi', _ctx.copied ? 'mdi-check' : 'mdi-content-copy'])
+          }, null, 2)
+        ], 10, _WordsPassword_hoisted_87),
+        _createVNode(_component_KeepButton, {
+          password: _ctx.password,
+          bits: _ctx.entropy ? _ctx.entropy.total : null
+        }, null, 8, ["password", "bits"])
+      ]),
+      _createVNode(_component_EntropyPanel, {
+        entropy: _ctx.entropy,
+        password: _ctx.password,
+        mode: "words"
+      }, null, 8, ["entropy", "password"])
+    ], 2),
+    _createElementVNode("div", _WordsPassword_hoisted_88, [
+      (_ctx.rawWords.length)
+        ? (_openBlock(), _createElementBlock("div", _WordsPassword_hoisted_89, [
+            _createElementVNode("div", _WordsPassword_hoisted_90, [
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(_ctx.rawWords, (w, i) => {
+                return (_openBlock(), _createElementBlock("button", {
+                  key: i,
+                  class: "word-pill",
+                  onClick: $event => (_ctx.regenWord(i)),
+                  title: "Click to swap this word"
+                }, [
+                  _createElementVNode("span", _WordsPassword_hoisted_92, _toDisplayString(w), 1),
+                  _WordsPassword_hoisted_93
+                ], 8, _WordsPassword_hoisted_91))
+              }), 128))
+            ]),
+            _createElementVNode("button", {
+              class: _normalizeClass(["lock-affixes-btn", { active: _ctx.lockAffixes }]),
+              onClick: $event => (_ctx.lockAffixes = !_ctx.lockAffixes),
+              title: _ctx.lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'
+            }, [
+              _createElementVNode("span", {
+                class: _normalizeClass(['mdi', _ctx.lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline'])
+              }, null, 2)
+            ], 10, _WordsPassword_hoisted_94)
+          ]))
+        : _createCommentVNode("", true),
+      _createVNode(_component_HistoryStrip, {
+        history: _ctx.history,
+        current: _ctx.password,
+        onSelect: $event => (_ctx.recallHistory($event))
+      }, null, 8, ["history", "current", "onSelect"]),
+      (_ctx.notification.show)
+        ? (_openBlock(), _createElementBlock("div", {
+            key: 1,
+            class: _normalizeClass(['notification', _ctx.notification.type]),
+            role: "status",
+            "aria-live": "polite"
+          }, _toDisplayString(_ctx.notification.message), 3))
+        : _createCommentVNode("", true)
+    ])
+  ]))
 }
 

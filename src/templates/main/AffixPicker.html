@@ -1,0 +1,23 @@
+<div class="affix-block">
+  <div class="affix-label">{{ label }}</div>
+  <div class="separator-grid">
+    <label
+      v-for="opt in options"
+      :key="opt.value"
+      class="sep-option"
+      :class="{ active: modelValue === opt.value }"
+    >
+      <input :value="opt.value" :checked="modelValue === opt.value" @change="onMode(opt.value)" type="radio" class="sr-only" />
+      <span>{{ opt.label }}</span><span v-if="meta" class="cat-meta">{{ meta(opt.value) }}</span>
+    </label>
+  </div>
+  <div v-if="modelValue === 'custom'" class="custom-sep-row">
+    <input
+      :value="customValue"
+      @input="onCustom"
+      type="text"
+      class="form-input"
+      placeholder="Type literal text"
+    />
+  </div>
+</div>

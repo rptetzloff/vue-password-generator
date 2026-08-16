@@ -1,0 +1,14 @@
+<div v-if="history.length > 1" class="history-strip">
+  <div class="history-label">History</div>
+  <div class="history-list">
+    <div v-for="(entry, i) in history" :key="i" class="history-row">
+      <button
+        class="history-item"
+        :class="{ 'history-item-active': entry.pw === current, 'history-item-warn': warnSet.has(entry.pw) }"
+        @click="$emit('select', entry)"
+        :title="warnSet.has(entry.pw) ? entry.pw + ' (under 8 characters)' : entry.pw"
+      ><span class="history-pw">{{ entry.pw }}</span><span v-if="entry.bits != null" class="history-bits">{{ entry.bits.toFixed(1) }} bits</span><span v-if="warnSet.has(entry.pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
+      <KeepButton :password="entry.pw" :bits="entry.bits" compact />
+    </div>
+  </div>
+</div>

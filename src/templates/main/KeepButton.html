@@ -1,0 +1,68 @@
+<span class="keep-wrap" :class="{ 'keep-compact': compact }">
+  <button
+    :class="[compact ? 'history-keep' : 'copy-btn keep-btn', { kept }]"
+    @click.stop="start"
+    :disabled="!password"
+    :title="kept ? 'Kept in the vault' : 'Keep in the vault'"
+    :aria-label="kept ? 'Kept in the vault' : 'Keep in the vault'"
+    :aria-expanded="open ? 'true' : 'false'"
+  ><span :class="['mdi', kept ? 'mdi-check-decagram' : 'mdi-shield-key-outline']"></span></button>
+
+  <div v-if="open" class="keep-panel" role="dialog" aria-label="Keep in the vault" @click.stop>
+    <div v-if="error" class="keep-error">{{ error }}</div>
+
+    <template v-if="state === 'unlocked'">
+      <label class="keep-field">
+        <span>Label</span>
+        <input v-model="label" type="text" placeholder="What is this for?" @keyup.enter="save" />
+      </label>
+      <div class="keep-actions">
+        <button class="btn btn-primary" @click="save" :disabled="busy">Keep</button>
+        <button class="btn" @click="open = false">Cancel</button>
+      </div>
+    </template>
+
+    <template v-else-if="state === 'locked'">
+      <label class="keep-field">
+        <span>Vault passphrase</span>
+        <input v-model="pass" type="password" autocomplete="current-password" @keyup.enter="unlock" />
+      </label>
+      <div class="keep-actions">
+        <button class="btn btn-primary" @click="unlock" :disabled="busy">
+          {{ busy ? 'Unlocking…' : 'Unlock' }}
+        </button>
+        <button class="btn" @click="open = false">Cancel</button>
+      </div>
+    </template>
+
+    <template v-else-if="state === 'absent'">
+      <p>No vault on this device yet. Use this password as the passphrase that protects it?</p>
+
+      <div class="keep-writedown">
+        <p class="keep-writedown-head">
+          <span class="mdi mdi-alert" aria-hidden="true"></span> Write this down, or save it elsewhere, first.
+        </p>
+        <p>
+          It becomes the key to your vault, and there is no account and no reset link. Lose it
+          with no recovery key made and everything in the vault is gone for good — not locked
+          out, gone. Put it on paper, in another password manager, or anywhere you will still
+          have it later — <em>before</em> you continue.
+        </p>
+        <code class="keep-writedown-pw">{{ password }}</code>
+      </div>
+
+      <label class="keep-ack">
+        <input type="checkbox" v-model="acknowledged" />
+        <span>I have written it down, or saved it somewhere I will still have it.</span>
+      </label>
+      <div class="keep-actions">
+        <button class="btn btn-primary" @click="adopt" :disabled="busy || !acknowledged">
+          {{ busy ? 'Creating…' : 'Use as vault passphrase' }}
+        </button>
+        <a class="btn" href="/vault.html">Choose my own</a>
+      </div>
+    </template>
+
+    <p v-else>Opening…</p>
+  </div>
+</span>

@@ -170,13 +170,44 @@ const templatesIn = (dir) => {
 export const buildBundle = (bundle) => {
   const files = templatesIn(bundle.dir)
   if (!files.length) return null
-  const parts = [header(bundle.dir)]
+
+  const helpers = new Set()
+  const bodies = []
+
   for (const { name, template } of files) {
-    parts.push(`// --- ${name} ${'-'.repeat(Math.max(0, 64 - name.length))}`)
-    parts.push(renderFor(name, template))
-    parts.push('')
+    let code = renderFor(name, template)
+
+    // Every compiled template emits its OWN import line, and several import
+    // the same helper under the same alias -- twelve templates gave twelve
+    // `_toDisplayString` declarations and a SyntaxError that took the page
+    // down. Collect the aliases and emit one import for the bundle.
+    code = code.replace(/^import \{([^}]*)\} from '[^']*'\n?/m, (_, names) => {
+      for (const pair of names.split(',')) {
+        const t = pair.trim()
+        if (t) helpers.add(t)
+      }
+      return ''
+    })
+
+    // Same problem one level down: the hoisted constants restart at _1 for
+    // every compile, so `_hoisted_1` is declared once per template. Prefix
+    // them per component. Matches any compiler-generated top-level const, not
+    // just _hoisted_, so a future one cannot reintroduce this quietly.
+    const locals = [...code.matchAll(/^const (_[A-Za-z0-9_$]+) =/gm)].map((m) => m[1])
+    for (const local of new Set(locals)) {
+      code = code.replace(
+        new RegExp('\\b' + local + '\\b', 'g'),
+        '_' + name + local,
+      )
+    }
+
+    bodies.push(`// --- ${name} ${'-'.repeat(Math.max(0, 64 - name.length))}`)
+    bodies.push(code.trim())
+    bodies.push('')
   }
-  return parts.join('\n') + '\n'
+
+  const importLine = `import { ${[...helpers].sort().join(', ')} } from '${VUE_IMPORT}'`
+  return [header(bundle.dir), importLine, '', ...bodies].join('\n') + '\n'
 }
 
 const normalise = (s) => s.replace(/\r\n/g, '\n')
