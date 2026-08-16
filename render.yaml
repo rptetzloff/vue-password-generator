@@ -175,13 +175,32 @@ services:
   # Dev is a real deployment of a password manager on a public domain, so it
   # gets the real headers. A dev site with a weaker CSP is a dev site that
   # cannot tell you whether the CSP works.
+  #
+  # A BLUEPRINT DOES NOT ADOPT AN EXISTING SERVICE BY NAME. Measured, after the
+  # docs said otherwise: writing the existing `wordlock-cl9q` in here produced
+  # a second service called `wordlock-cl9q-cl9q` rather than taking over the
+  # first. Render uniquified the name instead of matching it. Linking an
+  # existing service to a Blueprint appears to be a dashboard action; the file
+  # only manages what the Blueprint itself created.
+  #
+  # So this service is named for what it is rather than for the accident of
+  # what Render generated, and it is created FRESH -- the two older dev
+  # services were deleted first, which is what frees dev.wordlock.net for the
+  # domains block below. Applying this while that domain is still attached
+  # elsewhere will fail, and that ordering is the whole trick.
   - type: web
-    name: wordlock-cl9q
+    name: wordlock-dev
     runtime: static
     # The whole point of the exercise. This being in the file is what makes it
     # reviewable, and what stops the next person wondering why dev is stale.
     branch: dev
     staticPublishPath: ./
+    # Declared here only because this service is being created from scratch and
+    # nothing is attached yet. Production's domain is deliberately NOT declared:
+    # it is attached, correct, and there is no version of touching it tonight
+    # that is worth the upside.
+    domains:
+      - dev.wordlock.net
     headers:
       - path: /*
         name: X-Frame-Options

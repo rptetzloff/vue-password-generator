@@ -31,7 +31,14 @@ const services = (() => {
     const headers = [...body.matchAll(
       /^ {6}- path:\s*(\S+)\s*\n\s+name:\s*(\S+)\s*\n\s+value:\s*(.+)$/gm,
     )].map((m) => ({ path: m[1], name: m[2], value: m[3].trim().replace(/^"|"$/g, '') }))
-    return { name: field('name'), branch: field('branch'), publish: field('staticPublishPath'), headers }
+    const domains = [...body.matchAll(/^ {6}- (\S+\.\S+)\s*$/gm)].map((m) => m[1])
+    return {
+      name: field('name'),
+      branch: field('branch'),
+      publish: field('staticPublishPath'),
+      domains,
+      headers,
+    }
   })
 })()
 
@@ -44,8 +51,8 @@ test('the file describes both deployments, not just production', () => {
   assert.ok(byName.wordlock, 'the production service must be declared')
   assert.equal(byName.wordlock.branch, 'main')
 
-  assert.ok(byName['wordlock-cl9q'], 'the dev service must be declared')
-  assert.equal(byName['wordlock-cl9q'].branch, 'dev',
+  assert.ok(byName['wordlock-dev'], 'the dev service must be declared')
+  assert.equal(byName['wordlock-dev'].branch, 'dev',
     'dev.wordlock.net follows dev -- this being in the file is the whole point')
 })
 
@@ -123,4 +130,26 @@ test('HSTS is long, covers subdomains, and does not claim preload', () => {
     assert.ok(!/preload/.test(hsts.value),
       `${s.name}: preload is a separate, near-irreversible decision`)
   }
+})
+
+
+test('no service is named for an accident of Render name generation', () => {
+  // `wordlock-cl9q` was a generated name, and writing it into this file taught
+  // us that a Blueprint does not adopt an existing service by name -- it made
+  // `wordlock-cl9q-cl9q` instead. The services are named for what they are now.
+  for (const s of services) {
+    assert.ok(!/-cl9q/.test(s.name),
+      `${s.name} is named after a generated suffix; name it for what it is`)
+  }
+})
+
+test('the dev domain is declared; production\'s deliberately is not', () => {
+  // Asymmetric on purpose, and the asymmetry is the safe half. The dev service
+  // is created from scratch with nothing attached, so declaring its domain
+  // costs nothing and makes it reviewable. Production's domain is attached and
+  // working, and there is no version of touching it that is worth the upside.
+  const byName = Object.fromEntries(services.map((s) => [s.name, s]))
+  assert.deepEqual(byName['wordlock-dev'].domains, ['dev.wordlock.net'])
+  assert.deepEqual(byName.wordlock.domains, [],
+    "production's domain stays attached by hand, on purpose")
 })
