@@ -4,9 +4,9 @@ import fs from 'node:fs'
 import {
   createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
   groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
-  TOMBSTONE_TTL_MS, isTombstone,
+  TOMBSTONE_TTL_MS, isTombstone, EXPORT_HISTORY, deviceNameFrom, mergeMeta,
 } from '../src/vault-store.js'
-import { KDF_ITERATIONS, sealVault, deriveKey, newSalt } from '../src/vault-crypto.js'
+import { KDF_ITERATIONS, sealVault, deriveKey, newSalt, createVault, openVault } from '../src/vault-crypto.js'
 
 // Storage and the clock are injected, so the state machine, the auto-lock and
 // the entry rules are all exercised here without a browser. Only the
@@ -74,6 +74,10 @@ test('locking forgets, rather than hiding', async () => {
   const onDisk = JSON.stringify(storage.box.value)
   assert.ok(!onDisk.includes('sparrow'), 'the stored envelope must be ciphertext')
   assert.throws(() => store.list(), /locked/)
+  // Including the payload's own fields: an entry count is a fact about the
+  // contents, and it came out of the ciphertext with them.
+  assert.equal(store.vaultId(), null)
+  assert.equal(store.lastExport(), null)
   await assert.rejects(() => store.add({ pw: 'x' }), /locked/)
   await assert.rejects(() => store.update('any', { pw: 'x' }), /locked/)
   await assert.rejects(() => store.remove('any'), /locked/)
@@ -1096,4 +1100,312 @@ test('a restored entry beats the deletion on another replica', async () => {
   await store.restore(copy)
   const restored = store.raw().find((e) => e.id === made.id)
   assert.ok(restored.updatedAt > tombstone.deletedAt)
+})
+
+// -- The payload: facts about the vault, not just its contents ----------------
+
+test('a vault has a stable id that survives everything', async () => {
+  // What lets two replicas establish they are the same vault before trying to
+  // reconcile. It must not change when the passphrase does, or a re-key would
+  // look like a different vault to every other copy.
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const id = store.vaultId()
+  assert.match(id, /\S/)
+
+  await store.add({ label: 'Bank', pw: 'x' })
+  assert.equal(store.vaultId(), id, 'adding an entry')
+
+  await store.rekey(PASS, 'a different passphrase')
+  assert.equal(store.vaultId(), id, 'changing the passphrase')
+
+  store.lock()
+  await store.unlock('a different passphrase')
+  assert.equal(store.vaultId(), id, 'and a lock/unlock round trip')
+})
+
+test('two vaults have different ids', async () => {
+  const a = await freshStore()
+  await a.store.create(PASS)
+  const b = await freshStore()
+  await b.store.create(PASS)
+  assert.notEqual(a.store.vaultId(), b.store.vaultId())
+})
+
+test('a vault written before payloads existed still opens, and gains an id', async () => {
+  // Every vault made until today holds a bare array. It must load unchanged,
+  // and acquire an id the first time it is opened rather than staying
+  // anonymous forever.
+  const legacyEntries = [{ id: 'a', label: 'Email', pw: 'hunter2!', at: '2026-08-14' }]
+  const { envelope } = await createVault(PASS, legacyEntries)
+
+  const storage = fakeStorage()
+  storage.box.value = envelope
+  const store = createVaultStore({ storage, now: fakeClock().now })
+  await store.init()
+  await store.unlock(PASS)
+
+  assert.equal(store.list()[0].label, 'Email', 'the entries come through')
+  assert.match(store.vaultId() || '', /\S/, 'and it now has an id')
+
+  // And that id sticks, rather than being reinvented on every save.
+  const id = store.vaultId()
+  await store.add({ label: 'New', pw: 'y' })
+  store.lock()
+  await store.unlock(PASS)
+  assert.equal(store.vaultId(), id)
+})
+
+test('the backup record lives in the vault, so every browser sees it', async () => {
+  // It was in localStorage, which made it per-browser: Edge reported a vault
+  // as never exported an hour after Chrome had exported it. With a shared
+  // folder that is wrong rather than merely unhelpful.
+  const storage = fakeStorage()
+  const first = createVaultStore({ storage, now: fakeClock().now })
+  await first.init()
+  await first.create(PASS)
+  await first.add({ label: 'Bank', pw: 'x' })
+  assert.equal(first.lastExport(), null)
+
+  const noted = await first.noteExport()
+  assert.equal(noted.count, 1)
+  assert.match(noted.at, /^\d{4}-\d{2}-\d{2}T/, 'a full timestamp, not a date')
+
+  // A different browser over the same storage is the case that was broken.
+  const second = createVaultStore({ storage, now: fakeClock().now })
+  await second.init()
+  await second.unlock(PASS)
+  assert.deepEqual(second.lastExport(), noted, 'the other browser knows')
+})
+
+test('the export count ignores tombstones', async () => {
+  const { store } = await freshStore()
+  await store.create(PASS)
+  const a = await store.add({ label: 'A', pw: 'x' })
+  await store.add({ label: 'B', pw: 'y' })
+  await store.remove(a.id)
+  assert.equal((await store.noteExport()).count, 1)
+})
+
+test('each write records which device made it', async () => {
+  // A label rather than a credential: it exists so a merge can say where a
+  // change came from, and so an unexpected writer is visible.
+  const storage = fakeStorage()
+  const store = createVaultStore({ storage, now: fakeClock().now, deviceId: 'laptop' })
+  await store.init()
+  await store.create(PASS)
+  await store.add({ label: 'Bank', pw: 'x' })
+
+  const other = createVaultStore({ storage, now: fakeClock().now, deviceId: 'phone' })
+  await other.init()
+  await other.unlock(PASS)
+  const opened = await openVault(storage.box.value, PASS)
+  assert.equal(opened.data.meta.lastWriter, 'laptop')
+
+  await other.add({ label: 'Email', pw: 'y' })
+  const after = await openVault(storage.box.value, PASS)
+  assert.equal(after.data.meta.lastWriter, 'phone')
+})
+
+
+test('the vault keeps a short history of backups, newest first', async () => {
+  // The useful question is not "was there ever a backup" but "how long have I
+  // been meaning to", and one record cannot answer it.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const store = createVaultStore({ storage, now: clock.now, deviceName: 'Edge on Windows' })
+  await store.init()
+  await store.create(PASS)
+  await store.add({ label: 'A', pw: 'x' })
+  assert.deepEqual(store.exports(), [])
+
+  await store.noteExport()
+  clock.advance(60_000)
+  await store.add({ label: 'B', pw: 'y' })
+  await store.noteExport()
+
+  const list = store.exports()
+  assert.equal(list.length, 2)
+  assert.ok(list[0].at > list[1].at, 'newest first')
+  assert.deepEqual(list.map((x) => x.count), [2, 1])
+  assert.equal(list[0].by, 'Edge on Windows')
+  assert.deepEqual(store.lastExport(), list[0], 'the nag reads the newest of these')
+})
+
+test('the history is capped, so it cannot grow inside the ciphertext forever', async () => {
+  const clock = fakeClock()
+  const { store } = await freshStore()
+  await store.create(PASS)
+  await store.add({ label: 'A', pw: 'x' })
+  for (let i = 0; i < EXPORT_HISTORY + 4; i++) await store.noteExport()
+  assert.equal(store.exports().length, EXPORT_HISTORY)
+  void clock
+})
+
+test('a garbled backup record is dropped rather than rendered', async () => {
+  // It comes out of the vault, but the vault may have been written by a
+  // version that is not this one. A list is not worth a broken page.
+  const { envelope } = await createVault(PASS, {
+    v: 1,
+    vaultId: 'abc',
+    entries: [],
+    meta: { exports: [null, { at: '2026-08-01T00:00:00.000Z', count: 3 }, { at: 7 }, { count: 1 }] },
+  })
+  const storage = fakeStorage()
+  storage.box.value = envelope
+  const store = createVaultStore({ storage, now: fakeClock().now })
+  await store.init()
+  await store.unlock(PASS)
+  assert.deepEqual(store.exports(), [{ at: '2026-08-01T00:00:00.000Z', count: 3 }])
+})
+
+test('the device name says which browser, and gets the impersonators right', () => {
+  // Every Chromium UA claims Safari, and Edge claims Chrome on top of that.
+  // Testing in the wrong order is the only way to get this wrong, so the order
+  // is what is asserted.
+  const chrome = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+  const edge = chrome + ' Edg/140.0.0.0'
+  const opera = chrome + ' OPR/117.0.0.0'
+  assert.equal(deviceNameFrom(chrome), 'Chrome on Windows')
+  assert.equal(deviceNameFrom(edge), 'Edge on Windows')
+  assert.equal(deviceNameFrom(opera), 'Opera on Windows')
+  assert.equal(
+    deviceNameFrom('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Safari/605.1.15'),
+    'Safari on macOS')
+  assert.equal(
+    deviceNameFrom('Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1'),
+    'Safari on iOS', 'an iPhone also says Mac OS X, and is not a Mac')
+  assert.equal(
+    deviceNameFrom('Mozilla/5.0 (X11; Linux x86_64; rv:130.0) Gecko/20100101 Firefox/130.0'),
+    'Firefox on Linux')
+  // It is a label. Nothing may depend on it, including being present.
+  assert.equal(deviceNameFrom(''), 'an unknown browser')
+  assert.equal(deviceNameFrom(undefined), 'an unknown browser')
+})
+
+// -- read-merge-write ---------------------------------------------------------
+
+test('two tabs of one browser stop overwriting each other too', async () => {
+  // Not only the folder case. Two tabs are two stores over the same IndexedDB,
+  // which is the same lost update with a shorter distance to travel -- and far
+  // more common, since nothing warns you that the vault is open twice.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const mk = () => createVaultStore({ storage, now: clock.now })
+
+  const tabA = mk()
+  await tabA.init()
+  await tabA.create(PASS)
+  const tabB = mk()
+  await tabB.init()
+  await tabB.unlock(PASS)
+
+  await tabA.add({ label: 'Typed in A', pw: 'aaa' })
+  clock.advance(1000)
+  await tabB.add({ label: 'Typed in B', pw: 'bbb' })
+
+  const fresh = mk()
+  await fresh.init()
+  await fresh.unlock(PASS)
+  assert.deepEqual(fresh.list().map((e) => e.label).sort(), ['Typed in A', 'Typed in B'])
+})
+
+test('the merge is not run against our own writes', async () => {
+  // seenCt is what makes the difference between "a peer wrote" and "we wrote".
+  // Every path that re-seals has to record it -- re-key and the recovery slots
+  // seal outside persist(), and missing one would have the next save merge the
+  // vault with itself.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const store = createVaultStore({ storage, now: clock.now })
+  await store.init()
+  await store.create(PASS)
+  await store.add({ label: 'Bank', pw: 'x' })
+
+  for (const step of [
+    () => store.rekey(PASS, 'a second passphrase'),
+    () => store.addRecoveryKey('a second passphrase', WORDS),
+    () => store.removeRecoveryKey('a second passphrase'),
+  ]) {
+    await step()
+    clock.advance(1000)
+    // If seenCt were stale here, this save would re-read our own envelope,
+    // merge it with itself, and the entry count would be the tell.
+    await store.add({ label: `after ${store.list().length}`, pw: 'y' })
+    assert.equal(store.list().filter((e) => e.label === 'Bank').length, 1)
+  }
+  assert.equal(store.list().length, 4)
+})
+
+test('backup records from two devices are a union, not a disagreement', () => {
+  // A backup made on the laptop and one made on the desktop are two facts.
+  const laptop = { exports: [{ at: '2026-08-15T10:00:00.000Z', count: 3, by: 'Chrome on Windows' }] }
+  const desktop = { exports: [{ at: '2026-08-14T09:00:00.000Z', count: 2, by: 'Edge on Windows' }] }
+
+  const merged = mergeMeta(laptop, desktop)
+  assert.deepEqual(merged.exports.map((x) => x.at),
+    ['2026-08-15T10:00:00.000Z', '2026-08-14T09:00:00.000Z'], 'newest first')
+
+  // Idempotent, or every save would grow the list.
+  assert.deepEqual(mergeMeta(merged, desktop), merged)
+  assert.deepEqual(mergeMeta(merged, merged), merged)
+})
+
+test('the backup list is capped after a merge, not just after a backup', async () => {
+  const many = (n, from) => ({
+    exports: Array.from({ length: n }, (_, i) => ({ at: `2026-08-${String(from + i).padStart(2, '0')}T00:00:00.000Z`, count: i })),
+  })
+  const merged = mergeMeta(many(4, 1), many(4, 10))
+  assert.equal(merged.exports.length, EXPORT_HISTORY)
+  assert.equal(merged.exports[0].at, '2026-08-13T00:00:00.000Z', 'the newest survive')
+})
+
+test('an unreadable replacement stops the save without guessing why', async () => {
+  // A peer that re-keyed and a different vault dropped in the same place fail
+  // identically -- both have a master key we do not hold -- so the message
+  // names both rather than picking one. Overwriting either would be the worst
+  // available answer: someone deliberately set that passphrase, or that is
+  // somebody else's vault.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const mine = createVaultStore({ storage, now: clock.now })
+  await mine.init()
+  await mine.create(PASS)
+  await mine.add({ label: 'Mine', pw: 'x' })
+
+  const theirs = await createVault(PASS, { v: 1, vaultId: 'someone-else', entries: [], meta: {} })
+  storage.box.value = theirs.envelope
+
+  clock.advance(1000)
+  await assert.rejects(() => mine.add({ label: 'Late', pw: 'y' }), /replaced or given a different passphrase/)
+  // REVERSED. This used to assert the opposite -- that the typed entry stayed
+  // in memory so nothing had to be retyped. It is the editor that keeps what
+  // was typed, because the throw stops the caller before it closes the dialog;
+  // the LIST must not keep it, or it shows a saved-looking row that is on no
+  // disk anywhere and that a later save would write after all.
+  assert.deepEqual(mine.list().map((e) => e.label), ['Mine'],
+    'a refused save leaves the list exactly as storage has it')
+})
+
+test('a readable vault that claims a different identity is still refused', async () => {
+  // The narrow case the id check is for: same master key, different vaultId.
+  // Buildable only by sealing with the key in hand, which is the point -- it
+  // is what a clone that diverged would look like, and merging two vaults is
+  // interleaving two people's passwords into one list.
+  const clock = fakeClock()
+  const storage = fakeStorage()
+  const made = await createVault(PASS, { v: 1, vaultId: 'ours', entries: [], meta: {} })
+  storage.box.value = made.envelope
+
+  const store = createVaultStore({ storage, now: clock.now })
+  await store.init()
+  await store.unlock(PASS)
+  await store.add({ label: 'Mine', pw: 'x' })
+
+  // Same key, so it decrypts; different id, so it must not be merged.
+  storage.box.value = await sealVault(made.key, made.kdf, {
+    v: 1, vaultId: 'not-ours', entries: [], meta: {},
+  })
+  clock.advance(1000)
+  await assert.rejects(() => store.add({ label: 'Late', pw: 'y' }), /different vault is in that place/)
 })

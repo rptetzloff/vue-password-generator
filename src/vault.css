@@ -540,7 +540,49 @@
    positioning context too -- without this its panel resolves against whatever
    is positioned further up and lands at the top of the page. */
 .vault-groupmenu,
-.vault-tagmenu { position: relative; }
+.vault-tagmenu,
+.vault-genmenu { position: relative; }
+
+/* Generate, split. The left half runs the generator in use; the right half
+   picks which. One of these sits beside every secret box, because the mode
+   picker used to live only on the password and filling an answer with a
+   different generator meant a round trip up the form and back. */
+.vault-gensplit {
+  display: inline-flex;
+  align-items: stretch;
+}
+
+.vault-gensplit-more {
+  padding-left: 0.35rem;
+  padding-right: 0.35rem;
+}
+
+/* Two buttons reading as one control: the seam between them is a single
+   border, not two touching edges. */
+.vault-gensplit-go {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.vault-gensplit .vault-gensplit-more {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  margin-left: -1px;
+}
+
+.vault-gensplit-icon .vault-gensplit-more { margin-left: -0.35rem; }
+
+/* Right-aligned, unlike the filter menus. These buttons are the last thing in
+   their row by construction, so a left-anchored panel would hang off the edge
+   of the dialog every time rather than only at narrow widths. */
+.vault-genmenu .vault-groupmenu-panel {
+  left: auto;
+  right: 0;
+}
+
+/* mdi-blank is a real glyph in the font and reserves the tick column, so the
+   labels line up whether or not a mode is the current one. */
+.vault-genmenu .vault-groupmenu-item { white-space: nowrap; }
 
 .vault-groupmenu-btn {
   display: inline-flex;
@@ -719,18 +761,12 @@
   font-weight: 600;
 }
 
-.vault-persist[open] > summary { margin-bottom: 0.6rem; }
-
 .vault-persist p {
-  margin: 0 0 0.6rem;
   color: var(--text);
   line-height: 1.5;
 }
 
-.vault-persist .vault-hint {
-  margin: 0.6rem 0 0;
-  color: var(--text-secondary);
-}
+.vault-persist .vault-hint { color: var(--text-secondary); }
 
 .vault-reuse-warn {
   display: flex;
@@ -822,6 +858,79 @@
 
 .vault-editor { margin-top: 0.25rem; }
 
+/* Two devices disagreeing about one entry. Framed as a question rather than an
+   error: neither version is wrong, and the app has no way to know which one
+   the person wants. --warning rather than --error for the same reason, and
+   both are already AA-verified against this surface by the contrast suite. */
+.vault-conflict {
+  margin-bottom: 1rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--warning);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.vault-conflict h3 {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.5rem;
+  font-size: 0.95rem;
+  color: var(--warning);
+}
+
+.vault-conflict p {
+  margin: 0 0 0.7rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.vault-conflict .vault-bar { margin-top: 0.8rem; }
+.vault-conflict .vault-hint { margin: 0.6rem 0 0; }
+
+.vault-conflict-diff {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  /* A generated password is one long unbreakable token, and two of them side
+     by side will not fit a phone. Scrolling the table beats truncating the
+     thing being compared. */
+  display: block;
+  overflow-x: auto;
+}
+
+.vault-conflict-diff th,
+.vault-conflict-diff td {
+  padding: 0.3rem 0.5rem;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--border);
+}
+
+.vault-conflict-diff thead th {
+  border-top: 0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+/* The values are the point of the table, so they get the stronger colour and
+   a font that distinguishes l from 1 -- these are passwords being compared by
+   eye, which is the one job where that matters. */
+.vault-conflict-diff tbody td {
+  color: var(--text);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+}
+
+.vault-conflict-diff tbody th {
+  color: var(--text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* Backup and transfer. Same box as the danger blocks -- it belongs to the
    same "things below the list" band -- but not framed as a risk. */
 .vault-transfer {
@@ -838,19 +947,54 @@
   color: var(--text-secondary);
 }
 
-.vault-transfer[open] > summary { margin-bottom: 0.75rem; }
-
 .vault-transfer p {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.5;
-  margin: 0 0 0.7rem;
 }
 
+/* The recent backups. Collapsed, because the answer is usually "yes, recently"
+   and the nag above already says when it is not. */
+.vault-backups > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.vault-backups ul {
+  list-style: none;
+  margin: 0.6rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.vault-backups li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.2rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.vault-backup-when {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.vault-backups .vault-hint { margin-top: 0.6rem; }
+
 /* The plain-text half, walled off so it does not read as a peer of the
-   encrypted backup above it. */
+   encrypted backup above it -- so a wider gap than the panel rhythm, and
+   specific enough to outrank it. */
+.vault-transfer > .vault-plain {
+  margin-top: 1.15rem;
+}
+
 .vault-plain {
-  margin-top: 1rem;
   padding: 0.75rem 0.9rem;
   border: 1px solid var(--warning);
   border-radius: 6px;
@@ -896,13 +1040,32 @@
   color: var(--text-secondary);
 }
 
-.vault-danger[open] > summary { margin-bottom: 0.75rem; }
-
 .vault-danger p {
   font-size: 0.85rem;
   color: var(--text-secondary);
   line-height: 1.5;
 }
+
+/* One vertical rhythm for every panel below the list.
+
+   Each is a stack of prose, warning boxes, button rows and forms in no fixed
+   order -- the Move/Open buttons sit between two paragraphs in one panel and
+   under a warning in another -- so the spacing has to belong to the flow
+   rather than to any one element. It did not: measured on the page, every
+   button row (.vault-bar, .vault-row-actions) had margin 0 top and bottom and
+   sat flush against the text on both sides, while the paragraphs around them
+   carried 9.6px, 11.2px or nothing depending on which panel they were in.
+
+   So the children own no vertical margin and the gap between them is set once,
+   here. The exception is spelled out below: .vault-plain gets a wider gap
+   because it is a division rather than a step. */
+.vault-danger > *,
+.vault-transfer > *,
+.vault-persist > * { margin-block: 0; }
+
+.vault-danger > * + *,
+.vault-transfer > * + *,
+.vault-persist > * + * { margin-top: 0.75rem; }
 
 .vault-foot {
   font-size: 0.78rem;
@@ -1251,4 +1414,12 @@ body.vault-modal-open { overflow: hidden; }
 
 .vault-undo .btn {
   border-color: var(--band-control-border);
+}
+
+/* A divider inside a card, for the "or do this other thing entirely" break on
+   the create screen. */
+.vault-rule {
+  margin: 1.1rem 0;
+  border: 0;
+  border-top: 1px solid var(--border);
 }

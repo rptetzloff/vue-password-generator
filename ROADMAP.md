@@ -131,21 +131,110 @@ exactly right for imports and exactly wrong for replicas. Delete an entry on
 the laptop, sync from the phone, and the merge resurrects it. Silently, and
 specifically for the entries someone most wanted gone.
 
-- [ ] **`updatedAt` on every entry**, so a merge can tell newer from older
-      rather than preferring whichever side it happened to read first.
-- [ ] **Tombstones.** A deleted entry becomes `{ id, deletedAt }` instead of
-      vanishing, so "deleted here" is distinguishable from "not seen yet".
-      Reaped after some interval, since a tombstone that lives forever is a
+- [x] **`updatedAt` on every entry** (3.2.0), so a merge can tell newer from
+      older rather than preferring whichever side it happened to read first.
+      ISO-8601 UTC, which sorts lexicographically and so needs no parsing.
+- [x] **Tombstones** (3.2.0). A deleted entry becomes `{ id, deletedAt }`
+      instead of vanishing, so "deleted here" is distinguishable from "not seen
+      yet". Reaped after 90 days, since a tombstone that lives forever is a
       slow leak of what used to exist.
-- [ ] **A vault id and a device id**, so two replicas can establish they are
-      the same vault before attempting to reconcile.
-- [ ] **Per-entry merge rather than per-file**, which `mergeEntries` almost
-      does already — it merges by identity, it just has no notion of time or
-      of absence.
+- [x] **A vault id and a device id**, so two replicas can establish they are
+      the same vault before attempting to reconcile. This needed somewhere to
+      *put* them: the payload inside the envelope was a bare array of entries,
+      with no room for a fact about the vault as opposed to its contents. It is
+      now `{ v, vaultId, entries, meta }`, versioned separately from the
+      envelope — one is what the ciphertext holds, the other is how it is
+      wrapped, and a change to either should not force a migration of both. A
+      bare array still loads and gains a `vaultId` on first open, so no vault
+      written before this is stranded.
 
-None of that needs a network. All of it is testable in node today. It is
+      The device id is a label, not a credential, and it is deliberately
+      local-only: `meta.lastWriter` records which replica wrote last so a merge
+      can say where a change came from.
+
+      The first thing it paid for was not sync. The backup-reminder record was
+      in `localStorage`, so Edge called a vault un-backed-up an hour after
+      Chrome had exported it; it is `meta.exports` now and travels with the
+      vault — the last five, each with a full timestamp, the entry count at the
+      time, and which browser made it, shown as a list rather than a single
+      date because the real question is whether backing up is a habit. Both
+      fields are dropped on lock along with the entries: an entry count is a
+      fact about the contents, and a locked vault that can still recite it has
+      not really locked.
+- [x] **Per-entry merge rather than per-file** (3.2.0). `mergeReplicas` is
+      last-writer-wins over `updatedAt`/`deletedAt`, kept separate from
+      `mergeEntries`, which never deletes and is still what import wants.
+
+None of that needs a network. All of it is testable in node today. It was
 roughly a day of work while there is exactly one client and the migration is
 free, and it is the whole difference between *sync later* and *rewrite later*.
+
+**Reversed — and by the test that was planted to reverse it.** This said the
+folder adapter writes whole files, so two devices lose writes, and pointed at
+`'two devices sharing a folder still lose writes, which is the next piece'` as
+a failing-by-design record of the gap. That test started failing, which is what
+it was for. It now reads `'two devices sharing a folder keep each other's
+work'`.
+
+`persist()` is read-merge-write. Before writing it loads what is actually in
+storage, and if the ciphertext is not the one this store last read or wrote —
+a peer has been here — it opens that copy with the master key already in
+memory, merges, and writes the result. Comparing the ciphertext means no
+version counter has to be maintained: every seal makes a fresh IV, so no two
+writes collide.
+
+- It costs one read per save and nothing else. An unchanged ciphertext
+  short-circuits before any decrypt, which is the normal case, and reading the
+  peer's copy skips the KDF entirely — `openVault` takes the key it already
+  has, so this is one AES pass and not a million PBKDF2 rounds.
+- **It also fixes two tabs**, which is the same lost update over one IndexedDB
+  and much more common, since nothing tells you the vault is open twice.
+- **A peer it cannot read stops the save.** Re-keyed elsewhere, or a different
+  vault dropped in that place: both fail identically, because every vault has
+  its own random master key and there is nothing in an unreadable envelope to
+  tell the two apart. So the message names both rather than guessing. What was
+  typed stays in memory, so nothing has to be retyped.
+- The backup list merges as a union rather than a pick — a backup made on the
+  laptop and one made on the desktop are two facts, not a disagreement — and
+  is deduplicated on the timestamp so the same merge run twice gives the same
+  list.
+
+**Same entry on both devices: it asks.** ~~Last-write-wins settles this.~~
+**Corrected within the hour, by the obvious test being run:** open the edit box
+in Chrome, save a new password in Edge, save a new password in Chrome. Chrome
+won and Edge's password vanished without a word.
+
+That is last-write-wins behaving exactly as specified, and the specification
+was wrong. "Last" means *saved* last, not *knew* most: an edit box holds a copy
+from before the other device saved, so its patch lands on stale data and still
+wins on a fresh timestamp. The claim above — safe *in sequence*, with a
+millisecond window — was also wrong, and this is the correction. That sequence
+IS sequential. The real window is however long the dialog stays open.
+
+It is detectable, because the caller passes the entry as it loaded it and so
+its `updatedAt` is the base version. A remote copy standing on anything else
+means the entry moved on, and the answer to that is a question rather than a
+guess: the save stops, nothing is written, and the editor stays open behind a
+dialog showing the fields that differ, with **keep mine**, **keep theirs**, and
+**keep both**. Keep both files yours under a new id — two entries sharing one
+id is not a state the merge can represent, and the next save would pick a
+winner all over again.
+
+A save that is refused now rolls the entry list back. Without that, memory
+holds a saved-looking row that is on no disk anywhere and that some later save
+would write after all. Nothing is lost by undoing it: the throw stops the
+caller before it closes the editor, so what was typed is still on screen.
+
+Deleting on one device while the other has the entry open is the same shape
+with a different loss, and gets the same question.
+
+**The limits that remain.** Two devices editing different entries never
+interrupt each other, which is the common case and is silent by design. Two
+saving in the *same instant* can still lose a write — the read-to-write window
+is milliseconds now, but it is not zero. And none of this sees across the
+folder's own sync: two machines writing while Dropbox is behind produces a
+*conflicted copy* file, which is Dropbox's arbitration and invisible to this
+page. Importing that file merges its entries back in, and the UI says so.
 
 **Then the transport is a separate and deferrable choice**, which is the part
 that protects the claims. A server (9d) means accounts, hosting, liability, and
@@ -164,6 +253,61 @@ trivially true because there is nothing to be knowledgeable about.
 - [ ] **This is also the CLI answer.** A documented encrypted file in a folder
       the user controls is the one interface a shell script can use. A vault
       living inside a browser extension is not.
+- [x] **Firefox cannot do mode 2, and it is not a matter of waiting.** Asked
+      directly — *are we sure?* — and the first answer checked only the picker
+      API, which is not the same as checking the question. The whole surface:
+
+      | API | Firefox | what it gives us |
+      | --- | --- | --- |
+      | File API — `File`, `Blob`, `FileReader` | yes, since 28 | read a file the user picks, **every time**. No write. |
+      | File System Access — `showDirectoryPicker` etc. | **no** | the only write-back-to-a-chosen-path route there is |
+      | File System API — OPFS, `navigator.storage.getDirectory()` | yes | a sandboxed private directory. Not the user's Dropbox. |
+      | `FileSystemSyncAccessHandle.write()` | yes, 111+ | a real write — into the OPFS only. See below. |
+      | `<a download>` | yes | writes to the downloads folder, cannot overwrite |
+      | WebExtension `downloads` | n/a | also downloads-folder-only; Firefox has no `onDeterminingFilename` |
+
+      The read column is not the problem — Import already uses the File API and
+      works in Firefox today. **There is no write column.** A replica that
+      cannot save is a viewer, and mode 2 is defined by both machines writing.
+
+      `FileSystemSyncAccessHandle` is the candidate that looks like it settles
+      this, and it is worth writing down why it does not, because it will be
+      suggested again. It writes, it is fast, and Firefox has had it since 111
+      (Safari since 15.2). But `createSyncAccessHandle()` is defined only for
+      files in the origin private file system and throws `InvalidStateError`
+      for anything else — and in Firefox the question never arises, since there
+      is no picker to get a non-OPFS handle from in the first place.
+
+      Which is the whole rule in one line: **Firefox will let you write inside
+      the sandbox and read outside it. Mode 2 needs writing outside it.** OPFS
+      is IndexedDB with a file-shaped API — same origin-private storage, same
+      invisibility to Dropbox and to the OS file manager. Writing a vault there
+      is what we already do; it is not a folder anyone else can see.
+
+      Nor is this a gap waiting to close: Mozilla's published standards
+      position on the pickers is *harmful*, and Safari has not implemented them
+      either. Notably Mozilla's position on OPFS is *positive* — the objection
+      is specifically to reaching outside the sandbox, which is exactly the
+      part mode 2 needs.
+
+      So the honest support line is Chromium desktop, and the answer for
+      everyone else is not a cleverer file API. It is 9d proper (a server), or
+      a cloud provider's own HTTP API, both of which are network problems that
+      every browser can do. A **read-only Firefox viewer** — pick the vault
+      file, open it, save nothing — is buildable on the File API alone and is a
+      real thing someone might want, but it is a different feature and should
+      not be described as sync.
+- [x] **Leaving is a third operation, not a kind of deleting.** Delete removes
+      the file for every device sharing the folder; moving it back takes it
+      away from them; neither is "I am done with this vault *on this
+      computer*", which is the ordinary thing to want on a work machine or a
+      browser you were only trying. Clearing site data did it, and took the
+      settings and every other stored thing with it. **Stop using it here**
+      forgets the pointer and the local draft, locks what is open, and touches
+      the folder not at all — no passphrase, because nothing is destroyed and
+      asking for one would imply otherwise. It is also the only exit from the
+      `blocked` screen: a folder that is gone for good previously left the page
+      offering to reconnect to something that was never coming back.
 
 **Revised order: make it sync-shaped, prove the replica model on one transport,
 then build clients.** The extension still comes, and it still brings the
@@ -341,7 +485,10 @@ sync needs an account. A local vault breaks no published claim.
       importing an old backup cannot silently delete newer entries.
 - [x] **Nag gently about exporting.** A vault living in one browser profile is
       one "clear site data" away from gone. Unexported changes deserve a quiet
-      reminder, not a modal.
+      reminder, not a modal. The date and count behind it were in
+      `localStorage` at first, on the reasoning that the record has to survive
+      being locked; both halves of that were wrong, and it now lives in the
+      payload — see 9d.
 - [x] ~~**Plain-text export is not offered.**~~ **Reversed, deliberately.**
       The original reasoning still holds about the format: a CSV of passwords
       is what every other manager regrets supporting. What it got wrong was the
@@ -785,8 +932,43 @@ and both should be revisited deliberately rather than drifted into.
       means a build step. That is a bigger decision than the CSP, and it
       trades a real property (the deployed site is the readable source) for a
       bounded gain — reaching `eval` requires already executing script, which
-      the hash list is what prevents. Revisit if a build step arrives for
-      another reason; do not add one for this alone.
+      the hash list is what prevents. ~~Revisit if a build step arrives for
+      another reason; do not add one for this alone.~~
+
+      **Reversed. Scheduled, not deferred.** The maintainer's call, and the
+      reasoning above was too narrow rather than wrong. It weighed the CSP
+      alone; `'unsafe-eval'` is not one item, it is the same blocker turning up
+      in three places — the MV3 extension path (8e), the build step 9f wants
+      for sealing, and now a pre-release security pass where it is the single
+      weakest line in an otherwise tight policy. Three bounded gains that share
+      one cause are not three small things, and "do not add a build step for
+      this alone" stopped applying the moment it was not alone.
+
+      The property to protect while doing it is the one the original argument
+      was right about: the deployed site should stay readable. That means a
+      build whose output is legible and diffable, and a test that the built
+      render functions correspond to the templates in the repo — not a
+      minifier.
+
+- [ ] **Read the envelope design against OWASP ASVS V6.** Scanners answer
+      "does this code have a known bad pattern"; they cannot answer "is this
+      cryptographic design right for what it claims". V6 (Cryptography) is a
+      structured checklist for exactly that — key lifecycle, algorithm choice,
+      random sources, key storage, and what happens at rotation — and it is a
+      read-through rather than a tool run. V2 (Authentication) is worth the
+      same pass for the passphrase and recovery slots.
+
+      Queued rather than done: it is a deliberate exercise against the threat
+      model, not a pre-release gate, and doing it badly in a hurry would be
+      worse than the honest gap.
+
+- [ ] **Split the large files.** `main.js` and `vault-app.js` are both far
+      past readable and are named as known exceptions in CLAUDE.md, to be
+      reduced by extraction rather than rewritten. Extraction has started:
+      `vault-diff.js` came out of `vault-app.js` during the security pass,
+      and pulling it out is what made its rule testable rather than something
+      you check by opening a dialog and looking. That is the pattern to
+      follow — extract where it buys a test, not to hit a line count.
 
 ---
 

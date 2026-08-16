@@ -1,13 +1,57 @@
+# ONE service definition, applied by TWO Blueprints. That is the thing to
+# understand before editing this file, and it is not obvious from the file.
+#
+#   Blueprint tracking main -> creates `wordlock`       -> wordlock.net
+#   Blueprint tracking dev  -> creates `wordlock-<sfx>`  -> dev.wordlock.net
+#
+# Each Blueprint applies the WHOLE file and appends ITS OWN suffix to every
+# service it creates. The suffix belongs to the Blueprint, not to the service:
+# one sync offered `wordlock-cl9q` and `wordlock-dev-cl9q` together -- two
+# services, one suffix -- and recreating that Blueprint changed it to `-bumy`
+# for everything it made thereafter. So it was never a collision suffix, and
+# the name here is a stem rather than the name you will see in the dashboard.
+#
+# The useful half of that: within one Blueprint the naming is deterministic, so
+# a review screen can be read before it is approved, and a name you did not
+# expect means the entry is not the one you thought.
+#
+# Two consequences, both learned the hard way in one evening:
+#
+#   1. NEVER pin `branch:` here. See below.
+#   2. Never declare a second service here. Both Blueprints would create both,
+#      and you would get four services -- including a duplicate of production.
+#      Tried it: the review screen offered `wordlock-cl9q` and
+#      `wordlock-dev-cl9q` side by side, which is a duplicate prod service and
+#      a dev service, from a file that names one of each.
+#
+# Everything else in the file is shared on purpose: both deployments get the
+# same headers, the same CSP, the same HSTS. A dev site with a weaker policy
+# cannot tell you whether the policy works.
+
 services:
   - type: web
     name: wordlock
     runtime: static
-    # Pinned here rather than left to the dashboard. The deploy branch was
-    # dashboard-only, which meant renaming the default branch would have left
-    # Render watching a branch that no longer existed -- production frozen on
-    # its last deploy, merges silently not shipping, and nothing in the repo
-    # to explain it. In the file, it is reviewable.
-    branch: main
+
+    # NO `branch:` HERE. It was pinned to main earlier today, reasoning that a
+    # dashboard-only deploy branch would break if the default branch were
+    # renamed -- "the more useful half", the commit said. It was the half that
+    # broke dev.
+    #
+    # The dev Blueprint reads THIS FILE from the dev branch and applies
+    # everything in it, so `branch: main` was handed to the dev service too.
+    # dev.wordlock.net silently served main; switching it in the dashboard
+    # worked until the next sync put it back, which is exactly the "why does it
+    # keep switching" that went unexplained for weeks. It came to light as a
+    # 404 on a module committed hours earlier: fourteen commits of work had
+    # never been on the dev site at all.
+    #
+    # With no branch declared, each Blueprint uses the branch it is linked to,
+    # which is the arrangement that worked before the pin was added. The
+    # protection that was wanted -- a rename not silently freezing a deploy --
+    # is real, but it cannot be bought here without breaking the other
+    # deployment. test/render-config.test.js fails if this comes back.
+
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
     staticPublishPath: ./
@@ -24,6 +68,21 @@ services:
       - path: /*
         name: Permissions-Policy
         value: geolocation=(), microphone=(), camera=()
+
+      # HSTS. The site is HTTPS-only already, but without this a first visit
+      # typed as "wordlock.net" is one plaintext request that can be answered
+      # by something other than us -- and what it would be answering with is
+      # the page someone types a vault passphrase into. Two years, which is
+      # the preload floor, and includeSubDomains because dev.wordlock.net
+      # serves the same application from the same registrable domain.
+      #
+      # Deliberately NOT `preload` yet: submitting to the preload list is
+      # effectively irreversible on browser timescales, and it would commit
+      # every future subdomain of wordlock.net to HTTPS forever. Worth doing,
+      # worth doing on purpose rather than as a line in a security pass.
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=63072000; includeSubDomains
 
       # Content-Security-Policy. For a vault that never talks to a server, the
       # directive that earns its keep is connect-src: even if something did run
@@ -81,6 +140,17 @@ services:
       # Anything added under vendor/ therefore needs a line here or it gets no
       # Cache-Control at all. That is the cost of the approach and it is worth
       # it: no header is a knowable default, two headers is a coin flip.
+      #
+      # AND THE TRAP THAT MADE THIS TAKE ALL AFTERNOON: Blueprint header sync
+      # is ADDITIVE. Render adds rules you add and updates rules you change,
+      # but deleting one here does NOT delete it from the service. The old
+      # /vendor/* rule stayed live and kept competing with the font rule long
+      # after it left this file, which is why removing the overlap changed
+      # nothing. Deleting a header rule means deleting it here *and* on the
+      # service's Headers page. Verified 2026-08-15: after removing the orphan
+      # by hand, the font returned immutable five times out of five, and the
+      # two LICENSE files -- deliberately uncovered -- fell through to Render's
+      # own max-age=0, s-maxage=300 instead of the phantom 86400.
       #
       # Checking this against production needs a cache-busting query, or you
       # measure Cloudflare rather than Render -- a plain request returns the

@@ -103,3 +103,44 @@ test('the escape check can tell a collapsed escape from a correct one', () => {
   assert.ok(!lone.test(String.raw`${'${name}'}\\s*:`), 'a doubled backslash is correct and must not be flagged')
   assert.ok(!lone.test(String.raw`plain text with no escapes`), 'ordinary text must not be flagged')
 })
+
+// -- the vendored library, and the only thing that can watch it ---------------
+
+test('the declared Vue version is the Vue version actually vendored', () => {
+  // Vue is not installed, it is COPIED IN: vendor/vue.esm-browser.prod.js is
+  // what the browser runs, and there is no node_modules at runtime. That is
+  // deliberate -- no build step, the deployed source is the source you can
+  // read -- but it had a cost nobody had priced. Dependabot and npm audit read
+  // package.json, so the one third-party library in the product was the one
+  // thing no scanner was watching. A security pass before a release found it
+  // by asking what was NOT being checked.
+  //
+  // So it is declared in devDependencies, exactly pinned. devDependencies and
+  // not dependencies because it is honest: nothing installs Vue to run this,
+  // the entry names the upstream source of a file we vendor, and
+  // `dependencies: {}` stays literally true.
+  //
+  // The failure that buys is drift -- bumping the pin without re-vendoring, or
+  // re-vendoring without bumping the pin, either of which points the alerting
+  // at a version that is not what ships. That is what this test is for. Vue's
+  // minified build keeps its version as a string literal (`Ti="3.4.0"`), which
+  // is what makes the shipped bytes self-identifying.
+  const pkg = JSON.parse(fs.readFileSync(new URL('package.json', ROOT), 'utf8'))
+  const declared = pkg.devDependencies && pkg.devDependencies.vue
+  assert.ok(declared, 'Vue must be declared so a scanner can see it')
+  assert.match(declared, /^\d+\.\d+\.\d+$/,
+    'pinned exactly -- a range would mean the declared version is not the shipped one')
+
+  const bundle = fs.readFileSync(new URL('vendor/vue.esm-browser.prod.js', ROOT), 'utf8')
+  const found = [...bundle.matchAll(/"(\d+\.\d+\.\d+)"/g)].map((m) => m[1])
+  assert.ok(found.includes(declared),
+    `package.json declares vue@${declared}, which does not appear in the vendored bundle`)
+})
+
+test('nothing is declared as a runtime dependency', () => {
+  // The claim on the tin. devDependencies may hold the vendored library's
+  // upstream name; dependencies stays empty, because nothing is fetched to
+  // run this.
+  const pkg = JSON.parse(fs.readFileSync(new URL('package.json', ROOT), 'utf8'))
+  assert.deepEqual(pkg.dependencies ?? {}, {})
+})

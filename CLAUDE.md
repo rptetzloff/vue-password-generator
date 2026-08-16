@@ -69,6 +69,27 @@ one, but it PRs into `dev`, never into `main`. `main` is only ever written by a
 release PR, and the changelog is dated by the day that PR merges, in the
 maintainer's timezone rather than UTC.
 
+### A release is tagged by what kind it is, not how big it was.
+
+Size resists a one-word answer and the attempt degrades: a tag derived from the
+version number collapses to whichever value is least wrong, and once most
+releases wear the same word it has stopped saying anything. Magnitude is what
+the title and summary are for.
+
+So the release tag names its character — a feature, a fix, a security release,
+maintenance — and a release can be a security one and tiny, which is the pairing
+the version number cannot express. Detail belongs to the entries underneath,
+grouped as added, improved, fixed, removed, security, and the limits.
+
+**Every release states what it does not do, in its own group rather than buried
+in the additions.** A changelog that only lists gains is advertising. When a
+claim ships with a boundary — this makes two machines safe in sequence but not
+at the same instant — the boundary is part of the release.
+
+When the vocabulary changes, old entries keep the tag that was accurate when
+they shipped. Retagging history to match a newer scheme reads as though the
+scheme was always there.
+
 ## Files
 
 Extract when a file stops being readable, not at a line count. Known

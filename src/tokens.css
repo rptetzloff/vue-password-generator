@@ -111,6 +111,21 @@
      wrong direction when the text is white. */
   --band-fill: rgba(0, 0, 0, 0.18);
   --band-control-hover-bg: var(--band-fill);
+  /* Ink for a WHITE chip sitting on the band -- the changelog's Feature badge,
+     which reverses out of the gradient instead of washing into it.
+     Theme-independent like the rest of this block, and that is the point: the
+     band is the same in light and dark, so a chip on it cannot borrow --text
+     or --primary, both of which invert. Reversing --band-text and --band-fill
+     was tried first and measured 1.53:1 -- --band-fill is a translucent wash,
+     so as a foreground it is 18%-opacity black on white, nearly invisible.
+     "Same pair, swapped, therefore same ratio" only holds if both are opaque.
+
+     Neutral gray rather than the slate #1e293b tried next, because the mono
+     palette requires every colour it can reach to be neutral and the band is
+     theme-independent but NOT palette-independent -- the gradient under it
+     changes with the accent. The mono cvdSafe test caught that within a
+     minute of the slate landing. 16.87:1 on white. */
+  --band-ink: #1e1e1e;
 
   /* Elevation */
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);

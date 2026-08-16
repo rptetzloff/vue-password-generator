@@ -143,9 +143,23 @@
          darkening wash instead, and patch drops the fill for an outline --
          which also keeps the three visually distinct now that neither is a
          white block. */
+      /* The badge says what KIND of release this is, not how big it was.
+         major/minor/patch are the old vocabulary, kept on the releases that
+         used them because they were accurate to the semver of their day. They
+         were also nearly useless: 27 of 37 releases read "Minor", because a
+         three-value scale derived from semver cannot say anything a reader
+         wants to know. Magnitude comes from the title and summary instead.
+         New releases use `feature` and the kinds beside it. */
       .badge-major  { background: var(--primary); color: var(--on-primary); }
       .badge-minor  { background: var(--band-fill); color: var(--band-text); }
       .badge-patch  { background: none; border: 1px solid var(--band-text-dim); color: var(--band-text-dim); }
+
+      /* Reversed out of the band rather than washed into it, which is what
+         makes it read louder than minor without competing with major's solid
+         primary. --band-ink exists for this: see the note in tokens.css for
+         why neither --text nor --primary can be used on a chip that sits on
+         the band, and what the first attempt measured. */
+      .badge-feature { background: var(--band-text); color: var(--band-ink); }
 
       /* ── Release card (right column) ──────────────────────── */
 
@@ -307,6 +321,71 @@
 
     <div class="page">
       <div class="timeline">
+
+        <!-- v3.3.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v3.3.0</div>
+            <div class="release-date">2026-08-15</div>
+            <span class="release-badge badge-feature">Feature</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">Bring your own cloud</div>
+                <div class="release-summary">The vault can live as a file in a folder you choose &mdash; so the folder you already sync carries it between machines, with no account and nothing of ours in the middle.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>A vault that lives in a folder you chose.</strong> Point it at a directory and the vault becomes one encrypted file there. If that directory is one your computer already syncs &mdash; Dropbox, OneDrive, iCloud Drive &mdash; then your vault is carried between machines and backed up by software you already trust. Your provider learns that a file changed and roughly how big it is; it never learns what is in it, because it cannot. Chromium desktop only, and see <em>Known limits</em> below for why that is not a matter of waiting.</li>
+                    <li><strong>Moving is copy, verify, switch, clear &mdash; in that order, and never a move.</strong> The verify is a read-back, because a full disk, a read-only folder and a sync client rejecting a file all look like a successful write until you look again. If any step fails the original is still where it was. A folder that already holds a vault is refused rather than overwritten.</li>
+                    <li><strong>Open a vault that is already in a folder</strong>, which is how a second computer joins. It requires a vault to be there, writes nothing at all, and only records where to look. Deliberately a separate button from <em>Move</em> rather than one that guesses: a control whose destructive behaviour depends on what it happens to find is fine until the day it is not.</li>
+                    <li><strong>Two computers can share one folder.</strong> Saving reads what is in the folder first and merges rather than overwriting, so entries added on either machine survive and a deletion made on one is not resurrected by the other still holding the entry. This also fixes two tabs of one browser, which is the same lost update over a shorter distance and rather more common, since nothing tells you the vault is open twice.</li>
+                    <li><strong>When you both changed the same entry, it asks.</strong> The save stops, nothing is written, and you get the fields that differ side by side with <em>keep mine</em>, <em>keep theirs</em>, or <em>keep both</em>. It asks because it cannot know: timestamps say which was saved last, not which knew more, and an edit box open in one browser holds a copy from before the other browser saved. Deleting on one device while the other has the entry open is the same question with different wording.</li>
+                    <li><strong>Stop using it here</strong> &mdash; the missing third option. Delete removes the file for everyone sharing the folder; moving it back takes it away from them; neither is "I am done with this vault <em>on this computer</em>". This forgets the folder and the local draft, locks what is open, and touches the folder not at all. No passphrase, because nothing is destroyed. It is also the only exit from the screen you get when a folder is gone for good.</li>
+                    <li><strong>A list of your recent backups</strong>, inside the vault rather than beside it: the last five, each with when it was made, how many entries the vault held at the time, and which browser made it. Every machine that opens the vault sees the same history &mdash; a backup made in Chrome is no longer reported as missing by Edge.</li>
+                    <li><strong>Pick the generator at the box you are filling.</strong> Generate is a split button now, on every secret field: the left half runs whatever is in use and names it, the arrow opens the list. Choosing a generator for a security answer used to mean scrolling up to the password field, changing it there, and scrolling back.</li>
+                    <li><strong>HSTS</strong>, two years and including subdomains, so a first visit typed without <code>https://</code> cannot be answered by something other than us. Deliberately without <code>preload</code>, which is close to irreversible and deserves its own decision.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>The vault now knows its own name.</strong> Inside the envelope was a bare list of entries, with nowhere to record a fact <em>about</em> the vault as opposed to its contents. It now carries an id, so two copies can establish they are the same vault before reconciling, and a note of which device wrote last. Versioned separately from the envelope, since one is what the ciphertext holds and the other is how it is wrapped. A vault written before today loads unchanged and gains an id the first time it is opened.</li>
+                    <li><strong>A configured folder that cannot be read is never reported as an absent vault.</strong> Browsers forget folder access after a restart; drives unmount and directories get renamed. The dangerous answer in every one of those cases is "no vault found, create one?", because someone will say yes and the first save writes an empty vault over the top. It gets its own screen instead, saying the vault is not lost, with a Reconnect button.</li>
+                    <li><strong>A refused save leaves the list exactly as storage has it.</strong> Anything else means a saved-looking row that is on no disk anywhere, which some later save would write after all. What you typed stays in the editor, because the refusal stops before the dialog closes.</li>
+                    <li><strong>The persistence warning tells the truth in both modes.</strong> It was telling people with a vault in Dropbox that "there is no copy of this anywhere else". In folder mode what is at risk is the pointer, not the vault: lose this browser's storage and the file is still there, this browser just forgets where.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The conflict dialog showed a secret that is shown nowhere else.</strong> Found in a security review of this release, in code written the same day. The table of differing fields stringified anything object-shaped, and the one-time code object puts its seed first &mdash; so the row opened with the raw TOTP seed in clear text. It appears nowhere else in WordLock: the editor shows only "Code set for issuer (account)", the list shows only the six digits derived from it. Custom fields marked secret printed their values too. Secrets are now masked with a reveal, and the one-time code seed has no reveal at all, because unlike a password it does not rotate when you change the password. The comparison still runs on the real values, so a changed seed is still reported as changed &mdash; it is only the display that is redacted.</li>
+                    <li><strong>Deleting a vault let go of nothing.</strong> Delete a folder vault in Chrome, create a new one in the same folder from Edge, and Chrome announced a vault ready to open: somebody else's, with a passphrase it had never been given. Worse in the other direction, since a browser still aimed at that folder would write a new vault into it. Deleting now releases the folder too.</li>
+                    <li><strong>Opening a folder vault left the page on "create a vault"</strong> until you navigated away and came back, because the initial read returns early once it has run &mdash; right for a page load, wrong when the storage changes underneath.</li>
+                    <li><strong>The backup reminder was per-browser</strong>, so Edge reported a vault as never exported an hour after Chrome had exported it. The record was in this browser's storage; it is a fact about the vault and now lives in it.</li>
+                    <li><strong>"There is no vault in that folder" now says what it found.</strong> True and useless when the folder plainly has things in it. Dropping a backup file in and pointing at it gets its own answer, since that is a reasonable thing to try and the response someone needs is not "no vault" but "that is a snapshot to restore through Import".</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Known limits</span></div>
+                  <ul class="change-list">
+                    <li><strong>Firefox and Safari cannot do this, and it is not a matter of waiting.</strong> Reading a file you pick works everywhere &mdash; that is what Import uses. Writing back to it needs the File System Access API, which neither has implemented; Mozilla's published position on the folder and file pickers is <em>harmful</em>, while its position on the sandboxed origin-private filesystem is positive. The objection is precisely to the part this needs. A replica that cannot save is a viewer, not a replica.</li>
+                    <li><strong>Merging cannot see across your cloud provider's own sync.</strong> Two machines saving while the folder is out of step &mdash; offline, or inside the seconds your client takes to catch up &mdash; produces a <em>conflicted copy</em> file, which is Dropbox's arbitration and invisible to this page. Import that file and its entries merge back in.</li>
+                    <li><strong>Simultaneous saves are still not safe.</strong> The window between reading the folder and writing to it is now milliseconds rather than a whole session, but it is not zero.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
 
         <!-- v3.2.0 -->
         <div class="release">

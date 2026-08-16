@@ -79,13 +79,36 @@
           </li>
         </ul>
         <p>
-          If you create a <strong>vault</strong>, its contents are stored the same way — on
+          If you create a <strong>vault</strong>, it is by default stored the same way — on
           your device, in your browser — but encrypted with a passphrase only you know, using
           1,000,000 rounds of PBKDF2. That key is never written anywhere and exists only while the
           vault is unlocked, so a copy of your browser profile yields ciphertext rather than
           passwords. There is no account and no server, so there is nothing for us to reset: if you
           forget the passphrase, we cannot open the vault and neither can anyone else.
         </p>
+        <p>
+          You may instead choose to keep the vault as a single encrypted file <strong>in a folder
+          you pick</strong>, which is the one case where vault data leaves this device — and it
+          leaves by your instruction, through your software, to a company you already have a
+          relationship with. If that folder is synchronised by Dropbox, OneDrive, iCloud Drive or
+          anything similar, then that provider receives the file, and what they hold is governed by
+          <em>their</em> terms rather than these. Two things are worth being precise about:
+        </p>
+        <ul>
+          <li>
+            <strong>What they can see.</strong> The file is the same sealed ciphertext the browser
+            was holding — AES-256-GCM under a key derived from your passphrase. A provider learns
+            that a file changed, roughly how large it is, and when. They cannot read an entry, a
+            label, or a count of them. Neither can we, and we do not receive the file at all.
+          </li>
+          <li>
+            <strong>This site is still not the one sending it.</strong> The page writes a file to a
+            folder on your computer. Your own sync client, which you installed and configured,
+            uploads it. WordLock makes no network request to your provider and holds no credentials
+            for them — the statement below that this site makes no third-party requests remains
+            true in folder mode.
+          </li>
+        </ul>
         <p>
           You may also generate a <strong>recovery key</strong> — sixteen random words, shown once,
           which the vault stores your master key encrypted under. It is a second key that

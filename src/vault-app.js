@@ -13,6 +13,9 @@ import {
 } from './vault-store.js'
 import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
 import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
+import { canUseFolder, pickFolder } from './vault-fs.js'
+import { diffEntries, diffHasSecrets, diffHasTotp } from './vault-diff.js'
+import { resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, unblockFolder, releaseFolder } from './vault-location.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, transferFilename,
@@ -48,7 +51,32 @@ const App = {
     const oldPass = ref('')
     const newPass = ref('')
 
+    // Where the vault lives. Resolved once on mount, before init, because
+    // the store is built synchronously and the answer is not.
+    //
+    // The store gets a proxy rather than the backend itself, so switching
+    // folders later swaps what is underneath without rebuilding the store or
+    // reloading the page.
+    const location = ref({ kind: 'local', name: null })
+    const canFolder = canUseFolder()
+    let backend = null
+    let currentDir = null
+
+    const at = () => {
+      if (!backend) throw new Error('the vault location has not been resolved yet')
+      return backend
+    }
+    const lazyStorage = {
+      load: () => at().load(),
+      save: (e) => at().save(e),
+      clear: () => at().clear(),
+      loadDraft: () => at().loadDraft(),
+      saveDraft: (sealed) => at().saveDraft(sealed),
+      clearDraft: () => at().clearDraft(),
+    }
+
     const store = createVaultStore({
+      storage: lazyStorage,
       autoLockMs: vaultLockMs(),
       // The same window governs idle auto-lock and staying unlocked between
       // pages, so there is one number for a reader to reason about.
@@ -64,6 +92,9 @@ const App = {
         // The envelope is loaded even while locked, so the lock screen can
         // offer recovery only to vaults that actually have a key for it.
         hasRecovery.value = store.hasRecoveryKey()
+        // The backup record is inside the vault, so it arrives at unlock and
+        // leaves at lock along with everything else it describes.
+        readLastExport()
       },
     })
 
@@ -137,19 +168,93 @@ const App = {
       flash('Locked.')
     }
 
-    const save = (entry) => run(async () => {
+    /**
+     * The entry moved underneath this editor while it was open.
+     *
+     * Held rather than resolved: the two versions are both somebody's
+     * deliberate work, and picking one by rule is how a password someone set
+     * on another machine disappears without anyone being told. See the note in
+     * the store's reconcile() for why the timestamp cannot decide this.
+     */
+    const conflict = ref(null)
+
+    // The diff itself is pure and lives in vault-diff.js, so the rule it holds
+    // -- compare the real values, render the masked ones, never the seed -- is
+    // asserted by test rather than by opening the dialog and looking.
+    const revealConflict = ref(false)
+    const conflictFields = computed(() => (conflict.value
+      ? diffEntries(conflict.value.mine, conflict.value.theirs, { reveal: revealConflict.value })
+      : []))
+    const conflictHasSecrets = computed(() => diffHasSecrets(conflictFields.value))
+    const conflictHasTotp = computed(() => diffHasTotp(conflictFields.value))
+
+    // Closing the dialog re-hides. A watcher rather than a line in each of the
+    // four exits, because two of the four had already been missed by hand and
+    // the failure is a dialog that opens pre-revealed.
+    watch(conflict, (open) => { if (!open) revealConflict.value = false })
+
+    const conflictDeleted = computed(() => !!(conflict.value && conflict.value.theirs.deletedAt))
+
+    const save = (entry, resolve = null) => run(async () => {
       const payload = { ...entry }
       // Rows now, not a textarea -- urlList drops any with an empty address.
       delete payload.urlText
       // View state, not entry data -- normalizeEntry would drop it anyway, but
       // sending it at all invites someone to start persisting it.
       delete payload.revealPw
-      if (payload.id) await store.update(payload.id, payload)
-      else await store.add(payload)
+      try {
+        if (payload.id) await store.update(payload.id, payload, { resolve })
+        else await store.add(payload)
+      } catch (e) {
+        // Not an error to report and move on from -- it is a question. The
+        // editor stays open behind the dialog holding everything that was
+        // typed, and the vault is untouched until an answer comes back.
+        if (e.name === 'VaultConflict') { conflict.value = e.conflict; return }
+        throw e
+      }
+      conflict.value = null
       entries.value = store.list()
       editing.value = null
       await store.clearDraft()
       flash('Saved.')
+    })
+
+    /** Write what was typed here, now that it has been asked about. */
+    const keepMine = () => save(editing.value, 'mine')
+
+    /** Take the other device's version and abandon this edit. */
+    const keepTheirs = () => run(async () => {
+      await store.refresh()
+      conflict.value = null
+      entries.value = store.list()
+      editing.value = null
+      await store.clearDraft()
+      flash(conflictDeleted.value
+        ? 'Kept the deletion. Your changes were not saved.'
+        : 'Kept the other version. Your changes were not saved.')
+    })
+
+    /**
+     * Keep both, as two entries.
+     *
+     * A new id rather than a second copy of the same one: two entries with one
+     * id is not a state the merge can represent, and the next save on either
+     * device would silently pick a winner all over again.
+     */
+    const keepBoth = () => run(async () => {
+      const mine = { ...editing.value }
+      delete mine.urlText
+      delete mine.revealPw
+      delete mine.id
+      delete mine.updatedAt
+      mine.label = `${mine.label || 'Untitled'} (this device)`
+      await store.refresh()
+      await store.add(mine)
+      conflict.value = null
+      entries.value = store.list()
+      editing.value = null
+      await store.clearDraft()
+      flash('Kept both. Yours is filed separately — delete whichever is wrong.')
     })
 
     /**
@@ -320,6 +425,7 @@ const App = {
      */
     const cancelEdit = () => {
       if (editorDirty() && !confirm('Discard the changes to this entry?')) return
+      conflict.value = null
       editing.value = null
       store.clearDraft()
     }
@@ -364,7 +470,15 @@ const App = {
      */
     const onEditorKey = (event) => {
       if (!editing.value) return
-      if (event.key === 'Escape') { event.preventDefault(); cancelEdit(); return }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        // The innermost thing first. Escape out of an open generator menu must
+        // not also throw away the entry being edited -- that would make trying
+        // the menu cost you the form.
+        if (genMenuOpen.value !== null) { genMenuOpen.value = null; return }
+        cancelEdit()
+        return
+      }
       if (event.key !== 'Tab' || !editorEl.value) return
       const focusable = [...editorEl.value.querySelectorAll(
         'a[href], button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
@@ -557,6 +671,36 @@ const App = {
     const generating = ref(false)
 
     /**
+     * Which generator to run, chosen at the field you are filling.
+     *
+     * Every secret box had a Generate button but only the password had the
+     * mode picker, so generating an answer with a different generator meant
+     * scrolling up to the password, changing the select, scrolling back down,
+     * and clicking. Three of those four steps are the bug.
+     *
+     * So each Generate is a split button: the left half runs whatever is in
+     * use, the right half opens the list. Picking from the list SETS the mode
+     * rather than running once with it -- there is one generator in use and
+     * the password row shows which, and a per-field override would quietly
+     * make that display a lie.
+     *
+     * Click, not hover. A hover menu cannot be opened from a keyboard or a
+     * touchscreen, and the rest of this page already opens menus by clicking.
+     */
+    const genMenuOpen = ref(null)
+    const genTargetKey = (target) => (
+      target === 'pw' ? 'pw'
+        : target && typeof target === 'object' && 'field' in target ? `field:${target.field}`
+          : `q:${target}`
+    )
+    const toggleGenMenu = (target) => {
+      const key = genTargetKey(target)
+      genMenuOpen.value = genMenuOpen.value === key ? null : key
+    }
+    const genModeLabel = computed(() =>
+      (genModes.find((m) => m.id === genMode.value) || {}).label || genMode.value)
+
+    /**
      * @param target 'pw' for the password, a question index for its answer,
      *               or { field: i } for a custom field's value
      */
@@ -584,6 +728,12 @@ const App = {
       } finally {
         generating.value = false
       }
+    }
+
+    const generateWith = (mode, target) => {
+      genMode.value = mode
+      genMenuOpen.value = null
+      return generateInto(target)
     }
 
     // --- grouping and sorting -------------------------------------------------
@@ -617,13 +767,16 @@ const App = {
     // A menu that only closes by pressing its own button is a menu people
     // leave open over the list they are trying to read.
     const dismissGroupMenu = (event) => {
-      if (!groupMenuOpen.value && !tagMenuOpen.value) return
+      if (!groupMenuOpen.value && !tagMenuOpen.value && genMenuOpen.value === null) return
       if (event.type === 'keydown') {
-        if (event.key === 'Escape') { groupMenuOpen.value = false; tagMenuOpen.value = false }
+        if (event.key === 'Escape') {
+          groupMenuOpen.value = false; tagMenuOpen.value = false; genMenuOpen.value = null
+        }
         return
       }
       if (!event.target.closest('.vault-groupmenu')) groupMenuOpen.value = false
       if (!event.target.closest('.vault-tagmenu')) tagMenuOpen.value = false
+      if (!event.target.closest('.vault-genmenu')) genMenuOpen.value = null
     }
 
     // A dropdown anchored to its button's left edge runs off the right of the
@@ -812,22 +965,37 @@ const App = {
     /**
      * When the vault was last exported, and how much was in it at the time.
      *
-     * A date and a count, nothing else -- this is the one piece of vault state
-     * that has to survive being locked, so it cannot live inside the
-     * ciphertext, and anything more revealing has no business in the clear.
+     * REVERSED. This was a localStorage key, on the reasoning that the record
+     * "has to survive being locked, so it cannot live inside the ciphertext".
+     * The premise was wrong twice over: the nag only renders when entries are
+     * on screen, which means unlocked, and a per-browser record is not a fact
+     * about the vault. Sharing a folder made that visible -- Edge called a
+     * vault un-backed-up an hour after Chrome had exported it. It is now
+     * meta.lastExport inside the payload, so it travels with the vault.
      */
-    const EXPORT_KEY = 'global.vaultExported'
-    const lastExport = ref(null)
+    const backups = ref([])
+    const lastExport = computed(() => backups.value[0] || null)
     const readLastExport = () => {
-      try {
-        const v = JSON.parse(localStorage.getItem(EXPORT_KEY))
-        lastExport.value = v && Number.isFinite(v.count) ? v : null
-      } catch { lastExport.value = null }
+      backups.value = store.state() === 'unlocked' ? store.exports() : []
     }
-    const noteExport = (count) => {
-      const v = { at: new Date().toISOString().slice(0, 10), count }
-      try { localStorage.setItem(EXPORT_KEY, JSON.stringify(v)) } catch {}
-      lastExport.value = v
+
+    /**
+     * A backup's timestamp, in the reader's own locale and clock.
+     *
+     * Stored as full ISO-8601 UTC and rendered here, rather than stored
+     * pre-formatted: the vault is shared between machines that may not agree
+     * on either. Date and time both, since two backups in one afternoon is the
+     * normal case and a list of identical dates would say nothing.
+     */
+    const backupWhen = (at) => {
+      const d = new Date(at)
+      if (Number.isNaN(d.getTime())) return at
+      return d.toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })
+    }
+    const backupDay = (at) => {
+      const d = new Date(at)
+      if (Number.isNaN(d.getTime())) return at
+      return d.toLocaleDateString(undefined, { dateStyle: 'medium' })
     }
 
     /**
@@ -838,10 +1006,18 @@ const App = {
      */
     const backupNag = computed(() => {
       if (!entries.value.length) return ''
-      if (!lastExport.value) return 'This vault has never been exported. If this browser loses its data, it is gone.'
+      if (!lastExport.value) {
+        // No hedge about "this browser" any more: the record is in the vault,
+        // so an export from anywhere that opens it counts here. What differs
+        // between the two is what is actually at risk -- a vault in a folder
+        // is not lost when this browser's storage is.
+        return location.value.kind === 'folder'
+          ? 'This vault has never been exported. The folder is the only copy.'
+          : 'This vault has never been exported. If this browser loses its data, it is gone.'
+      }
       const drift = entries.value.length - lastExport.value.count
       if (drift > 0) {
-        return `${drift} ${drift === 1 ? 'entry' : 'entries'} added since the last backup on ${lastExport.value.at}.`
+        return `${drift} ${drift === 1 ? 'entry' : 'entries'} added since the last backup on ${backupDay(lastExport.value.at)}.`
       }
       return ''
     })
@@ -866,7 +1042,7 @@ const App = {
       setTimeout(() => URL.revokeObjectURL(url), 10_000)
     }
 
-    const exportVault = (kind) => {
+    const exportVault = async (kind) => {
       if (kind !== 'backup') {
         const ok = confirm(
           'This file will contain your passwords in plain text, readable by anything that opens it.\n\n' +
@@ -885,7 +1061,13 @@ const App = {
         // Only the encrypted backup counts as a backup. A plaintext file is a
         // migration artefact meant to be deleted, so treating it as one would
         // silence the reminder for something the user is about to shred.
-        if (kind === 'backup') noteExport(store.list().length)
+        //
+        // Recorded after the download has been handed off, and a failure to
+        // record does not un-download the file -- so it is not allowed to
+        // become an error the reader has to act on.
+        if (kind === 'backup') {
+          try { await store.noteExport(); readLastExport() } catch {}
+        }
         flash(kind === 'backup' ? 'Backup saved.' : 'Plain-text file saved — delete it when you are done.')
       } catch (e) {
         error.value = e.message
@@ -1075,12 +1257,130 @@ const App = {
       }, 'That recovery key did not open the vault.')
     }
 
+    // -- Where the vault is kept (ROADMAP 9d, mode 2) ------------------------
+
+    /** Adopt a resolved location, swapping what the store's proxy points at. */
+    const useLocation = (resolved) => {
+      backend = resolved.storage
+      currentDir = resolved.dir
+      location.value = { kind: resolved.kind, name: resolved.name, permission: resolved.permission }
+    }
+
+    const chooseFolder = () => run(async () => {
+      let dir
+      try {
+        dir = await pickFolder()
+      } catch {
+        return // The picker was dismissed, which is not an error.
+      }
+      const wasUnlocked = store.state() === 'unlocked'
+      useLocation(await moveVaultToFolder(dir, { from: backend }))
+      // The envelope moved underneath a running store, so re-read it. An
+      // unlocked vault stays unlocked -- the key is in memory and unrelated to
+      // where the ciphertext sits.
+      if (!wasUnlocked) await store.init()
+      flash(`The vault now lives in ${dir.name}.`)
+    })
+
+    /**
+     * Point at a folder that already holds a vault -- the second machine.
+     *
+     * Separate from chooseFolder because the two are opposites: that one
+     * requires an empty folder and writes, this one requires a full one and
+     * does not. A single button that guessed would be a button whose
+     * destructive behaviour depended on what it found.
+     */
+    const openFolder = () => run(async () => {
+      let dir
+      try {
+        dir = await pickFolder()
+      } catch {
+        return
+      }
+      useLocation(await openVaultInFolder(dir))
+      // reload rather than init: this is a different vault, and init() returns
+      // early once it has run. Without it the page sits on "create a vault"
+      // until you navigate away and back.
+      await store.reload()
+      flash(`Opened the vault in ${dir.name}. Unlock it with its own passphrase.`)
+    })
+
+    const useThisBrowser = () => run(async () => {
+      if (!location.value.dir && location.value.kind !== 'folder') return
+      const dir = currentDir
+      if (!dir) throw new Error('there is no folder to move from')
+      const wasUnlocked = store.state() === 'unlocked'
+      useLocation(await moveVaultToLocal(dir, {}))
+      currentDir = null
+      if (!wasUnlocked) await store.init()
+      flash('The vault is back in this browser.')
+    })
+
+    /**
+     * Ask for the folder back after a permission lapse. Needs a user gesture,
+     * which is why it is a button rather than something tried on load.
+     */
+    const reconnectFolder = () => run(async () => {
+      if (!currentDir) throw new Error('there is no folder to reconnect')
+      if (!await unblockFolder(currentDir)) {
+        throw new Error('the browser did not grant access to that folder')
+      }
+      useLocation(await resolveLocation())
+      await store.init()
+      flash('Folder reconnected.')
+    }, 'That folder could not be reopened.')
+
+    /**
+     * Stop using a folder vault here, without touching the vault.
+     *
+     * The missing third option. Delete destroys it for everyone sharing the
+     * folder, and moving it back here takes it away from them; neither is
+     * "I am done with this vault ON THIS COMPUTER", which is the ordinary
+     * thing to want on a work machine, a shared desktop, or a browser you
+     * were only trying. Clearing site data does it today and takes the
+     * settings and every other site's data with it.
+     *
+     * No passphrase, because nothing is destroyed and asking for one would
+     * imply otherwise. What it costs is a click on "Open a vault in a folder"
+     * to come back, and that is the whole risk.
+     */
+    const disconnectFolder = () => {
+      const name = location.value.name || 'that folder'
+      const ok = confirm(
+        `Stop using the vault in ${name} on this browser?\n\n` +
+        'The file stays exactly where it is and other devices go on using it. ' +
+        'This browser locks it, forgets where it was, and offers to make a new one.\n\n' +
+        'You can point it back at that folder any time with "Open a vault in a folder".',
+      )
+      if (!ok) return
+      return run(async () => {
+        useLocation(await releaseFolder())
+        currentDir = null
+        // reload rather than init: this browser is being sent somewhere else
+        // entirely, and reload is what drops the key on the way.
+        await store.reload()
+        flash(`This browser no longer uses the vault in ${name}. The file is untouched.`)
+      })
+    }
+
     const destroy = () => {
       if (!confirm('Delete the entire vault and everything in it? This cannot be undone.')) return
       return run(async () => {
+        const wasFolder = location.value.kind === 'folder'
+        const folderName = location.value.name
         await store.destroy(pass.value)
         clearPass()
-        flash('Vault deleted.')
+        // Deleting the vault also lets go of the folder it was in. Keeping the
+        // pointer meant this browser stayed aimed at a folder with nothing of
+        // ours in it -- see releaseFolder for what that then did.
+        if (wasFolder) {
+          useLocation(await releaseFolder())
+          currentDir = null
+          await store.reload()
+        }
+        flash(wasFolder
+          ? `Vault deleted, and this browser no longer points at ${folderName}.`
+          : 'Vault deleted.')
       }, 'That passphrase is not right, so nothing was deleted.')
     }
 
@@ -1124,6 +1424,16 @@ const App = {
     const activity = () => store.touch()
     onMounted(async () => {
       try {
+        const resolved = await resolveLocation()
+        useLocation(resolved)
+        // A folder we cannot read is its own state. Falling through to init
+        // here would report an absent vault and offer to create one, over the
+        // top of a real vault sitting in a folder we simply cannot open --
+        // see the note at the top of vault-location.js.
+        if (resolved.kind === 'blocked') {
+          state.value = 'blocked'
+          return
+        }
         await store.init()
       } catch (e) {
         state.value = 'error'
@@ -1165,16 +1475,21 @@ const App = {
       create, unlock, lock, save, remove, copy, copyText, hostOf,
       toggleSecret, isRevealed, toggleAllSecrets, allRevealed, hasSeveralSecrets,
       startAdd, startEdit, rekey, destroy, tierOf,
+      conflict, conflictFields, conflictDeleted, keepMine, keepTheirs, keepBoth,
+      revealConflict, conflictHasSecrets, conflictHasTotp,
       addQuestion, removeQuestion, addField, removeField, cancelEdit, editorEl,
       leaveForGenerator,
       codeFor, totpLeft, totpInput, totpError, applyTotp, clearTotp,
       toggleGroupOpen, isGroupOpen, toggleEntryOpen, isEntryOpen, allCollapsed, toggleAll,
       exportVault, importFile, exported,
-      backupNag, lastExport, openTransfer, transferEl,
+      backupNag, lastExport, backups, backupWhen, openTransfer, transferEl,
       newStrength, rekeyStrength,
       genModes, genMode, generating, generateInto,
+      genMenuOpen, toggleGenMenu, generateWith, genModeLabel,
       sortBy, sorts: SORTS, knownGroups, grouped, showGroupHeadings,
       ungrouped: UNGROUPED, grouping,
+      location, canFolder, chooseFolder, openFolder, useThisBrowser, reconnectFolder,
+      disconnectFolder,
       pending, undoDelete, finishDelete,
       shownPhrase, phraseAck, recoveryPass, recoveryOpen, offerRecovery, hasRecovery,
       recoveryWords: RECOVERY_WORDS,
@@ -1263,6 +1578,40 @@ const App = {
 
       <div v-if="state === 'loading'" class="vault-empty">Opening…</div>
 
+      <!-- A folder is configured and cannot be read. Deliberately NOT the
+           "create a vault" screen: the vault exists, it is just out of reach,
+           and offering to make a new one here is how someone loses the old. -->
+      <section v-else-if="state === 'blocked'" class="vault-card">
+        <h2>Your vault is in a folder this browser cannot open</h2>
+        <p>
+          It is kept in <strong>{{ location.name || 'a folder you chose' }}</strong>, and nothing
+          here can read it right now. <strong>Your vault is not lost</strong> — the file is where
+          you put it, and this is a permission, not a deletion.
+        </p>
+        <p class="vault-hint">
+          Browsers forget folder access after a while, and after a restart. Reconnecting asks for
+          it again, which has to come from a button because a page that could reopen a folder on
+          its own would not need to ask at all.
+        </p>
+        <div class="vault-row-actions">
+          <button class="btn btn-primary" :disabled="busy" @click="reconnectFolder">
+            <span class="mdi mdi-folder-key-outline" aria-hidden="true"></span>
+            {{ busy ? 'Asking…' : 'Reconnect the folder' }}
+          </button>
+          <button class="btn" :disabled="busy" @click="disconnectFolder">
+            <span class="mdi mdi-link-variant-off" aria-hidden="true"></span>
+            Stop using it here
+          </button>
+        </div>
+        <p class="vault-hint">
+          If that folder is gone for good — a different machine, a deleted directory —
+          <strong>Stop using it here</strong> is the way out: it forgets the folder and nothing
+          else, and it is the only exit from this screen that is not clearing site data. Then
+          restore an encrypted backup, because starting fresh would give you an empty vault rather
+          than that one.
+        </p>
+      </section>
+
       <!-- No vault yet -->
       <section v-else-if="state === 'absent'" class="vault-card">
         <h2>Create a vault</h2>
@@ -1308,6 +1657,23 @@ const App = {
             <span class="mdi mdi-lock-plus"></span> {{ busy ? 'Creating…' : 'Create vault' }}
           </button>
         </form>
+
+        <!-- The second machine. Someone whose vault is already in a synced
+             folder should not have to create a new one and import; they should
+             point at the folder and be done. -->
+        <template v-if="canFolder">
+          <hr class="vault-rule" />
+          <p class="vault-hint">
+            <strong>Already have a vault in a folder?</strong> If another computer keeps its vault in
+            a folder this one also syncs — Dropbox, OneDrive, iCloud Drive — open it here instead of
+            starting again. Nothing is copied and nothing is written; this browser just learns where
+            to look, and asks for the same passphrase.
+          </p>
+          <button class="btn" type="button" :disabled="busy" @click="openFolder">
+            <span class="mdi mdi-folder-open-outline" aria-hidden="true"></span>
+            {{ busy ? 'Opening…' : 'Open a vault in a folder…' }}
+          </button>
+        </template>
       </section>
 
       <!-- Locked -->
@@ -1453,9 +1819,26 @@ const App = {
         <details v-if="persisted === false" class="vault-warn vault-persist">
           <summary>
             <span class="mdi mdi-database-alert-outline" aria-hidden="true"></span>
-            This browser has not promised to keep the vault
+            {{ location.kind === 'folder'
+              ? 'This browser has not promised to remember where the vault is'
+              : 'This browser has not promised to keep the vault' }}
           </summary>
-          <p>
+
+          <!-- What is actually at risk depends on where the vault lives, and
+               the difference is the whole point of putting it in a folder.
+               Telling someone with a vault in Dropbox that "there is no copy
+               of this anywhere else" is simply false. -->
+          <p v-if="location.kind === 'folder'">
+            Your vault is a file in <strong>{{ location.name }}</strong>, so clearing this
+            browser's storage would not touch it. What this browser keeps is the pointer to that
+            folder — lose it and the vault is still there, but this browser forgets where, and you
+            would open it again with <strong>Open a vault in a folder</strong>.
+            <template v-if="storageEstimate">
+              This site is using about {{ storageEstimate.used }} of roughly
+              {{ storageEstimate.quota }} available.
+            </template>
+          </p>
+          <p v-else>
             Browser storage can be cleared automatically if the device runs short of space. It is
             unlikely
             <template v-if="storageEstimate">
@@ -1680,6 +2063,66 @@ const App = {
               <span class="mdi mdi-close"></span>
             </button>
           </div>
+          <!-- Above the form, not over it: what was typed stays visible and
+               editable behind the question, so "keep mine" is not a promise
+               about something you can no longer see. -->
+          <section v-if="conflict" class="vault-conflict" role="alert">
+            <h3>
+              <span class="mdi mdi-source-branch" aria-hidden="true"></span>
+              {{ conflictDeleted
+                ? 'This entry was deleted on another device'
+                : 'This entry was changed on another device' }}
+            </h3>
+            <p v-if="conflictDeleted">
+              While you had it open, another device using this folder deleted it. Saving would
+              bring it back everywhere. Nothing has been written yet.
+            </p>
+            <p v-else>
+              While you had it open, another device using this folder saved a different version.
+              Saving would replace theirs with yours. Nothing has been written yet.
+            </p>
+
+            <table v-if="!conflictDeleted && conflictFields.length" class="vault-conflict-diff">
+              <thead>
+                <tr><th scope="col">Field</th><th scope="col">Yours</th><th scope="col">Theirs</th></tr>
+              </thead>
+              <tbody>
+                <tr v-for="f in conflictFields" :key="f.key">
+                  <th scope="row">{{ f.label }}</th>
+                  <td>{{ f.mine || '—' }}</td>
+                  <td>{{ f.theirs || '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <p v-if="conflictHasTotp" class="vault-hint">
+              The one-time code differs between the two. The seed itself is not shown here — it is
+              not shown anywhere in WordLock — so check the issuer and account above, and re-scan
+              from the site if you are unsure which is current.
+            </p>
+            <button v-if="conflictHasSecrets" class="link-button" type="button"
+                    @click="revealConflict = !revealConflict"
+                    :aria-pressed="String(revealConflict)">
+              <span class="mdi" :class="revealConflict ? 'mdi-eye-off' : 'mdi-eye'" aria-hidden="true"></span>
+              {{ revealConflict ? 'Hide the values' : 'Show the values' }}
+            </button>
+
+            <div class="vault-bar">
+              <button class="btn btn-primary" type="button" :disabled="busy" @click="keepMine">
+                {{ conflictDeleted ? 'Keep mine, and bring it back' : 'Keep mine' }}
+              </button>
+              <button class="btn" type="button" :disabled="busy" @click="keepTheirs">
+                {{ conflictDeleted ? 'Accept the deletion' : 'Keep theirs' }}
+              </button>
+              <button v-if="!conflictDeleted" class="btn" type="button" :disabled="busy" @click="keepBoth">
+                Keep both
+              </button>
+            </div>
+            <p class="vault-hint">
+              <strong>Keep both</strong> files yours as a separate entry so neither password is
+              lost, and leaves you to delete whichever turns out to be wrong.
+            </p>
+          </section>
+
           <form @submit.prevent="save(editing)">
             <label class="vault-field">
               <span>Label</span>
@@ -1742,13 +2185,30 @@ const App = {
               <!-- The generator, without leaving the page. Not a second set of
                    options: each mode runs on the settings its own tab holds. -->
               <div class="vault-gen">
-                <select v-model="genMode" class="vault-select" aria-label="Generator to use">
-                  <option v-for="m in genModes" :key="m.id" :value="m.id">{{ m.label }}</option>
-                </select>
-                <button class="btn btn-small" type="button" :disabled="generating"
-                        @click="generateInto('pw')">
-                  <span class="mdi mdi-refresh"></span> {{ generating ? 'Generating…' : 'Generate' }}
-                </button>
+                <!-- The same split button the secret rows use, so the control
+                     that picks a generator looks the same everywhere it is. -->
+                <div class="vault-genmenu vault-gensplit">
+                  <button class="btn btn-small vault-gensplit-go" type="button" :disabled="generating"
+                          @click="generateInto('pw')">
+                    <span class="mdi mdi-refresh"></span>
+                    {{ generating ? 'Generating…' : 'Generate ' + genModeLabel }}
+                  </button>
+                  <button class="btn btn-small vault-gensplit-more" type="button" :disabled="generating"
+                          @click="toggleGenMenu('pw')" aria-haspopup="true"
+                          :aria-expanded="String(genMenuOpen === 'pw')"
+                          aria-label="Choose a generator" title="Choose a generator">
+                    <span class="mdi mdi-menu-down"></span>
+                  </button>
+                  <div v-if="genMenuOpen === 'pw'" class="vault-groupmenu-panel" role="menu"
+                       aria-label="Generator to use">
+                    <button v-for="m in genModes" :key="m.id" class="vault-groupmenu-item" role="menuitem"
+                            type="button" @click="generateWith(m.id, 'pw')">
+                      <span class="mdi" :class="m.id === genMode ? 'mdi-check' : 'mdi-blank'"
+                            aria-hidden="true"></span>
+                      {{ m.label }}
+                    </button>
+                  </div>
+                </div>
                 <span v-if="tierOf(editing.bits)" class="vault-bits" :class="'meter-' + tierOf(editing.bits).id">
                   {{ editing.bits.toFixed(1) }} bits
                 </span>
@@ -1806,11 +2266,29 @@ const App = {
                         aria-hidden="true"></span>
                   <span class="vault-secret-label">Secret</span>
                 </label>
-                <button class="vault-icon" type="button" :disabled="generating"
-                        @click="generateInto({ field: i })"
-                        aria-label="Generate a value" title="Generate a value">
-                  <span class="mdi mdi-refresh"></span>
-                </button>
+                <div class="vault-genmenu vault-gensplit vault-gensplit-icon">
+                  <button class="vault-icon" type="button" :disabled="generating"
+                          @click="generateInto({ field: i })"
+                          :aria-label="'Generate a value with ' + genModeLabel"
+                          :title="'Generate a value with ' + genModeLabel">
+                    <span class="mdi mdi-refresh"></span>
+                  </button>
+                  <button class="vault-icon vault-gensplit-more" type="button" :disabled="generating"
+                          @click="toggleGenMenu({ field: i })" aria-haspopup="true"
+                          :aria-expanded="String(genMenuOpen === 'field:' + i)"
+                          aria-label="Choose a generator" title="Choose a generator">
+                    <span class="mdi mdi-menu-down"></span>
+                  </button>
+                  <div v-if="genMenuOpen === 'field:' + i" class="vault-groupmenu-panel" role="menu"
+                       aria-label="Generator to use">
+                    <button v-for="m in genModes" :key="m.id" class="vault-groupmenu-item" role="menuitem"
+                            type="button" @click="generateWith(m.id, { field: i })">
+                      <span class="mdi" :class="m.id === genMode ? 'mdi-check' : 'mdi-blank'"
+                            aria-hidden="true"></span>
+                      {{ m.label }}
+                    </button>
+                  </div>
+                </div>
                 <button class="vault-icon" type="button" @click="removeField(i)"
                         aria-label="Remove this field" title="Remove">
                   <span class="mdi mdi-close"></span>
@@ -1888,11 +2366,29 @@ const App = {
               <div v-for="(qa, i) in editing.questions" :key="i" class="vault-qa-row">
                 <input v-model="qa.q" type="text" placeholder="Question" />
                 <input v-model="qa.a" type="text" spellcheck="false" placeholder="Answer" />
-                <button class="vault-icon" type="button" :disabled="generating"
-                        @click="generateInto(i)"
-                        aria-label="Generate an answer" title="Generate an answer">
-                  <span class="mdi mdi-refresh"></span>
-                </button>
+                <div class="vault-genmenu vault-gensplit vault-gensplit-icon">
+                  <button class="vault-icon" type="button" :disabled="generating"
+                          @click="generateInto(i)"
+                          :aria-label="'Generate an answer with ' + genModeLabel"
+                          :title="'Generate an answer with ' + genModeLabel">
+                    <span class="mdi mdi-refresh"></span>
+                  </button>
+                  <button class="vault-icon vault-gensplit-more" type="button" :disabled="generating"
+                          @click="toggleGenMenu(i)" aria-haspopup="true"
+                          :aria-expanded="String(genMenuOpen === 'q:' + i)"
+                          aria-label="Choose a generator" title="Choose a generator">
+                    <span class="mdi mdi-menu-down"></span>
+                  </button>
+                  <div v-if="genMenuOpen === 'q:' + i" class="vault-groupmenu-panel" role="menu"
+                       aria-label="Generator to use">
+                    <button v-for="m in genModes" :key="m.id" class="vault-groupmenu-item" role="menuitem"
+                            type="button" @click="generateWith(m.id, i)">
+                      <span class="mdi" :class="m.id === genMode ? 'mdi-check' : 'mdi-blank'"
+                            aria-hidden="true"></span>
+                      {{ m.label }}
+                    </button>
+                  </div>
+                </div>
                 <button class="vault-icon" type="button" @click="removeQuestion(i)"
                         aria-label="Remove this question" title="Remove">
                   <span class="mdi mdi-close"></span>
@@ -1916,7 +2412,12 @@ const App = {
 
         <details class="vault-transfer" ref="transferEl">
           <summary>Backup, export and import</summary>
-          <p>
+          <p v-if="location.kind === 'folder'">
+            The vault is a file in <strong>{{ location.name }}</strong>, so it is as safe as that
+            folder is. A backup is still worth having: it is a snapshot, and the file in the folder
+            is not — an entry deleted there is deleted everywhere the folder goes.
+          </p>
+          <p v-else>
             The vault lives in this browser and nowhere else. Clearing site data, losing the device,
             or a browser deciding it needs the space would all take it with them, so keep a backup
             somewhere you would still have it afterwards.
@@ -1940,6 +2441,29 @@ const App = {
             uses now. Importing adds entries; it never removes or overwrites what is already here.
           </p>
 
+          <!-- Recorded inside the vault, so this is every browser's history of
+               it rather than this one's. The count is what the vault held at
+               the time, which is what makes an old backup legible: "3 entries"
+               against today's 40 says more than the date does. -->
+          <details v-if="backups.length" class="vault-backups">
+            <summary>
+              {{ backups.length === 1 ? 'One backup recorded' : backups.length + ' recent backups' }}
+            </summary>
+            <ul>
+              <li v-for="(b, i) in backups" :key="b.at + '-' + i">
+                <span class="vault-backup-when">{{ backupWhen(b.at) }}</span>
+                <span class="vault-backup-what">
+                  {{ b.count }} {{ b.count === 1 ? 'entry' : 'entries' }}<template v-if="b.by"> · {{ b.by }}</template>
+                </span>
+              </li>
+            </ul>
+            <p class="vault-hint">
+              Kept in the vault, not in this browser, so every machine that opens it sees the same
+              list. Only encrypted backups are recorded — a plain-text export is not a backup. This
+              is a note that a file was made, not proof it still exists.
+            </p>
+          </details>
+
           <div class="vault-plain">
             <p>
               <strong>Plain-text export.</strong> For moving into another password manager, and only
@@ -1955,6 +2479,91 @@ const App = {
               and security questions are folded into the note.
             </p>
           </div>
+        </details>
+
+        <details class="vault-danger">
+          <summary>
+            Where the vault is kept
+            <span class="vault-chip-on">{{ location.kind === 'folder' ? location.name : 'this browser' }}</span>
+          </summary>
+
+          <p v-if="location.kind === 'folder'">
+            The encrypted vault is a file in <strong>{{ location.name }}</strong>. If that folder is
+            one your computer already syncs — Dropbox, OneDrive, iCloud Drive — then it is backed up
+            and carried between machines by whatever you already use, and we never see any of it.
+          </p>
+          <p v-else>
+            The vault lives in this browser's storage, on this device only. That works, and it means
+            the vault is exactly as durable as this browser profile: clearing site data takes it with
+            everything else.
+          </p>
+
+          <p class="vault-hint">
+            Either way the file is the same ciphertext. Putting it in a synced folder tells your
+            cloud provider that a file changed and roughly how big it is — never what is in it.
+          </p>
+          <p v-if="location.kind === 'folder'" class="vault-hint">
+            <strong>Two computers can share it.</strong> Saving reads what is in the folder first
+            and merges, so entries from both survive and a deletion stays deleted rather than
+            being brought back by the other machine. If you both changed the <em>same</em> entry,
+            the save stops and asks which to keep rather than picking — so does a vault that has
+            been replaced or given a different passphrase.
+          </p>
+          <p v-if="location.kind === 'folder'" class="vault-hint">
+            What that does <em>not</em> cover is two machines saving while the folder itself is
+            out of sync — offline, or within the seconds your cloud client takes to catch up.
+            Then Dropbox or OneDrive makes a second "conflicted copy" file, which is theirs to
+            resolve and not something this page can see. Import that file and the entries merge
+            back in.
+          </p>
+
+          <template v-if="canFolder">
+            <div class="vault-row-actions">
+              <template v-if="location.kind !== 'folder'">
+                <button class="btn" type="button" :disabled="busy" @click="chooseFolder">
+                  <span class="mdi mdi-folder-outline" aria-hidden="true"></span>
+                  {{ busy ? 'Moving…' : 'Move it to a folder…' }}
+                </button>
+                <button class="btn" type="button" :disabled="busy" @click="openFolder">
+                  <span class="mdi mdi-folder-open-outline" aria-hidden="true"></span>
+                  Open a vault in a folder…
+                </button>
+              </template>
+              <template v-else>
+                <button class="btn" type="button" :disabled="busy" @click="chooseFolder">
+                  Move to a different folder…
+                </button>
+                <button class="btn" type="button" :disabled="busy" @click="useThisBrowser">
+                  Bring it back to this browser
+                </button>
+                <button class="btn" type="button" :disabled="busy" @click="disconnectFolder">
+                  <span class="mdi mdi-link-variant-off" aria-hidden="true"></span>
+                  Stop using it here
+                </button>
+              </template>
+            </div>
+            <p class="vault-hint">
+              <strong>Move</strong> takes the vault from here and puts it there: copy, read it back
+              to check it arrived, record the new location, and only then remove the old copy. If any
+              step fails nothing is changed, and a folder that already holds a vault is refused
+              rather than overwritten. <strong>Open</strong> is the opposite — it expects a vault to
+              be there already, writes nothing, and is how a second computer joins.
+            </p>
+            <p v-if="location.kind === 'folder'" class="vault-hint">
+              <strong>Stop using it here</strong> is the one that changes nothing but this browser.
+              The file stays in the folder and every other device carries on; this one locks the
+              vault and forgets where it was. That is the way off a work machine or a browser you
+              were only trying, without deleting anyone's vault and without clearing site data.
+            </p>
+          </template>
+          <p v-else class="vault-hint">
+            This browser cannot keep the vault in a folder, and that is unlikely to change. Reading
+            a file you pick works everywhere — that is what Import uses — but writing back to it
+            needs the File System Access API, which is Chromium desktop only: Mozilla's published
+            position on the folder and file pickers is <em>harmful</em>, and Safari has not
+            implemented them. So the vault stays in this browser here, and an encrypted backup is
+            the way to move it somewhere else.
+          </p>
         </details>
 
         <details class="vault-danger" :open="recoveryOpen || offerRecovery">
@@ -2034,7 +2643,18 @@ const App = {
 
         <details class="vault-danger">
           <summary>Delete the vault</summary>
-          <p>Everything in it goes with it. Your passphrase is required.</p>
+          <p v-if="location.kind === 'folder'">
+            This deletes the file in <strong>{{ location.name }}</strong>, so it goes for every
+            device using that folder, not just this one. To leave the vault alone and only stop
+            using it <em>here</em>, use <strong>Stop using it here</strong> above. Your passphrase
+            is required.
+          </p>
+          <p v-else>
+            Everything in it goes with it. This browser is the only copy, so there is no way to
+            remove it from this device without deleting it — export an encrypted backup first, or
+            put the vault in a folder, if you want it to survive somewhere else. Your passphrase is
+            required.
+          </p>
           <form @submit.prevent="destroy">
             <label class="vault-field">
               <span>Passphrase</span>

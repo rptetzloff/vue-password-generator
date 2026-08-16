@@ -182,8 +182,13 @@ test('every dropdown wrapper is a positioning context', () => {
   // The wrappers are whatever the template actually uses, so a third menu is
   // covered the day it is added rather than the day it is noticed.
   const wrappers = new Set()
-  for (const m of app.matchAll(/class="vault-filter (vault-[a-z]+menu)"/g)) wrappers.add(m[1])
-  assert.ok(wrappers.size >= 2, 'expected the group and tag menus to be found in the template')
+  // Any element whose class list contains a vault-*menu, wherever it sits.
+  // This was scoped to `class="vault-filter vault-*menu"`, which quietly
+  // stopped covering new menus the moment one appeared outside the filter row
+  // -- and a menu with no positioning context renders at the top of the page,
+  // which is the bug this test exists for.
+  for (const m of app.matchAll(/(?:^|[\s"])(vault-[a-z]+menu)(?=[\s"])/g)) wrappers.add(m[1])
+  assert.ok(wrappers.size >= 3, 'expected the group, tag and generator menus to be found in the template')
 
   const positioned = new Set()
   for (const m of css.matchAll(/([^{}]+)\{([^}]*)\}/g)) {
@@ -194,4 +199,32 @@ test('every dropdown wrapper is a positioning context', () => {
     assert.ok(positioned.has(`.${w}`),
       `.${w} holds an absolutely positioned panel but is not itself positioned`)
   }
+})
+
+test('the blocked screen has a way out that is not clearing site data', () => {
+  // A folder that is gone for good -- a deleted directory, a machine that is
+  // not this one -- used to leave the only exit as clearing site data, because
+  // the screen offered nothing but "reconnect" to a folder that was never
+  // coming back. Asserted against the template rather than the running page
+  // because reaching the state needs a real revoked handle, which no browser
+  // will hand out on request.
+  const app = fs.readFileSync(new URL('../src/vault-app.js', import.meta.url), 'utf8')
+  const blocked = app.slice(
+    app.indexOf(`state === 'blocked'`),
+    app.indexOf(`state === 'absent'`),
+  )
+  assert.ok(blocked.length > 200, 'the blocked section should have been found')
+  assert.match(blocked, /@click="disconnectFolder"/,
+    'the blocked screen must offer a way to let go of the folder')
+  assert.ok(!/@click="destroy"/.test(blocked),
+    'and never a delete, since the vault it would delete is the one it cannot read')
+})
+
+test('letting go of a folder is offered wherever a folder is in use', () => {
+  // Two places, and they are not interchangeable: the settings panel is the
+  // deliberate "I am done with this machine", the blocked screen is the
+  // escape. Missing either one leaves someone stuck.
+  const app = fs.readFileSync(new URL('../src/vault-app.js', import.meta.url), 'utf8')
+  const uses = [...app.matchAll(/@click="disconnectFolder"/g)]
+  assert.equal(uses.length, 2, 'expected it on the blocked screen and in the location panel')
 })
