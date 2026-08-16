@@ -1324,6 +1324,30 @@ Supersedes the earlier *Offline / PWA* suggestion; same idea, stated properly.
 - [x] **This is the strongest fit for the product's pitch.** A generator that never talks to a server has no reason to require a network. Offline is not a feature bolted on, it is the claim made honest.
 - [x] Watch the update path: the cache is named after the version, the version is pinned to package.json by a test (so bumping it is part of the release, not a thing to remember), the browser refetches sw.js on navigation, and activate() drops old caches. Cache-first within a version, never across versions.
 
+- [ ] **The two cache strategies skew by one load, and a CSP change turns that
+  into a blank page.** Observed on the 3.4.0 deploy, not predicted: the first
+  load of the live site rendered nothing, with `vue.esm-browser.prod.js`
+  blocked by a policy that no longer allows `unsafe-eval`.
+
+  Neither half is wrong on its own. Navigations are network-first, so the new
+  HTML — and the new CSP header travelling with it — arrives immediately.
+  Subresources are stale-while-revalidate, so the cached `main.js` answers now
+  and the refresh lands next time. The gap is exactly one page view, and it is
+  harmless right up until the header forbids what the cache is still serving.
+
+  So every returning visitor with a warm cache got one blank page and a working
+  site on reload. New visitors never saw it. Small here, and it self-healed,
+  which is why this is a note rather than an incident — but it recurs on any
+  future tightening of the policy, and the next one may not be as survivable.
+
+  The awkward part: no change to the *new* worker can fix the load in question,
+  because the *old* worker serves it and is already in the field by then. Only
+  the next occurrence is fixable. The shape that would do it is the navigation
+  response carrying its version and the worker bypassing its subresource cache
+  when the two disagree — which is the same "cache-first within a version,
+  never across versions" rule as the item above, applied to the moment the
+  version actually changes rather than to steady state.
+
 ### 8c. Browser extension — explore
 
 **Rewritten after Epic 9.** This item was written when WordLock was only a
