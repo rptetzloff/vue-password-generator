@@ -50,9 +50,23 @@ palette and both themes, because a pair that passes in one can fail in another.
 
 ## Dependencies default to none
 
-A new runtime dependency needs a reason in the PR. There is no build step: the
-deployed source is the source you can read, which is a claim the product makes
-and not merely a preference.
+A new runtime dependency needs a reason in the PR. Runtime dependencies are
+still zero, and that is the half that matters: nothing is fetched to run the
+thing.
+
+~~There is no build step.~~ **There is now one, and the claim it protected was
+kept rather than dropped.** The deployed source is still the source you can
+read, because the build runs in development and its output is committed —
+what a server sends is what is in the repository, with no pipeline between
+them. A build whose artefacts are not committed would break that; this one
+does not.
+
+Two obligations follow, and they are the price of the exception. Generated
+files carry a header saying what generates them, and a test recompiles the
+inputs and fails when the committed output no longer matches — otherwise the
+source of truth quietly becomes the artefact, and editing the input stops
+doing anything. Keep the input committed and readable too: generated code can
+be legible and still not be the thing anyone should read.
 
 ## Commits and branches
 

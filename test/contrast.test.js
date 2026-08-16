@@ -910,6 +910,15 @@ test('band tokens really are theme-independent, which the badge relies on', () =
   }
 })
 
+test('the Security badge is the Feature badge inverted, and just as legible', () => {
+  // Same two tokens the other way round, so it inherits the measurement above
+  // rather than introducing a colour nothing checks -- and stays neutral under
+  // the mono palette without needing its own value.
+  const css = fs.readFileSync(new URL('../changelog.html', import.meta.url), 'utf8')
+  assert.match(css, /\.badge-security \{ background: var\(--band-ink\); color: var\(--band-text\); \}/,
+    'the Security badge must reuse the band ink/chip pair, inverted')
+})
+
 test('the Feature badge ink is legible on its own chip', () => {
   const ink = rgbaToken(light['--band-ink'])
   const chip = rgbaToken(light['--band-text'])

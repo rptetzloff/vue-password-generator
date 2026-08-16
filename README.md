@@ -2,8 +2,16 @@
 
 WordLock is a modern, secure password generator built with Vue 3. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
 
-No build step, no dependencies, and no third-party CDNs: the site runs exactly as
-it appears in this repository.
+No runtime dependencies, no third-party CDNs, and nothing between the repository
+and your browser: what a server sends is what is committed here, unbundled and
+unminified.
+
+There is one build step, and it runs in development rather than on deploy.
+Component templates in `src/templates/` are compiled to render functions ahead of
+time so the browser never compiles them — which is what lets the CSP refuse
+`unsafe-eval` and the page ship a Vue build with no compiler in it. The output is
+committed alongside the input, and a test recompiles the templates and fails if
+the two have drifted.
 
 ## Live Demo
 
@@ -176,8 +184,8 @@ npm run dev
 
 Open [http://localhost:5173](http://localhost:5173).
 
-There is no build step and no dependencies to install — `npm run dev` just serves
-the repository over HTTP. Any static server works equally well:
+Nothing needs installing to RUN the site — `npm run dev` just serves the
+repository over HTTP, and any static server works equally well:
 
 ```bash
 python3 -m http.server 5173
@@ -193,7 +201,7 @@ an ES module and the wordlists are loaded with `fetch`, both of which require
 npm test
 ```
 
-Runs on Node's built-in test runner with **no dependencies** — Node 20+ is the
+Runs on Node's built-in test runner — Node 20+ is the
 floor, since the suite uses `globalThis.crypto`. Coverage is the pure logic that
 can be tested without a browser: the CSPRNG (range, uniformity, and that
 rejection sampling actually discards the biased tail), the word and character
@@ -257,7 +265,7 @@ wordlock/
 │   ├── settings-panel.css
 │   ├── prose-page.css    # Layout for the About and Legal pages
 │   └── style.css         # App-specific component styles
-├── test/                 # node --test, zero dependencies
+├── test/                 # node --test
 │   ├── helpers/
 │   │   └── color.js      # CIEDE2000 + color-vision simulation (test tooling)
 │   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling

@@ -2916,10 +2916,18 @@
             <div style="height:1px;background:var(--border);"></div>
 
             <div class="option-block">
-              <div class="option-name"><span class="mdi mdi-lightning-bolt" style="color:#646cff;"></span> No Build Step</div>
+              <div class="option-name"><span class="mdi mdi-lightning-bolt" style="color:#646cff;"></span> Nothing between the repository and your browser</div>
               <div class="option-desc">
-                There is no bundler and no compile stage. The browser loads <code>src/main.js</code> as a native ES module and the site is served
-                as plain static files, so what runs in the browser is exactly what is in the repository.
+                <p>
+                  There is no bundler and no deploy pipeline. The browser loads <code>src/main.js</code> as a native ES module and the site is served
+                  as plain static files, so what runs in your browser is exactly what is in the repository — readable, and checkable.
+                </p>
+                <p style="margin-top:0.5rem;">
+                  One thing is generated rather than hand-written. Component templates are compiled to render functions ahead of time, so the browser
+                  never compiles them itself — which is what lets the security policy refuse <code>unsafe-eval</code> and the page ship a Vue build
+                  with no compiler in it at all. Both halves are committed: the templates you would actually read, in <code>src/templates/</code>, and
+                  the generated code that runs. A test recompiles the first and fails if it no longer produces the second, so the two cannot drift.
+                </p>
               </div>
             </div>
 
