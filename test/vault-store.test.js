@@ -2,10 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
-  groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
-  TOMBSTONE_TTL_MS, isTombstone, EXPORT_HISTORY, deviceNameFrom, mergeMeta,
+  createVaultStore, DEFAULT_AUTOLOCK_MS, TOMBSTONE_TTL_MS, EXPORT_HISTORY, deviceNameFrom, mergeMeta
 } from '../src/vault-store.js'
+import {
+  normalizeEntry, normalizeEntries, groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount, isTombstone
+} from '../src/vault-entry.js'
 import { KDF_ITERATIONS, sealVault, deriveKey, newSalt, createVault, openVault } from '../src/vault-crypto.js'
 
 // Storage and the clock are injected, so the state machine, the auto-lock and

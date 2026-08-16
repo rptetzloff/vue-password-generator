@@ -34,7 +34,7 @@
 // survive a navigation and nothing more, and syncing it would push keystrokes
 // into a shared folder for no benefit.
 
-import { indexedDbStorage } from './vault-store.js'
+import { indexedDbStorage } from './vault-idb.js'
 import { isVaultEnvelope } from './vault-crypto.js'
 
 export const VAULT_FILENAME = 'wordlock-vault.json'

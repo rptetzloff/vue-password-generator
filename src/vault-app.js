@@ -8,10 +8,10 @@
 
 import { createApp, ref, computed, watch, onMounted, onUnmounted, nextTick } from '../vendor/vue.runtime.esm-browser.prod.js'
 import { renderApp } from './vault.render.js'
+import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
 import {
-  createVaultStore, vaultLockMs, vaultLockSection,
-  groupsOf, tagsOf, groupEntries, sortEntries, reuseIndex, SORTS, UNGROUPED,
-} from './vault-store.js'
+  groupsOf, tagsOf, groupEntries, sortEntries, reuseIndex, SORTS, UNGROUPED
+} from './vault-entry.js'
 import { MODES, readSettings, loadData, generateWithRetry, loadWordList } from './generators.js'
 import { checkRecoveryPhrase, RECOVERY_WORDS } from './recovery-key.js'
 import { canUseFolder, pickFolder } from './vault-fs.js'
