@@ -1,3 +1,26 @@
+# THIS FILE DESCRIBES ONE OF THE TWO SERVICES. Read that before trusting it.
+#
+#   wordlock        -> wordlock.net,     branch main -- declared below
+#   wordlock-cl9q   -> dev.wordlock.net, branch dev  -- NOT declared anywhere
+#
+# The dev service was not created by this Blueprint, so its branch, its domain
+# and its headers are dashboard-only facts. It spent an unknown stretch of time
+# deployed from `main` while everyone assumed it was following `dev`, and the
+# way that surfaced was a 404 on a module that had been committed hours
+# earlier -- fourteen commits of work had never been on the dev site at all.
+#
+# It is deliberately still not declared here. Render matches Blueprint services
+# by name, and adding a service this Blueprint did not create can produce a
+# SECOND service rather than adopting the existing one -- at which point two
+# services contend for dev.wordlock.net. That is a live-site risk taken for
+# tidiness, and it should be done with the dashboard open, not as a side effect
+# of editing this file.
+#
+# Two things follow for anyone changing deploys here:
+#   - Changing this file changes production only. Dev needs the dashboard.
+#   - Header rules sync ADDITIVELY. Removing one below does not remove it from
+#     the running service; see the note on the Cache-Control rules.
+
 services:
   - type: web
     name: wordlock
