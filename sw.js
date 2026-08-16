@@ -15,7 +15,7 @@
 // That was once the ONLY way a client got new bytes, and it failed -- see the
 // fetch handler below, which no longer trusts the cache indefinitely. Renaming
 // the cache is now the belt rather than the braces.
-const VERSION = '3.2.0'
+const VERSION = '3.3.0'
 const CACHE = 'pwgen-' + VERSION
 
 const PRECACHE = [

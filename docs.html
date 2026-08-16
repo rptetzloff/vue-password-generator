@@ -2068,11 +2068,18 @@
               <div class="option-row" style="grid-template-columns:1fr;">
                 <div class="option-desc">
                   <p>
-                    Every password field in the vault has a <strong>Generate</strong> button beside it and a
-                    picker for which of the seven generators to use. It runs that generator with
-                    <em>its own current settings</em> — whatever the Words tab is set to is what the Words
-                    option produces here. There is deliberately no second copy of the options: one place to
-                    configure a generator, and it is that generator's tab.
+                    Every secret field in the vault has a <strong>Generate</strong> split button beside it: the
+                    left half runs whichever of the seven generators is in use and says which
+                    (<em>Generate Words</em>), and the arrow beside it opens the list to change that. It runs
+                    that generator with <em>its own current settings</em> — whatever the Words tab is set to is
+                    what the Words option produces here. There is deliberately no second copy of the options:
+                    one place to configure a generator, and it is that generator's tab.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Picking from the list <em>sets</em> the generator rather than running once with it, so
+                    there is one generator in use and the password row always shows which. The control is on
+                    every secret box for a plain reason: choosing a generator used to mean scrolling up to the
+                    password field, changing it there, and scrolling back.
                   </p>
                   <p style="margin-top:0.5rem;">
                     The entropy comes back with the password and is stored on the entry, so something generated
@@ -2309,9 +2316,20 @@
               <div class="option-group-label">Backups, export and import</div>
               <div class="option-row" style="grid-template-columns:1fr;">
                 <div class="option-desc">
-                  A vault living in one browser profile is one <em>clear site data</em> away from gone, and no
-                  account exists to recover it from. The vault page keeps a quiet line of text — not a modal —
-                  noting how many entries have been added since your last backup.
+                  <p>
+                    A vault living in one browser profile is one <em>clear site data</em> away from gone, and no
+                    account exists to recover it from. The vault page keeps a quiet line of text — not a modal —
+                    noting how many entries have been added since your last backup.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    Under it is an expandable list of the <strong>last five backups</strong>: when each was
+                    made, how many entries the vault held at the time, and which browser made it. The count is
+                    what makes an old one legible — "3 entries" against today's forty says more than the date
+                    does. This record lives <em>inside the vault</em>, not in this browser, so every machine
+                    that opens it sees the same history; a backup made in Chrome is not reported as missing by
+                    Edge. Only encrypted backups are recorded, because a plain-text export is not a backup. It
+                    is a note that a file was made, not proof it still exists.
+                  </p>
                 </div>
               </div>
               <div class="option-row">
@@ -2558,6 +2576,101 @@
                   and minting a permanent second key to someone's vault — or removing the one they are
                   relying on — is not something a passer-by should be able to do. The same rule guards
                   deleting the vault.
+                </div>
+              </div>
+            </div>
+
+            <div id="vault-location" class="option-group">
+              <div class="option-group-label">Where the vault is kept</div>
+              <div class="option-row" style="grid-template-columns:1fr;">
+                <div class="option-desc">
+                  <p>
+                    By default the vault lives in this browser's storage and nowhere else. It can instead live
+                    as a single encrypted file in <strong>a folder you choose</strong> — and if that folder is
+                    one your computer already syncs, such as Dropbox, OneDrive or iCloud Drive, then your vault
+                    is carried between machines and backed up by software you already trust, with no account
+                    here and nothing of ours in the middle.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    What the file contains is the same sealed ciphertext the browser was holding. Your cloud
+                    provider learns that a file changed and roughly how big it is. It never learns what is in
+                    it, because it cannot.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Move it to a folder</div>
+                <div class="option-desc">
+                  Copies the vault out, reads it back to check it arrived, records the new location, and only
+                  then removes the old copy — in that order. If any step fails nothing has changed, and a folder
+                  that already holds a WordLock vault is refused rather than overwritten. Two vaults meeting is
+                  a merge, and silently replacing one with the other is the worst answer available.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Open a vault in a folder</div>
+                <div class="option-desc">
+                  The opposite operation, and how a second computer joins: it requires a vault to already be
+                  there, writes nothing at all, and only records where to look. You unlock it with its own
+                  passphrase. Deliberately a separate button from <em>Move</em> rather than one that guesses —
+                  a control whose destructive behaviour depends on what it happens to find is fine until the
+                  day it is not.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Two computers, one folder</div>
+                <div class="option-desc">
+                  <p>
+                    Saving reads what is in the folder first and merges rather than overwriting. Entries added
+                    on either machine survive, and a deletion made on one is <strong>not</strong> resurrected by
+                    the other still holding the entry. The same applies to two tabs of one browser, which is the
+                    same problem over a shorter distance.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    If you both changed <em>the same entry</em>, it stops and asks. You get the fields that
+                    differ side by side and three choices: keep yours, keep theirs, or keep both as two entries.
+                    Nothing is written until you pick. It asks because it cannot know — the timestamps only say
+                    which was saved last, not which knew more, and an edit box open in one browser holds a copy
+                    from before the other browser saved.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>What this does not cover.</strong> Two machines saving while the folder itself is
+                    out of sync — offline, or inside the seconds your cloud client takes to catch up — is
+                    resolved by Dropbox or OneDrive, not by us: they write a second <em>conflicted copy</em>
+                    file, which this page cannot see. Import that file and its entries merge back in.
+                  </p>
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Stop using it here</div>
+                <div class="option-desc">
+                  Leaving a folder vault is not a way of deleting it. This forgets the folder on this browser
+                  and touches nothing in it: the file stays, other devices carry on, and this browser locks the
+                  vault and offers to make a new one. It asks for no passphrase, because nothing is destroyed.
+                  That is the way off a work machine or a browser you were only trying, without deleting
+                  anybody's vault and without clearing site data.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">If the folder cannot be read</div>
+                <div class="option-desc">
+                  Browsers forget folder access after a restart, and a drive can be unmounted or a directory
+                  renamed. That gets its own screen saying the vault is not lost, with a <strong>Reconnect</strong>
+                  button — a button, because the permission prompt requires a deliberate click and a page that
+                  could silently reopen a folder would not need to ask. It is never reported as "no vault
+                  found", because the answer to that is an offer to create one, on top of a real vault.
+                </div>
+              </div>
+              <div class="option-row">
+                <div class="option-name">Which browsers</div>
+                <div class="option-desc">
+                  Chromium desktop only — Chrome, Edge, Brave, Opera. This needs the File System Access API to
+                  write back to a file you chose, and Firefox and Safari have not implemented it. That is
+                  unlikely to change: Mozilla's published position on the folder and file pickers is
+                  <em>harmful</em>. Reading a file you pick works everywhere, which is why
+                  <a href="#vault-backup" style="color:var(--primary);">Import</a> works in every browser; it is
+                  writing back that has no equivalent. Elsewhere the vault stays in the browser and an encrypted
+                  backup is how it moves.
                 </div>
               </div>
             </div>
