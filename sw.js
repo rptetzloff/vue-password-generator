@@ -52,6 +52,8 @@ const PRECACHE = [
   '/src/vault-transfer.js',
   '/src/vault-session.js',
   '/src/vault-app.js',
+  // Generated from src/templates/vault/*.html by tools/build-templates.mjs.
+  '/src/vault.render.js',
   '/src/theme.js',
   '/src/palettes.js',
   '/src/site-header.js',
@@ -67,7 +69,7 @@ const PRECACHE = [
   '/src/site-header.css',
   '/src/assets/password_generator_icon.svg',
   '/src/assets/logo.png',
-  '/vendor/vue.esm-browser.prod.js',
+  '/vendor/vue.runtime.esm-browser.prod.js',
   '/vendor/mdi/css/materialdesignicons.min.css',
   '/vendor/mdi/fonts/materialdesignicons-webfont.woff2',
   '/data/orchard-street-long.txt',

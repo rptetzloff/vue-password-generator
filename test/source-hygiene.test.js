@@ -107,7 +107,7 @@ test('the escape check can tell a collapsed escape from a correct one', () => {
 // -- the vendored library, and the only thing that can watch it ---------------
 
 test('the declared Vue version is the Vue version actually vendored', () => {
-  // Vue is not installed, it is COPIED IN: vendor/vue.esm-browser.prod.js is
+  // Vue is not installed, it is COPIED IN: vendor/vue.runtime.esm-browser.prod.js is
   // what the browser runs, and there is no node_modules at runtime. That is
   // deliberate -- no build step, the deployed source is the source you can
   // read -- but it had a cost nobody had priced. Dependabot and npm audit read
@@ -131,7 +131,7 @@ test('the declared Vue version is the Vue version actually vendored', () => {
   assert.match(declared, /^\d+\.\d+\.\d+$/,
     'pinned exactly -- a range would mean the declared version is not the shipped one')
 
-  const bundle = fs.readFileSync(new URL('vendor/vue.esm-browser.prod.js', ROOT), 'utf8')
+  const bundle = fs.readFileSync(new URL('vendor/vue.runtime.esm-browser.prod.js', ROOT), 'utf8')
   const found = [...bundle.matchAll(/"(\d+\.\d+\.\d+)"/g)].map((m) => m[1])
   assert.ok(found.includes(declared),
     `package.json declares vue@${declared}, which does not appear in the vendored bundle`)

@@ -1,4 +1,4 @@
-import { createApp, ref, computed, watch, onMounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
+import { createApp, ref, computed, watch, onMounted, nextTick } from '../vendor/vue.runtime.esm-browser.prod.js'
 import { renderAdvancedPassword, renderAffixPicker, renderApp, renderEntropyPanel, renderHistoryStrip, renderKeepButton, renderMadLib, renderNumbersPassword, renderPassphrase, renderSimplePassword, renderWifiWords, renderWordsPassword } from './main.render.js'
 import {
   SPECIAL_CHARS,

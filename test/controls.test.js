@@ -177,7 +177,9 @@ test('every dropdown wrapper is a positioning context', () => {
   const css = fs
     .readFileSync(new URL('../src/vault.css', import.meta.url), 'utf8')
     .replace(/\/\*[\s\S]*?\*\//g, '')
-  const app = fs.readFileSync(new URL('../src/vault-app.js', import.meta.url), 'utf8')
+  // The markup moved to src/templates/vault/ when templates were
+  // precompiled; the component file is logic only now.
+  const app = fs.readFileSync(new URL('../src/templates/vault/App.html', import.meta.url), 'utf8')
 
   // The wrappers are whatever the template actually uses, so a third menu is
   // covered the day it is added rather than the day it is noticed.
@@ -208,7 +210,9 @@ test('the blocked screen has a way out that is not clearing site data', () => {
   // coming back. Asserted against the template rather than the running page
   // because reaching the state needs a real revoked handle, which no browser
   // will hand out on request.
-  const app = fs.readFileSync(new URL('../src/vault-app.js', import.meta.url), 'utf8')
+  // The markup moved to src/templates/vault/ when templates were
+  // precompiled; the component file is logic only now.
+  const app = fs.readFileSync(new URL('../src/templates/vault/App.html', import.meta.url), 'utf8')
   const blocked = app.slice(
     app.indexOf(`state === 'blocked'`),
     app.indexOf(`state === 'absent'`),
@@ -224,7 +228,9 @@ test('letting go of a folder is offered wherever a folder is in use', () => {
   // Two places, and they are not interchangeable: the settings panel is the
   // deliberate "I am done with this machine", the blocked screen is the
   // escape. Missing either one leaves someone stuck.
-  const app = fs.readFileSync(new URL('../src/vault-app.js', import.meta.url), 'utf8')
+  // The markup moved to src/templates/vault/ when templates were
+  // precompiled; the component file is logic only now.
+  const app = fs.readFileSync(new URL('../src/templates/vault/App.html', import.meta.url), 'utf8')
   const uses = [...app.matchAll(/@click="disconnectFolder"/g)]
   assert.equal(uses.length, 2, 'expected it on the blocked screen and in the location panel')
 })

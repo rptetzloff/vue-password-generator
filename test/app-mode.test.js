@@ -50,7 +50,7 @@ test('everything the site serves is in the precache list', () => {
     ...listDir('src', ['.js', '.css']),
     ...listDir('src/assets', ['.svg', '.png']),
     ...listDir('data', ['.txt', '.json']),
-    '/vendor/vue.esm-browser.prod.js',
+    '/vendor/vue.runtime.esm-browser.prod.js',
     ...listDir('vendor/mdi/css', ['.css']),
     ...listDir('vendor/mdi/fonts', ['.woff2']),
   ]

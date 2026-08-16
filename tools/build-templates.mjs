@@ -97,7 +97,7 @@ export const BUNDLES = [
  * removes the last template string -- together with dropping 'unsafe-eval'
  * from the CSP, because those two are the same fact about the page.
  */
-const VUE_IMPORT = '../vendor/vue.esm-browser.prod.js'
+const VUE_IMPORT = '../vendor/vue.runtime.esm-browser.prod.js'
 
 const COMPILE_OPTIONS = {
   mode: 'module',

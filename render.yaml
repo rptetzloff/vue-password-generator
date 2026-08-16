@@ -98,14 +98,19 @@ services:
       # and therefore what Render serves; computing them from a CRLF working
       # tree yields hashes that pass locally and break in production.
       #
-      # 'unsafe-eval' is required and its absence was measured, not assumed:
-      # the app declares components with Vue's `template:` option, so Vue
-      # compiles templates at runtime through `new Function`, and without it
-      # every page renders blank. It is a real weakening, but a bounded one --
-      # reaching eval requires already executing script, and the hash list is
-      # what stops injected script from executing in the first place. Removing
-      # it means precompiling templates, which means a build step; see
-      # ROADMAP 9f.
+      # 'unsafe-eval' IS GONE. It was required for as long as components
+      # declared templates as strings: Vue compiled those in the browser
+      # through `new Function`, and without the allowance every page rendered
+      # blank -- measured, not assumed.
+      #
+      # Templates are now compiled ahead of time by tools/build-templates.mjs
+      # and the page ships vue.runtime.esm-browser.prod.js, which has no
+      # compiler in it at all. Nothing on this origin needs to build a function
+      # from a string any more, so the policy no longer says it may.
+      #
+      # It was one allowance blocking three separate things -- this policy, a
+      # Manifest V3 extension, and the sealing work in 9f -- which is why "do
+      # not add a build step for this alone" stopped applying.
       #
       # style-src keeps 'unsafe-inline' because CSP hashes do not cover style
       # attributes and docs.html carries 123 of them. With img-src and
@@ -114,7 +119,7 @@ services:
       # one.
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'sha256-dyBu1aISuiapW/D0B+MOaUi6eJ9+lL9+rNRgY7+dwAU=' 'sha256-D7pO4R68hLL5gxelrQQLuK0W0lqTaWq0ZcS2IGYeMl4=' 'sha256-EnokG1Ge72acG6K9uT6UQQ6QDbg/Z39S608pC4o2ARc=' 'sha256-JkG5uX2Mhs+bZE5mNn5rqZTEqNmLrcaGKckQZBtSlro=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
+        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-dyBu1aISuiapW/D0B+MOaUi6eJ9+lL9+rNRgY7+dwAU=' 'sha256-D7pO4R68hLL5gxelrQQLuK0W0lqTaWq0ZcS2IGYeMl4=' 'sha256-EnokG1Ge72acG6K9uT6UQQ6QDbg/Z39S608pC4o2ARc=' 'sha256-JkG5uX2Mhs+bZE5mNn5rqZTEqNmLrcaGKckQZBtSlro=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
 
       # Caching for the vendored third-party assets. Since v2.7.1 these are
       # served from this domain rather than a CDN, so their bytes are ours --
@@ -175,6 +180,6 @@ services:
       - path: /vendor/mdi/css/*
         name: Cache-Control
         value: public, max-age=86400
-      - path: /vendor/vue.esm-browser.prod.js
+      - path: /vendor/vue.runtime.esm-browser.prod.js
         name: Cache-Control
         value: public, max-age=86400
