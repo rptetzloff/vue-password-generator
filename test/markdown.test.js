@@ -23,7 +23,11 @@ test('a wrapped bullet stays one bullet', () => {
 
   assert.equal(count(html, /<ul[ >]/g), 1, 'one list, not one per line')
   assert.equal(count(html, /<li[ >]/g), 2)
-  assert.equal(count(html, /<p>/g), 0, 'a continuation line is not a paragraph')
+  // ~~Asserted 0 paragraphs: item text used to be a bare span.~~ Items now
+  // hold paragraphs so that one can hold several. The claim is unchanged --
+  // a wrapped line joins the paragraph above it rather than starting one --
+  // but it is now counted as one per item instead of none.
+  assert.equal(count(html, /<p>/g), 2, 'one paragraph per item; the wrap joins, it does not start a second')
   assert.match(textOf(html), /is already DOM-free/, 'the wrap joins with a space')
 })
 
@@ -49,10 +53,58 @@ test('a paragraph that wraps mid-emphasis closes it too', () => {
 
 test('a blank line still ends the item', () => {
   // The continuation rule must not swallow the prose that follows a list.
+  // What decides it is the indent: prose at the margin is a new block, prose
+  // at the item's content column belongs to the item.
   const html = renderMarkdown(['- one', '', 'A following paragraph.'].join('\n'))
   assert.equal(count(html, /<li[ >]/g), 1)
-  assert.equal(count(html, /<p>/g), 1)
+  assert.equal(count(html, /<p>/g), 2, "the item's own paragraph, and the one after the list")
   assert.match(html, /<\/ul><p>A following paragraph\.<\/p>/)
+})
+
+test('an indented block after a blank line stays inside the item', () => {
+  // The other half of the rule above, and the reason the roadmap reads the
+  // way it does. Every entry that explains itself -- "why not yet", every
+  // struck-through reversal -- is a second paragraph of a list item. These
+  // used to be ejected to the page margin, so an entry's reasoning stopped
+  // looking like part of the entry.
+  //
+  // Two spaces because that is `- `'s content column. Four or more past it
+  // would be an indented code block, which is the bug this pairs with.
+  const html = renderMarkdown([
+    '- **The claim.** Stated first.',
+    '',
+    '  ~~The old decision.~~',
+    '',
+    '  **Reversed.** With the reason.',
+    '',
+    '- A second item.',
+  ].join('\n'))
+
+  assert.equal(count(html, /<ul[ >]/g), 1, 'one list: a continuation must not split it')
+  assert.equal(count(html, /<li[ >]/g), 2)
+  assert.equal(count(html, /<\/ul><p>/g), 0, 'nothing may be ejected past the list')
+
+  const first = html.slice(html.indexOf('<li'), html.indexOf('</li>'))
+  assert.equal(count(first, /<p>/g), 3, 'all three blocks belong to the first item')
+  assert.match(first, /<del>The old decision\.<\/del>/, 'a reversal still reads as one')
+  assert.match(first, /<strong>Reversed\.<\/strong>/)
+})
+
+test('an indented table stays inside its item', () => {
+  // 9d's Firefox comparison is a table inside a bullet. Ejecting it left the
+  // item promising a comparison that had walked off without it.
+  const html = renderMarkdown([
+    '- **The whole surface:**',
+    '',
+    '  | API | Firefox |',
+    '  |-----|---------|',
+    '  | OPFS | sandboxed |',
+  ].join('\n'))
+
+  assert.equal(count(html, /<table>/g), 1)
+  assert.equal(count(html, /<\/ul><div class="table-scroll"/g), 0, 'the table must not escape the list')
+  const item = html.slice(html.indexOf('<li'), html.indexOf('</li>'))
+  assert.match(item, /table-scroll/, 'the table belongs to the item that introduces it')
 })
 
 test('a heading ends the item without a blank line', () => {

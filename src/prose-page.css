@@ -64,6 +64,14 @@ body {
   margin-top: 0.35rem;
 }
 
+/* A list item's content is paragraphs, so an item that carries reasoning can
+   hold more than one and keep it inside the item. The first takes the item's
+   own spacing rather than a paragraph's; the rest space themselves apart. */
+.prose-card li > p:first-child,
+.prose-card li > div > p:first-child {
+  margin-top: 0;
+}
+
 .prose-card a {
   color: var(--primary-dark);
   text-decoration: underline;
