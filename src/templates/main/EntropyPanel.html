@@ -1,0 +1,31 @@
+<details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
+  <summary class="entropy-summary">
+    <span class="entropy-meter" :class="'meter-' + tier.id" aria-hidden="true"><span class="entropy-meter-fill" :style="{ width: pct + '%' }"></span></span>
+    <span class="entropy-total">{{ entropy.total.toFixed(1) }} bits</span>
+    <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
+    <span v-if="delta !== null && showDelta" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
+    <span class="entropy-how" aria-hidden="true">how?</span>
+    <span v-if="range" class="entropy-range" title="Average time to guess, assuming the attacker knows your settings. Open the breakdown for all four scenarios.">to guess: leaked database <strong>{{ range.fast }}</strong> &middot; login with lockout <strong>{{ range.lockout }}</strong></span>
+  </summary>
+  <ul class="entropy-parts">
+    <li v-for="p in entropy.parts" :key="p.label" :class="{ 'ep-zero': p.bits === 0 }">
+      <span class="ep-bits">{{ p.bits === 0 ? '0' : '+' + p.bits.toFixed(1) }}</span>
+      <span class="ep-label">{{ p.label }}</span>
+      <span v-if="p.note" class="ep-note">{{ p.note }}</span>
+    </li>
+  </ul>
+  <div class="entropy-extras">
+    <div v-if="perChar !== null" class="entropy-extra-line">
+      {{ perChar.toFixed(2) }} bits per character across {{ len }} characters<template v-if="charsRef !== null"> — random characters at this length could carry {{ charsRef.toFixed(0) }} bits; the gap is what structure and memorability cost</template>
+    </div>
+    <div v-if="listRef !== null" class="entropy-extra-line">
+      the same {{ words }} words drawn from the flat Words list would carry {{ listRef.toFixed(1) }} bits
+    </div>
+    <div class="entropy-crack">
+      <div class="entropy-crack-title">average time to guess, if attacked knowing your settings:</div>
+      <div v-for="s in crackRows" :key="s.id" class="entropy-crack-row" :title="s.note">
+        <span class="crack-label">{{ s.label }}<span class="crack-rate">{{ s.rateLabel }}</span></span><span class="crack-time">{{ s.time }}</span>
+      </div>
+    </div>
+  </div>
+</details>

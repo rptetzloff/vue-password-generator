@@ -31,6 +31,8 @@ const PRECACHE = [
   '/manifest.webmanifest',
   '/favicon.ico',
   '/src/main.js',
+  // Generated from src/templates/main/*.html by tools/build-templates.mjs.
+  '/src/main.render.js',
   '/src/logo.js',
   '/src/markdown.js',
   '/src/lib.js',

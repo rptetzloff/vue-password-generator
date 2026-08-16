@@ -22,6 +22,7 @@
   "homepage": "https://wordlock.net",
   "type": "module",
   "devDependencies": {
+    "@vue/compiler-dom": "3.4.0",
     "vue": "3.4.0"
   },
   "scripts": {
