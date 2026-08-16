@@ -1,6 +1,13 @@
 # WordLock
 
-WordLock is a modern, secure password generator built with Vue 3. Generate highly customizable passwords across seven distinct modes — all locally in your browser, with no data ever sent to a server.
+WordLock is a password generator and an encrypted vault, built with Vue 3.
+Generate passwords across seven distinct modes and keep them in a vault only
+you can open — all locally in your browser, with no data ever sent to a server.
+
+There is no account, because there is nothing to sign in to. That is not a
+feature that was deferred; it is the shape of the thing. No server means no
+breach of ours to be in, and it also means no password reset, no support
+channel that can let you back in, and backups that are yours to keep.
 
 No runtime dependencies, no third-party CDNs, and nothing between the repository
 and your browser: what a server sends is what is committed here, unbundled and
@@ -53,6 +60,58 @@ All modes support:
 - **Prefix / Suffix** — add a number, symbol, or custom string before or after the password
 - **Copy to Clipboard** — one-click copy with confirmation
 - **Strength readout** — every generator shows its result's entropy in bits, with a delta when settings change, a warning under 40 bits, and a "how?" breakdown pricing every random draw. Options that add nothing say so: the leet toggle is a fixed public mapping (0 bits), eight of the ten capitalization modes are deterministic (0 bits), and Wireless's alliteration toggle states its measured cost. The numbers reflect what the code actually does — Simple's figure is the entropy of its type-then-character draw, slightly below the naive pool math, and Numbers replays its own repeat/sequence state machine, proven exact by tests that sum the probability of every reachable output to 1.
+
+---
+
+## The Vault
+
+A generator on its own is a moment-tool: you take a password and leave, and the
+clipboard timer erases the only copy thirty seconds later. `vault.html` keeps
+what you generate.
+
+- **AES-256-GCM, with the key derived by PBKDF2-SHA256 at 1,000,000
+  iterations.** Not 10,000,000: measured at 93 ms against 1,032 ms, for 4.1
+  bits. The vault is a single sealed envelope — there is no index, no plaintext
+  entry list and no searchable metadata outside it.
+- **Envelope v2 wraps a random master key once per way in.** v1 encrypted
+  entries directly under the passphrase-derived key, which leaves nowhere to
+  put a second door. Changing the passphrase now re-wraps 32 bytes rather than
+  re-encrypting everything. A v1 vault keeps opening as it did and converts
+  only when you ask for something that needs it.
+- **A recovery key** — sixteen words at 225 bits, drawn from the same Orchard
+  Street list, generated and never chosen. A memorable phrase you picked would
+  quietly become the real strength of the vault, since an attacker takes
+  whichever key is cheaper to break.
+- **Entries** carry a username, password, URL, notes, tags, groups, custom
+  fields and an optional TOTP seed. Reuse is detected across the vault.
+- **Auto-lock**, and an opt-in wrapped key in storage so the vault survives a
+  page navigation. `Never` turns that off and keeps the key in memory only.
+- **Import and export**, including from other managers. Malformed input from
+  another manager's file should fail rather than execute or corrupt — that is
+  a security boundary and it is tested as one.
+
+### Sync without a server
+
+The vault can live as a single encrypted file in a folder you choose. Point it
+at a directory inside Dropbox, OneDrive or iCloud Drive and their client does
+the moving, using an account you already have with a company you already chose.
+We are not in the middle of that and could not be — there is still no server
+here to put there.
+
+A save re-reads the folder, merges, and then writes, so an edit made on another
+machine is not silently overwritten and a genuine conflict is shown as a diff
+rather than resolved by guessing. **The limit, in the same breath: that makes
+two machines safe in sequence, not in the same instant.** Nothing here can see
+across the sync client's own conflict handling, and writing while Dropbox is
+behind produces a conflicted copy that only Dropbox knows about.
+
+Folder storage needs the File System Access API, which is Chromium on desktop —
+Chrome, Edge, Opera, Brave. Firefox and Safari cannot do it, and that is a
+position rather than a gap: Mozilla's standards response calls the write half
+harmful. It is **not offered on phones** either, even though Chrome and Edge on
+Android have the API, because the folder permission does not survive a page
+refresh — twice over, since the site asks and then Android asks. Everywhere it
+is unavailable, the vault stays in browser storage and everything else works.
 
 ---
 
@@ -161,7 +220,12 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 - **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only
 - **No third-party requests** — Vue and the icon font are served from this site, so no CDN observes your visit
+- **A strict CSP** — `connect-src 'self'` is the directive that earns its keep: whatever runs on this origin, it has nowhere to send what it finds. Every inline script is allowed by hash rather than by `'unsafe-inline'`, and `'unsafe-eval'` is gone as of 3.4.0 — not merely withheld, but unusable, since the page ships a Vue build with no compiler in it
+- **The vault is a sealed envelope** — no index, no plaintext entry list, no searchable metadata outside the ciphertext. Nobody can open it, including us
 - **Open source** — inspect the code yourself
+
+Reporting a vulnerability, what is in scope, and the trade-offs that are
+documented rather than defects: [SECURITY.md](SECURITY.md).
 
 > **Upgrading from v2.7.1 or earlier?** Those versions used `Math.random()` for all randomness, which is not cryptographically secure — its internal state is recoverable from observed outputs. Passwords generated before v2.7.2 should be considered predictable and are worth regenerating.
 
@@ -172,7 +236,12 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 ### Prerequisites
 
 Any static file server. The `npm run dev` script below uses one via `npx`, which
-needs Node.js 18+, but nothing in the project itself depends on Node.
+needs Node.js 18+.
+
+Nothing depends on Node to *run* the site. Two things do depend on it, and
+neither is between the repository and a browser: the test suite, and the
+template build — whose output is committed, so a clone serves correctly without
+ever running it.
 
 ### Quick Start
 
@@ -205,8 +274,22 @@ Runs on Node's built-in test runner — Node 20+ is the
 floor, since the suite uses `globalThis.crypto`. Coverage is the pure logic that
 can be tested without a browser: the CSPRNG (range, uniformity, and that
 rejection sampling actually discards the biased tail), the word and character
-transforms, theme resolution, nav path matching, and both WCAG contrast and
-color-vision separation read straight out of `src/tokens.css`.
+transforms, the vault's crypto and its state machine with storage faked, theme
+resolution, nav path matching, and both WCAG contrast and color-vision
+separation read straight out of `src/tokens.css`.
+
+A second group asserts things about the repository rather than about values,
+because each of them is a bug that shipped once: `csp.test.js` recomputes the
+script hashes from the HTML (a stale hash is a blank site, and it normalises
+line endings first, because the working tree is CRLF and git stores LF);
+`templates.test.js` recompiles `src/templates/` and fails if the committed
+render functions have drifted, so the artefact cannot quietly become the source
+of truth; and `csp.test.js` also fails if `'unsafe-eval'` returns to the header
+or a component declares `template:` again.
+
+`templates.test.js` is the one test that needs `npm ci` — the compiler is a
+devDependency and cannot be vendored. It skips cleanly without it so a fresh
+clone still runs everything else. CI installs, so CI enforces it.
 
 Two of those are lints rather than assertions about values, and both exist
 because the same bug shipped repeatedly: a color hardcoded in a stylesheet is
@@ -236,6 +319,11 @@ The project includes a `render.yaml` for one-click deployment on [Render.com](ht
 Build command: none  
 Publish directory: `./` (the repository root)
 
+Still none, with a build step in the project, and that is deliberate: the
+templates are compiled in development and the output is committed, so the host
+has nothing to run. What a server sends is what is in the repository. A build
+whose artefacts were not committed would break that claim; this one does not.
+
 For any other static host, serve the repository root as-is.
 
 ---
@@ -248,11 +336,35 @@ wordlock/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── orchard-street-long.txt  # Words mode list (17,576 words, CC BY-SA 4.0)
 ├── src/
-│   ├── main.js           # Vue components for the seven generators
-│   ├── lib.js            # Pure generation helpers (no Vue, no DOM) — unit tested
+│   ├── main.js           # The generator app: the seven components and their state
+│   ├── main.render.js    # GENERATED from templates/main/ — do not edit
+│   ├── templates/        # The markup, as .html. This is the source of truth
+│   │   ├── main/         # App, the seven generators, EntropyPanel, HistoryStrip…
+│   │   └── vault/
+│   ├── generators.js     # Pure generation, shared by the app and the vault
+│   ├── lib.js            # Pure helpers (no Vue, no DOM) — unit tested
+│   ├── entropy.js        # Bits accounting for every generator (6a/6b)
+│   ├── common-passwords.js     # The deny-list behind the strength readout
+│   ├── passphrase-strength.js  # Scoring for the vault's passphrase
+│   ├── clipboard-clear.js      # The 30-second clipboard timer
+│   ├── history-crypto.js       # Encrypts the per-generator history at rest
+│   │
+│   ├── vault-app.js      # The vault app
+│   ├── vault.render.js   # GENERATED from templates/vault/ — do not edit
+│   ├── vault-crypto.js   # AES-256-GCM, PBKDF2, the sealed envelope (v1 and v2)
+│   ├── recovery-key.js   # Sixteen words: generate, normalise, validate
+│   ├── vault-store.js    # State machine, read-merge-write, conflict guard
+│   ├── vault-entry.js    # Entry rules: normalise, tombstone, sort, group, reuse
+│   ├── vault-session.js  # Auto-lock and the between-pages wrapped key
+│   ├── vault-idb.js      # Storage adapter: IndexedDB
+│   ├── vault-fs.js       # Storage adapter: a folder you chose
+│   ├── vault-location.js # Which adapter is in use, and moving between them
+│   ├── vault-diff.js     # Conflict diff — compares raw, renders masked
+│   ├── vault-transfer.js # Import and export, including from other managers
+│   ├── totp.js           # One-time codes
+│   │
 │   ├── theme.js          # Light/dark/system + palette runtime
 │   ├── palettes.js       # The accent palette manifest, incl. cvd-safe flags
-│   ├── entropy.js        # Bits accounting for every generator (6a/6b)
 │   ├── logo.js           # The site mark, inline so it can follow the theme
 │   ├── site-header.js    # Shared header: icon, title, subtitle, nav
 │   ├── site-nav.js       # One list of pages; every nav is generated from it
@@ -260,39 +372,50 @@ wordlock/
 │   ├── markdown.js       # Small Markdown subset renderer, for roadmap.html
 │   ├── settings-panel.js # The settings gear popover
 │   ├── tokens.css        # Design tokens — the only place colors are defined
-│   ├── site-header.css   # Shared header styles
-│   ├── site-footer.css   # Shared footer styles
-│   ├── settings-panel.css
+│   ├── style.css         # App-specific component styles
+│   ├── vault.css
 │   ├── prose-page.css    # Layout for the About and Legal pages
-│   └── style.css         # App-specific component styles
-├── test/                 # node --test
-│   ├── helpers/
-│   │   └── color.js      # CIEDE2000 + color-vision simulation (test tooling)
+│   └── site-header.css, site-footer.css, settings-panel.css
+├── tools/
+│   └── build-templates.mjs  # templates/ → *.render.js; --check for CI
+├── test/                 # node --test — 744 of them
+│   ├── helpers/color.js  # CIEDE2000 + color-vision simulation (test tooling)
 │   ├── random.test.js    # CSPRNG: range, uniformity, rejection sampling
-│   ├── transforms.test.js
-│   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
-│   ├── controls.test.js  # Target size (2.5.8) and focus visibility (2.4.7)
-│   ├── color-vision.test.js  # Palette separation under protan/deutan/tritan
-│   ├── wordlist.test.js  # Word list size, charset and unique decodability
-│   ├── words.test.js     # Slot categories: charset, sizes, UI/data agreement
 │   ├── entropy.test.js   # Bits math: distribution proofs, canaries, 6b claims
-│   ├── theme.test.js
-│   ├── site-header.test.js
-│   └── site-nav.test.js
+│   ├── vault-crypto.test.js, vault-store.test.js, vault-fs.test.js,
+│   │                     # vault-diff.test.js, vault-location.test.js,
+│   │                     # vault-transfer.test.js, recovery-key.test.js
+│   ├── contrast.test.js  # WCAG AA, checked against tokens.css itself
+│   ├── color-vision.test.js  # Palette separation under protan/deutan/tritan
+│   ├── controls.test.js  # Target size (2.5.8) and focus visibility (2.4.7)
+│   ├── csp.test.js       # Recomputes the script hashes from the HTML
+│   ├── templates.test.js # Recompiles templates/ and fails if output drifted
+│   ├── render-config.test.js  # render.yaml's headers and routing
+│   ├── source-hygiene.test.js # No literal colors; no suppressed outlines
+│   ├── app-mode.test.js  # Service worker, precache list, manifest
+│   └── …                 # wordlist, words, transforms, totp, markdown, theme,
+│                         # generators, history-crypto, site-header, site-nav
 ├── vendor/
-│   ├── vue.esm-browser.prod.js   # Vue 3.4.0 runtime
+│   ├── vue.runtime.esm-browser.prod.js  # Vue 3.4.0, runtime only — no compiler
 │   ├── vue.LICENSE
-│   └── mdi/                      # Material Design Icons 7.4.47 (css + woff2 + LICENSE)
+│   └── mdi/              # Material Design Icons 7.4.47 (css + woff2 + LICENSE)
 ├── .githooks/pre-commit  # Runs the test suite before each commit
 ├── index.html            # The generator
+├── vault.html            # The vault
 ├── docs.html             # Documentation reference
 ├── changelog.html        # Release history
-├── about.html
-├── legal.html
+├── roadmap.html, about.html, legal.html
+├── sw.js                 # Service worker: offline shell, versioned cache
 ├── ROADMAP.md
+├── SECURITY.md
 ├── render.yaml
 └── package.json
 ```
+
+`src/main.js` and `src/vault-app.js` are both far past the point of being
+comfortably readable and are being reduced by extraction rather than by a
+rewrite — `vault-entry.js`, `vault-idb.js` and `vault-diff.js` all came out of
+`vault-store.js` that way.
 
 ---
 
@@ -310,6 +433,11 @@ wordlock/
 | `WifiWords` | WiFi-optimized passphrase with alliteration mode |
 | `MadLib` | Template sentence passwords with per-slot category control |
 
+Each is declared in `src/main.js` and gets its markup from
+`src/templates/main/`, compiled ahead of time into `src/main.render.js`. Edit
+the template, not the render function — a test fails if the two disagree. The
+vault is one app of its own, `src/vault-app.js` with `src/templates/vault/`.
+
 ### Vue as a vendored ES module
 
 Vue 3 is loaded as a native ES module from a checked-in copy, avoiding both a
@@ -317,13 +445,19 @@ bundler and a third-party CDN in the critical path:
 
 ```javascript
 import { createApp, ref, computed, watch, onMounted } from
-  '../vendor/vue.esm-browser.prod.js'
+  '../vendor/vue.runtime.esm-browser.prod.js'
 ```
 
 Everything the page needs is served from this repository, so the site has no
 external runtime dependencies and keeps working if any CDN is unreachable.
-Upgrading Vue means replacing `vendor/vue.esm-browser.prod.js` with a newer
-`vue.esm-browser.prod.js` build.
+
+It is the **runtime** build — 88 KB against the full build's 146 KB, and the
+58 KB it leaves out is the template compiler. That is the point rather than a
+saving: with no compiler on the page, `unsafe-eval` is not merely disallowed
+by the CSP, there is nothing that could use it. Upgrading Vue means replacing
+`vendor/vue.runtime.esm-browser.prod.js` with a newer `vue.runtime.esm-browser.prod.js`
+— *runtime*, not the full build, or the compiler comes back and the CSP starts
+blocking it.
 
 ### Word Data
 
@@ -348,6 +482,13 @@ It is **CC BY-SA 4.0** and deliberately kept as its own file. That license cover
 - Edge 88+
 
 Requires ES module support and `crypto.getRandomValues()`. Because `crypto.getRandomValues()` is only exposed in a secure context, the app must be served over HTTPS or from `localhost`.
+
+The vault needs the same, plus `crypto.subtle` and IndexedDB, so those floors
+carry it too. **One feature does not reach all four:** keeping the vault in a
+folder you chose needs the File System Access API, which is Chromium on desktop
+only. Where it is missing the vault stays in browser storage and nothing else
+changes — see [The Vault](#the-vault) for why Firefox and Safari not having it
+is a position rather than a delay, and why it is withheld on phones that do.
 
 ---
 

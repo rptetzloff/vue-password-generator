@@ -1,7 +1,7 @@
 {
   "name": "wordlock",
   "version": "3.4.0",
-  "description": "A password generator and encrypted local vault. No accounts, no server, no build step.",
+  "description": "A password generator and encrypted local vault. No accounts, no server, no runtime dependencies.",
   "author": "Raymond Tetzloff <ray@raytetzloff.com>",
   "repository": {
     "type": "git",
