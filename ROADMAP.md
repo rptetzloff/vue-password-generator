@@ -481,6 +481,11 @@ wordlock/
   neither expressible in JavaScript. Let the tree follow the code boundary and
   not the distribution target.
 
+  That autofill is what justifies a wrapper at all is 9c's argument, not a new
+  one, and 8c says the same for the extension. What is new is only the
+  consequence for the tree: the same fact that makes the app worth building is
+  the fact that stops mobile being one codebase.
+
 - [ ] **`core/` extraction ships first and alone.** It is valuable even if no
   other surface is ever built, it is mostly `git mv`, and it is the prerequisite
   for all of them. Everything else in this epic is blocked on it; nothing in it
@@ -556,21 +561,27 @@ wordlock/
 
 ### 11c. The API, and what it is allowed to be
 
-- [ ] **Sync needs a network service, and the objection was to the name rather
-  than the thing.** A blob store with sessions and write-race detection is an
-  API by any reasonable definition. What matters is that it stays that and
-  nothing more, and Epic 9d has already argued the shape: an opaque sync
-  identifier, ciphertext the server cannot read, session tokens in `HttpOnly`
-  cookies, and a write race detected rather than resolved.
+**9d already decided what the server may be** -- an opaque sync identifier,
+ciphertext it cannot read, session tokens in `HttpOnly` cookies, a write race
+detected rather than resolved. None of that is restated here; 9d is the
+authority and this section is only the part that is about the repository.
 
-- [ ] **Make the constraint a test rather than a folder name.** `api/routes.js`
-  declares the entire surface; a test asserts the running service exposes
-  exactly those routes and no others. Then adding an endpoint is a deliberate,
-  reviewed act instead of a Tuesday. This is the same move as `tokens.css` being
-  the only place a colour may exist -- the rule is worth more when something
+- [ ] **Make the constraint a test rather than a folder name.** The objection to
+  calling the directory `api` was to the name as an open invitation, not to
+  having one -- sync needs a network service, and a blob store with sessions is
+  an API by any reasonable definition. But a folder name enforces nothing.
+  `api/routes.js` declares the entire surface and a test asserts the running
+  service exposes exactly those routes and no others, so adding an endpoint is a
+  deliberate reviewed act rather than a Tuesday. Same move as `tokens.css` being
+  the only place a colour may exist: the rule is worth something once a thing
   fails on it.
 
 ### 11d. The claims, per surface
+
+**8e stated the conflict and it has not moved:** the Legal and About pages say
+there are no accounts and nothing leaves your device, and shipping sync quietly
+would make published claims false. That is the argument; what follows is only
+the bookkeeping it implies once there are six surfaces instead of one.
 
 - [ ] **"Zero runtime dependencies" becomes scoped, and every copy changes in
   the same release.** It appears in `README.md`, `SECURITY.md`, About, Legal and
@@ -742,6 +753,13 @@ rather than discovered afterwards.
 
 ### 9c. The packaged app — where separation is real
 
+> **Epic 11 takes the repository half of this, and only that half.** 9c still
+> owns *why* a wrapper is worth building — autofill, platform key storage,
+> biometrics, and the $99-plus-review arithmetic. What moved to 11a is where
+> the code sits, and the one finding that changes the plan: mobile is the only
+> surface of the three that genuinely cannot be a single codebase, for exactly
+> the reason 9c gives for wanting it.
+
 The PWA (8b) is not a second product: installed or in a tab, it is the same
 origin and the same storage. A **packaged** app is different — a Capacitor or
 Tauri shell has its own WebView storage sandbox, so the app's vault and the
@@ -770,6 +788,12 @@ the bridge between them, which is a reason to build 9b first and well.
   being the website in a trench coat.
 
 ### 9d. Sync, if it ever happens — the conditions
+
+> **Still the authority on what a server may be.** Epic 11c does not restate
+> any of it — the opaque identifier, the ciphertext the server cannot read, the
+> `HttpOnly` sessions, the write race. 11c adds one thing only: that the
+> restriction should be a test over a declared route list rather than a
+> convention, because a folder called `api` enforces nothing.
 
 **Three modes, after Obsidian's shape.** That model is worth copying because it
 solves the funding problem without compromising the free product: local is
@@ -1614,9 +1638,22 @@ Epic 8 instead of Epic 9.
   already injected. `vault-store.js` needs a storage adapter and somewhere
   other than `localStorage` for the lock window. `totp.js`, `entropy.js`,
   `vault-transfer.js`, `passphrase-strength.js` and `common-passwords.js`
-  move untouched. What does not move is `main.js` and `vault-app.js` —
-  about 4,600 lines of Vue — which is precisely where the CSP problem
+  move untouched. ~~What does not move is `main.js` and `vault-app.js` —
+  about 4,600 lines of Vue —~~ which is precisely where the CSP problem
   lands.
+
+  **Both halves of that have moved, in opposite directions, and neither was
+  moved on purpose.** The named set measures 2,446 lines today, so "roughly
+  2,700" still holds — but the *portable* set is larger than the list, because
+  `vault-entry.js`, `vault-diff.js`, `recovery-key.js`, `lib.js` and
+  `generators.js` were extracted for readability and are pure too. And the Vue
+  half is 2,979 lines, not 4,600: it was 5,633 before the markup moved out to
+  `src/templates/` in 3.4.0. The CSP problem this sentence pointed at is also
+  gone — `unsafe-eval` left the policy in the same release.
+
+  Epic 11a carries the current measurement and the folder shape it implies.
+  This item stays because the file-by-file breakdown is still the useful part
+  and 11a does not repeat it.
 - [ ] **The hard part of autofill is not the crypto, it is origin matching.**
   An entry saved for `example.com` must fill on `example.com` and must not
   fill on `example.com.evil.co`: matched on the registrable domain rather
