@@ -143,9 +143,23 @@
          darkening wash instead, and patch drops the fill for an outline --
          which also keeps the three visually distinct now that neither is a
          white block. */
+      /* The badge says what KIND of release this is, not how big it was.
+         major/minor/patch are the old vocabulary, kept on the releases that
+         used them because they were accurate to the semver of their day. They
+         were also nearly useless: 27 of 37 releases read "Minor", because a
+         three-value scale derived from semver cannot say anything a reader
+         wants to know. Magnitude comes from the title and summary instead.
+         New releases use `feature` and the kinds beside it. */
       .badge-major  { background: var(--primary); color: var(--on-primary); }
       .badge-minor  { background: var(--band-fill); color: var(--band-text); }
       .badge-patch  { background: none; border: 1px solid var(--band-text-dim); color: var(--band-text-dim); }
+
+      /* Reversed out of the band rather than washed into it, which is what
+         makes it read louder than minor without competing with major's solid
+         primary. --band-ink exists for this: see the note in tokens.css for
+         why neither --text nor --primary can be used on a chip that sits on
+         the band, and what the first attempt measured. */
+      .badge-feature { background: var(--band-text); color: var(--band-ink); }
 
       /* ── Release card (right column) ──────────────────────── */
 
@@ -313,7 +327,7 @@
           <div class="release-meta">
             <div class="release-version">v3.3.0</div>
             <div class="release-date">2026-08-15</div>
-            <span class="release-badge badge-minor">Minor</span>
+            <span class="release-badge badge-feature">Feature</span>
           </div>
           <div>
             <div class="release-card">

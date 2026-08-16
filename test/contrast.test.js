@@ -880,3 +880,63 @@ for (const { value } of PALETTES) {
     }
   })
 }
+
+// ---------------------------------------------------------------------------
+// The changelog's Feature badge, which is the one badge that does NOT sit on
+// the gradient.
+//
+// It is deliberately absent from ON_GRADIENT above. The minor and patch badges
+// wash into the band -- their text lands on the gradient and that list is what
+// checks them. Feature reverses out of it instead: an opaque white chip sits
+// between its text and everything behind, so measuring its ink against the
+// gradient would be measuring something the eye never sees.
+//
+// Two different things therefore have to hold, and neither is covered by the
+// list. The first attempt at this badge passed no check at all because there
+// was no check: --band-text over --band-fill, "the same pair as minor with
+// foreground and background swapped, so the same ratio". It measured 1.53:1.
+// --band-fill is a translucent wash, so as a FOREGROUND it is 18%-opacity
+// black on white. Swapping a pair preserves the ratio only when both are
+// opaque, and one was not.
+
+test('band tokens really are theme-independent, which the badge relies on', () => {
+  // --band-ink can be a single value only because the band is the same in both
+  // themes. If that ever stops being true this badge needs a per-theme ink,
+  // and this is the test that says so rather than a comment hoping someone
+  // remembers.
+  for (const token of ['--band-text', '--band-fill', '--band-ink']) {
+    assert.equal(dark[token], light[token],
+      `${token} differs between themes; anything reversed out of the band must be revisited`)
+  }
+})
+
+test('the Feature badge ink is legible on its own chip', () => {
+  const ink = rgbaToken(light['--band-ink'])
+  const chip = rgbaToken(light['--band-text'])
+  assert.equal(ink.alpha, 1, '--band-ink is a foreground and must be opaque')
+  const ratio = contrast(ink.hex, chip.hex)
+  assert.ok(ratio >= 4.5,
+    `--band-ink on --band-text is ${ratio.toFixed(2)}:1, needs 4.5:1`)
+})
+
+for (const { value } of PALETTES) {
+  const isDefault = value === DEFAULT_PALETTE
+  const pLight = isDefault ? light : resolveVars({ ...light, ...readBlock(`[data-palette='${value}']`) })
+  const pDark = isDefault ? dark : resolveVars({ ...dark, ...readBlock(`[data-theme='dark'][data-palette='${value}']`) })
+
+  for (const [themeName, tokens] of [['light', pLight], ['dark', pDark]]) {
+    test(`${value}/${themeName} the Feature badge chip is visible against the band`, () => {
+      // WCAG 1.4.11: the chip is the boundary that makes the badge readable,
+      // so the chip itself has to be distinguishable from what it lands on --
+      // the same rule the band's control borders are held to above.
+      const { hex: chip, alpha } = rgbaToken(tokens['--band-text'])
+      assert.equal(alpha, 1, 'the chip fill must be opaque or the gradient shows through')
+      for (const stop of gradientStops(tokens['--page-gradient'])) {
+        const ratio = contrast(chip, stop)
+        assert.ok(ratio >= 3,
+          `${value}/${themeName}: the white chip on gradient stop ${stop} is ` +
+            `${ratio.toFixed(2)}:1, needs 3:1`)
+      }
+    })
+  }
+}
