@@ -1,6 +1,6 @@
 # House rules
 
-Nine rules, so they get applied rather than rediscovered. Short on purpose.
+Ten rules, so they get applied rather than rediscovered. Short on purpose.
 
 ## Measure, don't assert
 
@@ -67,6 +67,36 @@ inputs and fails when the committed output no longer matches — otherwise the
 source of truth quietly becomes the artefact, and editing the input stops
 doing anything. Keep the input committed and readable too: generated code can
 be legible and still not be the thing anyone should read.
+
+## Docs are part of the change, not a follow-up
+
+Every PR checks the documents that make claims about the thing, and updates
+the ones the change made wrong: the readme, the security policy, the docs
+page, the about and legal pages, the changelog and the roadmap. Most changes
+touch two or three. Checking all of them is cheap; finding out months later
+which one went stale is not, and by then the wrong version has been read.
+
+This is a rule because nothing else catches it. A claim written when it was
+true does not announce that it stopped being true — no test fails, no build
+breaks, no page renders wrong. One pass found the security policy still
+listing `'unsafe-eval'` as present and recovery as unbuilt, both fixed
+releases earlier; the readme telling you to upgrade Vue by replacing a file
+that no longer exists, which would have put the compiler back and blanked the
+site; and `package.json` still advertising no build step.
+
+**The security policy is the one that must not drift.** Its "known, not a
+vulnerability" list exists to tell a researcher not to report something. An
+entry left there after the fix ships does not just mislead, it suppresses the
+report.
+
+Where a claim can be checked mechanically, prefer that to diligence — the CSP
+hashes, the template output and the service-worker version are all asserted by
+tests for this reason. Prose mostly cannot be, which is what the pass is for.
+
+Not every document says the same thing, and forcing them to match makes both
+worse. The readme is for someone deciding whether to run or fork it; the about
+page is for someone deciding whether to trust it. Same facts, different
+question. What they may not do is *disagree*.
 
 ## Commits and branches
 
