@@ -511,3 +511,43 @@ test('editing different entries on two devices is not a conflict', async () => {
   const by = Object.fromEntries(fresh.list().map((e) => [e.label, e.pw]))
   assert.deepEqual(by, { Bank: 'b2', Mail: 'm2' })
 })
+
+// -- who gets offered folder storage ------------------------------------------
+
+test('a mobile Chromium is not offered folder storage, even though it has the API', async () => {
+  // Edge on Android has showDirectoryPicker, so the plain capability test said
+  // yes and the buttons appeared. The permission then does not survive the app
+  // closing -- every launch reports the folder unreadable and asks to
+  // reconnect -- and the picker lists local storage rather than the cloud
+  // locations that make this worth doing. Offering a button that relocates the
+  // only copy of a vault, to somewhere that cannot be reopened cleanly, is a
+  // trap rather than a limitation.
+  const { folderSupport } = await import('../src/vault-fs.js')
+  const ANDROID = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36 EdgA/140.0.0.0'
+
+  assert.equal(folderSupport(true, true, ANDROID), false, 'userAgentData.mobile is the real signal')
+  assert.equal(folderSupport(true, undefined, ANDROID), false, 'and the UA covers browsers without it')
+})
+
+test('desktop Chromium still is', async () => {
+  const { folderSupport } = await import('../src/vault-fs.js')
+  const DESKTOP = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+  assert.equal(folderSupport(true, false, DESKTOP), true)
+  assert.equal(folderSupport(true, undefined, DESKTOP), true)
+})
+
+test('no API means no offer, whatever the platform says', async () => {
+  // The original question, still asked first: Firefox and Safari have no
+  // picker at all, and a desktop without one is not a candidate either.
+  const { folderSupport } = await import('../src/vault-fs.js')
+  assert.equal(folderSupport(false, false, 'anything'), false)
+  assert.equal(folderSupport(false, true, 'anything'), false)
+})
+
+test('an iPad reporting itself as a desktop is still not offered it', async () => {
+  // iPadOS lies about being a Mac. It has no picker either, so the first check
+  // already covers it -- this pins that the ordering stays that way round.
+  const { folderSupport } = await import('../src/vault-fs.js')
+  const IPADOS = 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15'
+  assert.equal(folderSupport(false, undefined, IPADOS), false)
+})

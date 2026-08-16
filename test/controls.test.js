@@ -234,3 +234,20 @@ test('letting go of a folder is offered wherever a folder is in use', () => {
   const uses = [...app.matchAll(/@click="disconnectFolder"/g)]
   assert.equal(uses.length, 2, 'expected it on the blocked screen and in the location panel')
 })
+
+test('the way out of a blocked folder is never behind the folder-support gate', () => {
+  // Gating folder storage off on mobile must not strand anyone who already
+  // moved a vault there. The blocked screen is what they land on at every
+  // launch, and its two exits -- reconnect, or let go of the folder -- have to
+  // work on exactly the platform where the feature is no longer offered.
+  const app = fs.readFileSync(new URL('../src/templates/vault/App.html', import.meta.url), 'utf8')
+  const start = app.indexOf("state === 'blocked'")
+  assert.ok(start > 0, 'the blocked screen should exist')
+  const end = app.indexOf("state === 'absent'", start)
+  const blocked = app.slice(start, end)
+
+  assert.match(blocked, /@click="reconnectFolder"/)
+  assert.match(blocked, /@click="disconnectFolder"/)
+  assert.ok(!/v-if="canFolder"/.test(blocked),
+    'the blocked screen must not be conditional on folder support being offered')
+})

@@ -47,10 +47,47 @@ export const VAULT_FILENAME = 'wordlock-vault.json'
  */
 const LEGACY_FILENAME = 'vault.wrlck'
 
-/** Whether this browser can do any of it. Chromium desktop, today. */
-export const canUseFolder = () =>
-  typeof window !== 'undefined' &&
-  typeof window.showDirectoryPicker === 'function'
+/**
+ * Whether to OFFER folder storage, which is not the same question as whether
+ * the API exists.
+ *
+ * Edge on Android has showDirectoryPicker, so the plain capability test said
+ * yes and the buttons appeared. The permission then does not survive the app
+ * closing: every launch resolves to `blocked` and asks to reconnect. The
+ * picker is also the system file manager, which lists local storage rather
+ * than the cloud locations a provider's own app shows -- so there is nothing
+ * there worth syncing to even when it works.
+ *
+ * That combination is a trap rather than a limitation. The button relocates
+ * the only copy of a vault, and on a phone it relocates it somewhere that
+ * cannot be opened again without a prompt every time, for no benefit.
+ *
+ * Feature detection answers "is the function present", not "does the feature
+ * work", and this is the gap. Nothing observable at call time reveals that a
+ * grant will not persist, so the platform is the only signal available.
+ *
+ * Split out and pure so the decision is testable without a browser.
+ *
+ * @param hasPicker  showDirectoryPicker is present
+ * @param mobile     navigator.userAgentData.mobile, or undefined
+ * @param ua         navigator.userAgent, for browsers without userAgentData
+ */
+export const folderSupport = (hasPicker, mobile, ua = '') => {
+  if (!hasPicker) return false
+  // userAgentData is the real answer and every browser that ships the picker
+  // is Chromium, which has it. The UA check is only for the narrow window
+  // where the picker exists and userAgentData does not.
+  if (mobile === true) return false
+  if (mobile === undefined && /\bAndroid\b|\b(iPhone|iPad|iPod)\b/.test(ua)) return false
+  return true
+}
+
+/** Whether this browser should be offered folder storage. */
+export const canUseFolder = () => typeof window !== 'undefined' && folderSupport(
+  typeof window.showDirectoryPicker === 'function',
+  typeof navigator !== 'undefined' ? navigator.userAgentData?.mobile : undefined,
+  typeof navigator !== 'undefined' ? navigator.userAgent : '',
+)
 
 /**
  * Ask for a folder. Must be called from a user gesture, which is a browser

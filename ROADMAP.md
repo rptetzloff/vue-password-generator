@@ -290,6 +290,41 @@ trivially true because there is nothing to be knowledgeable about.
       is specifically to reaching outside the sandbox, which is exactly the
       part mode 2 needs.
 
+      **Android has the API and still cannot do this**, which is worth writing
+      down because the capability test says otherwise. Edge on Android exposes
+      `showDirectoryPicker`, so `canUseFolder()` returns true and the buttons
+      appear — and then the permission does not survive the app closing. Every
+      launch resolves to `blocked` and asks to reconnect. The picker is also
+      the system file manager, which lists local storage rather than the cloud
+      locations a provider's own app shows, so even when it works there is
+      nothing there worth syncing to.
+
+      Two lessons. Feature detection answers "is the function present", not "does
+      the feature work", and this is the gap between them — a capability test
+      cannot see that a grant will not persist. And caniuse does not track Edge
+      for Android at all; it lists Chrome for Android as the only Android
+      Chromium and calls it unsupported, so neither the docs nor the detection
+      would have caught this. It took someone opening the app on a phone.
+
+      **Decided: gated off.** `folderSupport()` refuses when
+      `navigator.userAgentData.mobile` is true, with a user-agent fallback for
+      the narrow case of a browser that has the picker and not the hints. That
+      is platform detection in a place that was an honest capability check, and
+      the cost is worth naming: feature detection answers "is the function
+      present", not "does the feature work", and nothing observable at call
+      time reveals that a grant will not persist.
+
+      What settled it was the frequency. The reconnect is not once per app
+      launch, it is once per PAGE REFRESH, and twice over -- the site asks, and
+      then Android asks. A button that relocates the only copy of a vault
+      should not lead there.
+
+      The escape hatch is deliberately outside the gate. Anyone who already
+      moved a vault to a folder on a phone still gets the blocked screen with
+      Reconnect and Stop using it here, on exactly the platform where the
+      feature is no longer offered. There is a test for that, because gating a
+      feature off is the obvious way to strand the people already using it.
+
       So the honest support line is Chromium desktop, and the answer for
       everyone else is not a cleverer file API. It is 9d proper (a server), or
       a cloud provider's own HTTP API, both of which are network problems that

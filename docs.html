@@ -2664,13 +2664,25 @@
               <div class="option-row">
                 <div class="option-name">Which browsers</div>
                 <div class="option-desc">
-                  Chromium desktop only — Chrome, Edge, Brave, Opera. This needs the File System Access API to
-                  write back to a file you chose, and Firefox and Safari have not implemented it. That is
-                  unlikely to change: Mozilla's published position on the folder and file pickers is
-                  <em>harmful</em>. Reading a file you pick works everywhere, which is why
-                  <a href="#vault-backup" style="color:var(--primary);">Import</a> works in every browser; it is
-                  writing back that has no equivalent. Elsewhere the vault stays in the browser and an encrypted
-                  backup is how it moves.
+                  <p>
+                    Chromium on the desktop — Chrome, Edge, Brave, Opera. This needs the File System Access API
+                    to write back to a file you chose, and Firefox and Safari have not implemented it. That is
+                    unlikely to change: Mozilla's published position on the folder and file pickers is
+                    <em>harmful</em>. Reading a file you pick works everywhere, which is why
+                    <a href="#vault-backup" style="color:var(--primary);">Import</a> works in every browser; it is
+                    writing back that has no equivalent. Elsewhere the vault stays in the browser and an encrypted
+                    backup is how it moves.
+                  </p>
+                  <p style="margin-top:0.5rem;">
+                    <strong>Not on phones, deliberately, even where the browser allows it.</strong> Edge on
+                    Android has the API, so this used to be offered there — and then asked to reconnect on every
+                    <em>refresh</em> &mdash; not each time you open the app, each time the page loads &mdash; and
+                    twice over, once in the page and once from Android itself. Its picker also lists local
+                    storage rather than the cloud locations your provider&rsquo;s app shows, so there was nothing
+                    to sync with even after all that. A button that relocates the only copy of your vault should
+                    not lead somewhere that awkward, so it is not shown. Keep the vault in the browser on a
+                    phone, and move it with an encrypted backup.
+                  </p>
                 </div>
               </div>
             </div>
