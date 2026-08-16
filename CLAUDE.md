@@ -1,6 +1,6 @@
 # House rules
 
-Ten rules, so they get applied rather than rediscovered. Short on purpose.
+Eleven rules, so they get applied rather than rediscovered. Short on purpose.
 
 ## Measure, don't assert
 
@@ -13,6 +13,36 @@ them.
 
 Corollary: a test that reads the source proves the source, not the behaviour.
 Keep both.
+
+## Don't jump to conclusions
+
+The sibling of the rule above, and the one that actually gets broken. The
+failure mode is not being wrong about hard things. It is taking a plausible
+reading and stating it as established when the check was one command away.
+
+Examples, all from one day. A CodeQL alert was reported as a stale finding on a
+line the pull request did not touch — the alerts API had been asked without a
+ref, so it answered for `main`, and the PR's own output naming the real file was
+already on screen and lost to the tidier story. The roadmap page's claim to
+render its source "as you see it there" was called true the moment the source
+was fixed, while the renderer half of the same bug was still wrong.
+Precompiling was announced as saving 58 KB a visitor, counting the compiler
+that left and not the render functions that arrived; the corrected estimate was
+wrong too, and only measuring both pages settled it. `$?` was read after a pipe,
+where it belongs to the last command rather than the one whose answer mattered.
+
+So: **if a claim is checkable in one command, run the command before saying the
+thing.** When it is not checkable, say which kind of claim it is. "The API
+returned one alert" and "there is one alert" are different sentences, and
+collapsing them is how a wrong answer arrives sounding confident.
+
+Two habits follow. Never pipe a command whose exit code matters. And a tool's
+report of its own work is a claim rather than evidence — including a query whose
+scope you chose, which will faithfully answer what you asked instead of what you
+meant.
+
+The tell is a story that resolves neatly on the first try. Evidence that arrives
+already tidy has usually been tidied.
 
 ## Comments explain why, never what
 
