@@ -1019,13 +1019,22 @@ and both should be revisited deliberately rather than drifted into.
   it annotates every `v-if` and the site ships literal `<!--v-if-->`
   markers; importing the `.prod.js` path is not sufficient on its own.
 
-- [ ] **Read the envelope design against OWASP ASVS V6.** Scanners answer
-  "does this code have a known bad pattern"; they cannot answer "is this
-  cryptographic design right for what it claims". V6 (Cryptography) is a
-  structured checklist for exactly that — key lifecycle, algorithm choice,
-  random sources, key storage, and what happens at rotation — and it is a
-  read-through rather than a tool run. V2 (Authentication) is worth the
-  same pass for the passphrase and recovery slots.
+- [ ] **Read the envelope design against OWASP ASVS 5.0, chapter V11.**
+  Scanners answer "does this code have a known bad pattern"; they cannot
+  answer "is this cryptographic design right for what it claims". The
+  Cryptography chapter is a structured checklist for exactly that — key
+  lifecycle, algorithm choice, random sources, key storage, and what happens
+  at rotation — and it is a read-through rather than a tool run. Chapter V6,
+  Authentication, is worth the same pass for the passphrase and recovery
+  slots.
+
+  ~~Written as "ASVS V6 (Cryptography)" and "V2 (Authentication)".~~ Those are
+  4.0.3 chapter numbers, and ASVS 5.0.0 renumbered everything in May 2025:
+  Cryptography moved to V11 and **V6 is now Authentication**, so the old note
+  pointed at the wrong chapter while naming the right subject. It also read as
+  a version rather than a chapter, which is a version of ASVS that does not
+  exist. Both readings landed somewhere wrong, so the standard's version is
+  stated alongside the chapter now.
 
   Queued rather than done: it is a deliberate exercise against the threat
   model, not a pre-release gate, and doing it badly in a hurry would be
