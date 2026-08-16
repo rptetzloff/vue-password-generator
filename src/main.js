@@ -192,6 +192,41 @@ const useHistory = (key) => {
   return { history, pushHistory }
 }
 
+/**
+ * The leet-substitution toggles, shared by the four generators that offer them.
+ *
+ * These were four identical copies of three functions, one set per component.
+ * Nothing had gone wrong with them yet, which is the only reason to move them
+ * now: the word loaders were four identical copies too, and by the time anyone
+ * noticed, three of them had quietly stopped matching the one that was fixed.
+ */
+const useLeet = (activeLeet) => ({
+  toggleLeet: (char) => {
+    const next = new Set(activeLeet.value)
+    if (next.has(char)) next.delete(char)
+    else next.add(char)
+    activeLeet.value = next
+  },
+  selectAllLeet: () => { activeLeet.value = new Set(LEET_MAP.map((m) => m.char)) },
+  selectNoLeet: () => { activeLeet.value = new Set() },
+})
+
+/**
+ * The per-category "N words, X bits" hint, shared by the three slot-based
+ * generators. Three identical copies before this.
+ *
+ * Returns a function rather than a value because both inputs are refs and the
+ * hint is read during render, so it has to re-evaluate rather than close over
+ * a snapshot.
+ */
+const useCatInfo = (wordData, showBitHints) => (type, catId) => {
+  if (!showBitHints.value) return ''
+  const cats = wordData.value[type] || {}
+  const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+  if (!pool.length) return ''
+  return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
+}
+
 // Restore a history entry: the password, and the bits it was stored with.
 // The full breakdown is deliberately not stored -- one number per entry -- so
 // a recalled password shows its total with a note instead of a stale
@@ -592,14 +627,6 @@ const WordsPassword = {
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const activeLeet = persistedRef('words.activeLeet', new Set())
     const useEmoji = persistedRef('words.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('words.lockAffixes', false)
     const excludeAmbiguous = persistedRef('words.excludeAmbiguous', false)
     // 7c: rarely-changed groups start collapsed; the open state is remembered
@@ -667,6 +694,8 @@ const WordsPassword = {
       wordList.value = await loadWordList()
       generatePassword()
     })
+
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
 
     return {
       wordCount,
@@ -832,14 +861,6 @@ const Passphrase = {
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const activeLeet = persistedRef('phrase.activeLeet', new Set())
     const useEmoji = persistedRef('phrase.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('phrase.lockAffixes', false)
     const excludeAmbiguous = persistedRef('phrase.excludeAmbiguous', false)
     const affixOpen = persistedRef('phrase.ui.affixOpen', false)
@@ -854,13 +875,6 @@ const Passphrase = {
     const wordData = ref({})
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
-    const catInfo = (type, catId) => {
-      if (!showBitHints.value) return ''
-      const cats = wordData.value[type] || {}
-      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
-      if (!pool.length) return ''
-      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
-    }
 
 
     const pickFrom = (type, catId) => {
@@ -940,6 +954,10 @@ const Passphrase = {
       generatePassword()
     })
 
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
+
+    const catInfo = useCatInfo(wordData, showBitHints)
+
     return {
       slots,
       slotTypes: SLOT_TYPES,
@@ -993,14 +1011,6 @@ const WifiWords = {
     const suffixCustom = persistedRef('wifi.suffixCustom', '')
     const activeLeet = persistedRef('wifi.activeLeet', new Set())
     const useEmoji = persistedRef('wifi.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('wifi.lockAffixes', false)
     // 6g: on by default here -- Wireless keys get read off a screen and typed
     // on a TV remote, which is exactly where l/1 and O/0 misfire.
@@ -1017,13 +1027,6 @@ const WifiWords = {
     const wordData = ref({})
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
-    const catInfo = (type, catId) => {
-      if (!showBitHints.value) return ''
-      const cats = wordData.value[type] || {}
-      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
-      if (!pool.length) return ''
-      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
-    }
     const alliterationMode = persistedRef('wifi.alliterationMode', true)
     const alliterationLetter = ref('')
 
@@ -1135,6 +1138,10 @@ const WifiWords = {
       generatePassword()
     })
 
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
+
+    const catInfo = useCatInfo(wordData, showBitHints)
+
     return {
       slots,
       slotTypes: SLOT_TYPES,
@@ -1209,14 +1216,6 @@ const MadLib = {
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const activeLeet = persistedRef('madlib.activeLeet', new Set())
     const useEmoji = persistedRef('madlib.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -1232,13 +1231,6 @@ const MadLib = {
     const wordData = ref({})
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
-    const catInfo = (type, catId) => {
-      if (!showBitHints.value) return ''
-      const cats = wordData.value[type] || {}
-      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
-      if (!pool.length) return ''
-      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
-    }
 
 
     const pickFrom = (type, catId) => {
@@ -1309,6 +1301,10 @@ const MadLib = {
       slotCats.value = rebuildSlotCats(templateId.value, slotCats.value)
       generatePassword()
     })
+
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
+
+    const catInfo = useCatInfo(wordData, showBitHints)
 
     return {
       templateId,
