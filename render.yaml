@@ -1,27 +1,34 @@
-# THIS FILE DESCRIBES ONE OF THE TWO SERVICES. Read that before trusting it.
+# Both services, because the one that was missing is the one that went wrong.
 #
-#   wordlock        -> wordlock.net,     branch main -- declared below
-#   wordlock-cl9q   -> dev.wordlock.net, branch dev  -- NOT declared anywhere
+#   wordlock        -> wordlock.net,     branch main
+#   wordlock-cl9q   -> dev.wordlock.net, branch dev
 #
-# The dev service was not created by this Blueprint, so its branch, its domain
-# and its headers are dashboard-only facts. It spent an unknown stretch of time
-# deployed from `main` while everyone assumed it was following `dev`, and the
-# way that surfaced was a 404 on a module that had been committed hours
-# earlier -- fourteen commits of work had never been on the dev site at all.
+# The dev service was created outside this Blueprint, so its branch was a fact
+# only the dashboard knew. It sat deployed from `main` for an unknown stretch
+# while everyone assumed it followed `dev`, and it surfaced as a 404 on a
+# module committed hours earlier: fourteen commits of work had never been on
+# the dev site at all. Switching it by hand had been tried before and did not
+# stick, which is the failure a dashboard-only setting produces -- nobody can
+# review a setting nobody can see.
 #
-# It is deliberately still not declared here. Render matches Blueprint services
-# by name, and adding a service this Blueprint did not create can produce a
-# SECOND service rather than adopting the existing one -- at which point two
-# services contend for dev.wordlock.net. That is a live-site risk taken for
-# tidiness, and it should be done with the dashboard open, not as a side effect
-# of editing this file.
+# Adopting an existing service is supported rather than a trick: Render's
+# Infrastructure as Code docs say to add an existing resource by writing its
+# details into the Blueprint as you would a new one, and an apply shows the
+# list of changes for review before it deploys. The one documented hazard is
+# adopting a resource ALREADY managed by a different Blueprint -- neither of
+# these is. Check the review screen names both services and creates neither.
 #
-# Two things follow for anyone changing deploys here:
-#   - Changing this file changes production only. Dev needs the dashboard.
-#   - Header rules sync ADDITIVELY. Removing one below does not remove it from
-#     the running service; see the note on the Cache-Control rules.
+# Still dashboard-only, deliberately: the custom domains. They are attached and
+# working on both services, declaring them here would be a change to something
+# already correct, and this file is being extended to fix a specific problem
+# rather than to become exhaustive. So this is not yet the whole deployment.
+#
+# One rule when editing: header sync is ADDITIVE. Removing a rule here does not
+# remove it from the running service; see the note on the Cache-Control rules.
+# That applies per service, so a deletion is now three steps, not two.
 
 services:
+  # --- production ------------------------------------------------------------
   - type: web
     name: wordlock
     runtime: static
@@ -151,6 +158,52 @@ services:
       # must NOT be immutable -- an upgrade would strand cached copies for as
       # long as the max-age. A day, then revalidate. Named individually rather
       # than as /vendor/*, which would also match the font above.
+      - path: /vendor/mdi/css/*
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /vendor/vue.esm-browser.prod.js
+        name: Cache-Control
+        value: public, max-age=86400
+
+  # --- dev -------------------------------------------------------------------
+  # Same application, same headers, different branch. The reasoning for every
+  # rule below lives once, on the production service above -- duplicating a
+  # hundred lines of it here would guarantee the two copies disagree within a
+  # month. What stops them disagreeing is test/render-config.test.js, which
+  # fails if the two services' header rules are not identical.
+  #
+  # Dev is a real deployment of a password manager on a public domain, so it
+  # gets the real headers. A dev site with a weaker CSP is a dev site that
+  # cannot tell you whether the CSP works.
+  - type: web
+    name: wordlock-cl9q
+    runtime: static
+    # The whole point of the exercise. This being in the file is what makes it
+    # reviewable, and what stops the next person wondering why dev is stale.
+    branch: dev
+    staticPublishPath: ./
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), microphone=(), camera=()
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=63072000; includeSubDomains
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'sha256-dyBu1aISuiapW/D0B+MOaUi6eJ9+lL9+rNRgY7+dwAU=' 'sha256-D7pO4R68hLL5gxelrQQLuK0W0lqTaWq0ZcS2IGYeMl4=' 'sha256-EnokG1Ge72acG6K9uT6UQQ6QDbg/Z39S608pC4o2ARc=' 'sha256-JkG5uX2Mhs+bZE5mNn5rqZTEqNmLrcaGKckQZBtSlro=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
+      - path: /vendor/mdi/fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
       - path: /vendor/mdi/css/*
         name: Cache-Control
         value: public, max-age=86400
