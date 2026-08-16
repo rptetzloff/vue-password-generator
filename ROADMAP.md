@@ -959,7 +959,7 @@ and both should be revisited deliberately rather than drifted into.
       operation. Cheap to do, and cheaper still if it rides along with
       whatever next touches the format rather than being its own migration.
 
-- [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
+- [x] **Drop `'unsafe-eval'` from the CSP** (3.4.0). The policy shipped with hashes
       for every inline script and `connect-src 'self'`, which is the directive
       that matters here: whatever runs, it has nowhere to send anything. But
       `'unsafe-eval'` had to stay, because components are declared with Vue's
@@ -988,6 +988,36 @@ and both should be revisited deliberately rather than drifted into.
       build whose output is legible and diffable, and a test that the built
       render functions correspond to the templates in the repo — not a
       minifier.
+
+      **Done, and the property held.** Markup moved to `src/templates/*.html`,
+      `tools/build-templates.mjs` compiles it to `*.render.js`, and both the
+      input and the output are committed. `test/templates.test.js` recompiles
+      and fails on drift, so the artefact cannot quietly become the source of
+      truth. The header is gone from `render.yaml` and `test/csp.test.js`
+      fails if it returns, or if a component declares `template:` again.
+
+      It is not merely disallowed but unusable: the page ships
+      `vue.runtime.esm-browser.prod.js`, which has no compiler in it.
+
+      The cost estimate was wrong in the good direction, and the correction is
+      the interesting part. Precompiled markup is *larger* than the markup it
+      replaces — the generator's code went from 17.2 KB to 23.8 KB brotli, the
+      vault's from 28.8 KB to 32.5 KB — but dropping the compiler takes Vue
+      from 47.2 KB to 30.1 KB, and that lands once on every page. Net **−10.5
+      KB for the generator and −13.4 KB for the vault**, per visitor, brotli.
+      An earlier version of this note claimed roughly −7 KB by counting the
+      uncompressed sizes; compression flatters generated code far more than it
+      flatters a compiler, which is why the measured figure is better than the
+      estimate rather than worse.
+
+      Two things had to be learned by building it. `@vue/compiler-dom` cannot
+      be vendored: its browser build refuses module mode (compiler-48) because
+      prefixing identifiers needs a JS parser it does not bundle, and the
+      function mode it will do emits `with (_ctx)`, a SyntaxError in any ES
+      module — so it is a devDependency, measured both ways before that was
+      accepted. And `NODE_ENV` must be `production` when the compiler runs, or
+      it annotates every `v-if` and the site ships literal `<!--v-if-->`
+      markers; importing the `.prod.js` path is not sufficient on its own.
 
 - [ ] **Read the envelope design against OWASP ASVS V6.** Scanners answer
       "does this code have a known bad pattern"; they cannot answer "is this
