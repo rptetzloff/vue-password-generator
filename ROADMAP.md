@@ -291,20 +291,24 @@ trivially true because there is nothing to be knowledgeable about.
       part mode 2 needs.
 
       **Android has the API and still cannot do this**, which is worth writing
-      down because the capability test says otherwise. Edge on Android exposes
+      down because the capability test says otherwise. Chromium on Android exposes
       `showDirectoryPicker`, so `canUseFolder()` returns true and the buttons
-      appear — and then the permission does not survive the app closing. Every
-      launch resolves to `blocked` and asks to reconnect. The picker is also
-      the system file manager, which lists local storage rather than the cloud
-      locations a provider's own app shows, so even when it works there is
-      nothing there worth syncing to.
+      appear — and then the permission does not survive a page refresh. Not
+      each time the app is opened: each time the page loads, and twice over,
+      because the site asks to reconnect and then Android asks as well. The
+      picker is also the system file manager, which lists local storage rather
+      than the cloud locations a provider's own app shows, so even when it
+      works there is nothing there worth syncing to.
 
       Two lessons. Feature detection answers "is the function present", not "does
       the feature work", and this is the gap between them — a capability test
-      cannot see that a grant will not persist. And caniuse does not track Edge
-      for Android at all; it lists Chrome for Android as the only Android
-      Chromium and calls it unsupported, so neither the docs nor the detection
-      would have caught this. It took someone opening the app on a phone.
+      cannot see that a grant will not persist. And the reference is wrong
+      rather than merely quiet: caniuse does not track Edge for Android at all,
+      and the one Android Chromium it does track — Chrome — it reports as
+      unsupported, which a phone disproves in about ten seconds. Neither the
+      docs nor the detection would have caught this. It took opening the app on
+      a phone, which is the second time this week that was the only thing that
+      would have worked.
 
       **Decided: gated off.** `folderSupport()` refuses when
       `navigator.userAgentData.mobile` is true, with a user-agent fallback for

@@ -22,13 +22,16 @@
 // works for sync and a zip would not. And the name is prefixed because this
 // lands in a directory the user already keeps things in.
 //
-// WHAT THIS DOES NOT DO YET: reconcile. save() overwrites, which is correct
-// for one device and wrong the moment a second one shares the folder -- the
-// slower writer silently discards the faster one's work. mergeReplicas and the
-// entry model are already built for that; wiring them in is the next step, and
-// it changes what saving *means* rather than adding an adapter. Until then
-// this is "my vault lives in my Dropbox", which is worth having on its own:
-// the backup stops being a thing you remember to do.
+// ~~WHAT THIS DOES NOT DO YET: reconcile.~~ It does now. This header said
+// save() overwrites and the slower of two writers silently loses, which was
+// true when the adapter was written and stopped being true when persist()
+// became read-merge-write in vault-store.js. The adapter itself is unchanged:
+// it still just moves bytes, and the merging happens above it.
+//
+// What remains true is the boundary. Two machines are safe in sequence, not in
+// the same instant, and nothing here can see across the sync client's own
+// conflict handling -- writing while Dropbox is behind produces a conflicted
+// copy that only Dropbox knows about.
 //
 // Drafts deliberately stay local. A half-typed entry is scratch that must
 // survive a navigation and nothing more, and syncing it would push keystrokes
@@ -51,12 +54,14 @@ const LEGACY_FILENAME = 'vault.wrlck'
  * Whether to OFFER folder storage, which is not the same question as whether
  * the API exists.
  *
- * Edge on Android has showDirectoryPicker, so the plain capability test said
- * yes and the buttons appeared. The permission then does not survive the app
- * closing: every launch resolves to `blocked` and asks to reconnect. The
- * picker is also the system file manager, which lists local storage rather
- * than the cloud locations a provider's own app shows -- so there is nothing
- * there worth syncing to even when it works.
+ * Chromium on Android has showDirectoryPicker -- Chrome and Edge both, tested
+ * on a phone -- so the plain capability test said yes and the buttons
+ * appeared. The permission then does not survive a PAGE REFRESH. Not each time
+ * the app is opened: each time the page loads, and twice over, because the
+ * site asks to reconnect and then Android asks as well. The picker is also the
+ * system file manager, which lists local storage rather than the cloud
+ * locations a provider's own app shows, so there is nothing there worth
+ * syncing to even when it works.
  *
  * That combination is a trap rather than a limitation. The button relocates
  * the only copy of a vault, and on a phone it relocates it somewhere that
