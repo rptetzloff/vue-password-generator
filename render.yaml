@@ -1,12 +1,21 @@
 # ONE service definition, applied by TWO Blueprints. That is the thing to
 # understand before editing this file, and it is not obvious from the file.
 #
-#   Blueprint "wordlock"       tracks main -> creates `wordlock`      -> wordlock.net
-#   Blueprint "Dev.WordLock.net" tracks dev -> creates `wordlock-cl9q` -> dev.wordlock.net
+#   Blueprint tracking main -> creates `wordlock`       -> wordlock.net
+#   Blueprint tracking dev  -> creates `wordlock-<sfx>`  -> dev.wordlock.net
 #
-# Each Blueprint applies the WHOLE file and appends its own suffix to every
-# service it creates -- which is where the `-cl9q` came from; it was never a
-# collision suffix. Two consequences, both learned the hard way in one evening:
+# Each Blueprint applies the WHOLE file and appends ITS OWN suffix to every
+# service it creates. The suffix belongs to the Blueprint, not to the service:
+# one sync offered `wordlock-cl9q` and `wordlock-dev-cl9q` together -- two
+# services, one suffix -- and recreating that Blueprint changed it to `-bumy`
+# for everything it made thereafter. So it was never a collision suffix, and
+# the name here is a stem rather than the name you will see in the dashboard.
+#
+# The useful half of that: within one Blueprint the naming is deterministic, so
+# a review screen can be read before it is approved, and a name you did not
+# expect means the entry is not the one you thought.
+#
+# Two consequences, both learned the hard way in one evening:
 #
 #   1. NEVER pin `branch:` here. See below.
 #   2. Never declare a second service here. Both Blueprints would create both,
