@@ -149,3 +149,46 @@ test('the roadmap renders its numbered lists as lists', () => {
   assert.ok(count(html, /<ol>/g) >= 2, 'both numbered lists should render as ordered lists')
   assert.equal(count(html, /<ol>/g), count(html, /<\/ol>/g))
 })
+
+test('no list continuation is indented into an accidental code block', () => {
+  // ROADMAP.md is read in two places -- roadmap.html through renderMarkdown,
+  // and GitHub through a CommonMark renderer -- and only one of them was ever
+  // checked. In CommonMark, content indented 4+ past a list item's CONTENT
+  // COLUMN is an indented code block. `- ` puts that column at 2, so the
+  // file's 6-space hanging indent was exactly the threshold: 719 lines of
+  // ordinary prose rendered as monospace boxes on GitHub, with `~~` and `**`
+  // as literal characters. The strike-through reversal trail -- the whole
+  // mechanism behind "reversals stay visible" -- was the worst casualty.
+  //
+  // It rendered fine on roadmap.html only because renderMarkdown closes the
+  // list on a blank line and never sees the continuation as list content.
+  // Our bug was masking the other one, which is why this asserts the SOURCE
+  // rather than either renderer's output.
+  //
+  // The content column depends on the marker: `- ` is 2, `1. ` is 3. Measured
+  // per item rather than assumed, or the ordered lists produce false failures.
+  const marker = /^(?:[-*+]|\d+[.)])(\s+)/
+  const offenders = []
+  let fence = false
+  let column = null
+
+  ROADMAP.split(/\r?\n/).forEach((line, i) => {
+    const stripped = line.replace(/^ +/, '')
+    if (stripped.startsWith('```')) { fence = !fence; return }
+    if (fence || !line.trim()) return
+
+    const indent = line.length - stripped.length
+    if (indent === 0) {
+      const m = marker.exec(line)
+      column = m ? m[0].length : null
+      return
+    }
+    if (column !== null && indent >= column + 4) {
+      offenders.push(`  L${i + 1}: indented ${indent}, content column ${column} — ${stripped.slice(0, 55)}`)
+    }
+  })
+
+  assert.deepEqual(offenders, [],
+    `${offenders.length} line(s) will render as an indented code block on GitHub.\n`
+    + `Indent list continuations to the item's content column:\n${offenders.slice(0, 5).join('\n')}`)
+})
