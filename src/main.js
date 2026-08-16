@@ -50,6 +50,7 @@ import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.j
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   MODES, MADLIB_TEMPLATES, ALL_SYMBOLS, draw, build, generate, WIRELESS_MIN,
+  loadWordList, loadWordData,
 } from './generators.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
@@ -614,21 +615,6 @@ const WordsPassword = {
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
 
-    const loadWordList = async () => {
-      try {
-        // Orchard Street Long: 17,576 words (26^3), 14.101 bits each, against
-        // the EFF list's 7,776 and 12.925. It is also uniquely decodable, which
-        // matters here because the separator can be set to None -- concatenated
-        // EFF words could parse more than one way. One word per line, where the
-        // EFF file was comma-separated.
-        const response = await fetch('./data/orchard-street-long.txt')
-        const text = await response.text()
-        wordList.value = text.split(/\r?\n/).map(word => word.trim()).filter(word => word.length > 0)
-      } catch (err) {
-        console.error('Failed to load word list:', err)
-        wordList.value = ['ability', 'account', 'action', 'active', 'address', 'advance', 'agency', 'agent', 'agree', 'allow', 'amount', 'animal', 'answer', 'appear', 'approach', 'area', 'argue', 'around', 'arrive', 'article', 'artist', 'assume', 'attack', 'attempt', 'attend', 'author', 'avoid', 'balance', 'become', 'before', 'begin', 'believe', 'benefit', 'better', 'between', 'beyond', 'budget', 'build', 'business']
-      }
-    }
 
     // The affix lock is session state, so it stays here; generators.js takes
     // the previously used set and hands back whatever it used.
@@ -678,7 +664,7 @@ const WordsPassword = {
     watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordList()
+      wordList.value = await loadWordList()
       generatePassword()
     })
 
@@ -876,14 +862,6 @@ const Passphrase = {
       return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
     }
 
-    const loadWordData = async () => {
-      try {
-        const res = await fetch('./data/words.json')
-        wordData.value = await res.json()
-      } catch (err) {
-        console.error('Failed to load word data:', err)
-      }
-    }
 
     const pickFrom = (type, catId) => {
       const cats = wordData.value[type]
@@ -958,7 +936,7 @@ const Passphrase = {
     watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordData()
+      wordData.value = await loadWordData()
       generatePassword()
     })
 
@@ -1049,14 +1027,6 @@ const WifiWords = {
     const alliterationMode = persistedRef('wifi.alliterationMode', true)
     const alliterationLetter = ref('')
 
-    const loadWordData = async () => {
-      try {
-        const res = await fetch('./data/words.json')
-        wordData.value = await res.json()
-      } catch (err) {
-        console.error('Failed to load word data:', err)
-      }
-    }
 
     const pickFrom = (type, catId, forceLetter = '') => {
       const cats = wordData.value[type]
@@ -1161,7 +1131,7 @@ const WifiWords = {
     watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordData()
+      wordData.value = await loadWordData()
       generatePassword()
     })
 
@@ -1270,12 +1240,6 @@ const MadLib = {
       return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
     }
 
-    const loadWordData = async () => {
-      try {
-        const res = await fetch('./data/words.json')
-        wordData.value = await res.json()
-      } catch { console.error('Failed to load word data') }
-    }
 
     const pickFrom = (type, catId) => {
       const typeCats = wordData.value[type]
@@ -1341,7 +1305,7 @@ const MadLib = {
     watch(excludeAmbiguous, () => { if (rawSegments.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordData()
+      wordData.value = await loadWordData()
       slotCats.value = rebuildSlotCats(templateId.value, slotCats.value)
       generatePassword()
     })

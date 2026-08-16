@@ -183,3 +183,23 @@ services:
       - path: /vendor/vue.runtime.esm-browser.prod.js
         name: Cache-Control
         value: public, max-age=86400
+
+      # The word lists. 239 KB raw, 60 KB compressed, and they change about
+      # never -- but they had no rule at all, so they fell through to Render's
+      # max-age=0 and every page load revalidated them. Measured on production
+      # before adding this.
+      #
+      # A day rather than a year, and deliberately not immutable: the filenames
+      # carry no version, so an updated list has to be able to reach people.
+      # Same reasoning as the two rules above, and the same non-overlap
+      # discipline -- /data/* claims nothing that /vendor/* does.
+      #
+      # Worth noting what this is NOT a substitute for. These files are fetched
+      # lazily, only by the generators that need them, and they used to be
+      # fetched repeatedly: four component-local loaders in main.js each did
+      # their own fetch with no cache, so cycling the tabs twice cost nine
+      # requests. That was fixed in the code, where it belonged. A cache header
+      # would have hidden it.
+      - path: /data/*
+        name: Cache-Control
+        value: public, max-age=86400
