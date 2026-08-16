@@ -18,7 +18,7 @@
 // storage, and the UI has to render that state rather than treating it as
 // absent.
 
-import { indexedDbStorage } from './vault-store.js'
+import { indexedDbStorage } from './vault-idb.js'
 import { createFolderStorage, folderPermission, requestFolderPermission, listFolder, VAULT_FILENAME } from './vault-fs.js'
 
 // Same database as the vault, a different key. Opened here rather than

@@ -132,38 +132,38 @@ the laptop, sync from the phone, and the merge resurrects it. Silently, and
 specifically for the entries someone most wanted gone.
 
 - [x] **`updatedAt` on every entry** (3.2.0), so a merge can tell newer from
-      older rather than preferring whichever side it happened to read first.
-      ISO-8601 UTC, which sorts lexicographically and so needs no parsing.
+  older rather than preferring whichever side it happened to read first.
+  ISO-8601 UTC, which sorts lexicographically and so needs no parsing.
 - [x] **Tombstones** (3.2.0). A deleted entry becomes `{ id, deletedAt }`
-      instead of vanishing, so "deleted here" is distinguishable from "not seen
-      yet". Reaped after 90 days, since a tombstone that lives forever is a
-      slow leak of what used to exist.
+  instead of vanishing, so "deleted here" is distinguishable from "not seen
+  yet". Reaped after 90 days, since a tombstone that lives forever is a
+  slow leak of what used to exist.
 - [x] **A vault id and a device id**, so two replicas can establish they are
-      the same vault before attempting to reconcile. This needed somewhere to
-      *put* them: the payload inside the envelope was a bare array of entries,
-      with no room for a fact about the vault as opposed to its contents. It is
-      now `{ v, vaultId, entries, meta }`, versioned separately from the
-      envelope — one is what the ciphertext holds, the other is how it is
-      wrapped, and a change to either should not force a migration of both. A
-      bare array still loads and gains a `vaultId` on first open, so no vault
-      written before this is stranded.
+  the same vault before attempting to reconcile. This needed somewhere to
+  *put* them: the payload inside the envelope was a bare array of entries,
+  with no room for a fact about the vault as opposed to its contents. It is
+  now `{ v, vaultId, entries, meta }`, versioned separately from the
+  envelope — one is what the ciphertext holds, the other is how it is
+  wrapped, and a change to either should not force a migration of both. A
+  bare array still loads and gains a `vaultId` on first open, so no vault
+  written before this is stranded.
 
-      The device id is a label, not a credential, and it is deliberately
-      local-only: `meta.lastWriter` records which replica wrote last so a merge
-      can say where a change came from.
+  The device id is a label, not a credential, and it is deliberately
+  local-only: `meta.lastWriter` records which replica wrote last so a merge
+  can say where a change came from.
 
-      The first thing it paid for was not sync. The backup-reminder record was
-      in `localStorage`, so Edge called a vault un-backed-up an hour after
-      Chrome had exported it; it is `meta.exports` now and travels with the
-      vault — the last five, each with a full timestamp, the entry count at the
-      time, and which browser made it, shown as a list rather than a single
-      date because the real question is whether backing up is a habit. Both
-      fields are dropped on lock along with the entries: an entry count is a
-      fact about the contents, and a locked vault that can still recite it has
-      not really locked.
+  The first thing it paid for was not sync. The backup-reminder record was
+  in `localStorage`, so Edge called a vault un-backed-up an hour after
+  Chrome had exported it; it is `meta.exports` now and travels with the
+  vault — the last five, each with a full timestamp, the entry count at the
+  time, and which browser made it, shown as a list rather than a single
+  date because the real question is whether backing up is a habit. Both
+  fields are dropped on lock along with the entries: an entry count is a
+  fact about the contents, and a locked vault that can still recite it has
+  not really locked.
 - [x] **Per-entry merge rather than per-file** (3.2.0). `mergeReplicas` is
-      last-writer-wins over `updatedAt`/`deletedAt`, kept separate from
-      `mergeEntries`, which never deletes and is still what import wants.
+  last-writer-wins over `updatedAt`/`deletedAt`, kept separate from
+  `mergeEntries`, which never deletes and is still what import wants.
 
 None of that needs a network. All of it is testable in node today. It was
 roughly a day of work while there is exactly one client and the migration is
@@ -245,69 +245,108 @@ client reads and writes it, and we see nothing — the zero-knowledge claim stay
 trivially true because there is nothing to be knowledgeable about.
 
 - [ ] **Bring-your-own-storage first, if sync happens at all.** On desktop
-      Chromium the File System Access API can hold a persistent handle to that
-      file, so the *website* could sync with no server and no extension. Not
-      Firefox, not iOS, so it is not the answer — but it is the cheapest
-      possible proof that the replica model works, and it needs no content
-      script to try.
+  Chromium the File System Access API can hold a persistent handle to that
+  file, so the *website* could sync with no server and no extension. Not
+  Firefox, not iOS, so it is not the answer — but it is the cheapest
+  possible proof that the replica model works, and it needs no content
+  script to try.
 - [ ] **This is also the CLI answer.** A documented encrypted file in a folder
-      the user controls is the one interface a shell script can use. A vault
-      living inside a browser extension is not.
+  the user controls is the one interface a shell script can use. A vault
+  living inside a browser extension is not.
 - [x] **Firefox cannot do mode 2, and it is not a matter of waiting.** Asked
-      directly — *are we sure?* — and the first answer checked only the picker
-      API, which is not the same as checking the question. The whole surface:
+  directly — *are we sure?* — and the first answer checked only the picker
+  API, which is not the same as checking the question. The whole surface:
 
-      | API | Firefox | what it gives us |
-      | --- | --- | --- |
-      | File API — `File`, `Blob`, `FileReader` | yes, since 28 | read a file the user picks, **every time**. No write. |
-      | File System Access — `showDirectoryPicker` etc. | **no** | the only write-back-to-a-chosen-path route there is |
-      | File System API — OPFS, `navigator.storage.getDirectory()` | yes | a sandboxed private directory. Not the user's Dropbox. |
-      | `FileSystemSyncAccessHandle.write()` | yes, 111+ | a real write — into the OPFS only. See below. |
-      | `<a download>` | yes | writes to the downloads folder, cannot overwrite |
-      | WebExtension `downloads` | n/a | also downloads-folder-only; Firefox has no `onDeterminingFilename` |
+  | API | Firefox | what it gives us |
+  | --- | --- | --- |
+  | File API — `File`, `Blob`, `FileReader` | yes, since 28 | read a file the user picks, **every time**. No write. |
+  | File System Access — `showDirectoryPicker` etc. | **no** | the only write-back-to-a-chosen-path route there is |
+  | File System API — OPFS, `navigator.storage.getDirectory()` | yes | a sandboxed private directory. Not the user's Dropbox. |
+  | `FileSystemSyncAccessHandle.write()` | yes, 111+ | a real write — into the OPFS only. See below. |
+  | `<a download>` | yes | writes to the downloads folder, cannot overwrite |
+  | WebExtension `downloads` | n/a | also downloads-folder-only; Firefox has no `onDeterminingFilename` |
 
-      The read column is not the problem — Import already uses the File API and
-      works in Firefox today. **There is no write column.** A replica that
-      cannot save is a viewer, and mode 2 is defined by both machines writing.
+  The read column is not the problem — Import already uses the File API and
+  works in Firefox today. **There is no write column.** A replica that
+  cannot save is a viewer, and mode 2 is defined by both machines writing.
 
-      `FileSystemSyncAccessHandle` is the candidate that looks like it settles
-      this, and it is worth writing down why it does not, because it will be
-      suggested again. It writes, it is fast, and Firefox has had it since 111
-      (Safari since 15.2). But `createSyncAccessHandle()` is defined only for
-      files in the origin private file system and throws `InvalidStateError`
-      for anything else — and in Firefox the question never arises, since there
-      is no picker to get a non-OPFS handle from in the first place.
+  `FileSystemSyncAccessHandle` is the candidate that looks like it settles
+  this, and it is worth writing down why it does not, because it will be
+  suggested again. It writes, it is fast, and Firefox has had it since 111
+  (Safari since 15.2). But `createSyncAccessHandle()` is defined only for
+  files in the origin private file system and throws `InvalidStateError`
+  for anything else — and in Firefox the question never arises, since there
+  is no picker to get a non-OPFS handle from in the first place.
 
-      Which is the whole rule in one line: **Firefox will let you write inside
-      the sandbox and read outside it. Mode 2 needs writing outside it.** OPFS
-      is IndexedDB with a file-shaped API — same origin-private storage, same
-      invisibility to Dropbox and to the OS file manager. Writing a vault there
-      is what we already do; it is not a folder anyone else can see.
+  Which is the whole rule in one line: **Firefox will let you write inside
+  the sandbox and read outside it. Mode 2 needs writing outside it.** OPFS
+  is IndexedDB with a file-shaped API — same origin-private storage, same
+  invisibility to Dropbox and to the OS file manager. Writing a vault there
+  is what we already do; it is not a folder anyone else can see.
 
-      Nor is this a gap waiting to close: Mozilla's published standards
-      position on the pickers is *harmful*, and Safari has not implemented them
-      either. Notably Mozilla's position on OPFS is *positive* — the objection
-      is specifically to reaching outside the sandbox, which is exactly the
-      part mode 2 needs.
+  Nor is this a gap waiting to close: Mozilla's published standards
+  position on the pickers is *harmful*, and Safari has not implemented them
+  either. Notably Mozilla's position on OPFS is *positive* — the objection
+  is specifically to reaching outside the sandbox, which is exactly the
+  part mode 2 needs.
 
-      So the honest support line is Chromium desktop, and the answer for
-      everyone else is not a cleverer file API. It is 9d proper (a server), or
-      a cloud provider's own HTTP API, both of which are network problems that
-      every browser can do. A **read-only Firefox viewer** — pick the vault
-      file, open it, save nothing — is buildable on the File API alone and is a
-      real thing someone might want, but it is a different feature and should
-      not be described as sync.
+  **Android has the API and still cannot do this**, which is worth writing
+  down because the capability test says otherwise. Chromium on Android exposes
+  `showDirectoryPicker`, so `canUseFolder()` returns true and the buttons
+  appear — and then the permission does not survive a page refresh. Not
+  each time the app is opened: each time the page loads, and twice over,
+  because the site asks to reconnect and then Android asks as well. The
+  picker is also the system file manager, which lists local storage rather
+  than the cloud locations a provider's own app shows, so even when it
+  works there is nothing there worth syncing to.
+
+  Two lessons. Feature detection answers "is the function present", not "does
+  the feature work", and this is the gap between them — a capability test
+  cannot see that a grant will not persist. And the reference is wrong
+  rather than merely quiet: caniuse does not track Edge for Android at all,
+  and the one Android Chromium it does track — Chrome — it reports as
+  unsupported, which a phone disproves in about ten seconds. Neither the
+  docs nor the detection would have caught this. It took opening the app on
+  a phone, which is the second time this week that was the only thing that
+  would have worked.
+
+  **Decided: gated off.** `folderSupport()` refuses when
+  `navigator.userAgentData.mobile` is true, with a user-agent fallback for
+  the narrow case of a browser that has the picker and not the hints. That
+  is platform detection in a place that was an honest capability check, and
+  the cost is worth naming: feature detection answers "is the function
+  present", not "does the feature work", and nothing observable at call
+  time reveals that a grant will not persist.
+
+  What settled it was the frequency. The reconnect is not once per app
+  launch, it is once per PAGE REFRESH, and twice over -- the site asks, and
+  then Android asks. A button that relocates the only copy of a vault
+  should not lead there.
+
+  The escape hatch is deliberately outside the gate. Anyone who already
+  moved a vault to a folder on a phone still gets the blocked screen with
+  Reconnect and Stop using it here, on exactly the platform where the
+  feature is no longer offered. There is a test for that, because gating a
+  feature off is the obvious way to strand the people already using it.
+
+  So the honest support line is Chromium desktop, and the answer for
+  everyone else is not a cleverer file API. It is 9d proper (a server), or
+  a cloud provider's own HTTP API, both of which are network problems that
+  every browser can do. A **read-only Firefox viewer** — pick the vault
+  file, open it, save nothing — is buildable on the File API alone and is a
+  real thing someone might want, but it is a different feature and should
+  not be described as sync.
 - [x] **Leaving is a third operation, not a kind of deleting.** Delete removes
-      the file for every device sharing the folder; moving it back takes it
-      away from them; neither is "I am done with this vault *on this
-      computer*", which is the ordinary thing to want on a work machine or a
-      browser you were only trying. Clearing site data did it, and took the
-      settings and every other stored thing with it. **Stop using it here**
-      forgets the pointer and the local draft, locks what is open, and touches
-      the folder not at all — no passphrase, because nothing is destroyed and
-      asking for one would imply otherwise. It is also the only exit from the
-      `blocked` screen: a folder that is gone for good previously left the page
-      offering to reconnect to something that was never coming back.
+  the file for every device sharing the folder; moving it back takes it
+  away from them; neither is "I am done with this vault *on this
+  computer*", which is the ordinary thing to want on a work machine or a
+  browser you were only trying. Clearing site data did it, and took the
+  settings and every other stored thing with it. **Stop using it here**
+  forgets the pointer and the local draft, locks what is open, and touches
+  the folder not at all — no passphrase, because nothing is destroyed and
+  asking for one would imply otherwise. It is also the only exit from the
+  `blocked` screen: a folder that is gone for good previously left the page
+  offering to reconnect to something that was never coming back.
 
 **Revised order: make it sync-shaped, prove the replica model on one transport,
 then build clients.** The extension still comes, and it still brings the
@@ -416,90 +455,90 @@ if it can be built inside those two lines.
 sync needs an account. A local vault breaks no published claim.
 
 - [x] **Encrypted with a passphrase you choose**, not with the ambient key
-      pattern history uses. History's AES-GCM key sits unextractable in
-      IndexedDB, which stops disk-scraping but not someone driving your browser
-      profile; a vault must beat that bar. PBKDF2 (or Argon2 if it can be done
-      without a dependency) over a user passphrase, iteration count stated in
-      the UI, key held in memory only while unlocked.
+  pattern history uses. History's AES-GCM key sits unextractable in
+  IndexedDB, which stops disk-scraping but not someone driving your browser
+  profile; a vault must beat that bar. PBKDF2 (or Argon2 if it can be done
+  without a dependency) over a user passphrase, iteration count stated in
+  the UI, key held in memory only while unlocked.
 - [x] **Auto-lock on idle**, with the timeout in the same settings gear as the
-      clipboard timer. Locked means the key is gone from memory, not hidden.
+  clipboard timer. Locked means the key is gone from memory, not hidden.
 - [x] **Save from the generator** — a "keep" action beside copy, storing the
-      password, a label, the entropy figure it was generated at, and the date.
-      The entropy is already computed and already stored in history; this is
-      the same data with a name attached.
+  password, a label, the entropy figure it was generated at, and the date.
+  The entropy is already computed and already stored in history; this is
+  the same data with a name attached.
 - [x] **Never a silent upgrade of history.** History stays what it is: a
-      short, ambient-encrypted list of recent output. The vault is a separate,
-      deliberate act. Conflating them would quietly change what "History: Off"
-      means, and that setting is documented.
+  short, ambient-encrypted list of recent output. The vault is a separate,
+  deliberate act. Conflating them would quietly change what "History: Off"
+  means, and that setting is documented.
 - [x] **Ask for persistent storage** via `navigator.storage.persist()` and
-      *show the answer*. An installed app usually gets it; a tab may not. A
-      vault the browser may evict without warning must say so.
+  *show the answer*. An installed app usually gets it; a tab may not. A
+  vault the browser may evict without warning must say so.
 - [x] **Generate from inside the vault**, rather than sending people to the
-      generator and back. Any of the seven modes, run with that mode's own
-      saved settings, into the password field or any security answer. This is
-      what forced the generators out of `main.js` and into `generators.js`:
-      the alternative was a second copy of the generation logic, and two
-      copies is how the entropy figure starts differing depending on which
-      page you generated from. Because it is the same code, an entry made this
-      way carries the same exact bits as one filed with Keep.
+  generator and back. Any of the seven modes, run with that mode's own
+  saved settings, into the password field or any security answer. This is
+  what forced the generators out of `main.js` and into `generators.js`:
+  the alternative was a second copy of the generation logic, and two
+  copies is how the entropy figure starts differing depending on which
+  page you generated from. Because it is the same code, an entry made this
+  way carries the same exact bits as one filed with Keep.
 - [x] **Groups and sorting**, once a vault holds enough to need them. Group is
-      free text with suggestions, not a folder tree -- a taxonomy makes every
-      new entry a filing decision, which is a real cost for a few dozen
-      entries. Sorting is newest, oldest, by name, and weakest-first for
-      auditing; entries with no recorded entropy sort to the bottom of that
-      last one rather than the top, since an unknown figure is not evidence of
-      a weak password and the unknowns would otherwise bury the actionable
-      ones. The group picker takes checkboxes rather than a single choice, and
-      a "Group them" toggle turns bucketing off entirely -- grouping and
-      auditing pull in opposite directions, because weakest-first inside
-      groups can leave the vault's worst password halfway down the page.
+  free text with suggestions, not a folder tree -- a taxonomy makes every
+  new entry a filing decision, which is a real cost for a few dozen
+  entries. Sorting is newest, oldest, by name, and weakest-first for
+  auditing; entries with no recorded entropy sort to the bottom of that
+  last one rather than the top, since an unknown figure is not evidence of
+  a weak password and the unknowns would otherwise bury the actionable
+  ones. The group picker takes checkboxes rather than a single choice, and
+  a "Group them" toggle turns bucketing off entirely -- grouping and
+  auditing pull in opposite directions, because weakest-first inside
+  groups can leave the vault's worst password halfway down the page.
 - [x] **Reused-password detection**, which 9e already permits: local health
-      analysis is fine, the remote kind is not. Exact matches only, flagged on
-      the entry, summarised above the list, filterable, and warned about while
-      editing rather than after saving. It is the one health finding a local
-      vault can make with certainty -- everything else about a stored password
-      is either a guess or needs a network.
+  analysis is fine, the remote kind is not. Exact matches only, flagged on
+  the entry, summarised above the list, filterable, and warned about while
+  editing rather than after saving. It is the one health finding a local
+  vault can make with certainty -- everything else about a stored password
+  is either a guess or needs a network.
 - [x] **Custom fields and one-time codes.** Fields are name/value pairs with a
-      secret flag rather than a fixed second username and password, because
-      the fixed answer runs out at the first account that wants a PIN. TOTP is
-      RFC 6238 over Web Crypto's HMAC -- no dependency -- verified against the
-      RFC's own published vectors for SHA-1, SHA-256 and SHA-512.
+  secret flag rather than a fixed second username and password, because
+  the fixed answer runs out at the first account that wants a PIN. TOTP is
+  RFC 6238 over Web Crypto's HMAC -- no dependency -- verified against the
+  RFC's own published vectors for SHA-1, SHA-256 and SHA-512.
 
-      TOTP ships with a warning that is not decoration: a one-time code is a
-      second factor only while it is kept apart from the first, and storing
-      the seed beside the password means one compromise yields both. It is
-      still a real gain against the common case, a password leaked at the
-      site's end, and it is the trade every password manager offering this
-      makes quietly. The difference here is that it is stated above the input,
-      before the secret is pasted.
+  TOTP ships with a warning that is not decoration: a one-time code is a
+  second factor only while it is kept apart from the first, and storing
+  the seed beside the password means one compromise yields both. It is
+  still a real gain against the common case, a password leaked at the
+  site's end, and it is the trade every password manager offering this
+  makes quietly. The difference here is that it is stated above the input,
+  before the secret is pasted.
 
 ### 9b. Export and import — the portability layer, and the honest sync
 
 - [x] **Encrypted export file.** The vault, sealed with the same passphrase
-      scheme, as a single file the user carries. This is the backup story and
-      the migration story at once.
+  scheme, as a single file the user carries. This is the backup story and
+  the migration story at once.
 - [x] **This is also the sync story, and deliberately so.** The user moves the
-      file; no server holds ciphertext, no identity exists to hold. Slower than
-      real sync, and the honest trade for the claims on the Legal page.
+  file; no server holds ciphertext, no identity exists to hold. Slower than
+  real sync, and the honest trade for the claims on the Legal page.
 - [x] **Import merges rather than replaces**, keyed on the password itself, so
-      importing an old backup cannot silently delete newer entries.
+  importing an old backup cannot silently delete newer entries.
 - [x] **Nag gently about exporting.** A vault living in one browser profile is
-      one "clear site data" away from gone. Unexported changes deserve a quiet
-      reminder, not a modal. The date and count behind it were in
-      `localStorage` at first, on the reasoning that the record has to survive
-      being locked; both halves of that were wrong, and it now lives in the
-      payload — see 9d.
+  one "clear site data" away from gone. Unexported changes deserve a quiet
+  reminder, not a modal. The date and count behind it were in
+  `localStorage` at first, on the reasoning that the record has to survive
+  being locked; both halves of that were wrong, and it now lives in the
+  payload — see 9d.
 - [x] ~~**Plain-text export is not offered.**~~ **Reversed, deliberately.**
-      The original reasoning still holds about the format: a CSV of passwords
-      is what every other manager regrets supporting. What it got wrong was the
-      alternative. Refusing any exit but "another copy of WordLock" is lock-in,
-      and an escape hatch you cannot use is not an escape hatch -- which is the
-      worse failure for a vault with no account behind it, since nobody can
-      recover your data for you if you get stuck in it. Plain JSON and CSV both
-      ship, behind a confirmation that says exactly what the file is, with
-      PLAINTEXT in the filename, and a warning inside the JSON itself. The
-      encrypted backup remains the default and the only one the export reminder
-      counts. See the header of `src/vault-transfer.js`.
+  The original reasoning still holds about the format: a CSV of passwords
+  is what every other manager regrets supporting. What it got wrong was the
+  alternative. Refusing any exit but "another copy of WordLock" is lock-in,
+  and an escape hatch you cannot use is not an escape hatch -- which is the
+  worse failure for a vault with no account behind it, since nobody can
+  recover your data for you if you get stuck in it. Plain JSON and CSV both
+  ship, behind a confirmation that says exactly what the file is, with
+  PLAINTEXT in the filename, and a warning inside the JSON itself. The
+  encrypted backup remains the default and the only one the export reminder
+  counts. See the header of `src/vault-transfer.js`.
 
 **Richer entries, added along the way.** An entry started as a label, a
 password and a note. Storing logins rather than just generated strings needs
@@ -518,25 +557,25 @@ site's vault are genuinely separate installations. That makes 9b's export file
 the bridge between them, which is a reason to build 9b first and well.
 
 - [ ] **Porting cost is low.** No build step, no CDN, and `lib.js` is already
-      DOM-free; a shell wraps the existing files essentially unchanged. The
-      service worker becomes redundant inside the shell.
+  DOM-free; a shell wraps the existing files essentially unchanged. The
+  service worker becomes redundant inside the shell.
 - [ ] **The feature that justifies the wrapper: autofill.** iOS and Android
-      both let a native app register as a credential/autofill provider —
-      generate, keep, and fill into *another app's* login form. The web cannot
-      do this at all. This is the mobile analog of 8c, and it is the difference
-      between a packaged website and something worth installing.
+  both let a native app register as a credential/autofill provider —
+  generate, keep, and fill into *another app's* login form. The web cannot
+  do this at all. This is the mobile analog of 8c, and it is the difference
+  between a packaged website and something worth installing.
 - [ ] **Platform key storage and biometrics.** The vault key can live in the
-      Keychain or Keystore, unlocked by Face ID or a fingerprint instead of
-      retyping the passphrase — a real improvement over what any web page can
-      offer, and the second reason to package.
+  Keychain or Keystore, unlocked by Face ID or a fingerprint instead of
+  retyping the passphrase — a real improvement over what any web page can
+  offer, and the second reason to package.
 - [ ] **Count the cost honestly.** $99/year plus review for Apple, $25 plus
-      review for Google, code signing, and a release cadence, against a site
-      that currently ships by pushing to main. 8c's warning about two stores
-      applies here too.
+  review for Google, code signing, and a release cadence, against a site
+  that currently ships by pushing to main. 8c's warning about two stores
+  applies here too.
 - [ ] **Order: 9a and 9b on the web first.** They work in the browser and the
-      PWA immediately, and they are the substance. Wrapping comes after, so
-      the packaged version launches with autofill and biometrics rather than
-      being the website in a trench coat.
+  PWA immediately, and they are the substance. Wrapping comes after, so
+  the packaged version launches with autofill and biometrics rather than
+  being the website in a trench coat.
 
 ### 9d. Sync, if it ever happens — the conditions
 
@@ -561,35 +600,35 @@ hosted option pays for the work. Nobody is ever nagged toward a paid tier.
    our own infrastructure later, if there is ever a reason beyond pride.
 
 - [ ] **Argon2id moves from "nice" to "load-bearing" here.** Today the
-      ciphertext sits on one device the attacker must already have. In modes 2
-      and 3 it sits in a provider's storage, so the realistic attack becomes an
-      offline guess against whatever the passphrase is worth, at whatever rate
-      the KDF permits. PBKDF2 is merely slow and parallelises beautifully on a
-      GPU; Argon2id is memory-hard and does not. Shipping mode 2 or 3 without
-      it means the sync feature is what makes the weak-passphrase case
-      materially worse. See 9f — it should land first, or in the same release.
+  ciphertext sits on one device the attacker must already have. In modes 2
+  and 3 it sits in a provider's storage, so the realistic attack becomes an
+  offline guess against whatever the passphrase is worth, at whatever rate
+  the KDF permits. PBKDF2 is merely slow and parallelises beautifully on a
+  GPU; Argon2id is memory-hard and does not. Shipping mode 2 or 3 without
+  it means the sync feature is what makes the weak-passphrase case
+  materially worse. See 9f — it should land first, or in the same release.
 - [ ] **The account credential must be unrelated to the vault passphrase.**
-      Never derived from it, never sent, never recoverable from anything the
-      server holds. The test is blunt: hand an attacker the entire production
-      database and they should learn nothing but blob sizes and timestamps.
-      Design for that and a misconfigured RLS policy — the classic Supabase
-      failure, and the reason to pick a backend *after* deciding the model —
-      leaks ciphertext rather than passwords.
+  Never derived from it, never sent, never recoverable from anything the
+  server holds. The test is blunt: hand an attacker the entire production
+  database and they should learn nothing but blob sizes and timestamps.
+  Design for that and a misconfigured RLS policy — the classic Supabase
+  failure, and the reason to pick a backend *after* deciding the model —
+  leaks ciphertext rather than passwords.
 - [ ] **Pad the ciphertext to size buckets.** What a provider still learns is
-      metadata: a blob's size roughly reveals how many entries are in it, and
-      its modification times reveal when passwords are added or changed, which
-      is a behavioural trace. Padding to buckets makes a twelve-entry vault and
-      a forty-entry one indistinguishable, and costs a few lines. Timing is
-      harder and probably not worth chasing.
+  metadata: a blob's size roughly reveals how many entries are in it, and
+  its modification times reveal when passwords are added or changed, which
+  is a behavioural trace. Padding to buckets makes a twelve-entry vault and
+  a forty-entry one indistinguishable, and costs a few lines. Timing is
+  harder and probably not worth chasing.
 - [ ] **Splitting the vault across two providers: considered, and no.**
-      The appeal is that no single provider holds everything. But no provider
-      holds anything readable now — that is what the encryption is for — so
-      splitting defends a flank already covered, while adding two integrations,
-      two failure modes, torn state when one write lands and the other does
-      not, and *reduced* availability, since both must be up to open the vault.
-      The one real benefit is defence in depth against a weak passphrase, and
-      Argon2id buys far more of that per unit of effort, because it addresses
-      the weak point rather than routing around it.
+  The appeal is that no single provider holds everything. But no provider
+  holds anything readable now — that is what the encryption is for — so
+  splitting defends a flank already covered, while adding two integrations,
+  two failure modes, torn state when one write lands and the other does
+  not, and *reduced* availability, since both must be up to open the vault.
+  The one real benefit is defence in depth against a weak passphrase, and
+  Argon2id buys far more of that per unit of effort, because it addresses
+  the weak point rather than routing around it.
 
 **Where the code already is, as of 2026-08-14.** Mode 2 is closer than it
 looks, because the hard part is done and the remaining part is specific.
@@ -602,25 +641,25 @@ API exists — verified in Chrome 148, `showSaveFilePicker`, `createWritable`
 and `queryPermission` all present.
 
 - [ ] **The blocker is that `save()` overwrites.** Every write assumes it is
-      the only writer, which is true for one device and false the moment a
-      second one shares a file. Persisting has to become read-merge-write:
-      load the remote copy, decrypt it, merge, re-seal, write back. That is a
-      change to what saving *means*, not a new adapter.
+  the only writer, which is true for one device and false the moment a
+  second one shares a file. Persisting has to become read-merge-write:
+  load the remote copy, decrypt it, merge, re-seal, write back. That is a
+  change to what saving *means*, not a new adapter.
 - [ ] **Which means syncing requires an unlocked vault**, since merging needs
-      the plaintext. A locked vault cannot reconcile, so sync happens on unlock
-      and on save rather than on a background timer. Worth stating early: it
-      shapes the UI.
+  the plaintext. A locked vault cannot reconcile, so sync happens on unlock
+  and on save rather than on a background timer. Worth stating early: it
+  shapes the UI.
 - [ ] **Detect the write race.** Two devices writing the same file need the
-      remote's modification time or hash compared before overwriting, or the
-      slower one silently discards the faster one's work.
+  remote's modification time or hash compared before overwriting, or the
+  slower one silently discards the faster one's work.
 - [ ] **Persist the file handle**, which is structured-cloneable and can live
-      in IndexedDB, plus a permission re-grant path for later visits. Without
-      that, mode 2 means picking the file again every single time.
+  in IndexedDB, plus a permission re-grant path for later visits. Without
+  that, mode 2 means picking the file again every single time.
 - [ ] **Chromium desktop only, and say so.** Firefox has no File System Access
-      API and mobile browsers have no persistent handles, so mode 2 on the web
-      is a desktop feature. Phones reach the same file through the packaged app
-      and the platform pickers, which is 9c — and is the reason to keep the
-      format a plain encrypted file rather than anything clever.
+  API and mobile browsers have no persistent handles, so mode 2 on the web
+  is a desktop feature. Phones reach the same file through the packaged app
+  and the platform pickers, which is 9c — and is the reason to keep the
+  format a plain encrypted file rather than anything clever.
 
 **Written assuming a server, which now looks like the most expensive option
 and the only one that breaks an invariant.** The gates below still stand and
@@ -637,54 +676,54 @@ That can be done four ways, and hosting is the smallest part of the price.
 | Our own server | small | uptime, abuse, deletion requests | **yes** |
 
 - [ ] **The cheap path is the default, and it uses no provider API at all.**
-      The File System Access API can hold a persistent handle to a file inside
-      the Dropbox or OneDrive folder the user's desktop client *already*
-      syncs. No OAuth, no app registration, no server, no account — their sync
-      client does the work and we never learn which provider it is. Chromium
-      desktop only, so not the whole answer, but it is the cheapest possible
-      proof the replica model works and it needs nothing from anyone.
+  The File System Access API can hold a persistent handle to a file inside
+  the Dropbox or OneDrive folder the user's desktop client *already*
+  syncs. No OAuth, no app registration, no server, no account — their sync
+  client does the work and we never learn which provider it is. Chromium
+  desktop only, so not the whole answer, but it is the cheapest possible
+  proof the replica model works and it needs nothing from anyone.
 - [ ] **Provider APIs cost more in friction than in money.** Each is a separate
-      integration with its own OAuth registration and review. Dropbox is
-      straightforward, Microsoft Graph is manageable, Google Drive is the heavy
-      one — scoping to `drive.file`, where the app only sees files it created,
-      stays out of the restricted-scope tier that triggers a paid third-party
-      security assessment. And **iCloud Drive has no web API**, so it is
-      native-only regardless. Three or four integrations, each with review and
-      permanent drift, for something the row above does for free.
+  integration with its own OAuth registration and review. Dropbox is
+  straightforward, Microsoft Graph is manageable, Google Drive is the heavy
+  one — scoping to `drive.file`, where the app only sees files it created,
+  stays out of the restricted-scope tier that triggers a paid third-party
+  security assessment. And **iCloud Drive has no web API**, so it is
+  native-only regardless. Three or four integrations, each with review and
+  permanent drift, for something the row above does for free.
 - [ ] **A server's cost is obligation, not hosting.** Ciphertext blobs are tens
-      of kilobytes and nearly free to store anywhere. What is expensive is
-      being the party that must stay up, handle abuse, answer deletion
-      requests, and explain an outage — plus it needs an identity of some kind
-      even when opaque, which is the line Legal currently draws. Worth it only
-      if the free paths have been tried and genuinely do not cover enough.
+  of kilobytes and nearly free to store anywhere. What is expensive is
+  being the party that must stay up, handle abuse, answer deletion
+  requests, and explain an outage — plus it needs an identity of some kind
+  even when opaque, which is the line Legal currently draws. Worth it only
+  if the free paths have been tried and genuinely do not cover enough.
 - [ ] **The sync unit is a folder, not a file.** A vault plus N attachment
-      blobs cannot be one file, so mode 2 points at a *directory* —
-      `showDirectoryPicker`, which is present alongside the rest of the File
-      System Access API. Cheap to decide now and awkward to change after mode 2
-      ships pointing at a single file. Mode 3 gets the same treatment: separate
-      storage objects rather than one row.
+  blobs cannot be one file, so mode 2 points at a *directory* —
+  `showDirectoryPicker`, which is present alongside the rest of the File
+  System Access API. Cheap to decide now and awkward to change after mode 2
+  ships pointing at a single file. Mode 3 gets the same treatment: separate
+  storage objects rather than one row.
 - [ ] **Mobile is 9c's problem, not this section's.** No mobile browser offers
-      persistent file handles, so a phone syncs through the packaged app and
-      the platform file pickers. That is a reason to keep the format a plain
-      encrypted file rather than anything clever.
+  persistent file handles, so a phone syncs through the packaged app and
+  the platform file pickers. That is a reason to keep the format a plain
+  encrypted file rather than anything clever.
 
 Every one of these is a gate, not a preference:
 
 - [ ] **Opt-in, and the local mode stays whole.** No account prompt on first
-      run, no feature that exists only for synced users, no reminder that
-      syncing is available. Invariant 2 is the test: if a local-only user's
-      experience is measurably worse after sync ships, sync shipped wrong.
+  run, no feature that exists only for synced users, no reminder that
+  syncing is available. Invariant 2 is the test: if a local-only user's
+  experience is measurably worse after sync ships, sync shipped wrong.
 - [ ] **End-to-end encrypted in 8e's shape** — the server holds ciphertext it
-      cannot read, and the account is an opaque sync identifier, not a profile.
-      No email required, no recovery flow that implies the server can decrypt.
+  cannot read, and the account is an opaque sync identifier, not a profile.
+  No email required, no recovery flow that implies the server can decrypt.
 - [ ] **Rewrite Legal and About in the same release**, not afterward. Both
-      currently say there are no accounts and nothing leaves your device.
-      Shipping optional sync makes the unqualified version of that false even
-      for people who never enable it, because the sentence describes the
-      software, not the session. The honest replacement distinguishes what the
-      software does by default from what it can be asked to do.
+  currently say there are no accounts and nothing leaves your device.
+  Shipping optional sync makes the unqualified version of that false even
+  for people who never enable it, because the sentence describes the
+  software, not the session. The honest replacement distinguishes what the
+  software does by default from what it can be asked to do.
 - [ ] **9b's export/import ships first and stays.** It is the sync story until
-      there is a sync story, and the escape hatch afterward.
+  there is a sync story, and the escape hatch afterward.
 
 **The shape it would take, noted now so it is not designed under pressure.**
 None of this is built and none of it should be built yet; it is written down
@@ -693,49 +732,49 @@ to disagree with parts of it is before there is a server to change. If sync
 ever happens, this is the starting point:
 
 - [ ] **Derive once, split twice.** The passphrase stretches to a master key;
-      that key is *never* used directly and never leaves the device. Split or
-      re-derive it into (a) a symmetric vault key that encrypts entries, and
-      (b) a separate authentication hash that is the only derived value the
-      server ever sees. The server verifying a login must be unable to derive
-      the decryption key from what it was sent — that separation is the whole
-      trick, and getting it backwards is the classic way to build a "zero
-      knowledge" system that is not one.
+  that key is *never* used directly and never leaves the device. Split or
+  re-derive it into (a) a symmetric vault key that encrypts entries, and
+  (b) a separate authentication hash that is the only derived value the
+  server ever sees. The server verifying a login must be unable to derive
+  the decryption key from what it was sent — that separation is the whole
+  trick, and getting it backwards is the classic way to build a "zero
+  knowledge" system that is not one.
 - [ ] **The server is a dumb blob store.** Opaque sync identifier, KDF
-      parameters, the authentication hash, and the ciphertext. No email
-      required, no profile, no password-reset flow — a reset flow that works
-      is proof the server can decrypt.
+  parameters, the authentication hash, and the ciphertext. No email
+  required, no profile, no password-reset flow — a reset flow that works
+  is proof the server can decrypt.
 - [ ] **Keep the random per-vault salt; do not switch to email-as-salt.** The
-      common design salts with the user's email so a new device can re-derive
-      without fetching anything first. That is a convenience workaround with a
-      real cost: emails are low-entropy, reused across services, and shared
-      between users of the same provider, which makes cross-account rainbow
-      tables worth building. A random salt fetched alongside the blob is
-      strictly stronger and costs one round trip.
+  common design salts with the user's email so a new device can re-derive
+  without fetching anything first. That is a convenience workaround with a
+  real cost: emails are low-entropy, reused across services, and shared
+  between users of the same provider, which makes cross-account rainbow
+  tables worth building. A random salt fetched alongside the blob is
+  strictly stronger and costs one round trip.
 - [ ] **Authenticated encryption stays.** AES-GCM as today, or
-      XChaCha20-Poly1305. Never a mode without integrity: a server that can
-      flip ciphertext bits undetected is a server that can attack you.
+  XChaCha20-Poly1305. Never a mode without integrity: a server that can
+  flip ciphertext bits undetected is a server that can attack you.
 - [ ] **Session tokens in `HttpOnly` cookies**, never in `localStorage`, so
-      script cannot read them. Note this is only meaningful once there *is* a
-      session; today there are no cookies at all, which is stronger.
+  script cannot read them. Note this is only meaningful once there *is* a
+  session; today there are no cookies at all, which is stronger.
 - [ ] **Move the crypto into a Web Worker.** Today the vault key is a
-      non-extractable `CryptoKey`, which already means script cannot read its
-      bytes. With a server in the picture the passphrase-handling path becomes
-      worth isolating too — see the memory-sanitisation limits documented in
-      Legal, which a worker narrows but does not remove.
+  non-extractable `CryptoKey`, which already means script cannot read its
+  bytes. With a server in the picture the passphrase-handling path becomes
+  worth isolating too — see the memory-sanitisation limits documented in
+  Legal, which a worker narrows but does not remove.
 - [ ] **The dependency threat gets worse, not better.** A build step and an
-      npm tree are the usual companions of a backend, and one compromised
-      transitive package in the crypto path ends the product. The current
-      answer — zero dependencies, everything vendored and readable — is a
-      security property, not just an aesthetic, and giving it up needs a
-      better reason than convenience.
+  npm tree are the usual companions of a backend, and one compromised
+  transitive package in the crypto path ends the product. The current
+  answer — zero dependencies, everything vendored and readable — is a
+  security property, not just an aesthetic, and giving it up needs a
+  better reason than convenience.
 
 ### 9e. What stays out regardless
 
 - [ ] **No breach-corpus checks, no password health scoring against remote
-      services, no telemetry, no analytics.** All four are normal in a password
-      manager and all four need the network for something the user did not ask
-      for. Health scoring that runs locally — reused passwords, weak entries,
-      age — is fine and needs no server; it is the *remote* version that is out.
+  services, no telemetry, no analytics.** All four are normal in a password
+  manager and all four need the network for something the user did not ask
+  for. Health scoring that runs locally — reused passwords, weak entries,
+  age — is fine and needs no server; it is the *remote* version that is out.
 
 ### 9f. Hardening the primitives
 
@@ -744,231 +783,261 @@ Neither of these is a defect. Both are places where the honest answer today is
 and both should be revisited deliberately rather than drifted into.
 
 - [ ] **Argon2id instead of PBKDF2.** PBKDF2 is merely slow; Argon2id is
-      memory-hard, which is the property that actually blunts a GPU or ASIC
-      attack. No number of PBKDF2 iterations substitutes, because iterations
-      change the attacker's constant and not their parallelism.
+  memory-hard, which is the property that actually blunts a GPU or ASIC
+  attack. No number of PBKDF2 iterations substitutes, because iterations
+  change the attacker's constant and not their parallelism.
 
-      Why not yet: Web Crypto does not implement it — `deriveBits` offers
-      PBKDF2, HKDF and ECDH only — so it arrives as a WebAssembly blob in the
-      single most security-critical path in the product, for a project whose
-      pitch is that you can read the source. Doable, but the work *is* the
-      provenance: a pinned reproducible build, a recorded hash, and a note in
-      Legal about what is being trusted. A hand-written JS implementation is
-      not the answer; it would be slow enough to need parameters that give the
-      memory-hardness back.
+  Why not yet: Web Crypto does not implement it — `deriveBits` offers
+  PBKDF2, HKDF and ECDH only — so it arrives as a WebAssembly blob in the
+  single most security-critical path in the product, for a project whose
+  pitch is that you can read the source. Doable, but the work *is* the
+  provenance: a pinned reproducible build, a recorded hash, and a note in
+  Legal about what is being trusted. A hand-written JS implementation is
+  not the answer; it would be slow enough to need parameters that give the
+  memory-hardness back.
 
-      The migration is already built: the KDF parameters travel inside each
-      envelope, so adding `name: 'Argon2id'` with `m`/`t`/`p` leaves every old
-      vault opening on PBKDF2, and `needsRekey()` upgrades them on the next
-      passphrase change.
+  The migration is already built: the KDF parameters travel inside each
+  envelope, so adding `name: 'Argon2id'` with `m`/`t`/`p` leaves every old
+  vault opening on PBKDF2, and `needsRekey()` upgrades them on the next
+  passphrase change.
 
 - [x] **Iterations raised to 1,000,000** (from OWASP's 2023 floor of 600,000),
-      and deliberately not to 10,000,000. Measured on a 2026 desktop, PBKDF2
-      costs ~0.1ms per thousand iterations: 600k is 54ms, 1M is 93ms, 10M is
-      1032ms. Attacker cost is linear, so 600k → 10M is 16.7×, or **4.1 bits**
-      — less than one extra random lowercase letter — bought with a full
-      second of unlock latency on a fast machine and several on a phone. One
-      more word in the passphrase beats the entire trade for free. The bump to
-      1M is about staying clear of the floor as hardware improves, not about
-      the bits, and the code comment says so.
+  and deliberately not to 10,000,000. Measured on a 2026 desktop, PBKDF2
+  costs ~0.1ms per thousand iterations: 600k is 54ms, 1M is 93ms, 10M is
+  1032ms. Attacker cost is linear, so 600k → 10M is 16.7×, or **4.1 bits**
+  — less than one extra random lowercase letter — bought with a full
+  second of unlock latency on a fast machine and several on a phone. One
+  more word in the passphrase beats the entire trade for free. The bump to
+  1M is about staying clear of the floor as hardware improves, not about
+  the bits, and the code comment says so.
 
 - [x] **Recovery codes — shipped, and the case survived.** Asked for, with
-      the suspicion that the security model forbids it. It does not -- but the
-      version most people picture is the unsafe one, so the constraints matter
-      more than the feature. Everything below was the plan; all of it was
-      built, with the word count at 16 and the format decisions unchanged.
+  the suspicion that the security model forbids it. It does not -- but the
+  version most people picture is the unsafe one, so the constraints matter
+  more than the feature. Everything below was the plan; all of it was
+  built, with the word count at 16 and the format decisions unchanged.
 
-      **What the build added to the plan.** The envelope had to grow a version:
-      v1 encrypts the data directly under the passphrase key, which leaves
-      nowhere to put a second wrap, so v2 encrypts under a random master key
-      and wraps *that* once per way in. Either wrap opens the vault. Two
-      dividends that were not the reason for it: changing the passphrase now
-      re-wraps 32 bytes instead of re-encrypting the whole vault, and revoking
-      recovery is deleting one field. Old vaults keep opening as v1 and convert
-      only when recovery is added or the passphrase changes -- both moments
-      where the passphrase is already in hand.
+  **What the build added to the plan.** The envelope had to grow a version:
+  v1 encrypts the data directly under the passphrase key, which leaves
+  nowhere to put a second wrap, so v2 encrypts under a random master key
+  and wraps *that* once per way in. Either wrap opens the vault. Two
+  dividends that were not the reason for it: changing the passphrase now
+  re-wraps 32 bytes instead of re-encrypting the whole vault, and revoking
+  recovery is deleting one field. Old vaults keep opening as v1 and convert
+  only when recovery is added or the passphrase changes -- both moments
+  where the passphrase is already in hand.
 
-      **Three rules that emerged while building it.** Adding or removing a key
-      requires the passphrase even with the vault open, because an unlocked tab
-      proves a tab is open rather than who is asking -- the same rule that
-      already guarded deleting a vault. Recovering takes the key and the new
-      passphrase in one operation, so the vault is never open with no
-      passphrase anyone knows, and re-seals under a fresh master key so the
-      forgotten passphrase dies with it. And using a recovery key retires it,
-      since by then it has been typed onto a screen and possibly read aloud.
+  **Three rules that emerged while building it.** Adding or removing a key
+  requires the passphrase even with the vault open, because an unlocked tab
+  proves a tab is open rather than who is asking -- the same rule that
+  already guarded deleting a vault. Recovering takes the key and the new
+  passphrase in one operation, so the vault is never open with no
+  passphrase anyone knows, and re-seals under a fresh master key so the
+  forgotten passphrase dies with it. And using a recovery key retires it,
+  since by then it has been typed onto a screen and possibly read aloud.
 
-      How it would work: generate a high-entropy recovery key, wrap the vault
-      key under it, and store that second wrapped copy in the envelope
-      alongside the passphrase-derived one. Either key opens the vault.
+  How it would work: generate a high-entropy recovery key, wrap the vault
+  key under it, and store that second wrapped copy in the envelope
+  alongside the passphrase-derived one. Either key opens the vault.
 
-      The constraint that makes it safe: **the recovery key must be generated,
-      never chosen.** An attacker takes whichever path is cheaper, so the
-      vault's strength becomes the *weaker* of the two. A user-chosen recovery
-      phrase would therefore lower the security of every vault that has one,
-      silently, no matter how good the passphrase is. At 128 bits of generated
-      randomness the recovery path is not attackable at all and the passphrase
-      remains the binding constraint -- so it costs nothing. Between those two
-      is a trap: anything memorable is anything guessable.
+  The constraint that makes it safe: **the recovery key must be generated,
+  never chosen.** An attacker takes whichever path is cheaper, so the
+  vault's strength becomes the *weaker* of the two. A user-chosen recovery
+  phrase would therefore lower the security of every vault that has one,
+  silently, no matter how good the passphrase is. At 128 bits of generated
+  randomness the recovery path is not attackable at all and the passphrase
+  remains the binding constraint -- so it costs nothing. Between those two
+  is a trap: anything memorable is anything guessable.
 
-      **What it is actually for**, corrected: a first draft of this entry said
-      the encrypted backup already provides recovery and a recovery key merely
-      duplicates it. That is wrong, and worth recording as wrong. A backup
-      protects against *losing the data*. A recovery key protects against
-      *forgetting the passphrase* -- and those are different failures, because
-      a backup you cannot decrypt is as lost as no backup at all. Nothing in
-      the product currently addresses the second one. Forget the passphrase
-      today and every copy you own, including every backup, is ciphertext
-      forever.
+  **What it is actually for**, corrected: a first draft of this entry said
+  the encrypted backup already provides recovery and a recovery key merely
+  duplicates it. That is wrong, and worth recording as wrong. A backup
+  protects against *losing the data*. A recovery key protects against
+  *forgetting the passphrase* -- and those are different failures, because
+  a backup you cannot decrypt is as lost as no backup at all. Nothing in
+  the product currently addresses the second one. Forget the passphrase
+  today and every copy you own, including every backup, is ciphertext
+  forever.
 
-      Nor does a recovery key help with the first failure. If the vault is
-      gone and was never exported, no key recovers it; that is what backups
-      and, one day, sync are for. The two mechanisms are complements, not
-      alternatives, and the earlier framing collapsed them.
+  Nor does a recovery key help with the first failure. If the vault is
+  gone and was never exported, no key recovers it; that is what backups
+  and, one day, sync are for. The two mechanisms are complements, not
+  alternatives, and the earlier framing collapsed them.
 
-      **Format.** Words, not a base32 blob, because this gets written on
-      paper and typed back by hand under stress. Sixteen words from the
-      17,576-word list is 225.6 bits, which is preposterous overkill and
-      free; ten words is 141 bits and still far beyond reach. Somewhere in
-      10-20 is right, trading transcription effort against a margin that is
-      already enormous at the bottom of the range. Lower case, space
-      separated, generated -- the same list the Words generator draws from.
+  **Format.** Words, not a base32 blob, because this gets written on
+  paper and typed back by hand under stress. Sixteen words from the
+  17,576-word list is 225.6 bits, which is preposterous overkill and
+  free; ten words is 141 bits and still far beyond reach. Somewhere in
+  10-20 is right, trading transcription effort against a margin that is
+  already enormous at the bottom of the range. Lower case, space
+  separated, generated -- the same list the Words generator draws from.
 
-      Shipped exactly as scoped here: generated only, shown exactly once,
-      behind the same write-it-down gate the adopt flow uses, stated plainly as
-      a second key to everything in the vault, and revocable.
+  Shipped exactly as scoped here: generated only, shown exactly once,
+  behind the same write-it-down gate the adopt flow uses, stated plainly as
+  a second key to everything in the vault, and revocable.
 
 - [ ] **Seal the secrets inside the vault as well as around it.** Today
-      unlocking means every password in the vault becomes a plaintext
-      JavaScript string for the whole session, sitting beside the passphrase
-      that already cannot be scrubbed. Sealing each secret individually under a
-      subkey means only what is actually revealed, copied or filled gets
-      decrypted, and the rest stay ciphertext in memory.
+  unlocking means every password in the vault becomes a plaintext
+  JavaScript string for the whole session, sitting beside the passphrase
+  that already cannot be scrubbed. Sealing each secret individually under a
+  subkey means only what is actually revealed, copied or filled gets
+  decrypted, and the rest stay ciphertext in memory.
 
-      **The split is the user's own choice, which is the neat part.** The
-      `secret` flag on a custom field already means masked, clipboard-timed and
-      generatable; it now also means inner-sealed. Password, TOTP seed,
-      security answers and secret fields are inside. Label, username, URLs,
-      note, group, tags and dates are metadata — searchable is the test, and it
-      lines up almost exactly with masked-in-the-UI. Put something sensitive in
-      a plain text field and it is plain text: that is the user's call, made
-      with a checkbox they already understand, and everything is still
-      encrypted at the outer layer regardless.
+  **The split is the user's own choice, which is the neat part.** The
+  `secret` flag on a custom field already means masked, clipboard-timed and
+  generatable; it now also means inner-sealed. Password, TOTP seed,
+  security answers and secret fields are inside. Label, username, URLs,
+  note, group, tags and dates are metadata — searchable is the test, and it
+  lines up almost exactly with masked-in-the-UI. Put something sensitive in
+  a plain text field and it is plain text: that is the user's call, made
+  with a checkbox they already understand, and everything is still
+  encrypted at the outer layer regardless.
 
-      **Reuse detection survives via a keyed hash.** Comparing passwords needs
-      plaintext, which defeats the point, so each entry carries an HMAC of its
-      password under a subkey. Reuse still works, the hashes are useless
-      without the key, and nothing gets decrypted to compute it. Two caveats:
-      those hashes must stay *inside* the outer envelope, or a storage provider
-      learns which of your accounts share a password; and reuse becomes
-      per-vault, since separate vaults (10c) have separate keys and there is no
-      fix that does not defeat the point of separating them.
+  **Reuse detection survives via a keyed hash.** Comparing passwords needs
+  plaintext, which defeats the point, so each entry carries an HMAC of its
+  password under a subkey. Reuse still works, the hashes are useless
+  without the key, and nothing gets decrypted to compute it. Two caveats:
+  those hashes must stay *inside* the outer envelope, or a storage provider
+  learns which of your accounts share a password; and reuse becomes
+  per-vault, since separate vaults (10c) have separate keys and there is no
+  fix that does not defeat the point of separating them.
 
-      **What it does not buy: merging without the key.** The metadata is inside
-      the outer envelope, so reading it still needs the vault open, and sync
-      stays an on-unlock operation. What it does buy is that the merge never
-      touches a secret — it shuffles opaque blobs — so a bug there can misplace
-      an entry but cannot leak or corrupt a password. And a corrupt inner blob
-      costs one entry rather than the whole vault.
+  **What it does not buy: merging without the key.** The metadata is inside
+  the outer envelope, so reading it still needs the vault open, and sync
+  stays an on-unlock operation. What it does buy is that the merge never
+  touches a secret — it shuffles opaque blobs — so a bug there can misplace
+  an entry but cannot leak or corrupt a password. And a corrupt inner blob
+  costs one entry rather than the whole vault.
 
-      **Three things to be honest about.** Export still decrypts everything, so
-      "never decrypt the whole vault" has an exception from day one. The threat
-      it addresses is a passive memory snapshot — crash dump, swap, forensic
-      capture — and it buys much less against an attacker with code execution,
-      who can hook the decrypt path or simply wait. And there is one
-      implementation trap that would erase the benefit entirely: the moment the
-      UI caches decrypted values in the reactive store, which is the natural
-      way to write it and how `entries` works today, every password is back in
-      memory. The decrypted value has to live for one operation and then go.
+  **Three things to be honest about.** Export still decrypts everything, so
+  "never decrypt the whole vault" has an exception from day one. The threat
+  it addresses is a passive memory snapshot — crash dump, swap, forensic
+  capture — and it buys much less against an attacker with code execution,
+  who can hook the decrypt path or simply wait. And there is one
+  implementation trap that would erase the benefit entirely: the moment the
+  UI caches decrypted values in the reactive store, which is the natural
+  way to write it and how `entries` works today, every password is back in
+  memory. The decrypted value has to live for one operation and then go.
 
-      **Do it soon rather than carefully later.** This is another envelope
-      version, and format migrations are only expensive once vaults exist in
-      the wild. The vault shipped yesterday and almost certainly nobody is
-      storing real passwords in it yet, so the migration is close to free right
-      now and will not be in six months.
+  **Do it soon rather than carefully later.** This is another envelope
+  version, and format migrations are only expensive once vaults exist in
+  the wild. The vault shipped yesterday and almost certainly nobody is
+  storing real passwords in it yet, so the migration is close to free right
+  now and will not be in six months.
 
 - [ ] **Bind the envelope's metadata into the AEAD.** Raised while explaining
-      v2 to someone who then asked the right question: if both ways in are the
-      same mechanism with different inputs, what actually deserves scrutiny is
-      the encryption itself. This is what that scrutiny found.
+  v2 to someone who then asked the right question: if both ways in are the
+  same mechanism with different inputs, what actually deserves scrutiny is
+  the encryption itself. This is what that scrutiny found.
 
-      The salts, the iteration counts and the slot structure are plaintext
-      JSON sitting *outside* the authenticated ciphertext. AES-GCM
-      authenticates what it encrypts, and it is not encrypting any of that.
-      Nothing stops someone with write access to the IndexedDB store editing
-      it.
+  The salts, the iteration counts and the slot structure are plaintext
+  JSON sitting *outside* the authenticated ciphertext. AES-GCM
+  authenticates what it encrypts, and it is not encrypting any of that.
+  Nothing stops someone with write access to the IndexedDB store editing
+  it.
 
-      **What that does and does not get them.** It does not get them
-      plaintext, which is the part worth being clear about. A spliced-in
-      recovery slot wraps a *different* master key, so the entries still will
-      not decrypt; an edited iteration count derives a different key, so the
-      unwrap simply fails. Every path ends in a failed authentication rather
-      than a successful lie. What it does get them is destruction: deleting
-      the recovery slot is a one-field edit, and the owner finds out at the
-      worst possible moment, which is the moment they needed it.
+  **What that does and does not get them.** It does not get them
+  plaintext, which is the part worth being clear about. A spliced-in
+  recovery slot wraps a *different* master key, so the entries still will
+  not decrypt; an edited iteration count derives a different key, so the
+  unwrap simply fails. Every path ends in a failed authentication rather
+  than a successful lie. What it does get them is destruction: deleting
+  the recovery slot is a one-field edit, and the owner finds out at the
+  worst possible moment, which is the moment they needed it.
 
-      So this is tamper-evidence and denial of service, not confidentiality.
-      It is also not reachable by the threat the vault is mainly built
-      against -- a stolen copy of the profile, read offline -- since that
-      attacker never writes anything back.
+  So this is tamper-evidence and denial of service, not confidentiality.
+  It is also not reachable by the threat the vault is mainly built
+  against -- a stolen copy of the profile, read offline -- since that
+  attacker never writes anything back.
 
-      **The fix is one parameter.** `additionalData` on the AES-GCM calls,
-      covering the envelope's own metadata, so any edit to a salt, a count or
-      a slot list fails loudly instead of quietly. The cost is a format
-      change: envelopes sealed without AAD cannot be opened by code that
-      requires it, so it needs the same lazy upgrade v2 already uses -- open
-      the old shape, re-seal on the next passphrase change or recovery-key
-      operation. Cheap to do, and cheaper still if it rides along with
-      whatever next touches the format rather than being its own migration.
+  **The fix is one parameter.** `additionalData` on the AES-GCM calls,
+  covering the envelope's own metadata, so any edit to a salt, a count or
+  a slot list fails loudly instead of quietly. The cost is a format
+  change: envelopes sealed without AAD cannot be opened by code that
+  requires it, so it needs the same lazy upgrade v2 already uses -- open
+  the old shape, re-seal on the next passphrase change or recovery-key
+  operation. Cheap to do, and cheaper still if it rides along with
+  whatever next touches the format rather than being its own migration.
 
-- [ ] **Drop `'unsafe-eval'` from the CSP.** The policy shipped with hashes
-      for every inline script and `connect-src 'self'`, which is the directive
-      that matters here: whatever runs, it has nowhere to send anything. But
-      `'unsafe-eval'` had to stay, because components are declared with Vue's
-      `template:` option and Vue compiles those at runtime through
-      `new Function` — measured, not assumed: without it every page renders
-      blank.
+- [x] **Drop `'unsafe-eval'` from the CSP** (3.4.0). The policy shipped with hashes
+  for every inline script and `connect-src 'self'`, which is the directive
+  that matters here: whatever runs, it has nowhere to send anything. But
+  `'unsafe-eval'` had to stay, because components are declared with Vue's
+  `template:` option and Vue compiles those at runtime through
+  `new Function` — measured, not assumed: without it every page renders
+  blank.
 
-      Removing it means precompiling templates to render functions, which
-      means a build step. That is a bigger decision than the CSP, and it
-      trades a real property (the deployed site is the readable source) for a
-      bounded gain — reaching `eval` requires already executing script, which
-      the hash list is what prevents. ~~Revisit if a build step arrives for
-      another reason; do not add one for this alone.~~
+  Removing it means precompiling templates to render functions, which
+  means a build step. That is a bigger decision than the CSP, and it
+  trades a real property (the deployed site is the readable source) for a
+  bounded gain — reaching `eval` requires already executing script, which
+  the hash list is what prevents. ~~Revisit if a build step arrives for
+  another reason; do not add one for this alone.~~
 
-      **Reversed. Scheduled, not deferred.** The maintainer's call, and the
-      reasoning above was too narrow rather than wrong. It weighed the CSP
-      alone; `'unsafe-eval'` is not one item, it is the same blocker turning up
-      in three places — the MV3 extension path (8e), the build step 9f wants
-      for sealing, and now a pre-release security pass where it is the single
-      weakest line in an otherwise tight policy. Three bounded gains that share
-      one cause are not three small things, and "do not add a build step for
-      this alone" stopped applying the moment it was not alone.
+  **Reversed. Scheduled, not deferred.** The maintainer's call, and the
+  reasoning above was too narrow rather than wrong. It weighed the CSP
+  alone; `'unsafe-eval'` is not one item, it is the same blocker turning up
+  in three places — the MV3 extension path (8e), the build step 9f wants
+  for sealing, and now a pre-release security pass where it is the single
+  weakest line in an otherwise tight policy. Three bounded gains that share
+  one cause are not three small things, and "do not add a build step for
+  this alone" stopped applying the moment it was not alone.
 
-      The property to protect while doing it is the one the original argument
-      was right about: the deployed site should stay readable. That means a
-      build whose output is legible and diffable, and a test that the built
-      render functions correspond to the templates in the repo — not a
-      minifier.
+  The property to protect while doing it is the one the original argument
+  was right about: the deployed site should stay readable. That means a
+  build whose output is legible and diffable, and a test that the built
+  render functions correspond to the templates in the repo — not a
+  minifier.
+
+  **Done, and the property held.** Markup moved to `src/templates/*.html`,
+  `tools/build-templates.mjs` compiles it to `*.render.js`, and both the
+  input and the output are committed. `test/templates.test.js` recompiles
+  and fails on drift, so the artefact cannot quietly become the source of
+  truth. The header is gone from `render.yaml` and `test/csp.test.js`
+  fails if it returns, or if a component declares `template:` again.
+
+  It is not merely disallowed but unusable: the page ships
+  `vue.runtime.esm-browser.prod.js`, which has no compiler in it.
+
+  The cost estimate was wrong in the good direction, and the correction is
+  the interesting part. Precompiled markup is *larger* than the markup it
+  replaces — the generator's code went from 17.2 KB to 23.8 KB brotli, the
+  vault's from 28.8 KB to 32.5 KB — but dropping the compiler takes Vue
+  from 47.2 KB to 30.1 KB, and that lands once on every page. Net **−10.5
+  KB for the generator and −13.4 KB for the vault**, per visitor, brotli.
+  An earlier version of this note claimed roughly −7 KB by counting the
+  uncompressed sizes; compression flatters generated code far more than it
+  flatters a compiler, which is why the measured figure is better than the
+  estimate rather than worse.
+
+  Two things had to be learned by building it. `@vue/compiler-dom` cannot
+  be vendored: its browser build refuses module mode (compiler-48) because
+  prefixing identifiers needs a JS parser it does not bundle, and the
+  function mode it will do emits `with (_ctx)`, a SyntaxError in any ES
+  module — so it is a devDependency, measured both ways before that was
+  accepted. And `NODE_ENV` must be `production` when the compiler runs, or
+  it annotates every `v-if` and the site ships literal `<!--v-if-->`
+  markers; importing the `.prod.js` path is not sufficient on its own.
 
 - [ ] **Read the envelope design against OWASP ASVS V6.** Scanners answer
-      "does this code have a known bad pattern"; they cannot answer "is this
-      cryptographic design right for what it claims". V6 (Cryptography) is a
-      structured checklist for exactly that — key lifecycle, algorithm choice,
-      random sources, key storage, and what happens at rotation — and it is a
-      read-through rather than a tool run. V2 (Authentication) is worth the
-      same pass for the passphrase and recovery slots.
+  "does this code have a known bad pattern"; they cannot answer "is this
+  cryptographic design right for what it claims". V6 (Cryptography) is a
+  structured checklist for exactly that — key lifecycle, algorithm choice,
+  random sources, key storage, and what happens at rotation — and it is a
+  read-through rather than a tool run. V2 (Authentication) is worth the
+  same pass for the passphrase and recovery slots.
 
-      Queued rather than done: it is a deliberate exercise against the threat
-      model, not a pre-release gate, and doing it badly in a hurry would be
-      worse than the honest gap.
+  Queued rather than done: it is a deliberate exercise against the threat
+  model, not a pre-release gate, and doing it badly in a hurry would be
+  worse than the honest gap.
 
 - [ ] **Split the large files.** `main.js` and `vault-app.js` are both far
-      past readable and are named as known exceptions in CLAUDE.md, to be
-      reduced by extraction rather than rewritten. Extraction has started:
-      `vault-diff.js` came out of `vault-app.js` during the security pass,
-      and pulling it out is what made its rule testable rather than something
-      you check by opening a dialog and looking. That is the pattern to
-      follow — extract where it buys a test, not to hit a line count.
+  past readable and are named as known exceptions in CLAUDE.md, to be
+  reduced by extraction rather than rewritten. Extraction has started:
+  `vault-diff.js` came out of `vault-app.js` during the security pass,
+  and pulling it out is what made its rule testable rather than something
+  you check by opening a dialog and looking. That is the pattern to
+  follow — extract where it buys a test, not to hit a line count.
 
 ---
 
@@ -1003,51 +1072,51 @@ scope is "small files only", and that instinct is right, but not for the
 reason it looks like.
 
 - [x] **The obstacle is the storage shape, not the quota — and the shape is
-      settled.** The vault is one sealed blob: every save re-encrypts and
-      rewrites the whole thing. Fine for a few kilobytes of text, untenable the
-      moment a 2 MB scan is in there, because editing an unrelated entry's
-      label would rewrite the scan too.
+  settled.** The vault is one sealed blob: every save re-encrypts and
+  rewrites the whole thing. Fine for a few kilobytes of text, untenable the
+  moment a 2 MB scan is in there, because editing an unrelated entry's
+  label would rewrite the scan too.
 
-      **Decided (2026-08-14): attachments do not live in the vault.** Each is
-      its own blob, encrypted under the same vault key, referenced from the
-      entry by id. That is not a change to the envelope format at all — the
-      entry gains a reference field and the storage layer gains a second
-      location. An earlier draft here claimed attachments "force per-item
-      sealing", implying the vault's own format had to change and that this
-      should therefore be paired with the entry-sealing work in 9f. Both halves
-      were wrong: the two are independent, and each stands on its own merits.
+  **Decided (2026-08-14): attachments do not live in the vault.** Each is
+  its own blob, encrypted under the same vault key, referenced from the
+  entry by id. That is not a change to the envelope format at all — the
+  entry gains a reference field and the storage layer gains a second
+  location. An earlier draft here claimed attachments "force per-item
+  sealing", implying the vault's own format had to change and that this
+  should therefore be paired with the entry-sealing work in 9f. Both halves
+  were wrong: the two are independent, and each stands on its own merits.
 - [ ] **Attachments need tombstones too.** Deleting an entry has to delete its
-      blobs, on every replica — and a replica that has not synced yet still
-      holds them. Orphaned encrypted blobs quietly accumulating in someone's
-      Dropbox is the failure mode, and it is exactly the shape the reaper
-      already handles for entries.
+  blobs, on every replica — and a replica that has not synced yet still
+  holds them. Orphaned encrypted blobs quietly accumulating in someone's
+  Dropbox is the failure mode, and it is exactly the shape the reaper
+  already handles for entries.
 - [ ] **A cap, stated in the UI.** Browsers grant a large quota but a vault
-      that outgrows it gets evicted rather than truncated, and the persistence
-      warning already explains how little we control that. Something like a
-      few MB per attachment and a visible total, refusing rather than silently
-      degrading.
+  that outgrows it gets evicted rather than truncated, and the persistence
+  warning already explains how little we control that. Something like a
+  few MB per attachment and a visible total, refusing rather than silently
+  degrading.
 - [ ] **Export becomes a zip with a manifest**, since the current backup is a
-      single JSON envelope and cannot carry bytes without base64 inflating them
-      by a third inside an already-encrypted blob. 1PUX is the right *shape* —
-      manifest plus files — but not worth copying field for field: nothing else
-      reads our export either way, so matching someone else's schema buys
-      nothing and costs a reverse-engineering exercise. A documented
-      `vault.json` plus `attachments/<id>` is easier to write, to read, and to
-      consume from a script.
+  single JSON envelope and cannot carry bytes without base64 inflating them
+  by a third inside an already-encrypted blob. 1PUX is the right *shape* —
+  manifest plus files — but not worth copying field for field: nothing else
+  reads our export either way, so matching someone else's schema buys
+  nothing and costs a reverse-engineering exercise. A documented
+  `vault.json` plus `attachments/<id>` is easier to write, to read, and to
+  consume from a script.
 
-      Whether it is named `.zip` or `.wrlck` does not matter and is explicitly
-      not worth further discussion; if a custom extension is used it is
-      `.wrlck`. Recorded only so it is not re-litigated.
+  Whether it is named `.zip` or `.wrlck` does not matter and is explicitly
+  not worth further discussion; if a custom extension is used it is
+  `.wrlck`. Recorded only so it is not re-litigated.
 - [ ] **A zip writer without a dependency is feasible**, which is the part
-      worth checking before committing: `CompressionStream('deflate-raw')` is
-      in every current browser, so a real deflated zip needs a local header,
-      a central directory and a CRC-32 — roughly a hundred lines and no
-      third-party code. Store-only (uncompressed) is simpler still and legal
-      zip; ciphertext does not compress anyway.
+  worth checking before committing: `CompressionStream('deflate-raw')` is
+  in every current browser, so a real deflated zip needs a local header,
+  a central directory and a CRC-32 — roughly a hundred lines and no
+  third-party code. Store-only (uncompressed) is simpler still and legal
+  zip; ciphertext does not compress anyway.
 - [ ] **Keep the encrypted backup encrypted.** The zip is a container, not a
-      security boundary: zip's own password support is not to be used for
-      anything. Each file goes in sealed under the vault key, exactly as the
-      entries are.
+  security boundary: zip's own password support is not to be used for
+  anything. Each file goes in sealed under the vault key, exactly as the
+  entries are.
 
 ### 10b. Import from other managers — worth less than it looks, until filling exists
 
@@ -1063,28 +1132,28 @@ and the header mapping already recognises most of their column names. What is
 missing is the rest.
 
 - [ ] **Tier one, nearly free: browser CSVs.** Chrome, Edge, Firefox and
-      Safari differ only in column naming. Mostly a matter of adding aliases
-      and testing against a real export of each.
+  Safari differ only in column naming. Mostly a matter of adding aliases
+  and testing against a real export of each.
 - [ ] **Tier two, moderate: 1PUX and Keeper.** 1Password's 1PUX is a zip with
-      JSON inside — reading it needs the unzip half of whatever 10a writes,
-      which is an argument for doing 10a first. Keeper exports JSON directly.
-      Both carry fields WordLock now has homes for: custom fields, TOTP seeds,
-      named URLs.
+  JSON inside — reading it needs the unzip half of whatever 10a writes,
+  which is an argument for doing 10a first. Keeper exports JSON directly.
+  Both carry fields WordLock now has homes for: custom fields, TOTP seeds,
+  named URLs.
 - [ ] **Tier three, a project of its own: KeePass KDBX.** Not a format to
-      read casually — KDBX4 is an encrypted binary container with its own KDF
-      (Argon2 or AES-KDF), its own cipher (ChaCha20 or AES), an inner stream
-      cipher for protected values, and a compressed XML payload. Doing it
-      properly means implementing another manager's crypto stack correctly,
-      and doing it improperly means telling someone their import worked when
-      it silently dropped their protected fields. Either build it as its own
-      piece of work with its own tests, or say plainly that KeePass users
-      should export CSV.
+  read casually — KDBX4 is an encrypted binary container with its own KDF
+  (Argon2 or AES-KDF), its own cipher (ChaCha20 or AES), an inner stream
+  cipher for protected values, and a compressed XML payload. Doing it
+  properly means implementing another manager's crypto stack correctly,
+  and doing it improperly means telling someone their import worked when
+  it silently dropped their protected fields. Either build it as its own
+  piece of work with its own tests, or say plainly that KeePass users
+  should export CSV.
 - [ ] **Import must stay non-destructive**, which it already is: merge, never
-      replace, existing entries win. Every format added inherits that.
+  replace, existing entries win. Every format added inherits that.
 - [ ] **Report what did not come across.** Each of these formats carries
-      things WordLock has no field for. Silently dropping them is the failure
-      mode that loses someone's data without telling them; a summary of what
-      was skipped is the minimum.
+  things WordLock has no field for. Silently dropping them is the failure
+  mode that loses someone's data without telling them; a summary of what
+  was skipped is the minimum.
 
 ### 10c. More than one vault — decide what a vault *is* first
 
@@ -1092,30 +1161,30 @@ Raised as "group/folder membership of some variety... maybe vaults?", and the
 two halves of that are different features.
 
 - [ ] **A group is a label; a vault is an encryption boundary.** Groups exist
-      and are cheap to extend — nesting, or letting an entry belong to
-      several. A second *vault* means a second envelope with its own key,
-      which is the only version that actually separates anything: locking the
-      work vault while the personal one stays open, or a shared vault whose
-      key is wrapped to several people (which is what 10f needs).
+  and are cheap to extend — nesting, or letting an entry belong to
+  several. A second *vault* means a second envelope with its own key,
+  which is the only version that actually separates anything: locking the
+  work vault while the personal one stays open, or a shared vault whose
+  key is wrapped to several people (which is what 10f needs).
 - [ ] **Multiple envelopes are not hard; the UI is the question.** The
-      storage layer already keys by id and could hold several. What needs
-      deciding is whether they unlock independently, whether one passphrase
-      opens all of them, and what the lock button means when two are open.
+  storage layer already keys by id and could hold several. What needs
+  deciding is whether they unlock independently, whether one passphrase
+  opens all of them, and what the lock button means when two are open.
 - [ ] **If the answer is only "I want folders inside folders", say so and do
-      that instead** — it is a tenth of the work and probably what most of the
-      demand actually is.
+  that instead** — it is a tenth of the work and probably what most of the
+  demand actually is.
 - [x] **Tags shipped, and they are not the same feature.** Raised as an
-      afterthought to this item and it is the more useful half: a folder is
-      one dimension, a tag is *n*. The company card is genuinely both Work and
-      Finance, and a filing system that makes you pick has thrown away one of
-      the two answers. Neither replaces the other — the group still says where
-      an entry *lives*, which is what makes the list scannable; tags say what
-      it *is*. Done in v3.0.0, including the export columns and the
-      and-not-or filter semantics.
+  afterthought to this item and it is the more useful half: a folder is
+  one dimension, a tag is *n*. The company card is genuinely both Work and
+  Finance, and a filing system that makes you pick has thrown away one of
+  the two answers. Neither replaces the other — the group still says where
+  an entry *lives*, which is what makes the list scannable; tags say what
+  it *is*. Done in v3.0.0, including the export columns and the
+  and-not-or filter semantics.
 - [ ] **What remains here is the vault-as-boundary question**, unchanged.
-      Tags cover the "I want to slice my vault differently" demand; they do
-      not lock anything separately, and that is the only thing a second
-      envelope buys.
+  Tags cover the "I want to slice my vault differently" demand; they do
+  not lock anything separately, and that is the only thing a second
+  envelope buys.
 
 ### 10d. Folder templates — the small one
 
@@ -1124,13 +1193,13 @@ everything under *Government* gets an SSN field. Applied at creation, not
 enforced afterwards.
 
 - [ ] **Purely local, no dependency, no architecture change.** A template is
-      a list of field names and secret flags stored against a group name, and
-      `startAdd` already lands a new entry in the filtered group. This is the
-      cheapest item in the epic by a wide margin.
+  a list of field names and secret flags stored against a group name, and
+  `startAdd` already lands a new entry in the filtered group. This is the
+  cheapest item in the epic by a wide margin.
 - [ ] **A starting point, not a schema.** Templates must not stop someone
-      deleting a field they do not want, and changing a template must not
-      rewrite existing entries. The moment it validates rather than suggests,
-      it becomes a thing that argues with people about their own data.
+  deleting a field they do not want, and changing a template must not
+  rewrite existing entries. The moment it validates rather than suggests,
+  it becomes a thing that argues with people about their own data.
 
 ### 10e. One-time and individual shares — a server that holds only ciphertext
 
@@ -1139,18 +1208,18 @@ ciphertext, so it depends on 9d — but only for storage, and the design keeps
 the server ignorant.
 
 - [ ] **The key travels in the URL fragment, which is never sent.** Encrypt
-      client-side with a fresh random key, upload only the ciphertext, and put
-      the key after the `#`. Browsers do not transmit the fragment to the
-      server, so the host holds a blob it cannot read even in principle. This
-      is the established design and it preserves the claim on the Legal page.
+  client-side with a fresh random key, upload only the ciphertext, and put
+  the key after the `#`. Browsers do not transmit the fragment to the
+  server, so the host holds a blob it cannot read even in principle. This
+  is the established design and it preserves the claim on the Legal page.
 - [ ] **Expiry and burn-after-reading enforced server-side**, because a
-      client cannot be trusted to delete anything. One fetch, or a deadline,
-      whichever comes first.
+  client cannot be trusted to delete anything. One fetch, or a deadline,
+  whichever comes first.
 - [ ] **Say what a link is.** Anyone holding the URL holds the secret —
-      including whatever logged it, sat in the chat history, or synced the
-      recipient's clipboard. A share link is a password in transit, and the
-      UI should say so rather than implying the encryption makes it safe to
-      paste anywhere.
+  including whatever logged it, sat in the chat history, or synced the
+  recipient's clipboard. A share link is a password in transit, and the
+  UI should say so rather than implying the encryption makes it safe to
+  paste anywhere.
 
 ### 10f. Group accounts and SSO — where the model is easiest to lose
 
@@ -1159,28 +1228,28 @@ design matters more here than anywhere else in this file, because the natural
 implementation quietly destroys the property everything else protects.
 
 - [ ] **Wrap the key to each member; never hold it centrally.** Each member
-      gets a keypair. A shared vault's key is encrypted once per member's
-      public key. Adding someone is wrapping the key to them; removing them
-      is rotating it. At no point does the server hold anything it can open.
+  gets a keypair. A shared vault's key is encrypted once per member's
+  public key. Adding someone is wrapping the key to them; removing them
+  is rotating it. At no point does the server hold anything it can open.
 - [ ] **SSO authenticates a person. It must never custody a key.** This is
-      the trap. "Log in with Okta and see the shared vault" is only possible
-      if something server-side can decrypt on the strength of an SSO
-      assertion — at which point the provider, and anyone who can forge or
-      replay an assertion, can read the vault. SSO can gate *access to the
-      ciphertext* and prove *who you are*; the decryption key still has to
-      come from something the user holds. Any design where an admin can
-      recover a member's data without that member's key is a design where the
-      operator can read everything, and it should be called that.
+  the trap. "Log in with Okta and see the shared vault" is only possible
+  if something server-side can decrypt on the strength of an SSO
+  assertion — at which point the provider, and anyone who can forge or
+  replay an assertion, can read the vault. SSO can gate *access to the
+  ciphertext* and prove *who you are*; the decryption key still has to
+  come from something the user holds. Any design where an admin can
+  recover a member's data without that member's key is a design where the
+  operator can read everything, and it should be called that.
 - [ ] **Admin recovery is the honest version of the same question.** Every
-      company deployment eventually asks for it. It is buildable — wrap the
-      vault key to an escrow key the organisation holds — but it is precisely
-      the back door described above, and it must be visible to every member
-      rather than a checkbox in an admin console.
+  company deployment eventually asks for it. It is buildable — wrap the
+  vault key to an escrow key the organisation holds — but it is precisely
+  the back door described above, and it must be visible to every member
+  rather than a checkbox in an admin console.
 - [ ] **This is the point where "no accounts, nothing leaves your device"
-      stops being true**, in a way that even 9d's optional sync does not
-      reach. Legal and About need rewriting in the same release, and the
-      local-only mode has to keep working exactly as it does now — Epic 9's
-      second invariant, which was agreed before any of this was on the list.
+  stops being true**, in a way that even 9d's optional sync does not
+  reach. Legal and About need rewriting in the same release, and the
+  local-only mode has to keep working exactly as it does now — Epic 9's
+  second invariant, which was agreed before any of this was on the list.
 
 ### 10g. A recycle bin — the same feature as undo, with the window opened
 
@@ -1210,23 +1279,23 @@ about to hand the laptop over, or because it was pasted in by mistake, has not
 agreed to that.
 
 - [ ] **Opt-in, off by default, with undo as the default behaviour.** Stated
-      where the deleting happens rather than only in settings, and the
-      retention window visible in the same place.
+  where the deleting happens rather than only in settings, and the
+  retention window visible in the same place.
 - [ ] **Decide what an export does with it.** Excluding binned items from the
-      plain and CSV exports is clearly right -- another manager has no concept
-      of them and would import blank rows. The encrypted backup is the
-      interesting one: exclude them and restoring a backup silently empties
-      the bin; include them and the backup carries deleted passwords. Probably
-      include, and say so on the export screen.
+  plain and CSV exports is clearly right -- another manager has no concept
+  of them and would import blank rows. The encrypted backup is the
+  interesting one: exclude them and restoring a backup silently empties
+  the bin; include them and the backup carries deleted passwords. Probably
+  include, and say so on the export screen.
 - [ ] **The machinery already exists.** Tombstones, `deletedAt`, the reaper and
-      its TTL, and `store.restore` were all built for sync and undo. A bin is
-      those parts with the secret retained instead of discarded, which is a
-      one-line change in `remove()` and a view -- and that is exactly why it
-      deserves the deliberation above rather than being waved through as easy.
+  its TTL, and `store.restore` were all built for sync and undo. A bin is
+  those parts with the secret retained instead of discarded, which is a
+  one-line change in `remove()` and a view -- and that is exactly why it
+  deserves the deliberation above rather than being waved through as easy.
 - [ ] **Reaping becomes user-visible.** Right now a tombstone quietly expires
-      at ninety days and nothing is lost. A bin entry expiring is a password
-      being destroyed on a timer, which needs to be visible before it happens
-      rather than discovered after.
+  at ninety days and nothing is lost. A bin entry expiring is a password
+  being destroyed on a timer, which needs to be visible before it happens
+  rather than discovered after.
 
 ## Epic 8 — Beyond the page
 
@@ -1267,88 +1336,88 @@ recorded here rather than deleted because it explains why the item sat under
 Epic 8 instead of Epic 9.
 
 - [x] **The decision that comes before any code has been made, and it is none
-      of the three below.** Every client is a replica; no copy is canonical.
-      The three options were a way of avoiding sync, and avoiding sync only
-      works until the second client — a phone, a CLI script — at which point
-      the chosen answer has to be unbuilt. See "Sync-shaped, before anything is
-      synced" near the top. The extension is still worth building and it is
-      still where filling comes from; it is just not the source of truth, and
-      it should not be started before the entry model can reconcile.
+  of the three below.** Every client is a replica; no copy is canonical.
+  The three options were a way of avoiding sync, and avoiding sync only
+  works until the second client — a phone, a CLI script — at which point
+  the chosen answer has to be unbuilt. See "Sync-shaped, before anything is
+  synced" near the top. The extension is still worth building and it is
+  still where filling comes from; it is just not the source of truth, and
+  it should not be started before the entry model can reconcile.
 
-      **Two corrections to what is written below, since it was reasoned out
-      before that.** The build step is *not* forced by an extension existing:
-      MV3 bans `'unsafe-eval'` and Vue's runtime compiler needs it, but the
-      popup — unlock, a list of matches, a fill button — is small enough for
-      plain DOM or render functions, and the portable core uses no Vue at all.
-      A build step is only forced if the *full* vault UI is rendered under
-      extension CSP, which is the strongest-isolation variant rather than the
-      baseline.
+  **Two corrections to what is written below, since it was reasoned out
+  before that.** The build step is *not* forced by an extension existing:
+  MV3 bans `'unsafe-eval'` and Vue's runtime compiler needs it, but the
+  popup — unlock, a list of matches, a fill button — is small enough for
+  plain DOM or render functions, and the portable core uses no Vue at all.
+  A build step is only forced if the *full* vault UI is rendered under
+  extension CSP, which is the strongest-isolation variant rather than the
+  baseline.
 
-      And `connect-src 'self'` does not mean "nowhere to send it", a phrase
-      used loosely here and in the v3.0.0 changelog. It covers fetch, XHR,
-      WebSocket and beacon; it does not cover top-level navigation, and the
-      directive that would have (`navigate-to`) was dropped from the spec.
-      Silent background exfiltration is blocked. `location.href` is not.
+  And `connect-src 'self'` does not mean "nowhere to send it", a phrase
+  used loosely here and in the v3.0.0 changelog. It covers fetch, XHR,
+  WebSocket and beacon; it does not cover top-level navigation, and the
+  directive that would have (`navigate-to`) was dropped from the spec.
+  Silent background exfiltration is blocked. `location.href` is not.
 
 - [ ] **The three options, kept for the reasoning rather than the conclusion.**
-      An extension cannot be a thin client of the site. The vault key exists
-      only in one tab's memory on one origin, and autofill has to work when no
-      WordLock tab is open — that is the entire point of it. So the extension
-      has to *hold* a vault rather than ask the page for one, which makes it a
-      second home for the data and forces a choice between three coherent
-      answers:
-      **(a) extension canonical**, and the site becomes the generator, the docs
-      and a viewer for an imported file;
-      **(b) site canonical**, and the extension holds a copy you refresh by
-      importing a backup — unglamorous, needs no server, and enough for the
-      fill-only case;
-      **(c) both canonical**, which needs 9d, because "the file is the sync"
-      stops working the moment there are two writers.
-      Picking one is the work that makes the rest estimable; starting the code
-      without picking is how a product ends up with two vaults and no story
-      about which is right.
+  An extension cannot be a thin client of the site. The vault key exists
+  only in one tab's memory on one origin, and autofill has to work when no
+  WordLock tab is open — that is the entire point of it. So the extension
+  has to *hold* a vault rather than ask the page for one, which makes it a
+  second home for the data and forces a choice between three coherent
+  answers:
+  **(a) extension canonical**, and the site becomes the generator, the docs
+  and a viewer for an imported file;
+  **(b) site canonical**, and the extension holds a copy you refresh by
+  importing a backup — unglamorous, needs no server, and enough for the
+  fill-only case;
+  **(c) both canonical**, which needs 9d, because "the file is the sync"
+  stops working the moment there are two writers.
+  Picking one is the work that makes the rest estimable; starting the code
+  without picking is how a product ends up with two vaults and no story
+  about which is right.
 - [ ] **Manifest V3 forces the build step.** It is the same blocker already on
-      the board. Extension pages get `script-src 'self'` with no
-      `'unsafe-eval'`. Components here are declared with Vue's `template:`
-      option, so Vue compiles them at runtime through `new Function` — the
-      exact reason `render.yaml` still carries `'unsafe-eval'`, measured when
-      the site rendered blank without it. Precompiling templates is the fix in
-      both places at once. See 9f's `'unsafe-eval'` bullet: this is that item
-      arriving with a deadline attached.
+  the board. Extension pages get `script-src 'self'` with no
+  `'unsafe-eval'`. Components here are declared with Vue's `template:`
+  option, so Vue compiles them at runtime through `new Function` — the
+  exact reason `render.yaml` still carries `'unsafe-eval'`, measured when
+  the site rendered blank without it. Precompiling templates is the fix in
+  both places at once. See 9f's `'unsafe-eval'` bullet: this is that item
+  arriving with a deadline attached.
 - [ ] **Roughly 2,700 lines port with little or no change.** That is more than
-      it looks. `vault-crypto.js` is portable as it stands — its storage is
-      already injected. `vault-store.js` needs a storage adapter and somewhere
-      other than `localStorage` for the lock window. `totp.js`, `entropy.js`,
-      `vault-transfer.js`, `passphrase-strength.js` and `common-passwords.js`
-      move untouched. What does not move is `main.js` and `vault-app.js` —
-      about 4,600 lines of Vue — which is precisely where the CSP problem
-      lands.
+  it looks. `vault-crypto.js` is portable as it stands — its storage is
+  already injected. `vault-store.js` needs a storage adapter and somewhere
+  other than `localStorage` for the lock window. `totp.js`, `entropy.js`,
+  `vault-transfer.js`, `passphrase-strength.js` and `common-passwords.js`
+  move untouched. What does not move is `main.js` and `vault-app.js` —
+  about 4,600 lines of Vue — which is precisely where the CSP problem
+  lands.
 - [ ] **The hard part of autofill is not the crypto, it is origin matching.**
-      An entry saved for `example.com` must fill on `example.com` and must not
-      fill on `example.com.evil.co`: matched on the registrable domain rather
-      than by substring, and bound to the origin rather than to "the user
-      picked it from a list". Field detection, iframes and SPA re-renders are
-      fiddly; this one is a security boundary, and getting it wrong turns a
-      password manager into a phishing amplifier. Any version of this ships
-      with tests against a list of lookalike hosts or it does not ship.
+  An entry saved for `example.com` must fill on `example.com` and must not
+  fill on `example.com.evil.co`: matched on the registrable domain rather
+  than by substring, and bound to the origin rather than to "the user
+  picked it from a list". Field detection, iframes and SPA re-renders are
+  fiddly; this one is a security boundary, and getting it wrong turns a
+  password manager into a phishing amplifier. Any version of this ships
+  with tests against a list of lookalike hosts or it does not ship.
 - [ ] **It does nothing for mobile.** Android autofill needs a native app
-      implementing the Autofill Framework and iOS needs a Credential Provider
-      Extension, which is 9c. Desktop extension plus two native shells is why
-      every established manager has apps, and it should be counted as three
-      codebases sharing a core rather than one feature.
+  implementing the Autofill Framework and iOS needs a Credential Provider
+  Extension, which is 9c. Desktop extension plus two native shells is why
+  every established manager has apps, and it should be counted as three
+  codebases sharing a core rather than one feature.
 - [ ] **What it costs the pitch, stated rather than glossed.** "You can read
-      the deployed source" becomes "you can read the source and trust a
-      store-signed bundle you did not build yourself." That is a real erosion
-      of the one claim this project leads with, and it belongs on Legal in the
-      same release rather than being noticed later. It also adds a new way to
-      lose a vault: uninstalling an extension drops its storage silently, with
-      none of the warning the persistence notice gives on the web.
+  the deployed source" becomes "you can read the source and trust a
+  store-signed bundle you did not build yourself." That is a real erosion
+  of the one claim this project leads with, and it belongs on Legal in the
+  same release rather than being noticed later. It also adds a new way to
+  lose a vault: uninstalling an extension drops its storage silently, with
+  none of the warning the persistence notice gives on the web.
 - [ ] Cost is real and ongoing, and this part of the original item still
-      stands: two stores with two review processes, and a permissions prompt on
-      a product whose selling point is that it asks for nothing. Host
-      permissions for autofill are a far harder sell than `activeTab` was for
-      generating into a field — the extension has to ask to read every page you
-      visit, which is exactly the request this site has never had to make.
+  stands: two stores with two review processes, and a permissions prompt on
+  a product whose selling point is that it asks for nothing. Host
+  permissions for autofill are a far harder sell than `activeTab` was for
+  generating into a field — the extension has to ask to read every page you
+  visit, which is exactly the request this site has never had to make.
 
 ### 8d. Hand a password directly to a password manager — explore, and probably blocked
 

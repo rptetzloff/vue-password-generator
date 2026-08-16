@@ -1,4 +1,5 @@
-import { createApp, ref, computed, watch, onMounted, nextTick } from '../vendor/vue.esm-browser.prod.js'
+import { createApp, ref, computed, watch, onMounted, nextTick } from '../vendor/vue.runtime.esm-browser.prod.js'
+import { renderAdvancedPassword, renderAffixPicker, renderApp, renderEntropyPanel, renderHistoryStrip, renderKeepButton, renderMadLib, renderNumbersPassword, renderPassphrase, renderSimplePassword, renderWifiWords, renderWordsPassword } from './main.render.js'
 import {
   SPECIAL_CHARS,
   DIGITS,
@@ -49,6 +50,7 @@ import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.j
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   MODES, MADLIB_TEMPLATES, ALL_SYMBOLS, draw, build, generate, WIRELESS_MIN,
+  loadWordList, loadWordData,
 } from './generators.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
@@ -188,6 +190,41 @@ const useHistory = (key) => {
     history.value = max === 0 ? [] : history.value.slice(0, max)
   })
   return { history, pushHistory }
+}
+
+/**
+ * The leet-substitution toggles, shared by the four generators that offer them.
+ *
+ * These were four identical copies of three functions, one set per component.
+ * Nothing had gone wrong with them yet, which is the only reason to move them
+ * now: the word loaders were four identical copies too, and by the time anyone
+ * noticed, three of them had quietly stopped matching the one that was fixed.
+ */
+const useLeet = (activeLeet) => ({
+  toggleLeet: (char) => {
+    const next = new Set(activeLeet.value)
+    if (next.has(char)) next.delete(char)
+    else next.add(char)
+    activeLeet.value = next
+  },
+  selectAllLeet: () => { activeLeet.value = new Set(LEET_MAP.map((m) => m.char)) },
+  selectNoLeet: () => { activeLeet.value = new Set() },
+})
+
+/**
+ * The per-category "N words, X bits" hint, shared by the three slot-based
+ * generators. Three identical copies before this.
+ *
+ * Returns a function rather than a value because both inputs are refs and the
+ * hint is read during render, so it has to re-evaluate rather than close over
+ * a snapshot.
+ */
+const useCatInfo = (wordData, showBitHints) => (type, catId) => {
+  if (!showBitHints.value) return ''
+  const cats = wordData.value[type] || {}
+  const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
+  if (!pool.length) return ''
+  return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
 }
 
 // Restore a history entry: the password, and the bits it was stored with.
@@ -337,76 +374,7 @@ const KeepButton = {
 
     return { open, state, label, pass, busy, error, kept, acknowledged, start, unlock, save, adopt }
   },
-  template: `
-    <span class="keep-wrap" :class="{ 'keep-compact': compact }">
-      <button
-        :class="[compact ? 'history-keep' : 'copy-btn keep-btn', { kept }]"
-        @click.stop="start"
-        :disabled="!password"
-        :title="kept ? 'Kept in the vault' : 'Keep in the vault'"
-        :aria-label="kept ? 'Kept in the vault' : 'Keep in the vault'"
-        :aria-expanded="open ? 'true' : 'false'"
-      ><span :class="['mdi', kept ? 'mdi-check-decagram' : 'mdi-shield-key-outline']"></span></button>
-
-      <div v-if="open" class="keep-panel" role="dialog" aria-label="Keep in the vault" @click.stop>
-        <div v-if="error" class="keep-error">{{ error }}</div>
-
-        <template v-if="state === 'unlocked'">
-          <label class="keep-field">
-            <span>Label</span>
-            <input v-model="label" type="text" placeholder="What is this for?" @keyup.enter="save" />
-          </label>
-          <div class="keep-actions">
-            <button class="btn btn-primary" @click="save" :disabled="busy">Keep</button>
-            <button class="btn" @click="open = false">Cancel</button>
-          </div>
-        </template>
-
-        <template v-else-if="state === 'locked'">
-          <label class="keep-field">
-            <span>Vault passphrase</span>
-            <input v-model="pass" type="password" autocomplete="current-password" @keyup.enter="unlock" />
-          </label>
-          <div class="keep-actions">
-            <button class="btn btn-primary" @click="unlock" :disabled="busy">
-              {{ busy ? 'Unlocking…' : 'Unlock' }}
-            </button>
-            <button class="btn" @click="open = false">Cancel</button>
-          </div>
-        </template>
-
-        <template v-else-if="state === 'absent'">
-          <p>No vault on this device yet. Use this password as the passphrase that protects it?</p>
-
-          <div class="keep-writedown">
-            <p class="keep-writedown-head">
-              <span class="mdi mdi-alert" aria-hidden="true"></span> Write this down, or save it elsewhere, first.
-            </p>
-            <p>
-              It becomes the key to your vault, and there is no account and no reset link. Lose it
-              with no recovery key made and everything in the vault is gone for good — not locked
-              out, gone. Put it on paper, in another password manager, or anywhere you will still
-              have it later — <em>before</em> you continue.
-            </p>
-            <code class="keep-writedown-pw">{{ password }}</code>
-          </div>
-
-          <label class="keep-ack">
-            <input type="checkbox" v-model="acknowledged" />
-            <span>I have written it down, or saved it somewhere I will still have it.</span>
-          </label>
-          <div class="keep-actions">
-            <button class="btn btn-primary" @click="adopt" :disabled="busy || !acknowledged">
-              {{ busy ? 'Creating…' : 'Use as vault passphrase' }}
-            </button>
-            <a class="btn" href="/vault.html">Choose my own</a>
-          </div>
-        </template>
-
-        <p v-else>Opening…</p>
-      </div>
-    </span>
-  `,
+  render: renderKeepButton,
 }
 
 const HistoryStrip = {
@@ -417,22 +385,7 @@ const HistoryStrip = {
   // Each row is a recall button plus a keep button, side by side rather than
   // nested: a button inside a button is invalid, and the keep action must not
   // also recall the password into the output field.
-  template: `
-    <div v-if="history.length > 1" class="history-strip">
-      <div class="history-label">History</div>
-      <div class="history-list">
-        <div v-for="(entry, i) in history" :key="i" class="history-row">
-          <button
-            class="history-item"
-            :class="{ 'history-item-active': entry.pw === current, 'history-item-warn': warnSet.has(entry.pw) }"
-            @click="$emit('select', entry)"
-            :title="warnSet.has(entry.pw) ? entry.pw + ' (under 8 characters)' : entry.pw"
-          ><span class="history-pw">{{ entry.pw }}</span><span v-if="entry.bits != null" class="history-bits">{{ entry.bits.toFixed(1) }} bits</span><span v-if="warnSet.has(entry.pw)" class="history-warn-badge" title="Under 8 characters">!</span></button>
-          <KeepButton :password="entry.pw" :bits="entry.bits" compact />
-        </div>
-      </div>
-    </div>
-  `
+  render: renderHistoryStrip,
 }
 
 // The entropy readout (ROADMAP 6a/6b). One panel under every password field:
@@ -482,39 +435,7 @@ const EntropyPanel = {
     })
     return { delta, tier, pct, floor: ENTROPY_FLOOR, showDelta: showBitHints, len, perChar, charsRef, listRef, crackRows, range }
   },
-  template: `
-    <details v-if="entropy" class="entropy-panel" :class="{ 'entropy-low': entropy.total < floor }">
-      <summary class="entropy-summary">
-        <span class="entropy-meter" :class="'meter-' + tier.id" aria-hidden="true"><span class="entropy-meter-fill" :style="{ width: pct + '%' }"></span></span>
-        <span class="entropy-total">{{ entropy.total.toFixed(1) }} bits</span>
-        <span class="entropy-tier" :class="'meter-' + tier.id" :title="tier.id === 'weak' ? ('Below ' + floor + ' bits. Add a word, a character type, or length.') : ('The bar fills at 100 bits; ' + floor + ' is the weak line, 60 good, 80 strong.')">{{ tier.label }}</span>
-        <span v-if="delta !== null && showDelta" class="entropy-delta" :class="delta > 0 ? 'is-up' : 'is-down'" :title="'This password is ' + Math.abs(delta).toFixed(1) + ' bits ' + (delta > 0 ? 'stronger' : 'weaker') + ' than the previous one'">{{ delta > 0 ? '&#9650;' : '&#9660;' }} {{ Math.abs(delta).toFixed(1) }} vs last</span>
-        <span class="entropy-how" aria-hidden="true">how?</span>
-        <span v-if="range" class="entropy-range" title="Average time to guess, assuming the attacker knows your settings. Open the breakdown for all four scenarios.">to guess: leaked database <strong>{{ range.fast }}</strong> &middot; login with lockout <strong>{{ range.lockout }}</strong></span>
-      </summary>
-      <ul class="entropy-parts">
-        <li v-for="p in entropy.parts" :key="p.label" :class="{ 'ep-zero': p.bits === 0 }">
-          <span class="ep-bits">{{ p.bits === 0 ? '0' : '+' + p.bits.toFixed(1) }}</span>
-          <span class="ep-label">{{ p.label }}</span>
-          <span v-if="p.note" class="ep-note">{{ p.note }}</span>
-        </li>
-      </ul>
-      <div class="entropy-extras">
-        <div v-if="perChar !== null" class="entropy-extra-line">
-          {{ perChar.toFixed(2) }} bits per character across {{ len }} characters<template v-if="charsRef !== null"> — random characters at this length could carry {{ charsRef.toFixed(0) }} bits; the gap is what structure and memorability cost</template>
-        </div>
-        <div v-if="listRef !== null" class="entropy-extra-line">
-          the same {{ words }} words drawn from the flat Words list would carry {{ listRef.toFixed(1) }} bits
-        </div>
-        <div class="entropy-crack">
-          <div class="entropy-crack-title">average time to guess, if attacked knowing your settings:</div>
-          <div v-for="s in crackRows" :key="s.id" class="entropy-crack-row" :title="s.note">
-            <span class="crack-label">{{ s.label }}<span class="crack-rate">{{ s.rateLabel }}</span></span><span class="crack-time">{{ s.time }}</span>
-          </div>
-        </div>
-      </div>
-    </details>
-  `
+  render: renderEntropyPanel,
 }
 
 // Reusable affix chip-picker + optional literal text — rendered as a template string component
@@ -528,31 +449,7 @@ const AffixPicker = {
       onCustom(e) { emit('update:customValue', e.target.value) },
     }
   },
-  template: `
-    <div class="affix-block">
-      <div class="affix-label">{{ label }}</div>
-      <div class="separator-grid">
-        <label
-          v-for="opt in options"
-          :key="opt.value"
-          class="sep-option"
-          :class="{ active: modelValue === opt.value }"
-        >
-          <input :value="opt.value" :checked="modelValue === opt.value" @change="onMode(opt.value)" type="radio" class="sr-only" />
-          <span>{{ opt.label }}</span><span v-if="meta" class="cat-meta">{{ meta(opt.value) }}</span>
-        </label>
-      </div>
-      <div v-if="modelValue === 'custom'" class="custom-sep-row">
-        <input
-          :value="customValue"
-          @input="onCustom"
-          type="text"
-          class="form-input"
-          placeholder="Type literal text"
-        />
-      </div>
-    </div>
-  `
+  render: renderAffixPicker,
 }
 
 // Simple Password Generator Component
@@ -620,91 +517,7 @@ const SimplePassword = {
       copyPassword
     }
   },
-  template: `
-    <div class="password-generator">
-      <div class="card">
-        <div class="card-header">Password Length</div>
-        <div class="slider-container">
-          <button class="stepper-btn" aria-label="Decrease password length" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
-          <span class="slider-end" aria-hidden="true">6</span>
-          <input
-            v-model="passwordLength"
-            type="range"
-            aria-label="Password Length"
-            min="6"
-            max="128"
-            class="slider"
-          />
-          <span class="slider-end" aria-hidden="true">128</span>
-          <button class="stepper-btn" aria-label="Increase password length" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
-          <div class="slider-value">{{ passwordLength }}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Character Types</div>
-        <div class="checkbox-group">
-          <label class="checkbox-item">
-            <input v-model="lowerCase" type="checkbox" class="checkbox" />
-            <span>Lowercase letters (a-z)</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="upperCase" type="checkbox" class="checkbox" />
-            <span>Uppercase letters (A-Z)</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="digits" type="checkbox" class="checkbox" />
-            <span>Numbers (0-9)</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="specialChars" type="checkbox" class="checkbox" />
-            <span>Symbols (!@#$%^&*)</span>
-          </label>
-          <label class="checkbox-item">
-            <input v-model="useEmoji" type="checkbox" class="checkbox" />
-            <span>Emoji 🎲</span>
-          </label>
-          <label class="checkbox-item exclude-ambiguous">
-            <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-            <span>Exclude look-alikes (0/O, 1/l/I/|)</span>
-          </label>
-        </div>
-      </div>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary">
-          <span class="mdi mdi-shuffle-variant"></span> Generate Password
-        </button>
-
-        <div class="password-display">
-          <div
-            :key="password"
-            class="form-input password-input"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" mode="simple" />
-      </div>
-
-      <div class="card">
-
-        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderSimplePassword,
 }
 const AdvancedPassword = {
   name: 'AdvancedPassword',
@@ -796,245 +609,7 @@ const AdvancedPassword = {
       copyPassword
     }
   },
-  template: `
-    <div class="password-generator">
-      <div class="card">
-        <div class="card-header">Password Length</div>
-        <div class="slider-container">
-          <button class="stepper-btn" aria-label="Decrease password length" @click="passwordLength = Math.max(6, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
-          <span class="slider-end" aria-hidden="true">6</span>
-          <input
-            v-model="passwordLength"
-            type="range"
-            aria-label="Password Length"
-            min="6"
-            max="128"
-            class="slider"
-          />
-          <span class="slider-end" aria-hidden="true">128</span>
-          <button class="stepper-btn" aria-label="Increase password length" @click="passwordLength = Math.min(128, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
-          <div class="slider-value">{{ passwordLength }}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Lowercase Letters</div>
-        <div class="slider-container">
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease min lowercase letters" @click="lowerCase[0] = Math.max(0, lowerCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Min: {{ lowerCase[0] }}</span>
-            <button class="stepper-btn" aria-label="Increase min lowercase letters" @click="lowerCase[0] = Math.min(passwordLength, lowerCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-          <input
-            v-model="lowerCase[0]"
-            type="range"
-            aria-label="Lowercase Letters"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <input
-            v-model="lowerCase[1]"
-            type="range"
-            aria-label="Lowercase Letters"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease max lowercase letters" @click="lowerCase[1] = Math.max(0, lowerCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Max: {{ lowerCase[1] }}</span>
-            <button class="stepper-btn" aria-label="Increase max lowercase letters" @click="lowerCase[1] = Math.min(passwordLength, lowerCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Uppercase Letters</div>
-        <div class="slider-container">
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease min uppercase letters" @click="upperCase[0] = Math.max(0, upperCase[0] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Min: {{ upperCase[0] }}</span>
-            <button class="stepper-btn" aria-label="Increase min uppercase letters" @click="upperCase[0] = Math.min(passwordLength, upperCase[0] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-          <input
-            v-model="upperCase[0]"
-            type="range"
-            aria-label="Uppercase Letters"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <input
-            v-model="upperCase[1]"
-            type="range"
-            aria-label="Uppercase Letters"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease max uppercase letters" @click="upperCase[1] = Math.max(0, upperCase[1] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Max: {{ upperCase[1] }}</span>
-            <button class="stepper-btn" aria-label="Increase max uppercase letters" @click="upperCase[1] = Math.min(passwordLength, upperCase[1] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Numbers</div>
-        <div class="slider-container">
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease min numbers" @click="digits[0] = Math.max(0, digits[0] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Min: {{ digits[0] }}</span>
-            <button class="stepper-btn" aria-label="Increase min numbers" @click="digits[0] = Math.min(passwordLength, digits[0] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-          <input
-            v-model="digits[0]"
-            type="range"
-            aria-label="Numbers"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <input
-            v-model="digits[1]"
-            type="range"
-            aria-label="Numbers"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease max numbers" @click="digits[1] = Math.max(0, digits[1] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Max: {{ digits[1] }}</span>
-            <button class="stepper-btn" aria-label="Increase max numbers" @click="digits[1] = Math.min(passwordLength, digits[1] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Symbols</div>
-        <div class="slider-container">
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease min symbols" @click="specialChars[0] = Math.max(0, specialChars[0] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Min: {{ specialChars[0] }}</span>
-            <button class="stepper-btn" aria-label="Increase min symbols" @click="specialChars[0] = Math.min(passwordLength, specialChars[0] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-          <input
-            v-model="specialChars[0]"
-            type="range"
-            aria-label="Symbols"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <input
-            v-model="specialChars[1]"
-            type="range"
-            aria-label="Symbols"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease max symbols" @click="specialChars[1] = Math.max(0, specialChars[1] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Max: {{ specialChars[1] }}</span>
-            <button class="stepper-btn" aria-label="Increase max symbols" @click="specialChars[1] = Math.min(passwordLength, specialChars[1] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-        </div>
-        <div class="form-group">
-          <div class="symbol-chips-header">
-            <label class="form-label">Symbol Set</label>
-            <div class="symbol-chips-actions">
-              <button type="button" class="chip-action" @click="selectAllSymbols">All</button>
-              <button type="button" class="chip-action" @click="selectCommonSymbols">Common</button>
-              <button type="button" class="chip-action" @click="selectNoSymbols">None</button>
-            </div>
-          </div>
-          <div class="symbol-chips">
-            <button
-              v-for="sym in allSymbols"
-              :key="sym"
-              type="button"
-              class="symbol-chip"
-              :class="{ active: activeSymbols.has(sym) }"
-              @click="toggleSymbol(sym)"
-            >{{ sym }}</button>
-          </div>
-        </div>
-        <label class="checkbox-item exclude-ambiguous">
-          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (0/O, 1/l/I/|) from every set</span>
-        </label>
-      </div>
-
-      <details class="card card-collapse" :open="emojiOpen" @toggle="emojiOpen = $event.target.open">
-        <summary class="card-header">Emoji 🎲<span v-if="emojiCount[0] > 0 || emojiCount[1] > 0" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="slider-container">
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease min emoji 🎲" @click="emojiCount[0] = Math.max(0, emojiCount[0] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Min: {{ emojiCount[0] }}</span>
-            <button class="stepper-btn" aria-label="Increase min emoji 🎲" @click="emojiCount[0] = Math.min(passwordLength, emojiCount[0] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-          <input
-            v-model="emojiCount[0]"
-            type="range"
-            aria-label="Emoji"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <input
-            v-model="emojiCount[1]"
-            type="range"
-            aria-label="Emoji 🎲"
-            min="0"
-            :max="passwordLength"
-            class="slider"
-          />
-          <div class="stepper-label">
-            <button class="stepper-btn" aria-label="Decrease max emoji 🎲" @click="emojiCount[1] = Math.max(0, emojiCount[1] - 1)"><span class="mdi mdi-minus"></span></button>
-            <span class="stepper-label-text">Max: {{ emojiCount[1] }}</span>
-            <button class="stepper-btn" aria-label="Increase max emoji 🎲" @click="emojiCount[1] = Math.min(passwordLength, emojiCount[1] + 1)"><span class="mdi mdi-plus"></span></button>
-          </div>
-        </div>
-      </details>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary">
-          <span class="mdi mdi-shuffle-variant"></span> Generate Password
-        </button>
-
-        <div class="password-display">
-          <div
-            :key="password"
-            class="form-input password-input"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" mode="advanced" />
-      </div>
-
-      <div class="card">
-
-        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderAdvancedPassword,
 }
 
 // Words Password Generator Component
@@ -1052,14 +627,6 @@ const WordsPassword = {
     const suffixCustom = persistedRef('words.suffixCustom', '')
     const activeLeet = persistedRef('words.activeLeet', new Set())
     const useEmoji = persistedRef('words.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('words.lockAffixes', false)
     const excludeAmbiguous = persistedRef('words.excludeAmbiguous', false)
     // 7c: rarely-changed groups start collapsed; the open state is remembered
@@ -1075,21 +642,6 @@ const WordsPassword = {
     const { copied, notification, showNotification, copyPassword } = useCopyPassword(password)
     const wordList = ref([])
 
-    const loadWordList = async () => {
-      try {
-        // Orchard Street Long: 17,576 words (26^3), 14.101 bits each, against
-        // the EFF list's 7,776 and 12.925. It is also uniquely decodable, which
-        // matters here because the separator can be set to None -- concatenated
-        // EFF words could parse more than one way. One word per line, where the
-        // EFF file was comma-separated.
-        const response = await fetch('./data/orchard-street-long.txt')
-        const text = await response.text()
-        wordList.value = text.split(/\r?\n/).map(word => word.trim()).filter(word => word.length > 0)
-      } catch (err) {
-        console.error('Failed to load word list:', err)
-        wordList.value = ['ability', 'account', 'action', 'active', 'address', 'advance', 'agency', 'agent', 'agree', 'allow', 'amount', 'animal', 'answer', 'appear', 'approach', 'area', 'argue', 'around', 'arrive', 'article', 'artist', 'assume', 'attack', 'attempt', 'attend', 'author', 'avoid', 'balance', 'become', 'before', 'begin', 'believe', 'benefit', 'better', 'between', 'beyond', 'budget', 'build', 'business']
-      }
-    }
 
     // The affix lock is session state, so it stays here; generators.js takes
     // the previously used set and hands back whatever it used.
@@ -1139,9 +691,11 @@ const WordsPassword = {
     watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordList()
+      wordList.value = await loadWordList()
       generatePassword()
     })
+
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
 
     return {
       wordCount,
@@ -1182,205 +736,7 @@ const WordsPassword = {
       copyPassword
     }
   },
-  template: `
-    <div class="password-generator">
-      <div class="card">
-        <div class="card-header">Number of Words</div>
-        <div class="slider-container">
-          <button class="stepper-btn" aria-label="Decrease number of words" @click="wordCount = Math.max(2, wordCount - 1)"><span class="mdi mdi-minus"></span></button>
-          <span class="slider-end" aria-hidden="true">2</span>
-          <input
-            v-model="wordCount"
-            type="range"
-            aria-label="Number of Words"
-            min="2"
-            max="20"
-            class="slider"
-          />
-          <span class="slider-end" aria-hidden="true">20</span>
-          <button class="stepper-btn" aria-label="Increase number of words" @click="wordCount = Math.min(20, wordCount + 1)"><span class="mdi mdi-plus"></span></button>
-          <div class="slider-value">{{ wordCount }}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Word Separator</div>
-        <div class="separator-grid">
-          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
-            <input v-model="separator" :value="opt.value" type="radio" class="radio sr-only" />
-            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
-          </label>
-        </div>
-        <div v-if="separator === 'custom'" class="custom-sep-row">
-          <input
-            v-model="customSeparator"
-            type="text"
-            class="form-input"
-            placeholder="Type your separator"
-          />
-        </div>
-        <label class="checkbox-item exclude-ambiguous">
-          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Capitalization</div>
-        <div class="separator-grid">
-          <label class="sep-option" :class="{ active: capitalization === 'title' }">
-            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'none' }">
-            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
-            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'random' }">
-            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
-            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
-            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
-            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
-            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
-            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
-            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
-          </label>
-        </div>
-      </div>
-
-      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
-        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="affix-pair">
-          <AffixPicker
-            label="Prefix"
-            :modelValue="prefixMode"
-            :customValue="prefixCustom"
-            :meta="prefixMeta"
-            @update:modelValue="prefixMode = $event"
-            @update:customValue="prefixCustom = $event"
-          />
-          <div class="affix-divider"></div>
-          <AffixPicker
-            label="Suffix"
-            :modelValue="suffixMode"
-            :customValue="suffixCustom"
-            :options="suffixOptions"
-            :meta="suffixMeta"
-            @update:modelValue="suffixMode = $event"
-            @update:customValue="suffixCustom = $event"
-          />
-        </div>
-      </details>
-
-      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
-        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="form-group">
-          <div class="symbol-chips-header">
-            <label class="form-label">Leet Speak Substitutions</label>
-            <div class="symbol-chips-actions">
-              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
-              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
-            </div>
-          </div>
-          <div class="symbol-chips">
-            <button
-              v-for="entry in leetMap"
-              :key="entry.char"
-              type="button"
-              class="symbol-chip leet-chip"
-              :class="{ active: activeLeet.has(entry.char) }"
-              @click="toggleLeet(entry.char)"
-            >{{ entry.label }}</button>
-          </div>
-        </div>
-        <div class="emoji-toggle-row">
-          <label class="form-label">Emoji</label>
-          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a random emoji to each word">
-            <span class="emoji-toggle-icon">🎲</span>
-            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
-          </button>
-        </div>
-      </details>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary">
-          <span class="mdi mdi-shuffle-variant"></span> Generate Password
-        </button>
-
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" mode="words" />
-      </div>
-
-      <div class="card">
-        <div v-if="rawWords.length" class="word-pills-row">
-          <div class="word-pills">
-            <button
-              v-for="(w, i) in rawWords"
-              :key="i"
-              class="word-pill"
-              @click="regenWord(i)"
-              title="Click to swap this word"
-            >
-              <span class="word-pill-text">{{ w }}</span>
-              <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
-            </button>
-          </div>
-          <button
-            class="lock-affixes-btn"
-            :class="{ active: lockAffixes }"
-            @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
-          >
-            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
-          </button>
-        </div>
-
-        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderWordsPassword,
 }
 
 // Numbers Password Generator Component
@@ -1427,99 +783,7 @@ const NumbersPassword = {
       copyPassword
     }
   },
-  template: `
-    <div class="password-generator">
-      <div class="card">
-        <div class="card-header">Number of Digits</div>
-        <div class="slider-container">
-          <button class="stepper-btn" aria-label="Decrease number of digits" @click="passwordLength = Math.max(4, passwordLength - 1)"><span class="mdi mdi-minus"></span></button>
-          <span class="slider-end" aria-hidden="true">4</span>
-          <input
-            v-model="passwordLength"
-            type="range"
-            aria-label="Number of Digits"
-            min="4"
-            max="32"
-            class="slider"
-          />
-          <span class="slider-end" aria-hidden="true">32</span>
-          <button class="stepper-btn" aria-label="Increase number of digits" @click="passwordLength = Math.min(32, passwordLength + 1)"><span class="mdi mdi-plus"></span></button>
-          <div class="slider-value">{{ passwordLength }}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Maximum Repeated Digits</div>
-        <div class="slider-container">
-          <button class="stepper-btn" aria-label="Decrease maximum repeated digits" @click="maxRepeated = Math.max(2, maxRepeated - 1)"><span class="mdi mdi-minus"></span></button>
-          <span class="slider-end" aria-hidden="true">2</span>
-          <input
-            v-model="maxRepeated"
-            type="range"
-            aria-label="Maximum Repeated Digits"
-            min="2"
-            max="5"
-            class="slider"
-          />
-          <span class="slider-end" aria-hidden="true">5</span>
-          <button class="stepper-btn" aria-label="Increase maximum repeated digits" @click="maxRepeated = Math.min(5, maxRepeated + 1)"><span class="mdi mdi-plus"></span></button>
-          <div class="slider-value">{{ maxRepeated }}</div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Maximum Sequential Digits</div>
-        <div class="slider-container">
-          <button class="stepper-btn" aria-label="Decrease maximum sequential digits" @click="maxSequential = Math.max(2, maxSequential - 1)"><span class="mdi mdi-minus"></span></button>
-          <span class="slider-end" aria-hidden="true">2</span>
-          <input
-            v-model="maxSequential"
-            type="range"
-            aria-label="Maximum Sequential Digits"
-            min="2"
-            max="5"
-            class="slider"
-          />
-          <span class="slider-end" aria-hidden="true">5</span>
-          <button class="stepper-btn" aria-label="Increase maximum sequential digits" @click="maxSequential = Math.min(5, maxSequential + 1)"><span class="mdi mdi-plus"></span></button>
-          <div class="slider-value">{{ maxSequential }}</div>
-        </div>
-      </div>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary">
-          <span class="mdi mdi-shuffle-variant"></span> Generate Password
-        </button>
-
-        <div class="password-display">
-          <div
-            :key="password"
-            class="form-input password-input"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" mode="numbers" />
-      </div>
-
-      <div class="card">
-
-        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderNumbersPassword,
 }
 
 // Passphrase Generator Component
@@ -1597,14 +861,6 @@ const Passphrase = {
     const suffixCustom = persistedRef('phrase.suffixCustom', '')
     const activeLeet = persistedRef('phrase.activeLeet', new Set())
     const useEmoji = persistedRef('phrase.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('phrase.lockAffixes', false)
     const excludeAmbiguous = persistedRef('phrase.excludeAmbiguous', false)
     const affixOpen = persistedRef('phrase.ui.affixOpen', false)
@@ -1619,22 +875,7 @@ const Passphrase = {
     const wordData = ref({})
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
-    const catInfo = (type, catId) => {
-      if (!showBitHints.value) return ''
-      const cats = wordData.value[type] || {}
-      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
-      if (!pool.length) return ''
-      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
-    }
 
-    const loadWordData = async () => {
-      try {
-        const res = await fetch('./data/words.json')
-        wordData.value = await res.json()
-      } catch (err) {
-        console.error('Failed to load word data:', err)
-      }
-    }
 
     const pickFrom = (type, catId) => {
       const cats = wordData.value[type]
@@ -1709,9 +950,13 @@ const Passphrase = {
     watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordData()
+      wordData.value = await loadWordData()
       generatePassword()
     })
+
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
+
+    const catInfo = useCatInfo(wordData, showBitHints)
 
     return {
       slots,
@@ -1745,220 +990,7 @@ const Passphrase = {
     }
   },
   components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
-  template: `
-    <div class="password-generator">
-
-      <div class="card">
-        <div class="card-header">Word Slots</div>
-
-        <div class="slot-add-row">
-          <span class="slot-add-label">Add:</span>
-          <button
-            v-for="t in slotTypes"
-            :key="t.type"
-            class="slot-add-btn"
-            :class="t.color"
-            @click="addSlot(t.type)"
-            :disabled="slots.length >= 8"
-          >+ {{ t.label }}</button>
-        </div>
-
-        <div class="slot-tray" v-if="slots.length > 0">
-          <div
-            v-for="(slot, idx) in slots"
-            :key="slot.id"
-            class="slot-pill"
-            :class="'slot-' + slot.type"
-          >
-            <span class="slot-pill-label">{{ slot.type }}</span>
-            <div class="slot-pill-actions">
-              <button class="slot-arrow" @click="moveSlot(idx, -1)" :disabled="idx === 0" title="Move left">&#8592;</button>
-              <button class="slot-arrow" @click="moveSlot(idx, 1)" :disabled="idx === slots.length - 1" title="Move right">&#8594;</button>
-              <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
-            </div>
-            <select class="slot-cat-select" v-model="slot.cat">
-              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}{{ catInfo(slot.type, opt.id) ? ' — ' + catInfo(slot.type, opt.id) : '' }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div v-else class="slot-empty">
-          Add word slots above to build your passphrase structure.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Word Separator</div>
-        <div class="separator-grid">
-          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
-            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
-          </label>
-        </div>
-        <div v-if="separator === 'custom'" class="custom-sep-row">
-          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
-        </div>
-        <label class="checkbox-item exclude-ambiguous">
-          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Capitalization</div>
-        <div class="separator-grid">
-          <label class="sep-option" :class="{ active: capitalization === 'title' }">
-            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'none' }">
-            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
-            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'random' }">
-            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
-            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
-            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
-            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
-            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
-            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
-            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
-          </label>
-        </div>
-      </div>
-
-      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
-        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="affix-pair">
-          <AffixPicker
-            label="Prefix"
-            :modelValue="prefixMode"
-            :customValue="prefixCustom"
-            :meta="prefixMeta"
-            @update:modelValue="prefixMode = $event"
-            @update:customValue="prefixCustom = $event"
-          />
-          <div class="affix-divider"></div>
-          <AffixPicker
-            label="Suffix"
-            :modelValue="suffixMode"
-            :customValue="suffixCustom"
-            :options="suffixOptions"
-            :meta="suffixMeta"
-            @update:modelValue="suffixMode = $event"
-            @update:customValue="suffixCustom = $event"
-          />
-        </div>
-      </details>
-
-      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
-        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="form-group">
-          <div class="symbol-chips-header">
-            <label class="form-label">Leet Speak Substitutions</label>
-            <div class="symbol-chips-actions">
-              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
-              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
-            </div>
-          </div>
-          <div class="symbol-chips">
-            <button
-              v-for="entry in leetMap"
-              :key="entry.char"
-              type="button"
-              class="symbol-chip leet-chip"
-              :class="{ active: activeLeet.has(entry.char) }"
-              @click="toggleLeet(entry.char)"
-            >{{ entry.label }}</button>
-          </div>
-        </div>
-        <div class="emoji-toggle-row">
-          <label class="form-label">Emoji</label>
-          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
-            <span class="emoji-toggle-icon">🎲</span>
-            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
-          </button>
-        </div>
-      </details>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Passphrase</button>
-
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="passphrase" />
-      </div>
-
-      <div class="card">
-        <div v-if="rawWords.length" class="word-pills-row">
-          <div class="word-pills">
-            <button
-              v-for="(w, i) in rawWords"
-              :key="i"
-              class="word-pill"
-              :class="'word-pill-' + slots[i]?.type"
-              @click="regenWord(i)"
-              title="Click to swap this word"
-            >
-              <span class="word-pill-text">{{ w }}</span>
-              <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
-            </button>
-          </div>
-          <button
-            class="lock-affixes-btn"
-            :class="{ active: lockAffixes }"
-            @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
-          >
-            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
-          </button>
-        </div>
-
-        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderPassphrase,
 }
 
 // WiFi Words Component
@@ -1979,14 +1011,6 @@ const WifiWords = {
     const suffixCustom = persistedRef('wifi.suffixCustom', '')
     const activeLeet = persistedRef('wifi.activeLeet', new Set())
     const useEmoji = persistedRef('wifi.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const lockAffixes = persistedRef('wifi.lockAffixes', false)
     // 6g: on by default here -- Wireless keys get read off a screen and typed
     // on a TV remote, which is exactly where l/1 and O/0 misfire.
@@ -2003,24 +1027,9 @@ const WifiWords = {
     const wordData = ref({})
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
-    const catInfo = (type, catId) => {
-      if (!showBitHints.value) return ''
-      const cats = wordData.value[type] || {}
-      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
-      if (!pool.length) return ''
-      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
-    }
     const alliterationMode = persistedRef('wifi.alliterationMode', true)
     const alliterationLetter = ref('')
 
-    const loadWordData = async () => {
-      try {
-        const res = await fetch('./data/words.json')
-        wordData.value = await res.json()
-      } catch (err) {
-        console.error('Failed to load word data:', err)
-      }
-    }
 
     const pickFrom = (type, catId, forceLetter = '') => {
       const cats = wordData.value[type]
@@ -2125,9 +1134,13 @@ const WifiWords = {
     watch(excludeAmbiguous, () => { if (rawWords.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordData()
+      wordData.value = await loadWordData()
       generatePassword()
     })
+
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
+
+    const catInfo = useCatInfo(wordData, showBitHints)
 
     return {
       slots,
@@ -2162,228 +1175,7 @@ const WifiWords = {
     }
   },
   components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
-  template: `
-    <div class="password-generator">
-
-      <div class="card">
-        <div class="card-header card-header-row">
-          <span>Word Slots</span>
-          <label class="alliteration-toggle" :class="{ active: alliterationMode }" title="All words share the same starting letter">
-            <input type="checkbox" v-model="alliterationMode" class="sr-only" />
-            <span class="mdi mdi-alpha-a-box"></span>
-            <span>Alliteration</span>
-            <span v-if="alliterationMode && alliterationLetter" class="alliteration-letter">{{ alliterationLetter.toUpperCase() }}</span>
-          </label>
-        </div>
-
-        <div class="slot-add-row">
-          <span class="slot-add-label">Add:</span>
-          <button
-            v-for="t in slotTypes"
-            :key="t.type"
-            class="slot-add-btn"
-            :class="t.color"
-            @click="addSlot(t.type)"
-            :disabled="slots.length >= 8"
-          >+ {{ t.label }}</button>
-        </div>
-
-        <div class="slot-tray" v-if="slots.length > 0">
-          <div
-            v-for="(slot, idx) in slots"
-            :key="slot.id"
-            class="slot-pill"
-            :class="'slot-' + slot.type"
-          >
-            <span class="slot-pill-label">{{ slot.type }}</span>
-            <div class="slot-pill-actions">
-              <button class="slot-arrow" @click="moveSlot(idx, -1)" :disabled="idx === 0" title="Move left">&#8592;</button>
-              <button class="slot-arrow" @click="moveSlot(idx, 1)" :disabled="idx === slots.length - 1" title="Move right">&#8594;</button>
-              <button class="slot-remove" @click="removeSlot(slot.id)" title="Remove">&#215;</button>
-            </div>
-            <select class="slot-cat-select" v-model="slot.cat">
-              <option v-for="opt in categoryMeta[slot.type]" :key="opt.id" :value="opt.id">{{ opt.label }}{{ catInfo(slot.type, opt.id) ? ' — ' + catInfo(slot.type, opt.id) : '' }}</option>
-            </select>
-          </div>
-        </div>
-
-        <div v-else class="slot-empty">
-          Add word slots above to build your WiFi password structure.
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Word Separator</div>
-        <div class="separator-grid">
-          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
-            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
-          </label>
-        </div>
-        <div v-if="separator === 'custom'" class="custom-sep-row">
-          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
-        </div>
-        <label class="checkbox-item exclude-ambiguous">
-          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Capitalization</div>
-        <div class="separator-grid">
-          <label class="sep-option" :class="{ active: capitalization === 'title' }">
-            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'none' }">
-            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
-            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'random' }">
-            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
-            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
-            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
-            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
-            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
-            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
-            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
-          </label>
-        </div>
-      </div>
-
-      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
-        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="affix-pair">
-          <AffixPicker
-            label="Prefix"
-            :modelValue="prefixMode"
-            :customValue="prefixCustom"
-            :meta="prefixMeta"
-            @update:modelValue="prefixMode = $event"
-            @update:customValue="prefixCustom = $event"
-          />
-          <div class="affix-divider"></div>
-          <AffixPicker
-            label="Suffix"
-            :modelValue="suffixMode"
-            :customValue="suffixCustom"
-            :options="suffixOptions"
-            :meta="suffixMeta"
-            @update:modelValue="suffixMode = $event"
-            @update:customValue="suffixCustom = $event"
-          />
-        </div>
-      </details>
-
-      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
-        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="form-group">
-          <div class="symbol-chips-header">
-            <label class="form-label">Leet Speak Substitutions</label>
-            <div class="symbol-chips-actions">
-              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
-              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
-            </div>
-          </div>
-          <div class="symbol-chips">
-            <button
-              v-for="entry in leetMap"
-              :key="entry.char"
-              type="button"
-              class="symbol-chip leet-chip"
-              :class="{ active: activeLeet.has(entry.char) }"
-              @click="toggleLeet(entry.char)"
-            >{{ entry.label }}</button>
-          </div>
-        </div>
-        <div class="emoji-toggle-row">
-          <label class="form-label">Emoji</label>
-          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
-            <span class="emoji-toggle-icon">🎲</span>
-            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
-          </button>
-        </div>
-      </details>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-wifi"></span> Generate WiFi Password</button>
-
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" :words="rawWords.length" mode="wireless" />
-      </div>
-
-      <div class="card">
-        <div v-if="rawWords.length" class="word-pills-row">
-          <div class="word-pills">
-            <button
-              v-for="(w, i) in rawWords"
-              :key="i"
-              class="word-pill"
-              :class="'word-pill-' + slots[i]?.type"
-              @click="regenWord(i)"
-              title="Click to swap this word"
-            >
-              <span class="word-pill-text">{{ w }}</span>
-              <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
-            </button>
-          </div>
-          <button
-            class="lock-affixes-btn"
-            :class="{ active: lockAffixes }"
-            @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
-          >
-            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
-          </button>
-        </div>
-
-        <HistoryStrip :history="history" :current="password" :warnSet="warnSet" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderWifiWords,
 }
 
 // Mad Lib Password Component
@@ -2424,14 +1216,6 @@ const MadLib = {
     const suffixCustom = persistedRef('madlib.suffixCustom', '')
     const activeLeet = persistedRef('madlib.activeLeet', new Set())
     const useEmoji = persistedRef('madlib.useEmoji', false)
-    const toggleLeet = (char) => {
-      const next = new Set(activeLeet.value)
-      if (next.has(char)) next.delete(char)
-      else next.add(char)
-      activeLeet.value = next
-    }
-    const selectAllLeet = () => { activeLeet.value = new Set(LEET_MAP.map(m => m.char)) }
-    const selectNoLeet = () => { activeLeet.value = new Set() }
     const password = ref('')
     const entropy = ref(null)
     const recallHistory = (entry) => recallEntry(entry, password, entropy)
@@ -2447,20 +1231,7 @@ const MadLib = {
     const wordData = ref({})
     // 6d: the picker states what a category costs before it is chosen --
     // pool size and bits per slot, from the same data the generator draws on.
-    const catInfo = (type, catId) => {
-      if (!showBitHints.value) return ''
-      const cats = wordData.value[type] || {}
-      const pool = catId === 'random' ? allOf(cats) : (cats[catId] || [])
-      if (!pool.length) return ''
-      return `${pool.length} · ${Math.log2(pool.length).toFixed(1)} bits`
-    }
 
-    const loadWordData = async () => {
-      try {
-        const res = await fetch('./data/words.json')
-        wordData.value = await res.json()
-      } catch { console.error('Failed to load word data') }
-    }
 
     const pickFrom = (type, catId) => {
       const typeCats = wordData.value[type]
@@ -2526,10 +1297,14 @@ const MadLib = {
     watch(excludeAmbiguous, () => { if (rawSegments.value.length) buildPassword() })
 
     onMounted(async () => {
-      await loadWordData()
+      wordData.value = await loadWordData()
       slotCats.value = rebuildSlotCats(templateId.value, slotCats.value)
       generatePassword()
     })
+
+    const { toggleLeet, selectAllLeet, selectNoLeet } = useLeet(activeLeet)
+
+    const catInfo = useCatInfo(wordData, showBitHints)
 
     return {
       templateId,
@@ -2564,231 +1339,7 @@ const MadLib = {
     }
   },
   components: { AffixPicker, HistoryStrip, EntropyPanel, KeepButton },
-  template: `
-    <div class="password-generator">
-
-      <div class="card">
-        <div class="card-header">Template</div>
-        <div class="separator-grid">
-          <label
-            v-for="t in templates"
-            :key="t.id"
-            class="sep-option"
-            :class="{ active: templateId === t.id }"
-          >
-            <input v-model="templateId" :value="t.id" type="radio" class="sr-only" @change="generatePassword" />
-            <span>{{ t.label }}</span>
-          </label>
-        </div>
-        <div class="madlib-template-preview">
-          <span
-            v-for="(token, i) in templates.find(t => t.id === templateId)?.template.split(/(\{[^}]+\})/)"
-            :key="i"
-            :class="token.match(/^\{(adj|adv|noun|verb)\}$/) ? ('madlib-token slot-' + token.slice(1,-1)) : 'madlib-literal'"
-          >{{ token.match(/^\{(adj|adv|noun|verb)\}$/) ? token.slice(1,-1) : token }}</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Word Categories</div>
-        <div class="word-cats">
-          <div v-for="(slot, idx) in slotCatRows" :key="idx" class="word-cat-row">
-            <div class="word-cat-label" :class="'wc-label-' + slot.type">
-              {{ slot.type }}<span v-if="slot.showOrdinal" class="wc-ordinal">&nbsp;{{ slot.occurrence }}</span>
-            </div>
-            <div class="separator-grid">
-              <label
-                v-for="opt in categoryMeta[slot.type]"
-                :key="opt.id"
-                class="sep-option"
-                :class="{ active: slotCats[idx].cat === opt.id }"
-              >
-                <input v-model="slotCats[idx].cat" :value="opt.id" type="radio" class="sr-only" />
-                <span>{{ opt.label }}</span><span v-if="catInfo(slot.type, opt.id)" class="cat-meta">{{ catInfo(slot.type, opt.id) }}</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Word Separator</div>
-        <div class="separator-grid">
-          <label v-for="opt in separatorOptions" :key="opt.value" class="sep-option" :class="{ active: separator === opt.value }">
-            <input v-model="separator" :value="opt.value" type="radio" class="sr-only" />
-            <span>{{ opt.label }}</span><span class="cat-meta">{{ sepMeta(opt.value) }}</span>
-          </label>
-        </div>
-        <div v-if="separator === 'custom'" class="custom-sep-row">
-          <input v-model="customSeparator" type="text" class="form-input" placeholder="Type your separator" />
-        </div>
-        <label class="checkbox-item exclude-ambiguous">
-          <input v-model="excludeAmbiguous" type="checkbox" class="checkbox" />
-          <span>Exclude look-alikes (0/O, 1/l/I/|) from separators &amp; affixes</span>
-        </label>
-      </div>
-
-      <div class="card">
-        <div class="card-header">Capitalization</div>
-        <div class="separator-grid">
-          <label class="sep-option" :class="{ active: capitalization === 'title' }">
-            <input v-model="capitalization" value="title" type="radio" class="sr-only" />
-            <span>Title Case</span><span class="cat-meta">{{ capMeta('title') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'none' }">
-            <input v-model="capitalization" value="none" type="radio" class="sr-only" />
-            <span>lowercase</span><span class="cat-meta">{{ capMeta('none') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'upper' }">
-            <input v-model="capitalization" value="upper" type="radio" class="sr-only" />
-            <span>UPPERCASE</span><span class="cat-meta">{{ capMeta('upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'random' }">
-            <input v-model="capitalization" value="random" type="radio" class="sr-only" />
-            <span>rAndOm LetTerS</span><span class="cat-meta">{{ capMeta('random') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'char-alt' }">
-            <input v-model="capitalization" value="char-alt" type="radio" class="sr-only" />
-            <span>AlTeRnAtInG</span><span class="cat-meta">{{ capMeta('char-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-upper' }">
-            <input v-model="capitalization" value="last-upper" type="radio" class="sr-only" />
-            <span>lasT letteR</span><span class="cat-meta">{{ capMeta('last-upper') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'first-only' }">
-            <input v-model="capitalization" value="first-only" type="radio" class="sr-only" />
-            <span>FIRST word only</span><span class="cat-meta">{{ capMeta('first-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'last-only' }">
-            <input v-model="capitalization" value="last-only" type="radio" class="sr-only" />
-            <span>last word ONLY</span><span class="cat-meta">{{ capMeta('last-only') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-alt' }">
-            <input v-model="capitalization" value="word-alt" type="radio" class="sr-only" />
-            <span>WORD word WORD word</span><span class="cat-meta">{{ capMeta('word-alt') }}</span>
-          </label>
-          <label class="sep-option" :class="{ active: capitalization === 'word-random' }">
-            <input v-model="capitalization" value="word-random" type="radio" class="sr-only" />
-            <span>WORD word is RANDOM</span><span class="cat-meta">{{ capMeta('word-random') }}</span>
-          </label>
-        </div>
-      </div>
-
-      <details class="card card-collapse" :open="affixOpen" @toggle="affixOpen = $event.target.open">
-        <summary class="card-header">Prefix &amp; Suffix<span v-if="prefixMode || suffixMode" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="affix-pair">
-          <AffixPicker
-            label="Prefix"
-            :modelValue="prefixMode"
-            :customValue="prefixCustom"
-            :meta="prefixMeta"
-            @update:modelValue="prefixMode = $event"
-            @update:customValue="prefixCustom = $event"
-          />
-          <div class="affix-divider"></div>
-          <AffixPicker
-            label="Suffix"
-            :modelValue="suffixMode"
-            :customValue="suffixCustom"
-            :options="suffixOptions"
-            :meta="suffixMeta"
-            @update:modelValue="suffixMode = $event"
-            @update:customValue="suffixCustom = $event"
-          />
-        </div>
-      </details>
-
-      <details class="card card-collapse" :open="extrasOpen" @toggle="extrasOpen = $event.target.open">
-        <summary class="card-header">Leet Speak &amp; Emoji<span v-if="activeLeet.size > 0 || useEmoji" class="collapse-inuse">in use</span><span class="mdi mdi-chevron-down collapse-chevron" aria-hidden="true"></span></summary>
-        <div class="form-group">
-          <div class="symbol-chips-header">
-            <label class="form-label">Leet Speak Substitutions</label>
-            <div class="symbol-chips-actions">
-              <button type="button" class="chip-action" @click="selectAllLeet">All</button>
-              <button type="button" class="chip-action" @click="selectNoLeet">None</button>
-            </div>
-          </div>
-          <div class="symbol-chips">
-            <button
-              v-for="entry in leetMap"
-              :key="entry.char"
-              type="button"
-              class="symbol-chip leet-chip"
-              :class="{ active: activeLeet.has(entry.char) }"
-              @click="toggleLeet(entry.char)"
-            >{{ entry.label }}</button>
-          </div>
-        </div>
-        <div class="emoji-toggle-row">
-          <label class="form-label">Emoji</label>
-          <button type="button" class="emoji-toggle-btn" :class="{ active: useEmoji }" @click="useEmoji = !useEmoji" title="Prepend a category-matched emoji to each word">
-            <span class="emoji-toggle-icon">🎲</span>
-            <span class="emoji-toggle-label">{{ useEmoji ? 'On' : 'Off' }}</span>
-          </button>
-        </div>
-      </details>
-
-      <div class="card card-generate" :class="{ 'bar-unstuck': !floatBar }">
-        <button type="button" class="bar-pin" @click="floatBar = !floatBar" :title="floatBar ? 'Pin this bar to its place in the page instead of floating' : 'Let this bar float with you while the options scroll'" :aria-label="floatBar ? 'Pin the generate bar in place' : 'Let the generate bar float'">
-          <span :class="['mdi', floatBar ? 'mdi-pin-outline' : 'mdi-pin']" aria-hidden="true"></span>
-        </button>
-        <button @click="generatePassword" class="btn btn-primary"><span class="mdi mdi-shuffle-variant"></span> Generate Mad Lib</button>
-
-        <div class="password-display">
-          <div
-            :class="['form-input', 'password-input', { 'has-length-pill': password.length > 0 }]"
-            role="textbox"
-            aria-readonly="true"
-            aria-label="Generated password"
-            tabindex="0"
-          >{{ password }}<span v-if="!password" class="password-placeholder" aria-hidden="true">Generated password will appear here...</span></div>
-          <span v-if="password.length > 0" class="length-pill">{{ password.length }}</span>
-          <button @click="copyPassword" :class="['copy-btn', { copied }]" :title="copied ? 'Copied!' : 'Copy to clipboard'">
-            <span :class="['mdi', copied ? 'mdi-check' : 'mdi-content-copy']"></span>
-          </button>
-          <KeepButton :password="password" :bits="entropy ? entropy.total : null" />
-        </div>
-        <EntropyPanel :entropy="entropy" :password="password" :words="slotCatRows.length" mode="madlib" />
-      </div>
-
-      <div class="card">
-        <div v-if="rawSegments.some(s => s.isToken)" class="word-pills-row">
-          <div class="word-pills">
-            <template v-for="(seg, i) in rawSegments" :key="i">
-              <button
-                v-if="seg.isToken"
-                class="word-pill"
-                :class="'word-pill-' + seg.type"
-                @click="regenWord(i)"
-                title="Click to swap this word"
-              >
-                <span class="word-pill-text">{{ seg.word }}</span>
-                <span class="mdi mdi-shuffle-variant word-pill-icon"></span>
-              </button>
-            </template>
-          </div>
-          <button
-            class="lock-affixes-btn"
-            :class="{ active: lockAffixes }"
-            @click="lockAffixes = !lockAffixes"
-            :title="lockAffixes ? 'Prefix/separator/suffix locked — kept for every generation, click to unlock' : 'Click to keep the current prefix/separator/suffix across generations'"
-          >
-            <span :class="['mdi', lockAffixes ? 'mdi-lock' : 'mdi-lock-open-outline']"></span>
-          </button>
-        </div>
-
-        <div v-if="preview" class="madlib-preview-card">
-          <div class="madlib-preview-label">Readable phrase</div>
-          <div class="madlib-preview-phrase">{{ preview }}</div>
-        </div>
-
-        <HistoryStrip :history="history" :current="password" @select="recallHistory($event)" />
-        <div v-if="notification.show" :class="['notification', notification.type]" role="status" aria-live="polite">
-          {{ notification.message }}
-        </div>
-      </div>
-    </div>
-  `
+  render: renderMadLib,
 }
 
 // Main App Component
@@ -2883,47 +1434,7 @@ const App = {
       historyMax
     }
   },
-  template: `
-    <div id="app">
-      <!-- Replaced at mount by the shared header, so the app carries the same
-           title, subtitle and nav bar as every other page. -->
-      <div data-site-header></div>
-
-      <main class="main">
-        <div class="container">
-          <div class="tabs">
-            <button
-              v-for="(tab, index) in tabs"
-              :key="tab.id"
-              :class="['tab', { active: activeTab === index }]"
-              :aria-pressed="activeTab === index ? 'true' : 'false'"
-              @click="activeTab = index"
-            >
-              <span :class="['mdi', tab.icon]" aria-hidden="true"></span>
-              <span class="tab-name">{{ tab.name }}</span>
-              <span class="tab-desc">{{ tab.desc }}</span>
-            </button>
-          </div>
-          <p class="tabs-desc">{{ tabs[activeTab].desc }}</p>
-          <!-- The way back. Arriving here from a half-finished vault entry and
-               having to find the vault yourself, only to discover the entry
-               was dropped, is the failure this pair of features exists to
-               remove. -->
-          <p v-if="returningToVault" class="vault-return">
-            <span class="mdi mdi-shield-key-outline" aria-hidden="true"></span>
-            Your vault entry is waiting.
-            <a href="/vault.html">Finish it</a>
-          </p>
-          
-          <div class="tab-content">
-            <component :is="tabs[activeTab].component" />
-          </div>
-        </div>
-      </main>
-
-      <div data-site-footer></div>
-    </div>
-  `
+  render: renderApp,
 }
 
 createApp(App).mount('#app')

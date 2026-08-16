@@ -1,7 +1,7 @@
 {
   "name": "wordlock",
-  "version": "3.3.0",
-  "description": "A password generator and encrypted local vault. No accounts, no server, no build step.",
+  "version": "3.4.0",
+  "description": "A password generator and encrypted local vault. No accounts, no server, no runtime dependencies.",
   "author": "Raymond Tetzloff <ray@raytetzloff.com>",
   "repository": {
     "type": "git",
@@ -22,6 +22,7 @@
   "homepage": "https://wordlock.net",
   "type": "module",
   "devDependencies": {
+    "@vue/compiler-dom": "3.4.0",
     "vue": "3.4.0"
   },
   "scripts": {

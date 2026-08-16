@@ -4,7 +4,7 @@ import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, parseCsv,
   mapCsvHeaders, mergeEntries, mergeReplicas, transferFilename,
 } from '../src/vault-transfer.js'
-import { normalizeEntries } from '../src/vault-store.js'
+import { normalizeEntries } from '../src/vault-entry.js'
 
 const ENTRIES = [
   {

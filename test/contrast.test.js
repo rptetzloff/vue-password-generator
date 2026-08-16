@@ -910,6 +910,15 @@ test('band tokens really are theme-independent, which the badge relies on', () =
   }
 })
 
+test('the Security badge is the Feature badge inverted, and just as legible', () => {
+  // Same two tokens the other way round, so it inherits the measurement above
+  // rather than introducing a colour nothing checks -- and stays neutral under
+  // the mono palette without needing its own value.
+  const css = fs.readFileSync(new URL('../changelog.html', import.meta.url), 'utf8')
+  assert.match(css, /\.badge-security \{ background: var\(--band-ink\); color: var\(--band-text\); \}/,
+    'the Security badge must reuse the band ink/chip pair, inverted')
+})
+
 test('the Feature badge ink is legible on its own chip', () => {
   const ink = rgbaToken(light['--band-ink'])
   const chip = rgbaToken(light['--band-text'])
@@ -940,3 +949,25 @@ for (const { value } of PALETTES) {
     })
   }
 }
+
+test('Known limits does not borrow a change-group colour', () => {
+  // It shared --group-security for a while, which was invisible until a
+  // release carried both a Security group and a Known limits group and the
+  // same dot appeared twice in one entry.
+  //
+  // It is marked by FORM instead: a hollow dot in --text-secondary. That is
+  // deliberate rather than lazy. A sixth hue would have to stay separable from
+  // the other five under protan, deutan and tritan vision, which is a real
+  // budget to spend on a group that is not a change category at all -- it is a
+  // different kind of statement about the same release.
+  const css = fs.readFileSync(new URL('../changelog.html', import.meta.url), 'utf8')
+  const limits = /\.dot-limits \{([^}]*)\}/.exec(css)
+  assert.ok(limits, 'the limits dot needs its own rule')
+  assert.ok(!/var\(--group-/.test(limits[1]),
+    'Known limits must not reuse a change-group colour')
+  assert.match(limits[1], /background:\s*none/, 'hollow is what distinguishes it')
+
+  // And nothing still points the old label at it.
+  assert.ok(!/class="label-security">Known limits/.test(css),
+    'Known limits should use label-limits, not label-security')
+})

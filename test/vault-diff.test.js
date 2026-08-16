@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   diffEntries, diffHasSecrets, diffHasTotp, shownValue, describeTotp, MASK,
 } from '../src/vault-diff.js'
-import { normalizeEntry } from '../src/vault-store.js'
+import { normalizeEntry } from '../src/vault-entry.js'
 import { parseTotpInput } from '../src/totp.js'
 
 // The conflict dialog is the only place in WordLock that puts two versions of

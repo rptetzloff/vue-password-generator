@@ -161,6 +161,12 @@
          the band, and what the first attempt measured. */
       .badge-feature { background: var(--band-text); color: var(--band-ink); }
 
+      /* Security is Feature inverted -- the same two tokens the other way
+         round, so it is unmistakably a different badge while inheriting the
+         contrast that pair was already measured at, and staying neutral under
+         the mono palette without needing a colour of its own. */
+      .badge-security { background: var(--band-ink); color: var(--band-text); }
+
       /* ── Release card (right column) ──────────────────────── */
 
       .release-card {
@@ -222,6 +228,18 @@
       .dot-fixed    { background: var(--group-fixed); }
       .dot-removed  { background: var(--group-removed); }
       .dot-security { background: var(--group-security); }
+
+      /* Known limits is not a change category, it is a different kind of
+         statement -- so it is distinguished by FORM rather than hue. A sixth
+         colour would have to stay separable from five others under protan,
+         deutan and tritan vision, which is a real constraint to spend on a
+         group that is not competing with them for meaning. Hollow, in the
+         text colour the rest of the page already uses. */
+      .dot-limits {
+        background: none;
+        border: 2px solid var(--text-secondary);
+      }
+      .label-limits { color: var(--text-secondary); }
 
       .label-added    { color: var(--group-added); }
       .label-improved { color: var(--group-improved); }
@@ -322,6 +340,77 @@
     <div class="page">
       <div class="timeline">
 
+        <!-- v3.4.0 -->
+        <div class="release">
+          <div class="release-meta">
+            <div class="release-version">v3.4.0</div>
+            <div class="release-date">2026-08-16</div>
+            <span class="release-badge badge-security">Security</span>
+          </div>
+          <div>
+            <div class="release-card">
+              <div class="release-card-head">
+                <div class="release-title">The page can no longer build code from a string</div>
+                <div class="release-summary">The security policy stopped allowing <code>unsafe-eval</code>, and the Vue build that shipped with a compiler in it is gone &mdash; so it is not merely disallowed, it is impossible.</div>
+              </div>
+              <div class="change-groups">
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Security</span></div>
+                  <ul class="change-list">
+                    <li><strong><code>unsafe-eval</code> is out of the Content-Security-Policy.</strong> It had been there since the beginning and was genuinely required: components declared their markup as strings, and Vue compiled those in your browser through <code>new Function</code>. Without the allowance every page rendered blank &mdash; measured, not assumed. It was the weakest line in an otherwise strict policy.</li>
+                    <li><strong>And the compiler is gone with it</strong>, which is the stronger half. The page now ships Vue's runtime-only build, 88&nbsp;KB against 146, with no template compiler in it at all. The allowance is not just withdrawn but unnecessary: nothing on this origin can build a function from a string, whatever the policy says.</li>
+                    <li><strong>Two guards so it cannot come back quietly.</strong> A component reintroducing a runtime template would need both the compiler and the allowance again, and its failure mode is a blank page rather than an error &mdash; so a test fails instead, naming the file. A second test fails if either entry point stops importing the runtime-only build.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-improved"></span><span class="label-improved">Improved</span></div>
+                  <ul class="change-list">
+                    <li><strong>Markup lives in files you can open.</strong> The two largest source files were roughly half HTML by line, embedded in JavaScript string literals. That markup is now thirteen <code>.html</code> files under <code>src/templates/</code>, with editor support and syntax highlighting like any other HTML. <code>main.js</code> goes from 2,948 lines to 1,498 and <code>vault-app.js</code> from 2,687 to 1,518; the vault's single template was 1,168 lines on its own.</li>
+                    <li><strong>Nothing compiles in your browser any more</strong>, so the work of turning templates into render functions &mdash; previously done on every page load, in front of you &mdash; happens once, before release.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-added"></span><span class="label-added">Added</span></div>
+                  <ul class="change-list">
+                    <li><strong>A build step, and the smallest one that would do.</strong> It compiles templates and does nothing else: no bundling, no minifying, no transpiling, no rewriting of imports beyond pointing them at the vendored Vue. Its output is committed, so a server still sends exactly what is in the repository and there is no pipeline in between.</li>
+                    <li><strong>Both halves are committed and a test keeps them honest.</strong> The generated code is legible but nobody would choose to read <code>_hoisted_47</code>; the template beside it is what a person reads. So the templates stay in the repository too, and a test recompiles every one of them and fails if the committed output has drifted &mdash; the same treatment the policy's script hashes already get.</li>
+                  </ul>
+                </div>
+
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-fixed"></span><span class="label-fixed">Fixed</span></div>
+                  <ul class="change-list">
+                    <li><strong>The word lists were being downloaded again on every visit to a word-based tab.</strong> Switching between Words, Passphrase, Wireless and Mad&nbsp;Lib twice cost nine downloads and 264&nbsp;KB where two and 73&nbsp;KB would do. The shared loader has always cached; four generators had their own private copies of it that did not, left behind by an earlier tidy-up. Spotted in a browser&rsquo;s network tab, which is the only place it was visible.</li>
+                    <li><strong>The word lists are also allowed to be cached between visits now.</strong> They carried no caching instruction at all, so a browser re-checked them on every page load. A day, and not longer, because the filenames carry no version and an updated list still has to be able to reach you.</li>
+                    <li><strong>&ldquo;Change settings&rdquo; in the entry editor did nothing.</strong> The link that takes you to the full generator, keeping your half-typed entry, had been dead since folder storage shipped &mdash; a variable named <code>location</code> for <em>where the vault is kept</em> was shadowing the browser&rsquo;s own <code>location</code>, so the line that should navigate was quietly setting a property on the wrong object. No error, no warning, nothing in the console.</li>
+                    <li><strong>The About page overstated what forgetting your passphrase costs.</strong> It said nobody can recover a forgotten passphrase and called that the honest cost of having no account. Literally true &mdash; a recovery key gets past the passphrase rather than recovering it &mdash; but it read as <em>lose it and it is over</em>, which stopped being the whole story when the recovery key shipped in 3.1.0. The Legal page had described it correctly the whole time, so About was the one page disagreeing. The cost is still stated, in the place it actually falls: lose the passphrase <em>and</em> the recovery key, and the vault is gone for good.</li>
+                    <li><strong>The roadmap&rsquo;s reasoning rendered as code on GitHub, and sat in the wrong place here.</strong> Every entry that explains itself &mdash; every &ldquo;why not yet&rdquo;, every struck-through reversal &mdash; is a second paragraph of a list item, and both renderers got them wrong in different ways. On GitHub they became monospace boxes, because a six-space indent under a <code>-</code> marker is exactly Markdown&rsquo;s threshold for an indented code block; inside one, nothing is markup, so the strike-throughs that mark a reversed decision showed as literal <code>~~</code> characters. On this site they were ejected from the item and left at the page margin, looking like new prose rather than part of the entry. 719 lines re-indented and the renderer taught to keep an item&rsquo;s paragraphs inside it. Not one word changed.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-removed"></span><span class="label-removed">Removed</span></div>
+                  <ul class="change-list">
+                    <li><strong>Folder storage is no longer offered on phones.</strong> Chrome and Edge on Android both have the API, so the buttons appeared there &mdash; and then the folder permission did not survive a page <em>refresh</em>. Not each time you opened the app: each time the page loaded, and twice over, since the site asked to reconnect and then Android asked as well. Their file picker also lists local storage rather than the cloud locations your provider&rsquo;s own app shows, so there was nothing to sync with even after all that. A button that relocates the only copy of your vault should not lead somewhere that awkward.</li>
+                    <li><strong>If you already moved a vault to a folder on a phone, you can still get it back.</strong> That screen keeps both of its exits &mdash; reconnect for this session, or let go of the folder and leave the file where it is &mdash; on exactly the platform where the feature is no longer offered.</li>
+                  </ul>
+                </div>
+                <div class="change-group">
+                  <div class="change-group-label"><span class="dot dot-limits"></span><span class="label-limits">Known limits</span></div>
+                  <ul class="change-list">
+                    <li><strong>It is not smaller, despite the smaller Vue.</strong> Compiled render functions are bigger than the markup they replace: 198&nbsp;KB more code against 58&nbsp;KB less compiler. Compressed, which is how it actually travels, that nets out to roughly 7&nbsp;KB saved &mdash; a wash. The reasons for doing it are the policy and the extension path, not the byte count, and an earlier claim of a 58&nbsp;KB saving counted only the half that helped.</li>
+                    <li><strong>The project now has a development dependency</strong>, which it has not had since Vite was removed. Nothing is fetched to <em>run</em> the site &mdash; runtime dependencies are still zero &mdash; but building the templates needs Vue's compiler, and contributors need <code>npm ci</code> to regenerate them or run that one test. The browser build of the compiler cannot do it: it refuses the mode that emits modules, and the mode it will do emits code that is illegal inside one.</li>
+                    <li><strong><code>style-src</code> still allows <code>unsafe-inline</code>.</strong> Hashes do not cover style attributes and the documentation page carries 123 of them. With images and connections locked to this origin the usual CSS exfiltration trick has nowhere to send anything, so this is the cheaper half of the same trade &mdash; but it is still a weakening, and it is still there.</li>
+                  </ul>
+                </div>
+
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- v3.3.0 -->
         <div class="release">
           <div class="release-meta">
@@ -374,7 +463,7 @@
                 </div>
 
                 <div class="change-group">
-                  <div class="change-group-label"><span class="dot dot-security"></span><span class="label-security">Known limits</span></div>
+                  <div class="change-group-label"><span class="dot dot-limits"></span><span class="label-limits">Known limits</span></div>
                   <ul class="change-list">
                     <li><strong>Firefox and Safari cannot do this, and it is not a matter of waiting.</strong> Reading a file you pick works everywhere &mdash; that is what Import uses. Writing back to it needs the File System Access API, which neither has implemented; Mozilla's published position on the folder and file pickers is <em>harmful</em>, while its position on the sandboxed origin-private filesystem is positive. The objection is precisely to the part this needs. A replica that cannot save is a viewer, not a replica.</li>
                     <li><strong>Merging cannot see across your cloud provider's own sync.</strong> Two machines saving while the folder is out of step &mdash; offline, or inside the seconds your client takes to catch up &mdash; produces a <em>conflicted copy</em> file, which is Dropbox's arbitration and invisible to this page. Import that file and its entries merge back in.</li>

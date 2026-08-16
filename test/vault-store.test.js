@@ -2,10 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
-  createVaultStore, normalizeEntry, normalizeEntries, DEFAULT_AUTOLOCK_MS,
-  groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount,
-  TOMBSTONE_TTL_MS, isTombstone, EXPORT_HISTORY, deviceNameFrom, mergeMeta,
+  createVaultStore, DEFAULT_AUTOLOCK_MS, TOMBSTONE_TTL_MS, EXPORT_HISTORY, deviceNameFrom, mergeMeta
 } from '../src/vault-store.js'
+import {
+  normalizeEntry, normalizeEntries, groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount, isTombstone
+} from '../src/vault-entry.js'
 import { KDF_ITERATIONS, sealVault, deriveKey, newSalt, createVault, openVault } from '../src/vault-crypto.js'
 
 // Storage and the clock are injected, so the state machine, the auto-lock and
@@ -862,14 +863,69 @@ test('adding or removing a recovery key needs the passphrase, not just an open t
   assert.equal(store.hasRecoveryKey(), false)
 })
 
+/** A base64 blob: salt, iv, wrapped key, ciphertext. Random bytes by design. */
+const OPAQUE = /^[A-Za-z0-9+/]{16,}={0,2}$/
+
+/**
+ * The envelope split into what a leak could hide in.
+ *
+ * `plain` is every leaf VALUE that is not a base64 blob -- the metadata, where
+ * a phrase word appearing means something. `opaque` is the decoded bytes of
+ * the blobs, where it does not.
+ *
+ * Keys are excluded deliberately. `hash`, `iterations`, `salt` and `recovery`
+ * are all field names here AND words in the 17,576-word list, so a raw search
+ * over the serialised JSON failed whenever a phrase happened to draw one --
+ * every time, by construction, not by chance.
+ */
+const envelopeParts = (envelope) => {
+  const plain = []
+  const opaque = []
+  const walk = (node) => {
+    if (node === null || node === undefined) return
+    if (Array.isArray(node)) return node.forEach(walk)
+    if (typeof node === 'object') return Object.values(node).forEach(walk)
+    const s = String(node)
+    if (OPAQUE.test(s)) opaque.push(Buffer.from(s, 'base64').toString('latin1'))
+    else plain.push(s)
+  }
+  walk(envelope)
+  // A visible separator rather than a space or an escape. Two adjacent leaf
+  // values must not be able to form a phrase-like run across the join, and a
+  // pipe cannot occur inside a phrase, so it cannot manufacture a match. It
+  // also keeps a literal control byte out of this file, which the hygiene
+  // test rejects -- it caught one here, put in by a shell that ate the escape.
+  const SEP = ' | '
+  return { plain: plain.join(SEP), opaque: opaque.join(SEP) }
+}
+
 test('the phrase is not recoverable from anything the store persists', async () => {
   const { store, storage } = await freshStore()
   await store.create(PASS)
   const phrase = await store.addRecoveryKey(PASS, WORDS)
+  const words = phrase.split(' ')
+  const { plain, opaque } = envelopeParts(storage.box.value)
 
-  const onDisk = JSON.stringify(storage.box.value)
-  for (const word of phrase.split(' ')) {
-    assert.ok(!onDisk.includes(word), `"${word}" survives into storage`)
+  // In the metadata, any single word is a leak.
+  assert.ok(!plain.includes(phrase), 'the whole phrase must not be stored')
+  for (const word of words) {
+    assert.ok(!plain.includes(word), `"${word}" survives into the envelope's metadata`)
+  }
+
+  // In ciphertext, a single short word is arithmetic. ~~The old test searched
+  // the whole serialised envelope for each word and failed about once in a
+  // hundred runs.~~ Measured with a control: words the store had NEVER SEEN
+  // turned up at 0.5%, exactly the rate of words from the real phrase, so the
+  // check could not tell a leak from a coincidence. It caught nothing that
+  // could not also be noise, and a security test that cries wolf at 1% is one
+  // people learn to re-run.
+  //
+  // Three consecutive words cannot collide by accident, and a real leak --
+  // the phrase written out, or encoded and stored -- contains them.
+  for (let i = 0; i + 3 <= words.length; i++) {
+    const run = words.slice(i, i + 3).join(' ')
+    assert.ok(!opaque.includes(run), `"${run}" survives into the sealed bytes`)
+    assert.ok(!plain.includes(run), `"${run}" survives into the envelope's metadata`)
   }
 })
 

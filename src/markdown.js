@@ -70,18 +70,52 @@ export const renderMarkdown = (src) => {
   // emits both markers literally. Seven spans in the roadmap did exactly that.
   let open = null // { prefix, suffix, text: [] }
 
+  // The close tag of the <li> currently accepting content, or null.
+  //
+  // An item stays open across a blank line when what follows is indented to
+  // its content column, which is what lets one item hold several paragraphs.
+  // Without this the roadmap's reasoning -- every "why not yet", every
+  // reversal -- was ejected from the item it belonged to and rendered as
+  // top-level prose at the page margin, so an entry's argument stopped
+  // looking like part of the entry.
+  let itemSuffix = null
+
   const flush = () => {
     if (!open) return
     out.push(open.prefix, inline(open.text.join(' ')), open.suffix)
     open = null
   }
-  const closeNested = () => { if (nested) { flush(); out.push('</ul></li>'); nested = false } }
+  const closeItem = () => {
+    flush()
+    if (!itemSuffix) return
+    out.push(itemSuffix)
+    itemSuffix = null
+  }
+  const closeNested = () => { if (nested) { closeItem(); out.push('</ul></li>'); nested = false } }
   const closeList = () => {
     if (!listType) return
     closeNested()
-    flush()
+    closeItem()
     out.push(listType === 'ordered' ? '</ol>' : '</ul>')
     listType = null
+  }
+
+  /**
+   * What follows the blank line at `i`, which decides how much to close.
+   *
+   * 'continuation' -- indented, not a marker: another paragraph of the open
+   * item, so nothing closes. 'item' -- a marker: the item ends but the list
+   * does not, which is what keeps items separated by blank lines in one list
+   * rather than one list each. 'block' -- back at the margin: the list ends.
+   */
+  const after = (i) => {
+    for (let j = i + 1; j < lines.length; j++) {
+      const l = lines[j]
+      if (!l.trim()) continue
+      if (TASK.test(l) || BULLET.test(l) || ORDERED.test(l)) return 'item'
+      return l.length - l.replace(/^ +/, '').length >= 2 ? 'continuation' : 'block'
+    }
+    return 'block'
   }
   const closePara = () => { if (inPara) { flush(); inPara = false } }
   const closeAll = () => { closeList(); closePara() }
@@ -95,7 +129,15 @@ export const renderMarkdown = (src) => {
     }
     if (inCode) { out.push(escapeHtml(line) + '\n'); continue }
 
-    if (!line.trim()) { closeAll(); continue }
+    if (!line.trim()) {
+      if (itemSuffix) {
+        const next = after(i)
+        if (next === 'continuation') { flush(); continue }
+        if (next === 'item') { closeItem(); continue }
+      }
+      closeAll()
+      continue
+    }
 
     if (/^---+\s*$/.test(line)) { closeAll(); out.push('<hr />'); continue }
 
@@ -119,7 +161,11 @@ export const renderMarkdown = (src) => {
 
     // Tables: a header row, a separator, then body rows.
     if (line.trim().startsWith('|') && lines[i + 1] && /^\s*\|[\s|:-]+\|\s*$/.test(lines[i + 1])) {
-      closeAll()
+      // An indented table belongs to the open item, the same way a paragraph
+      // does -- the Firefox API comparison in 9d is one, and ejecting it left
+      // the item claiming a comparison that had walked off without it.
+      if (itemSuffix && /^ /.test(line)) flush()
+      else closeAll()
       const cells = (row) => row.trim().replace(/^\||\|$/g, '').split('|').map((c) => c.trim())
       const head = cells(line)
       out.push('<div class="table-scroll"><table><thead><tr>')
@@ -150,23 +196,27 @@ export const renderMarkdown = (src) => {
         out.push(wantType === 'task' ? '<ul class="task-list">' : (wantType === 'ordered' ? '<ol>' : '<ul>'))
         listType = wantType
       }
-      if (indent >= 2 && !nested) { flush(); out.push('<li><ul>'); nested = true }
+      if (indent >= 2 && !nested) { closeItem(); out.push('<li><ul>'); nested = true }
       else if (indent < 2 && nested) closeNested()
-      flush()
+      closeItem()
 
+      // The <li> is emitted now rather than buffered, because it may go on to
+      // hold several paragraphs and only the last of them knows where it ends.
       if (task) {
         const done = task[2].toLowerCase() === 'x'
         const box = done
           ? '<span class="task-box task-done" aria-hidden="true">[x]</span>'
           : '<span class="task-box task-todo" aria-hidden="true">[ ]</span>'
         const label = done ? 'Done: ' : 'To do: '
-        open = {
-          prefix: `<li class="${done ? 'is-done' : ''}">${box}<span><span class="sr-only">${label}</span>`,
-          suffix: '</span></li>',
-          text: [task[3]],
-        }
+        // A <div> rather than the <span> this used to be: the item's content
+        // is the second flex child, and paragraphs cannot live in a span.
+        out.push(`<li class="${done ? 'is-done' : ''}">${box}<div>`)
+        itemSuffix = '</div></li>'
+        open = { prefix: `<p><span class="sr-only">${label}</span>`, suffix: '</p>', text: [task[3]] }
       } else {
-        open = { prefix: '<li>', suffix: '</li>', text: [(bullet || ordered)[2]] }
+        out.push('<li>')
+        itemSuffix = '</li>'
+        open = { prefix: '<p>', suffix: '</p>', text: [(bullet || ordered)[2]] }
       }
       continue
     }
@@ -177,6 +227,10 @@ export const renderMarkdown = (src) => {
     // which was 69 of the file's 98 lists. A blank line still ends the item,
     // so this only rejoins lines the author had already joined.
     if (open && listType) { open.text.push(line.trim()); continue }
+
+    // A further paragraph inside the item, after a blank line that
+    // continuesItem() decided not to close on.
+    if (itemSuffix) { open = { prefix: '<p>', suffix: '</p>', text: [line.trim()] }; continue }
 
     // Anything else is paragraph text; consecutive lines join.
     if (!inPara) { closeList(); open = { prefix: '<p>', suffix: '</p>', text: [] }; inPara = true }

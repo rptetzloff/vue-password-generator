@@ -107,7 +107,7 @@ test('the escape check can tell a collapsed escape from a correct one', () => {
 // -- the vendored library, and the only thing that can watch it ---------------
 
 test('the declared Vue version is the Vue version actually vendored', () => {
-  // Vue is not installed, it is COPIED IN: vendor/vue.esm-browser.prod.js is
+  // Vue is not installed, it is COPIED IN: vendor/vue.runtime.esm-browser.prod.js is
   // what the browser runs, and there is no node_modules at runtime. That is
   // deliberate -- no build step, the deployed source is the source you can
   // read -- but it had a cost nobody had priced. Dependabot and npm audit read
@@ -131,7 +131,7 @@ test('the declared Vue version is the Vue version actually vendored', () => {
   assert.match(declared, /^\d+\.\d+\.\d+$/,
     'pinned exactly -- a range would mean the declared version is not the shipped one')
 
-  const bundle = fs.readFileSync(new URL('vendor/vue.esm-browser.prod.js', ROOT), 'utf8')
+  const bundle = fs.readFileSync(new URL('vendor/vue.runtime.esm-browser.prod.js', ROOT), 'utf8')
   const found = [...bundle.matchAll(/"(\d+\.\d+\.\d+)"/g)].map((m) => m[1])
   assert.ok(found.includes(declared),
     `package.json declares vue@${declared}, which does not appear in the vendored bundle`)
@@ -143,4 +143,37 @@ test('nothing is declared as a runtime dependency', () => {
   // run this.
   const pkg = JSON.parse(fs.readFileSync(new URL('package.json', ROOT), 'utf8'))
   assert.deepEqual(pkg.dependencies ?? {}, {})
+})
+
+test('nothing shadows a browser global that gets used bare', () => {
+  // `const location = ref(...)` in vault-app.js shadowed window.location for
+  // the whole of setup(), so `location.href = '/#words'` in the Change
+  // settings handler set a property on a Vue ref and navigated nowhere.
+  //
+  // Silent in every direction: no error, no warning, the assignment is legal,
+  // and the tests could not see it because they do not run a browser. It
+  // shipped with folder storage and was found by someone clicking the button.
+  //
+  // The rule is the shadowing, not the assignment. Renaming one call site to
+  // window.location fixes today's bug and leaves the trap for whoever next
+  // writes location.reload() or location.search in that file.
+  // Narrowed to the globals this codebase actually uses bare: window.location
+  // for navigation and window.navigator for storage and the user agent. A
+  // broader list caught a block-scoped `const length` inside an entropy
+  // calculation, which shadows nothing anyone would reach for -- a rule that
+  // cries wolf gets deleted, and then it protects nothing.
+  const GLOBALS = ['location', 'navigator']
+  const root = new URL('../', import.meta.url)
+  for (const f of fs.readdirSync(new URL('src/', root)).filter((n) => n.endsWith('.js'))) {
+    const text = fs.readFileSync(new URL('src/' + f, root), 'utf8')
+    for (const g of GLOBALS) {
+      // Declarations only -- a property called `name` or a destructured
+      // parameter is fine; it is `const name = ...` at statement level that
+      // captures every later bare use in the file.
+      const re = new RegExp(String.raw`(?:^|[;{]\s*|\n\s*)(?:const|let|var)\s+${g}\s*=`, 'm')
+      assert.ok(!re.test(text),
+        `src/${f} declares a variable named "${g}", which shadows window.${g} ` +
+        'for the rest of the scope. Rename it.')
+    }
+  }
 })

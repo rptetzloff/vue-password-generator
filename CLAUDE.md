@@ -1,6 +1,6 @@
 # House rules
 
-Nine rules, so they get applied rather than rediscovered. Short on purpose.
+Eleven rules, so they get applied rather than rediscovered. Short on purpose.
 
 ## Measure, don't assert
 
@@ -13,6 +13,36 @@ them.
 
 Corollary: a test that reads the source proves the source, not the behaviour.
 Keep both.
+
+## Don't jump to conclusions
+
+The sibling of the rule above, and the one that actually gets broken. The
+failure mode is not being wrong about hard things. It is taking a plausible
+reading and stating it as established when the check was one command away.
+
+Examples, all from one day. A CodeQL alert was reported as a stale finding on a
+line the pull request did not touch — the alerts API had been asked without a
+ref, so it answered for `main`, and the PR's own output naming the real file was
+already on screen and lost to the tidier story. The roadmap page's claim to
+render its source "as you see it there" was called true the moment the source
+was fixed, while the renderer half of the same bug was still wrong.
+Precompiling was announced as saving 58 KB a visitor, counting the compiler
+that left and not the render functions that arrived; the corrected estimate was
+wrong too, and only measuring both pages settled it. `$?` was read after a pipe,
+where it belongs to the last command rather than the one whose answer mattered.
+
+So: **if a claim is checkable in one command, run the command before saying the
+thing.** When it is not checkable, say which kind of claim it is. "The API
+returned one alert" and "there is one alert" are different sentences, and
+collapsing them is how a wrong answer arrives sounding confident.
+
+Two habits follow. Never pipe a command whose exit code matters. And a tool's
+report of its own work is a claim rather than evidence — including a query whose
+scope you chose, which will faithfully answer what you asked instead of what you
+meant.
+
+The tell is a story that resolves neatly on the first try. Evidence that arrives
+already tidy has usually been tidied.
 
 ## Comments explain why, never what
 
@@ -50,9 +80,53 @@ palette and both themes, because a pair that passes in one can fail in another.
 
 ## Dependencies default to none
 
-A new runtime dependency needs a reason in the PR. There is no build step: the
-deployed source is the source you can read, which is a claim the product makes
-and not merely a preference.
+A new runtime dependency needs a reason in the PR. Runtime dependencies are
+still zero, and that is the half that matters: nothing is fetched to run the
+thing.
+
+~~There is no build step.~~ **There is now one, and the claim it protected was
+kept rather than dropped.** The deployed source is still the source you can
+read, because the build runs in development and its output is committed —
+what a server sends is what is in the repository, with no pipeline between
+them. A build whose artefacts are not committed would break that; this one
+does not.
+
+Two obligations follow, and they are the price of the exception. Generated
+files carry a header saying what generates them, and a test recompiles the
+inputs and fails when the committed output no longer matches — otherwise the
+source of truth quietly becomes the artefact, and editing the input stops
+doing anything. Keep the input committed and readable too: generated code can
+be legible and still not be the thing anyone should read.
+
+## Docs are part of the change, not a follow-up
+
+Every PR checks the documents that make claims about the thing, and updates
+the ones the change made wrong: the readme, the security policy, the docs
+page, the about and legal pages, the changelog and the roadmap. Most changes
+touch two or three. Checking all of them is cheap; finding out months later
+which one went stale is not, and by then the wrong version has been read.
+
+This is a rule because nothing else catches it. A claim written when it was
+true does not announce that it stopped being true — no test fails, no build
+breaks, no page renders wrong. One pass found the security policy still
+listing `'unsafe-eval'` as present and recovery as unbuilt, both fixed
+releases earlier; the readme telling you to upgrade Vue by replacing a file
+that no longer exists, which would have put the compiler back and blanked the
+site; and `package.json` still advertising no build step.
+
+**The security policy is the one that must not drift.** Its "known, not a
+vulnerability" list exists to tell a researcher not to report something. An
+entry left there after the fix ships does not just mislead, it suppresses the
+report.
+
+Where a claim can be checked mechanically, prefer that to diligence — the CSP
+hashes, the template output and the service-worker version are all asserted by
+tests for this reason. Prose mostly cannot be, which is what the pass is for.
+
+Not every document says the same thing, and forcing them to match makes both
+worse. The readme is for someone deciding whether to run or fork it; the about
+page is for someone deciding whether to trust it. Same facts, different
+question. What they may not do is *disagree*.
 
 ## Commits and branches
 

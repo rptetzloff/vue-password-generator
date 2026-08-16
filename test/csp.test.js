@@ -113,27 +113,37 @@ test('the exfiltration channels are closed', () => {
     "script-src must not allow 'unsafe-inline'; the hashes exist precisely so it does not")
 })
 
-test("'unsafe-eval' is present, and its reason is written down", () => {
-  // Not an oversight. Vue compiles `template:` strings at runtime through
-  // `new Function`, so without this every page renders blank -- measured, not
-  // assumed. Asserting it stays documented rather than asserting it away.
+test("'unsafe-eval' is gone, and cannot come back unnoticed", () => {
+  // REVERSED. This asserted the OPPOSITE -- that 'unsafe-eval' was present
+  // and its reason documented -- because Vue compiled `template:` strings in
+  // the browser through `new Function`, and without the allowance every page
+  // rendered blank. That was measured, and true, for as long as it lasted.
+  //
+  // Templates are compiled ahead of time now (tools/build-templates.mjs) and
+  // the page ships vue.runtime.esm-browser.prod.js, which has no compiler in
+  // it. Nothing on this origin builds a function from a string, so the policy
+  // must not say it may.
   const scriptSrc = directive('script-src')
   assert.ok(
-    scriptSrc.includes("'unsafe-eval'"),
-    "script-src needs 'unsafe-eval': Vue's runtime template compiler uses new Function, " +
-      'and without it the app does not render at all',
+    !scriptSrc.includes("'unsafe-eval'"),
+    "script-src still allows 'unsafe-eval', which nothing needs now that "
+      + 'templates are precompiled',
   )
-  assert.match(
-    RENDER_YAML,
-    /new Function/,
-    "render.yaml must explain why 'unsafe-eval' is there, or a future reader will " +
-      'remove it and ship a blank site',
-  )
-  // If the templates are ever precompiled, this is the reminder to drop it.
-  const usesRuntimeTemplates = ['src/main.js', 'src/vault-app.js'].some((f) =>
-    /^\s*template:\s*`/m.test(fs.readFileSync(new URL(f, ROOT), 'utf8')))
-  assert.ok(
-    usesRuntimeTemplates,
-    "nothing uses a runtime `template:` string any more — drop 'unsafe-eval' from render.yaml",
-  )
+
+  // The half that would actually break the site. A runtime `template:` needs
+  // both the compiler and the allowance, and its failure mode is a blank page
+  // rather than an error -- so fail here, where the cause is legible.
+  for (const f of ['src/main.js', 'src/vault-app.js']) {
+    const text = fs.readFileSync(new URL(f, ROOT), 'utf8')
+    assert.ok(
+      !/^\s*template:\s*`/m.test(text),
+      `${f} declares a runtime template: string, which cannot render without `
+        + "'unsafe-eval' and the full Vue build. Put the markup in "
+        + 'src/templates/ and run node tools/build-templates.mjs',
+    )
+    // And the runtime-only build has to be the one shipped, or templates
+    // would quietly start compiling in the browser again.
+    assert.match(text, /vue\.runtime\.esm-browser\.prod\.js/,
+      `${f} must import the runtime-only Vue build`)
+  }
 })

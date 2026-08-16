@@ -50,7 +50,7 @@ test('everything the site serves is in the precache list', () => {
     ...listDir('src', ['.js', '.css']),
     ...listDir('src/assets', ['.svg', '.png']),
     ...listDir('data', ['.txt', '.json']),
-    '/vendor/vue.esm-browser.prod.js',
+    '/vendor/vue.runtime.esm-browser.prod.js',
     ...listDir('vendor/mdi/css', ['.css']),
     ...listDir('vendor/mdi/fonts', ['.woff2']),
   ]
@@ -120,4 +120,28 @@ test('only navigations ignore the query string', () => {
   const sw = fs.readFileSync(new URL('../sw.js', import.meta.url), 'utf8')
   const uses = (sw.match(/\{\s*ignoreSearch:\s*true\s*\}/g) || []).length
   assert.equal(uses, 1, 'ignoreSearch belongs on the navigation fallback only')
+})
+
+test('only generators.js fetches the word data', () => {
+  // The loaders in generators.js memoize; component-local copies did not, and
+  // four of them lived in main.js after the extraction that was supposed to
+  // remove them. Each word-based generator refetched words.json on every
+  // mount, so cycling the tabs twice cost nine requests and 264 KB instead of
+  // two and 73 KB. Invisible in review and invisible in the tests -- it took
+  // looking at a network tab.
+  //
+  // Fetching a wordlist from anywhere else is the regression, so that is what
+  // this forbids. The lists stay lazy on purpose: Simple, Advanced and Numbers
+  // need neither file, and bundling them would push 60 KB compressed onto
+  // every visitor to save nothing.
+  const root = new URL('../', import.meta.url)
+  const files = fs.readdirSync(new URL('src/', root)).filter((f) => f.endsWith('.js'))
+  for (const f of files) {
+    if (f === 'generators.js') continue
+    const text = fs.readFileSync(new URL('src/' + f, root), 'utf8')
+    const hits = [...text.matchAll(/fetch\(\s*['"`][^'"`]*\/?data\//g)]
+    assert.equal(hits.length, 0,
+      `src/${f} fetches the word data directly; import loadWordList/loadWordData ` +
+      'from generators.js instead, which caches')
+  }
 })

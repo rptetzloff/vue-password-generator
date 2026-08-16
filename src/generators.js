@@ -22,6 +22,16 @@
 //
 //   Word data. Two files, fetched once. `loadWordData()` caches, so a page
 //   with several generators pays for it once, but the caller decides when.
+//
+//   That was true of this module and false of the product for months. When
+//   these loaders were extracted here, four component-local copies were left
+//   behind in main.js -- one per word-based generator, each fetching straight
+//   from ./data/ with no cache at all. So Passphrase, Wireless and Mad Lib
+//   each refetched words.json on every mount: cycling the tabs twice cost nine
+//   requests and 264 KB where two and 73 KB were needed. Noticed from a
+//   network tab, not from reading this comment, which said the opposite.
+//
+//   There is a test now that no component fetches /data directly.
 
 import {
   randInt, randPick, randChar, stripAmbiguous, pickEmoji, applyCapitalization,

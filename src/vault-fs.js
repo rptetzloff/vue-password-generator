@@ -22,19 +22,22 @@
 // works for sync and a zip would not. And the name is prefixed because this
 // lands in a directory the user already keeps things in.
 //
-// WHAT THIS DOES NOT DO YET: reconcile. save() overwrites, which is correct
-// for one device and wrong the moment a second one shares the folder -- the
-// slower writer silently discards the faster one's work. mergeReplicas and the
-// entry model are already built for that; wiring them in is the next step, and
-// it changes what saving *means* rather than adding an adapter. Until then
-// this is "my vault lives in my Dropbox", which is worth having on its own:
-// the backup stops being a thing you remember to do.
+// ~~WHAT THIS DOES NOT DO YET: reconcile.~~ It does now. This header said
+// save() overwrites and the slower of two writers silently loses, which was
+// true when the adapter was written and stopped being true when persist()
+// became read-merge-write in vault-store.js. The adapter itself is unchanged:
+// it still just moves bytes, and the merging happens above it.
+//
+// What remains true is the boundary. Two machines are safe in sequence, not in
+// the same instant, and nothing here can see across the sync client's own
+// conflict handling -- writing while Dropbox is behind produces a conflicted
+// copy that only Dropbox knows about.
 //
 // Drafts deliberately stay local. A half-typed entry is scratch that must
 // survive a navigation and nothing more, and syncing it would push keystrokes
 // into a shared folder for no benefit.
 
-import { indexedDbStorage } from './vault-store.js'
+import { indexedDbStorage } from './vault-idb.js'
 import { isVaultEnvelope } from './vault-crypto.js'
 
 export const VAULT_FILENAME = 'wordlock-vault.json'
@@ -47,10 +50,49 @@ export const VAULT_FILENAME = 'wordlock-vault.json'
  */
 const LEGACY_FILENAME = 'vault.wrlck'
 
-/** Whether this browser can do any of it. Chromium desktop, today. */
-export const canUseFolder = () =>
-  typeof window !== 'undefined' &&
-  typeof window.showDirectoryPicker === 'function'
+/**
+ * Whether to OFFER folder storage, which is not the same question as whether
+ * the API exists.
+ *
+ * Chromium on Android has showDirectoryPicker -- Chrome and Edge both, tested
+ * on a phone -- so the plain capability test said yes and the buttons
+ * appeared. The permission then does not survive a PAGE REFRESH. Not each time
+ * the app is opened: each time the page loads, and twice over, because the
+ * site asks to reconnect and then Android asks as well. The picker is also the
+ * system file manager, which lists local storage rather than the cloud
+ * locations a provider's own app shows, so there is nothing there worth
+ * syncing to even when it works.
+ *
+ * That combination is a trap rather than a limitation. The button relocates
+ * the only copy of a vault, and on a phone it relocates it somewhere that
+ * cannot be opened again without a prompt every time, for no benefit.
+ *
+ * Feature detection answers "is the function present", not "does the feature
+ * work", and this is the gap. Nothing observable at call time reveals that a
+ * grant will not persist, so the platform is the only signal available.
+ *
+ * Split out and pure so the decision is testable without a browser.
+ *
+ * @param hasPicker  showDirectoryPicker is present
+ * @param mobile     navigator.userAgentData.mobile, or undefined
+ * @param ua         navigator.userAgent, for browsers without userAgentData
+ */
+export const folderSupport = (hasPicker, mobile, ua = '') => {
+  if (!hasPicker) return false
+  // userAgentData is the real answer and every browser that ships the picker
+  // is Chromium, which has it. The UA check is only for the narrow window
+  // where the picker exists and userAgentData does not.
+  if (mobile === true) return false
+  if (mobile === undefined && /\bAndroid\b|\b(iPhone|iPad|iPod)\b/.test(ua)) return false
+  return true
+}
+
+/** Whether this browser should be offered folder storage. */
+export const canUseFolder = () => typeof window !== 'undefined' && folderSupport(
+  typeof window.showDirectoryPicker === 'function',
+  typeof navigator !== 'undefined' ? navigator.userAgentData?.mobile : undefined,
+  typeof navigator !== 'undefined' ? navigator.userAgent : '',
+)
 
 /**
  * Ask for a folder. Must be called from a user gesture, which is a browser

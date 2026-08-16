@@ -54,10 +54,12 @@
           memorable word-based passphrases.
         </p>
         <p>
-          Nothing you generate is sent anywhere. There is no account, no server to
-          talk to, and no build step: the site is plain HTML, CSS and ES modules,
-          with its dependencies vendored into the repository. See
-          <a href="/legal.html">Legal</a> for the full privacy statement.
+          Nothing you generate is sent anywhere. There is no account and no server to
+          talk to: the site is plain HTML, CSS and ES modules, with its one library
+          vendored into the repository rather than fetched from anywhere. What a server
+          sends you is what is in the repository — nothing is bundled, minified or
+          assembled on the way. See <a href="/legal.html">Legal</a> for the full privacy
+          statement.
         </p>
         <p>
           There is also a <a href="/vault.html">vault</a>, because a generator on its own is a
@@ -65,8 +67,12 @@
           thirty seconds later. The vault keeps what you generate, encrypted with a
           passphrase only you know. It has no account for the same reason the rest of
           the site does not — there is nothing here to sign in to. That means backups are yours to
-          keep and nobody can recover a forgotten passphrase, which is the honest cost of the
-          arrangement rather than an oversight. The <a href="/docs.html#vault">documentation</a>
+          keep, and that nobody here can let you back in: there is no password reset, because there
+          is no account to reset. What there is instead is a <strong>recovery key</strong> — sixteen
+          words, shown once, that you keep somewhere safe and that open the vault when the passphrase
+          has gone. Lose the passphrase and that as well, and the vault is gone for good. Which is
+          the honest cost of the arrangement rather than an oversight.
+          The <a href="/docs.html#vault">documentation</a>
           explains how it is encrypted and what it does not protect against.
         </p>
         <p>

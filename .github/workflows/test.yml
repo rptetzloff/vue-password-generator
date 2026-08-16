@@ -21,8 +21,40 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node }}
-      # No install step on purpose -- the project has zero dependencies and no
-      # build. If that ever stops being true, this workflow should start failing
-      # loudly rather than quietly growing an npm ci.
+          cache: npm
+
+      # THIS IS THE MOMENT THE OLD COMMENT WARNED ABOUT.
+      #
+      # It read: "No install step on purpose -- the project has zero
+      # dependencies and no build. If that ever stops being true, this workflow
+      # should start failing loudly rather than quietly growing an npm ci."
+      #
+      # It stopped being true, on purpose, and this is the loud part. Dropping
+      # 'unsafe-eval' from the CSP meant compiling templates ahead of time, and
+      # that needs @vue/compiler-dom: the vendored browser build refuses module
+      # mode because prefixing identifiers needs a JS parser it does not
+      # bundle, and the function mode it will do emits `with (_ctx)`, illegal
+      # in an ES module.
+      #
+      # What is installed is a DEV dependency only. `dependencies` is still
+      # empty, nothing is fetched to run the site, and the generated output is
+      # committed -- Render still serves this repository as-is.
+      #
+      # The install exists for exactly one test. test/templates.test.js
+      # recompiles every template and fails if the committed render functions
+      # have drifted from them, and it SKIPS when the compiler is absent so a
+      # fresh clone can still run the other 734. Skipping is fine locally and
+      # not fine here: without this step, a template edited without
+      # regenerating would pass CI silently, and the old markup would keep
+      # rendering.
+      - name: Install (dev only -- see above)
+        run: npm ci
+
       - name: Run tests
         run: node --test
+
+      # Belt and braces on the same property, and cheap. If the drift test were
+      # ever skipped by accident -- a rename, a bad condition -- this still
+      # fails, because it does not depend on the test being reached.
+      - name: Templates match their compiled output
+        run: node tools/build-templates.mjs --check
