@@ -705,31 +705,23 @@ wordlock/
   a real downgrade even though nothing about it is visible on the day it
   happens.
 
-  **The scope of an account, stated so the guard can be written against it: an
-  account exists for sync and for nothing else.** The generator is free and
-  needs no sign-in. The local vault is free and needs no sign-in. Only syncing
-  a vault between machines requires one.
+  **What an account is for was settled in 8e and is not restated here.**
+  "Separate storage from sync — they are not the same problem… it is only
+  *sync across devices* that needs identity." Invariant 2 adds that standalone
+  is permanent rather than a trial, 9d forbids the prompt on first run and the
+  synced-users-only feature, and 9d again pins the account to an opaque sync
+  identifier rather than a profile. Four places, all of them older than this
+  epic.
 
-  That is not a new promise — Invariant 2 already says standalone is a complete
-  mode rather than a trial, and 9d already forbids an account prompt on first
-  run, a feature that exists only for synced users, and a reminder that syncing
-  is available. What is new is that those now have to hold on a host that will
-  also carry account UI, so the same words need to survive being tested rather
-  than believed.
+  The only thing this section adds is the guard, and it is needed because the
+  move changes who is holding the line. Those four statements are currently
+  true by construction — there is no account to prompt for. On a host that
+  carries account UI they become things someone has to keep remembering.
 
-  Three tiers, and the boundary between the second and third is the whole
-  rule:
-
-  | | account |
-  |---|---|
-  | generate a password | never |
-  | a vault on this device | never |
-  | the same vault on two devices | yes |
-
-  So the guard is: no sign-in, no account prompt and no upgrade path on the
-  generator or anywhere in the local vault, and the only surface permitted to
-  ask for one is the sync path itself. Cheap to write now, and impossible to
-  retrofit honestly once something has shipped that violates it.
+  So: no sign-in, no account prompt and no upgrade path on the generator or
+  anywhere in the local vault, with the sync path the only surface permitted
+  to ask — asserted by a test rather than intended. Cheap now, and impossible
+  to retrofit honestly once something has shipped that breaks it.
 
 - [x] **`core/` extraction ships first and alone.** It is valuable even if no
   other surface is ever built, it is mostly `git mv`, and it is the prerequisite
