@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import {
   MODES, DEFAULTS, MADLIB_TEMPLATES, ALL_SYMBOLS, generate, generateWithRetry,
   commonInitials, allOf,
-} from '../src/generators.js'
+} from '../core/generate/generators.js'
 import { LEET_MAP } from '../core/generate/lib.js'
 
 // The generators, lifted out of main.js's Vue components.

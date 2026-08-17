@@ -224,3 +224,51 @@ test('the CC BY-SA wordlist stays outside the MIT tree', () => {
   assert.ok(fs.existsSync(new URL('data/orchard-street-long.txt', root)),
     'the wordlist moved; the licence note in README.md points at data/')
 })
+
+test('core/ names no browser API', () => {
+  // The property that makes core/ portable, and the one that erodes silently.
+  // Nothing fails when a module reaches for localStorage -- it works in the
+  // browser, the tests inject fakes and never notice, and the iOS credential
+  // provider finds out much later.
+  //
+  // This is what kept generators.js and vault-store.js in src/ through the
+  // first half of phase 1: not Vue, which nothing imported, but a
+  // localStorage read in readSettings() and two adapter imports used only to
+  // default a parameter. Both were invisible to the suite for exactly this
+  // reason -- a test that injects a fake proves the code works with the fake,
+  // not that the dependency is optional.
+  //
+  // Comments may mention these freely; several explain why the thing is NOT
+  // used here. It is code that may not.
+  const BROWSER = ['localStorage', 'sessionStorage', 'indexedDB', 'navigator', 'document', 'fetch']
+  const root = new URL('../', import.meta.url)
+  const offenders = []
+
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(new URL(dir, root), { withFileTypes: true })) {
+      if (e.isDirectory()) { walk(`${dir}${e.name}/`); continue }
+      if (!e.name.endsWith('.js')) continue
+      const rel = dir + e.name
+      const text = fs.readFileSync(new URL(rel, root), 'utf8')
+      text.split(/\r?\n/).forEach((line, i) => {
+        const code = line.replace(/^\s*(\/\/|\*|\/\*).*$/, '')
+        for (const api of BROWSER) {
+          // String.raw, so the word boundaries survive being written down.
+          // They did not the first time: a heredoc collapsed `\\b` to `\b`,
+          // which a template literal reads as a BACKSPACE character, and the
+          // guard would have matched nothing and passed forever. The escape
+          // check two tests up caught it, which is the only reason this is
+          // not still sitting here looking green.
+          if (new RegExp(String.raw`\b${api}\b`).test(code)) {
+            offenders.push(`  ${rel}:${i + 1} uses ${api} — ${line.trim().slice(0, 60)}`)
+          }
+        }
+      })
+    }
+  }
+  walk('core/')
+
+  assert.deepEqual(offenders, [],
+    'core/ must stay portable; move the side effect to src/ and inject the '
+    + `result:\n${offenders.join('\n')}`)
+})

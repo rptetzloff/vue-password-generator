@@ -34,9 +34,11 @@ the way to you.
 - **The vault's cryptography** — `core/vault/crypto.js`. Key derivation, the
   sealed envelope, IV handling, anything that would let ciphertext be read or
   forged.
-- **The vault's lifecycle** — `src/vault-store.js`, `src/vault-session.js`,
-  `core/vault/entry.js`. Auto-lock, the between-pages session, key lifetime,
-  read-merge-write, the conflict guard.
+- **The vault's lifecycle** — `core/vault/store.js` for the state machine,
+  read-merge-write and the conflict guard; `src/vault-session.js` for the
+  between-pages key and `src/vault-store.js` for the wiring that gives the
+  state machine its real storage and session. Auto-lock and key lifetime span
+  both. Also `core/vault/entry.js`.
 - **The recovery key** — `core/vault/recovery-key.js`. A vault with two ways in is
   only as strong as the weaker one, which is why the phrase is generated and
   never chosen. Anything that lowers its 225 bits, leaks it, leaves it in

@@ -335,14 +335,17 @@ wordlock/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── orchard-street-long.txt  # Words mode list (17,576 words, CC BY-SA 4.0)
-├── core/                 # Portable logic: no DOM, no framework, no platform
+├── core/                 # Portable logic. A test fails if anything here names
+│   │                     # localStorage, navigator, document, fetch or indexedDB
 │   ├── generate/
+│   │   ├── generators.js # The seven generators; arithmetic over its arguments
 │   │   ├── lib.js        # Pure helpers, incl. the CSPRNG draw — unit tested
 │   │   ├── entropy.js    # Bits accounting for every generator (6a/6b)
 │   │   ├── common-passwords.js     # The deny-list behind the strength readout
 │   │   └── passphrase-strength.js  # Scoring for the vault's passphrase
 │   ├── vault/
 │   │   ├── crypto.js     # AES-256-GCM, PBKDF2, the sealed envelope (v1 and v2)
+│   │   ├── store.js      # State machine, read-merge-write, conflict guard
 │   │   ├── entry.js      # Entry rules: normalise, tombstone, sort, group, reuse
 │   │   ├── transfer.js   # Import and export, including from other managers
 │   │   ├── diff.js       # Conflict diff — compares raw, renders masked
@@ -354,13 +357,14 @@ wordlock/
 │   ├── templates/        # The markup, as .html. This is the source of truth
 │   │   ├── main/         # App, the seven generators, EntropyPanel, HistoryStrip…
 │   │   └── vault/
-│   ├── generators.js     # Generation + readSettings; localStorage keeps it here
+│   ├── generator-io.js   # The only place word data is fetched, and it caches
 │   ├── clipboard-clear.js      # The 30-second clipboard timer
 │   ├── history-crypto.js       # Encrypts the per-generator history at rest
 │   │
 │   ├── vault-app.js      # The vault app
 │   ├── vault.render.js   # GENERATED from templates/vault/ — do not edit
-│   ├── vault-store.js    # State machine, read-merge-write, conflict guard
+│   ├── vault-store.js    # Wires core's store to IndexedDB, session and device
+│   ├── vault-settings.js # Lock window, device id and name — the browser reads
 │   ├── vault-session.js  # Auto-lock and the between-pages wrapped key
 │   ├── vault-idb.js      # Storage adapter: IndexedDB
 │   ├── vault-fs.js       # Storage adapter: a folder you chose

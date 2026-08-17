@@ -134,14 +134,30 @@ test('only generators.js fetches the word data', () => {
   // this forbids. The lists stay lazy on purpose: Simple, Advanced and Numbers
   // need neither file, and bundling them would push 60 KB compressed onto
   // every visitor to save nothing.
+  // The one allowed fetcher moved from src/generators.js to src/generator-io.js
+  // when core/ was carved out: the generation is arithmetic and went to
+  // core/generate/, the two loaders touch the network and stayed. The rule is
+  // unchanged -- exactly one memoizing place fetches -- but core/ is walked too
+  // now, since a loader added there would be just as invisible.
   const root = new URL('../', import.meta.url)
-  const files = fs.readdirSync(new URL('src/', root)).filter((f) => f.endsWith('.js'))
+  const ALLOWED = 'src/generator-io.js'
+  const files = []
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(new URL(dir, root), { withFileTypes: true })) {
+      if (e.isDirectory()) walk(`${dir}${e.name}/`)
+      else if (e.name.endsWith('.js')) files.push(dir + e.name)
+    }
+  }
+  walk('src/')
+  walk('core/')
+  assert.ok(files.includes(ALLOWED), `${ALLOWED} is the allowed fetcher and is missing`)
+
   for (const f of files) {
-    if (f === 'generators.js') continue
-    const text = fs.readFileSync(new URL('src/' + f, root), 'utf8')
+    if (f === ALLOWED) continue
+    const text = fs.readFileSync(new URL(f, root), 'utf8')
     const hits = [...text.matchAll(/fetch\(\s*['"`][^'"`]*\/?data\//g)]
     assert.equal(hits.length, 0,
-      `src/${f} fetches the word data directly; import loadWordList/loadWordData ` +
-      'from generators.js instead, which caches')
+      `${f} fetches the word data directly; import loadWordList/loadWordData ` +
+      `from ${ALLOWED} instead, which caches`)
   }
 })

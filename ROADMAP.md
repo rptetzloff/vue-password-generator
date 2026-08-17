@@ -696,12 +696,39 @@ wordlock/
   That is 1,663 lines waiting on a small injection rather than a rewrite, and
   it is the next piece of phase 1 rather than a new phase.
 
-- [ ] **Inject the last two side effects, and `core/` is complete.**
-  `readSettings()` takes its storage as an argument; `vault-store.js` takes its
-  adapter and its lock-window store the same way, with the browser defaults
-  moving up to the callers in `src/`. Both are already testable with fakes, so
-  the change is mechanical — the tests inject storage today, which is why the
-  coupling survived unnoticed.
+- [x] ~~**Inject the last two side effects**~~ **— split them out instead, and
+  `core/` is complete at 3,825 lines.** Injection was the plan and it was the
+  wrong shape: a default parameter of `localStorage` inside `core/` is the same
+  coupling with a longer name, and it would have defeated the test below.
+
+  `generators.js` split by what it does rather than by what it is. Thirteen
+  pure exports went to `core/generate/generators.js`; the four that read
+  `localStorage` or `fetch` became `src/generator-io.js`.
+
+  `vault-store.js` turned out to inject its dependencies already — storage, the
+  clock and the session were all parameters. What pinned it to `src/` was three
+  *exports* reaching for the browser directly: the lock window, the device id
+  and the device name. Those are `src/vault-settings.js` now, the state machine
+  is `core/vault/store.js` with inert defaults and storage made required, and a
+  thin `src/vault-store.js` supplies the browser's real ones. Neither app's call
+  site changed.
+
+- [x] **A test asserts `core/` names no browser API.** `localStorage`,
+  `sessionStorage`, `indexedDB`, `navigator`, `document` and `fetch`, in code
+  rather than comments — several comments explain why the thing is *not* used
+  there.
+
+  This is the guard the phase actually needed. Nothing failed while the
+  coupling existed: it worked in the browser, the tests injected fakes and
+  never noticed, and the credential provider would have found out in phase 4.
+  A test that fakes a dependency proves the code works with the fake, not that
+  the dependency is optional.
+
+  It nearly shipped inert. Written through a heredoc, `\b` collapsed to a
+  backspace character, so the pattern matched nothing and passed — caught by
+  the escape-check test added months earlier for exactly that. Verified to fire
+  by putting a `localStorage` call into `core/totp.js` and watching it name the
+  file and line.
 
 ### 11b. What Render does when there are two sites
 

@@ -6,7 +6,7 @@ import {
   simpleBits, advancedBits, wordsBits, slotBits, alliterationSlotParts,
   numbersSurprisal, numbersBits, ENTROPY_FLOOR,
 } from '../core/generate/entropy.js'
-import { generate } from '../src/generators.js'
+import { generate } from '../core/generate/generators.js'
 
 // The entropy display is only worth shipping if the numbers are true. Where a
 // formula can be PROVEN against enumeration, it is; where it mirrors a

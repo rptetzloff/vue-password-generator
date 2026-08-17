@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import {
   createVaultStore, DEFAULT_AUTOLOCK_MS, TOMBSTONE_TTL_MS, EXPORT_HISTORY, deviceNameFrom, mergeMeta
-} from '../src/vault-store.js'
+} from '../core/vault/store.js'
 import {
   normalizeEntry, normalizeEntries, groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount, isTombstone
 } from '../core/vault/entry.js'

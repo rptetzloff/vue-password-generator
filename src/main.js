@@ -46,12 +46,13 @@ const suffixOptionMeta = (value, prefixValue, excl) => {
 }
 const capOptionMeta = (mode) => (mode === 'random' ? '1 bit/letter' : mode === 'word-random' ? '1 bit/word' : '0 bits')
 import { getHistoryKey, encryptJSON, decryptJSON, isEncryptedEnvelope } from './history-crypto.js'
-import { createVaultStore, vaultLockMs, vaultLockSection } from './vault-store.js'
+import { createVaultStore } from './vault-store.js'
+import { vaultLockMs, vaultLockSection } from './vault-settings.js'
 import { scheduleClipboardClear, clipboardClearSection } from './clipboard-clear.js'
 import {
   MODES, MADLIB_TEMPLATES, ALL_SYMBOLS, draw, build, generate, WIRELESS_MIN,
-  loadWordList, loadWordData,
-} from './generators.js'
+} from '../core/generate/generators.js'
+import { loadWordList, loadWordData } from './generator-io.js'
 import { initTheme } from './theme.js'
 import { mountSiteHeader } from './site-header.js'
 import { mountSiteFooter } from './site-footer.js'
