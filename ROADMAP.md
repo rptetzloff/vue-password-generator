@@ -705,11 +705,31 @@ wordlock/
   a real downgrade even though nothing about it is visible on the day it
   happens.
 
-  So it needs a guard rather than an intention: the generator page carries no
-  sign-in, no account prompt and no "upgrade" path, and a test asserts it —
-  the same way 9d already forbids an account prompt on first run. Cheap to
-  write now, and impossible to retrofit honestly once someone has shipped the
-  thing it forbids.
+  **The scope of an account, stated so the guard can be written against it: an
+  account exists for sync and for nothing else.** The generator is free and
+  needs no sign-in. The local vault is free and needs no sign-in. Only syncing
+  a vault between machines requires one.
+
+  That is not a new promise — Invariant 2 already says standalone is a complete
+  mode rather than a trial, and 9d already forbids an account prompt on first
+  run, a feature that exists only for synced users, and a reminder that syncing
+  is available. What is new is that those now have to hold on a host that will
+  also carry account UI, so the same words need to survive being tested rather
+  than believed.
+
+  Three tiers, and the boundary between the second and third is the whole
+  rule:
+
+  | | account |
+  |---|---|
+  | generate a password | never |
+  | a vault on this device | never |
+  | the same vault on two devices | yes |
+
+  So the guard is: no sign-in, no account prompt and no upgrade path on the
+  generator or anywhere in the local vault, and the only surface permitted to
+  ask for one is the sync path itself. Cheap to write now, and impossible to
+  retrofit honestly once something has shipped that violates it.
 
 - [x] **`core/` extraction ships first and alone.** It is valuable even if no
   other surface is ever built, it is mostly `git mv`, and it is the prerequisite
