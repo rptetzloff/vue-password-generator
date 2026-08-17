@@ -1491,26 +1491,54 @@ and both should be revisited deliberately rather than drifted into.
   it annotates every `v-if` and the site ships literal `<!--v-if-->`
   markers; importing the `.prod.js` path is not sufficient on its own.
 
-- [ ] **Read the envelope design against OWASP ASVS 5.0, chapter V11.**
-  Scanners answer "does this code have a known bad pattern"; they cannot
-  answer "is this cryptographic design right for what it claims". The
-  Cryptography chapter is a structured checklist for exactly that — key
-  lifecycle, algorithm choice, random sources, key storage, and what happens
-  at rotation — and it is a read-through rather than a tool run. Chapter V6,
-  Authentication, is worth the same pass for the passphrase and recovery
-  slots.
+- [ ] **Run the whole of OWASP ASVS 5.0, not two chapters of it.** The
+  maintainer's call, and the reason is what this is: a thing whose only job is
+  holding other people's passwords does not get to pick which chapters of a
+  security standard apply to it.
 
-  ~~Written as "ASVS V6 (Cryptography)" and "V2 (Authentication)".~~ Those are
-  4.0.3 chapter numbers, and ASVS 5.0.0 renumbered everything in May 2025:
-  Cryptography moved to V11 and **V6 is now Authentication**, so the old note
-  pointed at the wrong chapter while naming the right subject. It also read as
-  a version rather than a chapter, which is a version of ASVS that does not
-  exist. Both readings landed somewhere wrong, so the standard's version is
-  stated alongside the chapter now.
+  ~~Chapter V11 for the envelope, and V6 for the passphrase and recovery
+  slots.~~ Too narrow, and narrow in a way that would have aged badly. The
+  chapters that look inapplicable today are exactly the ones Epic 11 makes
+  applicable — V4 API and Web Service, V7 Session Management, V8
+  Authorization, V9 Self-contained Tokens, V12 Secure Communication, V16
+  Logging and Error Handling are all dead letters until there is a sync
+  server, and all live the moment there is one. Running them before the API
+  exists is far cheaper than auditing one that has already shipped.
 
-  Queued rather than done: it is a deliberate exercise against the threat
-  model, not a pre-release gate, and doing it badly in a hurry would be
-  worse than the honest gap.
+  A rough split, to be confirmed by the pass rather than trusted from here.
+  Live today: V1 encoding and sanitization (the Markdown renderer), V3 web
+  frontend (the CSP), V5 file handling (folder storage, import), V6
+  authentication (the passphrase and the recovery key), V7 session management
+  (the stay-unlocked window), V11 cryptography, V13 configuration (the
+  headers), V14 data protection, V15 secure coding and architecture. Not yet:
+  V4, V8, V9, V10 OAuth and OIDC, V12, V16. Probably never: V17 WebRTC.
+
+  ~~It is a read-through rather than a tool run.~~ **Also wrong, and it is the
+  framing that matters most.** ASVS is the *Verification* Standard and its
+  requirements are phrased "Verify that…" — most of them are assertable, and
+  this project's own rule is to prefer a mechanical check to diligence
+  wherever a rule can be read out of the source. Forty-four crypto-shaped
+  assertions already exist here and several are V11 requirements under
+  different names: the tampered envelope refusing to decrypt, a fresh IV per
+  seal and a fresh salt per vault, `randInt` discarding the ragged tail rather
+  than taking a modulus, the iteration count travelling inside the envelope.
+
+  So the shape is: map the standard onto what is already asserted, write tests
+  for the gaps that are testable, and treat the residue as the short list that
+  needs a conversation. What a scanner cannot answer is real — "is a random
+  per-vault salt right here, or should it be derived" is not a checkbox — but
+  that residue is the exercise, not the whole chapter, and pretending
+  otherwise turns a verification standard into a reading assignment.
+
+  **An open question inside this one: which level.** ASVS defines L1, L2 and
+  L3, and the level is a claim about how much verification the thing has had.
+  L2 is the usual bar for an application handling sensitive data; L3 is for
+  the ones where compromise is unacceptable. Worth deciding deliberately,
+  since the answer changes the size of the work and is the sort of thing that
+  ends up quoted.
+
+  Timing: when ready, and deliberately not blocking phase 2. Doing it badly in
+  a hurry would be worse than the honest gap.
 
 - [ ] **Split the large files.** `main.js` and `vault-app.js` are both far
   past readable and are named as known exceptions in CLAUDE.md, to be
