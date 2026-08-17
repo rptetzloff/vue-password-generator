@@ -4,7 +4,7 @@ import fs from 'node:fs'
 import {
   RECOVERY_WORDS, recoveryBits, generateRecoveryPhrase,
   normalizeRecoveryPhrase, checkRecoveryPhrase,
-} from '../src/recovery-key.js'
+} from '../core/vault/recovery-key.js'
 
 // The real list, because the entropy claim is about this list and no other.
 const WORDS = fs

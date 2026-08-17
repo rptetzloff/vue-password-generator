@@ -23,7 +23,7 @@
 // typed back by hand under stress, months later, by someone who is already
 // having a bad day.
 
-import { randInt } from './lib.js'
+import { randInt } from '../generate/lib.js'
 
 /**
  * Sixteen words from the 17,576-word Orchard Street list: log2(17576) = 14.1

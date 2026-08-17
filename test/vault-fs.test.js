@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { createFolderStorage, VAULT_FILENAME } from '../src/vault-fs.js'
-import { createVault, openVault } from '../src/vault-crypto.js'
+import { createVault, openVault } from '../core/vault/crypto.js'
 import { createVaultStore } from '../src/vault-store.js'
 
 // The File System Access API does not exist in node, so the directory handle

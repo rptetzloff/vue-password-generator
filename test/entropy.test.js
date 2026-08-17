@@ -5,7 +5,7 @@ import {
   log2Multinomial, tokenBits, suffixBits, capitalizationBits,
   simpleBits, advancedBits, wordsBits, slotBits, alliterationSlotParts,
   numbersSurprisal, numbersBits, ENTROPY_FLOOR,
-} from '../src/entropy.js'
+} from '../core/generate/entropy.js'
 import { generate } from '../src/generators.js'
 
 // The entropy display is only worth shipping if the numbers are true. Where a
@@ -276,7 +276,7 @@ test('the floor is where the roadmap put it', () => {
 })
 
 test('wireless with alliteration prices the letter, the pools, and names the cost', async () => {
-  const { wirelessBits } = await import('../src/entropy.js')
+  const { wirelessBits } = await import('../core/generate/entropy.js')
   const { total, parts } = wirelessBits({
     alliteration: true, commonLetters: 21,
     slots: [
@@ -293,7 +293,7 @@ test('wireless with alliteration prices the letter, the pools, and names the cos
 })
 
 test('the comparison anchors are the figures the docs claim', async () => {
-  const { REFERENCE_PER_CHAR, MAIN_LIST_WORD_BITS } = await import('../src/entropy.js')
+  const { REFERENCE_PER_CHAR, MAIN_LIST_WORD_BITS } = await import('../core/generate/entropy.js')
   // One Simple character, all four sets: 2 + mean(log2 26, 26, 10, 29).
   const expected = 2 + (2 * Math.log2(26) + Math.log2(10) + Math.log2(29)) / 4
   assert.ok(Math.abs(REFERENCE_PER_CHAR - expected) < 1e-12)
@@ -301,7 +301,7 @@ test('the comparison anchors are the figures the docs claim', async () => {
 })
 
 test('crack times are average-case at the named scenario rates', async () => {
-  const { ATTACK_SCENARIOS, crackSeconds } = await import('../src/entropy.js')
+  const { ATTACK_SCENARIOS, crackSeconds } = await import('../core/generate/entropy.js')
   assert.equal(ATTACK_SCENARIOS.length, 4)
   const rates = Object.fromEntries(ATTACK_SCENARIOS.map((s) => [s.id, s.rate]))
   assert.deepEqual(rates, { fast: 1e11, slow: 1e4, online: 10, lockout: 5 / 900 })
@@ -325,7 +325,7 @@ test('crack times are average-case at the named scenario rates', async () => {
 })
 
 test('guess times format across the whole range', async () => {
-  const { formatGuessTime } = await import('../src/entropy.js')
+  const { formatGuessTime } = await import('../core/generate/entropy.js')
   assert.equal(formatGuessTime(0.2), 'under a second')
   assert.equal(formatGuessTime(5.5), '6 seconds')
   assert.equal(formatGuessTime(120), '2 minutes')
@@ -337,7 +337,7 @@ test('guess times format across the whole range', async () => {
 })
 
 test('meter tiers sit on the attack-anchored boundaries', async () => {
-  const { entropyTier, METER_MAX, ENTROPY_FLOOR } = await import('../src/entropy.js')
+  const { entropyTier, METER_MAX, ENTROPY_FLOOR } = await import('../core/generate/entropy.js')
   assert.equal(entropyTier(0).id, 'weak')
   assert.equal(entropyTier(39.9).id, 'weak')
   assert.equal(entropyTier(ENTROPY_FLOOR).id, 'fair') // the floor is the weak/fair line

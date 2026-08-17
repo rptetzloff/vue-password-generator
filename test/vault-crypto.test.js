@@ -4,7 +4,7 @@ import {
   createVault, openVault, sealVault, deriveKey, newSalt,
   isVaultEnvelope, needsRekey, needsUpgrade, KDF_ITERATIONS, VAULT_VERSION,
   addSlot, removeSlot, slotsOf, hasRecovery,
-} from '../src/vault-crypto.js'
+} from '../core/vault/crypto.js'
 
 // The vault is the one place in this project where a cryptographic mistake
 // costs the user their passwords rather than a wrong number on a chart, so

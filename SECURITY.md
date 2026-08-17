@@ -31,13 +31,13 @@ the way to you.
 
 ## In scope
 
-- **The vault's cryptography** — `src/vault-crypto.js`. Key derivation, the
+- **The vault's cryptography** — `core/vault/crypto.js`. Key derivation, the
   sealed envelope, IV handling, anything that would let ciphertext be read or
   forged.
 - **The vault's lifecycle** — `src/vault-store.js`, `src/vault-session.js`,
-  `src/vault-entry.js`. Auto-lock, the between-pages session, key lifetime,
+  `core/vault/entry.js`. Auto-lock, the between-pages session, key lifetime,
   read-merge-write, the conflict guard.
-- **The recovery key** — `src/recovery-key.js`. A vault with two ways in is
+- **The recovery key** — `core/vault/recovery-key.js`. A vault with two ways in is
   only as strong as the weaker one, which is why the phrase is generated and
   never chosen. Anything that lowers its 225 bits, leaks it, leaves it in
   storage after it has been shown, or lets one key reveal the other.
@@ -51,7 +51,7 @@ the way to you.
 - **The Content-Security-Policy** in `render.yaml`, and any way around it.
 - **Randomness and the entropy figures.** A biased draw or an overstated bit
   count is a security bug here, not a cosmetic one — the number is the claim.
-- **Import and export parsing** — `src/vault-transfer.js`. Malformed input
+- **Import and export parsing** — `core/vault/transfer.js`. Malformed input
   from another manager's file should fail, not execute or corrupt.
 - **Anything that sends data off the device.** The product's central claim is
   that nothing leaves it; a counterexample is the most serious report possible.

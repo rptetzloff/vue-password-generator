@@ -38,7 +38,7 @@
 // into a shared folder for no benefit.
 
 import { indexedDbStorage } from './vault-idb.js'
-import { isVaultEnvelope } from './vault-crypto.js'
+import { isVaultEnvelope } from '../core/vault/crypto.js'
 
 export const VAULT_FILENAME = 'wordlock-vault.json'
 

@@ -2,8 +2,8 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   estimatePassphrase, poolSize, repeatingUnit, longestRun, longestRepeat, hasKeyboardRun, isCommon,
-} from '../src/passphrase-strength.js'
-import { simpleBits } from '../src/entropy.js'
+} from '../core/generate/passphrase-strength.js'
+import { simpleBits } from '../core/generate/entropy.js'
 
 // This module is the project's only guess, so the tests are mostly about it
 // staying an honest one: never claiming MORE than pool arithmetic allows,

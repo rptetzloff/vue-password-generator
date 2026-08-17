@@ -19,15 +19,15 @@
 import {
   createVault, openVault, sealVault, isVaultEnvelope,
   addSlot, removeSlot, needsUpgrade, hasRecovery as cryptoHasRecovery,
-} from './vault-crypto.js'
-import { generateRecoveryPhrase, normalizeRecoveryPhrase } from './recovery-key.js'
+} from '../core/vault/crypto.js'
+import { generateRecoveryPhrase, normalizeRecoveryPhrase } from '../core/vault/recovery-key.js'
 import * as realSession from './vault-session.js'
-import { mergeEntries, mergeReplicas } from './vault-transfer.js'
+import { mergeEntries, mergeReplicas } from '../core/vault/transfer.js'
 import { indexedDbStorage } from './vault-idb.js'
 import {
   isTombstone, normalizeEntry, normalizeEntries, tagsOf, groupsOf,
   UNGROUPED, SORTS, sortEntries, reuseIndex, reuseCount, groupEntries,
-} from './vault-entry.js'
+} from '../core/vault/entry.js'
 
 
 /** Fifteen minutes, matching the lockout scenario the entropy panel quotes. */

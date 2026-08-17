@@ -3,8 +3,8 @@ import assert from 'node:assert/strict'
 import {
   exportBackup, exportPlainJson, exportCsv, parseTransfer, parseCsv,
   mapCsvHeaders, mergeEntries, mergeReplicas, transferFilename,
-} from '../src/vault-transfer.js'
-import { normalizeEntries } from '../src/vault-entry.js'
+} from '../core/vault/transfer.js'
+import { normalizeEntries } from '../core/vault/entry.js'
 
 const ENTRIES = [
   {

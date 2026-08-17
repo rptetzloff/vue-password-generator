@@ -7,7 +7,7 @@
 // machinery, and they were buried in the middle of a file whose other job is
 // holding a decryption key in memory.
 
-import { normalizeTotp } from './totp.js'
+import { normalizeTotp } from '../totp.js'
 
 // --- entries -----------------------------------------------------------------
 

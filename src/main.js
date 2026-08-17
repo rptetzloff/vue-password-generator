@@ -23,12 +23,12 @@ import {
   joinPerGap,
   PER_GAP_SEPARATORS,
   stripAmbiguous,
-} from './lib.js'
+} from '../core/generate/lib.js'
 import {
   simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits,
   ENTROPY_FLOOR, entropyTier, METER_MAX, tokenBits, suffixBits,
   REFERENCE_PER_CHAR, MAIN_LIST_WORD_BITS, ATTACK_SCENARIOS, crackSeconds, formatGuessTime,
-} from './entropy.js'
+} from '../core/generate/entropy.js'
 
 // 6b, extended to the controls themselves: every option in the separator,
 // affix and capitalization pickers states its worth where it is chosen. The

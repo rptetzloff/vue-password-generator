@@ -215,7 +215,7 @@ Each tab keeps a **generation history** of your last 10 passwords (shown below t
 
 - **Client-side only** — all generation happens in your browser; nothing is transmitted
 - **Cryptographically secure** — uses `crypto.getRandomValues()` for all randomness
-- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `src/lib.js` discards the ragged tail instead
+- **Unbiased** — random values are drawn with rejection sampling, so every character and word in a pool is equally likely. Taking `crypto.getRandomValues(...) % n` directly would skew results toward low values; the `randInt()` helper in `core/generate/lib.js` discards the ragged tail instead
 - **Fails loudly** — `crypto.getRandomValues()` needs a secure context (HTTPS or `localhost`). Over plain HTTP on a non-localhost host, generation errors out rather than falling back to a weaker source
 - **Passwords stay local** — generated passwords are never transmitted; recent history is cached in `localStorage` only, on your device
 - **Settings saved locally** — preferences are stored in your browser's `localStorage` only
@@ -335,33 +335,36 @@ wordlock/
 ├── data/
 │   ├── words.json        # Categorized word lists (nouns, verbs, adjectives, adverbs)
 │   └── orchard-street-long.txt  # Words mode list (17,576 words, CC BY-SA 4.0)
-├── src/
+├── core/                 # Portable logic: no DOM, no framework, no platform
+│   ├── generate/
+│   │   ├── lib.js        # Pure helpers, incl. the CSPRNG draw — unit tested
+│   │   ├── entropy.js    # Bits accounting for every generator (6a/6b)
+│   │   ├── common-passwords.js     # The deny-list behind the strength readout
+│   │   └── passphrase-strength.js  # Scoring for the vault's passphrase
+│   ├── vault/
+│   │   ├── crypto.js     # AES-256-GCM, PBKDF2, the sealed envelope (v1 and v2)
+│   │   ├── entry.js      # Entry rules: normalise, tombstone, sort, group, reuse
+│   │   ├── transfer.js   # Import and export, including from other managers
+│   │   ├── diff.js       # Conflict diff — compares raw, renders masked
+│   │   └── recovery-key.js  # Sixteen words: generate, normalise, validate
+│   └── totp.js           # One-time codes
+├── src/                  # The browser: apps, adapters, and the site chrome
 │   ├── main.js           # The generator app: the seven components and their state
 │   ├── main.render.js    # GENERATED from templates/main/ — do not edit
 │   ├── templates/        # The markup, as .html. This is the source of truth
 │   │   ├── main/         # App, the seven generators, EntropyPanel, HistoryStrip…
 │   │   └── vault/
-│   ├── generators.js     # Pure generation, shared by the app and the vault
-│   ├── lib.js            # Pure helpers (no Vue, no DOM) — unit tested
-│   ├── entropy.js        # Bits accounting for every generator (6a/6b)
-│   ├── common-passwords.js     # The deny-list behind the strength readout
-│   ├── passphrase-strength.js  # Scoring for the vault's passphrase
+│   ├── generators.js     # Generation + readSettings; localStorage keeps it here
 │   ├── clipboard-clear.js      # The 30-second clipboard timer
 │   ├── history-crypto.js       # Encrypts the per-generator history at rest
 │   │
 │   ├── vault-app.js      # The vault app
 │   ├── vault.render.js   # GENERATED from templates/vault/ — do not edit
-│   ├── vault-crypto.js   # AES-256-GCM, PBKDF2, the sealed envelope (v1 and v2)
-│   ├── recovery-key.js   # Sixteen words: generate, normalise, validate
 │   ├── vault-store.js    # State machine, read-merge-write, conflict guard
-│   ├── vault-entry.js    # Entry rules: normalise, tombstone, sort, group, reuse
 │   ├── vault-session.js  # Auto-lock and the between-pages wrapped key
 │   ├── vault-idb.js      # Storage adapter: IndexedDB
 │   ├── vault-fs.js       # Storage adapter: a folder you chose
 │   ├── vault-location.js # Which adapter is in use, and moving between them
-│   ├── vault-diff.js     # Conflict diff — compares raw, renders masked
-│   ├── vault-transfer.js # Import and export, including from other managers
-│   ├── totp.js           # One-time codes
 │   │
 │   ├── theme.js          # Light/dark/system + palette runtime
 │   ├── palettes.js       # The accent palette manifest, incl. cvd-safe flags

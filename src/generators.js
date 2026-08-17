@@ -37,10 +37,10 @@ import {
   randInt, randPick, randChar, stripAmbiguous, pickEmoji, applyCapitalization,
   applyLeet, resolveToken, resolveSuffixToken, isPerGapSeparator, joinPerGap,
   EMOJI_POOLS,
-} from './lib.js'
+} from '../core/generate/lib.js'
 import {
   simpleBits, advancedBits, wordsBits, slotBits, wirelessBits, numbersBits,
-} from './entropy.js'
+} from '../core/generate/entropy.js'
 
 /**
  * The modes, in the order the generator's tabs present them.

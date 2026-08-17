@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { randInt, randPick, randBool, randChar, DIGITS, SPECIAL_CHARS } from '../src/lib.js'
+import { randInt, randPick, randBool, randChar, DIGITS, SPECIAL_CHARS } from '../core/generate/lib.js'
 
 test('randInt stays within [0, max)', () => {
   for (const n of [2, 3, 7, 10, 26, 62, 91]) {

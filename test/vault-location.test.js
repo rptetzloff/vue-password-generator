@@ -4,7 +4,7 @@ import {
   resolveLocation, moveVaultToFolder, moveVaultToLocal, openVaultInFolder, releaseFolder,
 } from '../src/vault-location.js'
 import { VAULT_FILENAME } from '../src/vault-fs.js'
-import { createVault } from '../src/vault-crypto.js'
+import { createVault } from '../core/vault/crypto.js'
 
 // Moving a vault is the operation with the worst failure mode in the product:
 // get it wrong and someone's passwords are gone, with no backup unless they

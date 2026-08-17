@@ -18,7 +18,7 @@ import {
   SPECIAL_CHARS,
   LEET_MAP,
   EMOJI_POOLS,
-} from '../src/lib.js'
+} from '../core/generate/lib.js'
 
 test('deterministic capitalization modes', () => {
   assert.equal(applyCapitalization('haNDle', 'title'), 'Handle')
@@ -241,7 +241,7 @@ test('historyKeysIn covers a hypothetical new generator', () => {
 })
 
 test('history entries migrate from strings and reject junk', async () => {
-  const { normalizeHistory } = await import('../src/lib.js')
+  const { normalizeHistory } = await import('../core/generate/lib.js')
   const out = normalizeHistory(['abc', { pw: 'def', bits: 56.4 }, { pw: 'ghi', bits: 'x' }, 7, null, { bits: 3 }])
   assert.deepEqual(out, [
     { pw: 'abc', bits: null },

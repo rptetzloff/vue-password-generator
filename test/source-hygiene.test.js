@@ -28,7 +28,7 @@ const sourceFiles = () => {
       else if (/\.(js|css|html|json|md|yaml|yml)$/.test(name.name)) out.push(rel)
     }
   }
-  for (const dir of ['src/', 'test/', 'data/']) walk(dir)
+  for (const dir of ['src/', 'core/', 'test/', 'data/']) walk(dir)
   for (const name of fs.readdirSync(ROOT)) {
     if (/\.(html|json|md|yaml|yml)$/.test(name)) out.push(name)
   }
@@ -55,7 +55,9 @@ test('the hygiene check is actually looking at the source', () => {
   // A walker that silently found nothing would pass the test above forever.
   const files = sourceFiles()
   assert.ok(files.length > 30, `only found ${files.length} source files to check`)
-  assert.ok(files.some((f) => f === 'src/vault-transfer.js'), 'the file that prompted this is not covered')
+  assert.ok(files.some((f) => f === 'core/vault/transfer.js'), 'the file that prompted this is not covered')
+  assert.ok(files.some((f) => f.startsWith('src/')), 'src/ must still be walked')
+  assert.ok(files.some((f) => f.startsWith('core/')), 'core/ must be walked too -- it did not exist when this walker was written')
   assert.ok(files.some((f) => f.endsWith('.css')), 'stylesheets are not covered')
 })
 
@@ -164,16 +166,61 @@ test('nothing shadows a browser global that gets used bare', () => {
   // cries wolf gets deleted, and then it protects nothing.
   const GLOBALS = ['location', 'navigator']
   const root = new URL('../', import.meta.url)
-  for (const f of fs.readdirSync(new URL('src/', root)).filter((n) => n.endsWith('.js'))) {
-    const text = fs.readFileSync(new URL('src/' + f, root), 'utf8')
+  // src/ and core/ both, since core/ was carved out of src/ and the same
+  // declarations moved with it. A walker pointed at the old directory would
+  // have gone on passing while covering less.
+  const files = []
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(new URL(dir, root), { withFileTypes: true })) {
+      if (e.isDirectory()) walk(`${dir}${e.name}/`)
+      else if (e.name.endsWith('.js')) files.push(dir + e.name)
+    }
+  }
+  walk('src/')
+  walk('core/')
+  assert.ok(files.some((f) => f.startsWith('core/')), 'core/ must be covered')
+
+  for (const f of files) {
+    const text = fs.readFileSync(new URL(f, root), 'utf8')
     for (const g of GLOBALS) {
       // Declarations only -- a property called `name` or a destructured
       // parameter is fine; it is `const name = ...` at statement level that
       // captures every later bare use in the file.
       const re = new RegExp(String.raw`(?:^|[;{]\s*|\n\s*)(?:const|let|var)\s+${g}\s*=`, 'm')
       assert.ok(!re.test(text),
-        `src/${f} declares a variable named "${g}", which shadows window.${g} ` +
+        `${f} declares a variable named "${g}", which shadows window.${g} ` +
         'for the rest of the scope. Rename it.')
     }
   }
+})
+
+test('the CC BY-SA wordlist stays outside the MIT tree', () => {
+  // data/orchard-street-long.txt is CC BY-SA 4.0. The rest of this project is
+  // MIT, and the list is its own file specifically so the share-alike terms
+  // never reach words.json or the source. Until now that boundary was held by
+  // the directory layout and a paragraph in the readme -- which is thin
+  // protection in a project whose next epic rearranges the directory layout.
+  //
+  // Folding the list into core/generate/ beside MIT source is exactly how a
+  // licence boundary gets erased by a `git mv`, so the layout is asserted
+  // rather than trusted.
+  const root = new URL('../', import.meta.url)
+  const MIT_TREES = ['core/', 'src/', 'tools/']
+  const SHARE_ALIKE = ['orchard-street-long.txt']
+
+  for (const dir of MIT_TREES) {
+    const walk = (d) => {
+      for (const e of fs.readdirSync(new URL(d, root), { withFileTypes: true })) {
+        if (e.isDirectory()) { walk(`${d}${e.name}/`); continue }
+        assert.ok(!SHARE_ALIKE.includes(e.name),
+          `${d}${e.name} is CC BY-SA 4.0 and must not live inside the MIT tree. `
+          + 'Keep it under data/, a sibling of core/ rather than a child.')
+      }
+    }
+    walk(dir)
+  }
+
+  // And it must still be where the readme says it is.
+  assert.ok(fs.existsSync(new URL('data/orchard-street-long.txt', root)),
+    'the wordlist moved; the licence note in README.md points at data/')
 })

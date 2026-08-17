@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import {
   base32Decode, parseOtpauth, parseTotpInput, normalizeTotp,
   totpCode, secondsRemaining, formatCode, DEFAULTS,
-} from '../src/totp.js'
+} from '../core/totp.js'
 
 // TOTP is worth shipping only if the codes are right, and "right" here has a
 // published answer: RFC 6238 Appendix B lists test vectors. Anything else is

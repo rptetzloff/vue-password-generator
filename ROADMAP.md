@@ -669,10 +669,39 @@ wordlock/
   consequence for the tree: the same fact that makes the app worth building is
   the fact that stops mobile being one codebase.
 
-- [ ] **`core/` extraction ships first and alone.** It is valuable even if no
+- [x] **`core/` extraction ships first and alone.** It is valuable even if no
   other surface is ever built, it is mostly `git mv`, and it is the prerequisite
   for all of them. Everything else in this epic is blocked on it; nothing in it
   is blocked on anything.
+
+  **Done, and two files did not come.** Ten modules moved and git recorded all
+  ten as renames, so the history followed: `lib`, `entropy`,
+  `common-passwords` and `passphrase-strength` to `core/generate/`; `crypto`,
+  `entry`, `transfer`, `diff` and `recovery-key` to `core/vault/`, dropping the
+  redundant prefix inside the directory that supplies it; and `totp` to
+  `core/`.
+
+  ~~Mostly `git mv`.~~ True of what moved, and it understated the coupling of
+  what did not. Two modules have a real browser dependency and stay in `src/`
+  until it is injected:
+
+  - **`generators.js`** reads `localStorage` in `readSettings()`. The
+    generation itself is pure; the settings lookup is not.
+  - **`vault-store.js`** reads `localStorage` for the lock window and the
+    device id, *and* imports the IndexedDB and session adapters directly for
+    its defaults. 8c predicted exactly this — "needs a storage adapter and
+    somewhere other than `localStorage` for the lock window" — which is the
+    roadmap being right about something a year before it mattered.
+
+  That is 1,663 lines waiting on a small injection rather than a rewrite, and
+  it is the next piece of phase 1 rather than a new phase.
+
+- [ ] **Inject the last two side effects, and `core/` is complete.**
+  `readSettings()` takes its storage as an argument; `vault-store.js` takes its
+  adapter and its lock-window store the same way, with the browser defaults
+  moving up to the callers in `src/`. Both are already testable with fakes, so
+  the change is mechanical — the tests inject storage today, which is why the
+  coupling survived unnoticed.
 
 ### 11b. What Render does when there are two sites
 
@@ -924,7 +953,7 @@ sync needs an account. A local vault breaks no published claim.
   ship, behind a confirmation that says exactly what the file is, with
   PLAINTEXT in the filename, and a warning inside the JSON itself. The
   encrypted backup remains the default and the only one the export reminder
-  counts. See the header of `src/vault-transfer.js`.
+  counts. See the header of `core/vault/transfer.js`.
 
 **Richer entries, added along the way.** An entry started as a label, a
 password and a note. Storing logins rather than just generated strings needs

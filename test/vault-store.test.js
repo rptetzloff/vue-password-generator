@@ -6,8 +6,8 @@ import {
 } from '../src/vault-store.js'
 import {
   normalizeEntry, normalizeEntries, groupsOf, tagsOf, sortEntries, groupEntries, SORTS, UNGROUPED, reuseIndex, reuseCount, isTombstone
-} from '../src/vault-entry.js'
-import { KDF_ITERATIONS, sealVault, deriveKey, newSalt, createVault, openVault } from '../src/vault-crypto.js'
+} from '../core/vault/entry.js'
+import { KDF_ITERATIONS, sealVault, deriveKey, newSalt, createVault, openVault } from '../core/vault/crypto.js'
 
 // Storage and the clock are injected, so the state machine, the auto-lock and
 // the entry rules are all exercised here without a browser. Only the

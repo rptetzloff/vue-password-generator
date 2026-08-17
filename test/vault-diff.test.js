@@ -2,9 +2,9 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   diffEntries, diffHasSecrets, diffHasTotp, shownValue, describeTotp, MASK,
-} from '../src/vault-diff.js'
-import { normalizeEntry } from '../src/vault-entry.js'
-import { parseTotpInput } from '../src/totp.js'
+} from '../core/vault/diff.js'
+import { normalizeEntry } from '../core/vault/entry.js'
+import { parseTotpInput } from '../core/totp.js'
 
 // The conflict dialog is the only place in WordLock that puts two versions of
 // an entry side by side, which makes it the one place a secret can reach the
