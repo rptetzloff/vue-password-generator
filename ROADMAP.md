@@ -669,6 +669,48 @@ wordlock/
   consequence for the tree: the same fact that makes the app worth building is
   the fact that stops mobile being one codebase.
 
+- [x] **What goes on which host — decided 2026-08-17.** Only two of the seven
+  pages load Vue at all, which made this cleaner than expected: `index.html`
+  and `vault.html` pull `main.js` and `vault-app.js`; the other five load only
+  `theme.js`, `site-header.js` and `site-footer.js`, plus `markdown.js` for the
+  roadmap.
+
+  **`app.wordlock.net`** — the generator and the vault. Vue, `core/`, the
+  storage adapters and `data/` are needed here and nowhere else, so none of
+  them get duplicated. Account information too, eventually, when there is any.
+
+  **`wordlock.net`** — about, changelog, docs, legal, roadmap, and a home page
+  that **does not exist yet**. Today `index.html` *is* the generator, so the
+  marketing site has no landing page to move; one has to be written. Docs could
+  go either way and leans site: it documents the vault but reads as product
+  information.
+
+  The only real duplication is the icon font — 396 KB, for 32 distinct icons
+  across the site pages and the shared chrome. Subsetting it, or inlining those
+  32 as SVG, would remove it from `site/` entirely. Worth doing, not worth
+  blocking on.
+
+- [x] **Invariant 1 survives the move, and the phrase "front door" does not.**
+  Epic 9 requires this be deliberate rather than an implementation detail, so:
+  the *substance* is untouched. The generator never becomes a modal inside a
+  vault, never loses a mode to make room for storage UI, never requires an
+  unlocked vault or an account, and someone who wants one strong password can
+  still arrive, generate, copy and leave. None of that is about a hostname.
+  "Front door" meant *not buried behind the vault*, not *at the apex domain*.
+
+  **What the move does cost is that the guarantee stops being structural.**
+  Today "never requires an account" is impossible to violate because no account
+  exists anywhere in the product. Once the generator shares an origin with
+  account information, the same promise is kept by discipline instead. That is
+  a real downgrade even though nothing about it is visible on the day it
+  happens.
+
+  So it needs a guard rather than an intention: the generator page carries no
+  sign-in, no account prompt and no "upgrade" path, and a test asserts it —
+  the same way 9d already forbids an account prompt on first run. Cheap to
+  write now, and impossible to retrofit honestly once someone has shipped the
+  thing it forbids.
+
 - [x] **`core/` extraction ships first and alone.** It is valuable even if no
   other surface is ever built, it is mostly `git mv`, and it is the prerequisite
   for all of them. Everything else in this epic is blocked on it; nothing in it

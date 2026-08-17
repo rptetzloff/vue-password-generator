@@ -49,6 +49,7 @@ const PRECACHE = [
   '/core/vault/store.js',
   '/src/vault-store.js',
   '/src/vault-settings.js',
+  '/src/origin-handoff.js',
   '/core/vault/entry.js',
   '/src/vault-idb.js',
   '/core/vault/diff.js',
