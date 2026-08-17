@@ -170,7 +170,7 @@ test('the carried set is answerable to the source, not to itself', () => {
   const read = (p) => fs.readFileSync(new URL(p, root), 'utf8')
 
   const declared = []
-  for (const f of ['src/theme.js', 'src/clipboard-clear.js', 'src/vault-settings.js',
+  for (const f of ['ui/theme.js', 'src/clipboard-clear.js', 'src/vault-settings.js',
     'src/vault-app.js', 'src/main.js', 'core/vault/store.js']) {
     for (const m of read(f).matchAll(/[A-Z_]*KEY\s*=\s*'([^']+)'/g)) declared.push(m[1])
   }

@@ -53,9 +53,9 @@ import {
   MODES, MADLIB_TEMPLATES, ALL_SYMBOLS, draw, build, generate, WIRELESS_MIN,
 } from '../core/generate/generators.js'
 import { loadWordList, loadWordData } from './generator-io.js'
-import { initTheme } from './theme.js'
-import { mountSiteHeader } from './site-header.js'
-import { mountSiteFooter } from './site-footer.js'
+import { initTheme } from '../ui/theme.js'
+import { mountSiteHeader } from '../ui/site-header.js'
+import { mountSiteFooter } from '../ui/site-footer.js'
 
 const loadSetting = (key, fallback) => {
   try {

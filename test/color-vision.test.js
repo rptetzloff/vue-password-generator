@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import { ciede2000, closestPair, seenAs, VISIONS } from './helpers/color.js'
-import { PALETTES, DEFAULT_PALETTE } from '../src/palettes.js'
+import { PALETTES, DEFAULT_PALETTE } from '../ui/palettes.js'
 
 // Whether the palette works for color-blind users used to be answered by eye.
 // Eye was wrong: the old dark-theme change-group set contained a pair a
@@ -56,7 +56,7 @@ test('CIEDE2000 is symmetric and zero for identical colors', () => {
 // ---------------------------------------------------------------------------
 // Now the palette itself.
 // ---------------------------------------------------------------------------
-const CSS = fs.readFileSync(new URL('../src/tokens.css', import.meta.url), 'utf8')
+const CSS = fs.readFileSync(new URL('../ui/tokens.css', import.meta.url), 'utf8')
 const readBlock = (selector) => {
   const start = CSS.indexOf(selector)
   assert.notEqual(start, -1, `${selector} not found in tokens.css`)
@@ -103,7 +103,7 @@ test('every change group color is defined in both themes', () => {
 // ---------------------------------------------------------------------------
 // Palette cvdSafe flags.
 //
-// src/palettes.js records, per accent palette, whether that accent stays
+// ui/palettes.js records, per accent palette, whether that accent stays
 // clearly distinct from the three status colors under every kind of color
 // vision. The settings panel shows that as an eye marker, so it is a claim
 // made to users.
@@ -191,7 +191,7 @@ for (const { value, label, cvdSafe, monochrome } of PALETTES) {
       cvdSafe,
       `${label} is recorded as cvdSafe: ${cvdSafe}, but its accent comes within ` +
         `${worst.delta.toFixed(1)} of ${worst.status} in ${worst.theme}/${worst.vision} ` +
-        `(threshold ${CVD_SAFE_THRESHOLD}). Update the flag in src/palettes.js, or the colors.`,
+        `(threshold ${CVD_SAFE_THRESHOLD}). Update the flag in ui/palettes.js, or the colors.`,
     )
   })
 }
@@ -231,7 +231,7 @@ test('the eye marker claims exactly what the metric measures', () => {
   // honest fix is scope, not a wider floor: the marker's tooltip must name
   // the status colors and nothing broader, so the claim never outruns the
   // measurement.
-  const panel = fs.readFileSync(new URL('../src/settings-panel.js', import.meta.url), 'utf8')
+  const panel = fs.readFileSync(new URL('../ui/settings-panel.js', import.meta.url), 'utf8')
   const m = /CVD_NOTE = '([^']+)'/.exec(panel)
   assert.ok(m, 'settings-panel.js no longer defines CVD_NOTE')
   assert.match(m[1], /success, warning and error colors/,

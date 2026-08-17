@@ -144,7 +144,7 @@ remembered in `localStorage`.
 
 ## Accessibility
 
-- Every color pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `src/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
+- Every color pair in both themes is verified against **WCAG AA** — 4.5:1 for text, 3:1 for control boundaries and focus rings. This is enforced by tests that read `ui/tokens.css` directly, so a token change that breaks contrast fails the build rather than shipping.
 - Sizes that should follow your text size use relative units, so browser zoom and larger default font sizes scale the interface rather than clipping it. Verified with no horizontal scroll at 320px — the WCAG 1.4.10 reflow width — at both default and 150% text.
 - Every interactive control has an accessible name; icon-only buttons carry contextual labels such as "Decrease min lowercase letters".
 - A single 2px focus ring is defined site-wide rather than relying on browser defaults, which measured as little as 0.67px on some controls. This claim was false for a while and is worth naming: `.slider` set `outline: none`, which ties the global rule on specificity and beats it on source order, so the range inputs had no focus indicator at all. Tests now reject any rule that suppresses an outline.
@@ -276,7 +276,7 @@ can be tested without a browser: the CSPRNG (range, uniformity, and that
 rejection sampling actually discards the biased tail), the word and character
 transforms, the vault's crypto and its state machine with storage faked, theme
 resolution, nav path matching, and both WCAG contrast and color-vision
-separation read straight out of `src/tokens.css`.
+separation read straight out of `ui/tokens.css`.
 
 A second group asserts things about the repository rather than about values,
 because each of them is a bug that shipped once: `csp.test.js` recomputes the
@@ -369,19 +369,22 @@ wordlock/
 │   ├── vault-idb.js      # Storage adapter: IndexedDB
 │   ├── vault-fs.js       # Storage adapter: a folder you chose
 │   ├── vault-location.js # Which adapter is in use, and moving between them
-│   │
+│   ├── origin-handoff.js # Carries a vault across an origin change, once
+│   ├── markdown.js       # Small Markdown subset renderer, for roadmap.html
+│   ├── style.css         # Generator-only component styles
+│   └── vault.css         # Vault-only styles
+├── ui/                   # Shared chrome: on all seven pages, both Vue apps
+│   │                     # and neither an app nor a page. A test fails if
+│   │                     # anything here imports from src/
 │   ├── theme.js          # Light/dark/system + palette runtime
 │   ├── palettes.js       # The accent palette manifest, incl. cvd-safe flags
 │   ├── logo.js           # The site mark, inline so it can follow the theme
 │   ├── site-header.js    # Shared header: icon, title, subtitle, nav
 │   ├── site-nav.js       # One list of pages; every nav is generated from it
 │   ├── site-footer.js    # Shared footer, generated from the same list
-│   ├── markdown.js       # Small Markdown subset renderer, for roadmap.html
 │   ├── settings-panel.js # The settings gear popover
 │   ├── tokens.css        # Design tokens — the only place colors are defined
-│   ├── style.css         # App-specific component styles
-│   ├── vault.css
-│   ├── prose-page.css    # Layout for the About and Legal pages
+│   ├── prose-page.css    # Layout for the prose pages, and the vault
 │   └── site-header.css, site-footer.css, settings-panel.css
 ├── tools/
 │   └── build-templates.mjs  # templates/ → *.render.js; --check for CI

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { PALETTES, DEFAULT_PALETTE } from '../src/palettes.js'
+import { PALETTES, DEFAULT_PALETTE } from '../ui/palettes.js'
 
 // WCAG contrast, checked against the real tokens.css rather than a copy of the
 // values. Until now every contrast check in this project was ad-hoc: a throwaway
@@ -14,7 +14,7 @@ import { PALETTES, DEFAULT_PALETTE } from '../src/palettes.js'
 // color in a stylesheet. The lint below catches the specific version of that
 // mistake which has already happened twice.
 
-const CSS = fs.readFileSync(new URL('../src/tokens.css', import.meta.url), 'utf8')
+const CSS = fs.readFileSync(new URL('../ui/tokens.css', import.meta.url), 'utf8')
 
 /** Pull the custom properties out of a rule block. */
 const readBlock = (selector) => {
@@ -192,7 +192,7 @@ test('a global focus ring is defined at a visible weight', () => {
 })
 
 // Accent palettes. Each swaps --primary and friends, so each has to clear the
-// same bar the default does. The list comes from src/palettes.js, so a palette
+// same bar the default does. The list comes from ui/palettes.js, so a palette
 // added to tokens.css but not the manifest is invisible here -- which is why
 // the manifest is also checked against the stylesheet below.
 const PALETTE_PAIRS = [
@@ -226,7 +226,7 @@ test('every palette in tokens.css is declared in the manifest', () => {
   const declared = new Set(PALETTES.map((p) => p.value))
   const inCss = new Set([...CSS.matchAll(/\[data-palette='([\w-]+)'\]/g)].map((m) => m[1]))
   const orphans = [...inCss].filter((v) => !declared.has(v))
-  assert.deepEqual(orphans, [], `in tokens.css but not src/palettes.js: ${orphans.join(', ')}`)
+  assert.deepEqual(orphans, [], `in tokens.css but not ui/palettes.js: ${orphans.join(', ')}`)
 
   for (const { value } of PALETTES) {
     if (value === DEFAULT_PALETTE) continue
@@ -422,7 +422,7 @@ for (const { value } of PALETTES) {
 const label = (rel) => rel.replace(/^\.\.\//, '')
 
 test('controls that draw their own indicator disable the native one', () => {
-  const sheets = ['../src/style.css', '../src/settings-panel.css', '../src/site-header.css']
+  const sheets = ['../src/style.css', '../ui/settings-panel.css', '../ui/site-header.css']
 
   for (const rel of sheets) {
     const text = fs
@@ -510,7 +510,7 @@ test('the notification toast pairs its fill and text correctly in every palette'
 })
 
 test('no stylesheet puts a literal color on a themed fill', () => {
-  const sheets = ['../src/style.css', '../src/site-footer.css', '../src/settings-panel.css', '../src/site-header.css']
+  const sheets = ['../src/style.css', '../ui/site-footer.css', '../ui/settings-panel.css', '../ui/site-header.css']
   const themedBg = /background:\s*var\(--(primary|primary-dark|secondary|success|warning|error)\)/
   // Any literal, not just white: the history warning badge was `color: #000` on
   // `background: var(--warning)`, which the white-only version of this pattern

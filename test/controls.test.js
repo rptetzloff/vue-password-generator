@@ -10,7 +10,7 @@ import fs from 'node:fs'
 const STYLE = fs
   .readFileSync(new URL('../src/style.css', import.meta.url), 'utf8')
   .replace(/\/\*[\s\S]*?\*\//g, '')
-const TOKENS = fs.readFileSync(new URL('../src/tokens.css', import.meta.url), 'utf8')
+const TOKENS = fs.readFileSync(new URL('../ui/tokens.css', import.meta.url), 'utf8')
 
 /** The declarations of a rule, by exact selector. */
 const ruleBody = (selector) => {

@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { shouldCondense, CONDENSE_AT, EXPAND_AT } from '../src/site-header.js'
+import { shouldCondense, CONDENSE_AT, EXPAND_AT } from '../ui/site-header.js'
 
 // The header shrinks once scrolled so it stops eating the viewport. It is
 // position: fixed with a spacer holding its expanded height, so condensing

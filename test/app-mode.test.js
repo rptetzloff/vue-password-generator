@@ -48,6 +48,7 @@ test('everything the site serves is in the precache list', () => {
     '/manifest.webmanifest',
     '/favicon.ico',
     ...listDir('src', ['.js', '.css']),
+    ...listDir('ui', ['.js', '.css']),
     ...listDir('src/assets', ['.svg', '.png']),
     ...listDir('data', ['.txt', '.json']),
     '/vendor/vue.runtime.esm-browser.prod.js',
@@ -80,7 +81,7 @@ test('the manifest is complete and its icons exist', () => {
   // The static theme_color is the default palette's header band; the runtime
   // meta follows the chosen palette via theme.js syncThemeColor.
   assert.match(manifest.theme_color, /^#[0-9a-f]{6}$/i)
-  const themeJs = read('src/theme.js')
+  const themeJs = read('ui/theme.js')
   assert.ok(themeJs.includes('syncThemeColor'), 'theme.js no longer syncs the theme-color meta')
 })
 
@@ -150,6 +151,7 @@ test('only generators.js fetches the word data', () => {
   }
   walk('src/')
   walk('core/')
+  walk('ui/')
   assert.ok(files.includes(ALLOWED), `${ALLOWED} is the allowed fetcher and is missing`)
 
   for (const f of files) {

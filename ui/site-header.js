@@ -2,7 +2,7 @@
 //
 // Every page renders the same header from this one function, including the
 // app. The navigation and the settings gear used to live here too; they moved
-// into the floating footer bar (src/site-footer.js), which puts them in thumb
+// into the floating footer bar (ui/site-footer.js), which puts them in thumb
 // range on a phone and leaves the header its one job: saying where you are.
 //
 // The subtitle comes from the page's own entry in PAGES, so a page's nav label

@@ -28,9 +28,9 @@ import { openVault } from '../core/vault/crypto.js'
 import { KDF_ITERATIONS, needsRekey } from '../core/vault/crypto.js'
 import { entropyTier } from '../core/generate/entropy.js'
 import { estimatePassphrase } from '../core/generate/passphrase-strength.js'
-import { initTheme } from './theme.js'
-import { mountSiteHeader } from './site-header.js'
-import { mountSiteFooter } from './site-footer.js'
+import { initTheme } from '../ui/theme.js'
+import { mountSiteHeader } from '../ui/site-header.js'
+import { mountSiteFooter } from '../ui/site-footer.js'
 
 const App = {
   setup () {

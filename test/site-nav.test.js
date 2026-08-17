@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { isCurrentPage, PAGES } from '../src/site-nav.js'
+import { isCurrentPage, PAGES } from '../ui/site-nav.js'
 
 import { PAGE_FILES } from './helpers/pages.js'
 
@@ -69,7 +69,7 @@ test('every page mounts the shared footer rather than hand-rolling one', () => {
     assert.doesNotMatch(
       html,
       /class="footer-link/,
-      `${page} hand-rolls footer links; they belong in src/site-footer.js`,
+      `${page} hand-rolls footer links; they belong in ui/site-footer.js`,
     )
   }
   const main = fs.readFileSync(new URL('../src/main.js', import.meta.url), 'utf8')
@@ -83,14 +83,14 @@ test('the floating bar is the only navigation, and it carries everything', () =>
   // via aria-current rather than omitted -- a nav that hides where you are
   // would be strange in a way a footer that did was not. The header holds no
   // links at all; one navigation, one place to maintain it.
-  const footerSrc = fs.readFileSync(new URL('../src/site-footer.js', import.meta.url), 'utf8')
+  const footerSrc = fs.readFileSync(new URL('../ui/site-footer.js', import.meta.url), 'utf8')
   assert.match(footerSrc, /for \(const page of PAGES\)/, 'the bar must render every page, current included')
   assert.match(footerSrc, /aria-current/, 'the current page must be marked, not omitted')
   assert.match(footerSrc, /GITHUB_URL/, 'the GitHub link belongs in the bar')
   assert.match(footerSrc, /ANAGRIMOIRE_URL/, 'the Anagrimoire link belongs in the bar')
   assert.match(footerSrc, /mountSettingsPanel/, 'the settings gear rides in the bar')
 
-  const headerSrc = fs.readFileSync(new URL('../src/site-header.js', import.meta.url), 'utf8')
+  const headerSrc = fs.readFileSync(new URL('../ui/site-header.js', import.meta.url), 'utf8')
   assert.doesNotMatch(headerSrc, /mountSiteNav|mountSettingsPanel/,
     'the header must not mount a second navigation or gear')
 

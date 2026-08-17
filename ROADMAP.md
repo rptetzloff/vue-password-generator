@@ -629,11 +629,34 @@ wordlock/
   tools/
 ```
 
-- [ ] **`ui/` exists because site and app are a deploy boundary, not a code
+- [x] **`ui/` exists because site and app are a deploy boundary, not a code
   boundary.** Both need the same header, footer, nav, tokens and settings
   panel. Without a shared home they get copied, and copies drift -- which is
   the exact failure the site-wide header extraction fixed once already, when
   six hand-written footers had become five different link lists.
+
+  **Done: twelve files, chosen by measured usage rather than by feel.** Four
+  stylesheets are linked by all seven pages; `prose-page.css` by four spanning
+  both halves; and every one of the seven modules is reached from both the
+  marketing pages and the two Vue apps. Left behind: `style.css` (index only),
+  `vault.css` (vault only) and `markdown.js` (roadmap only) -- page-specific,
+  and they follow their page into `site/` or `app/` rather than into chrome.
+
+  A test forbids `ui/` importing from `src/`. It is the layering that makes the
+  split possible and nothing else enforces it: a stray import in
+  `site-footer.js` would work perfectly in the browser today and quietly make
+  the marketing site depend on the vault, discovered when `site/` is assembled
+  and the import 404s.
+
+  Three walkers were pointed at `src/` and `core/` only, so `ui/` would have
+  been silently uncovered by the precache check, the control-byte check and the
+  word-data fetch guard the moment it existed. Widened, and each now asserts it
+  found `ui/`.
+
+  The CSP hashes moved too. The theme-priming script names `ui/theme.js` in a
+  comment now, which changes what it hashes to -- five inline scripts across
+  seven pages, recomputed and written into `render.yaml` in one pass rather
+  than chased one failure at a time.
 
 - [ ] **One repository, and the reason is version skew rather than taste.**
   Every surface depends on `core`, and a mismatch between `core` and one client
@@ -1865,7 +1888,7 @@ agreed to that.
 > The footer was templated as part of 8a. It had been six hand-written copies
 > — five pages plus one inside the Vue template — which had already drifted to
 > five different link lists. Both navigations now come from `PAGES` in
-> `src/site-nav.js`, so adding a page updates the header and the footer at once.
+> `ui/site-nav.js`, so adding a page updates the header and the footer at once.
 
 Everything so far assumes the product is one web page. These do not. They are
 listed roughly in order of how far each moves away from that, and the last one
@@ -2108,7 +2131,7 @@ you like:
 
 - [x] **Ship a set of accent themes** — ten: Sky, Blue, Indigo, Violet, Fuchsia, Rose, Emerald, Teal, Slate, Mono. A `data-palette` axis independent of light/dark, so every theme works in both.
 - [x] **Include pre-built color-blind-friendly themes** in the same list rather than a separate mechanism. Blue, Indigo, Violet, Slate and Mono qualify; they sit in the same picker as the rest.
-- [x] **Label which themes suit which kind of color vision, by measuring it.** A theme is marked when its accent stays ≥10 (CIEDE2000) from all three status colors under normal/protan/deutan/tritan in both themes. `src/palettes.js` records the flag and `test/color-vision.test.js` recomputes it from `tokens.css`, failing if the two disagree — so the marker in the UI cannot become a lie.
+- [x] **Label which themes suit which kind of color vision, by measuring it.** A theme is marked when its accent stays ≥10 (CIEDE2000) from all three status colors under normal/protan/deutan/tritan in both themes. `ui/palettes.js` records the flag and `test/color-vision.test.js` recomputes it from `tokens.css`, failing if the two disagree — so the marker in the UI cannot become a lie.
 - [x] **Gate new themes on the floors.** Every palette clears AA on the accent pairs, on all six badge pairs, on every token pair, and on the change groups, in both themes. Two candidates were rejected by measurement rather than taste: amber at 0.0 from `--warning`, and the first rose at 1.4 from `--error` in dark.
 - [x] **Iterate a manifest rather than hand-writing cases.** The suite went from 63 tests to 244 without hand-writing any of the new ones; `PALETTES` drives all of it. A palette present in `tokens.css` but missing from the manifest now fails a test, so it cannot skip coverage.
 
@@ -2296,7 +2319,7 @@ Small, and pairs naturally with Epic 4 since you'll be in that data anyway.
 Mostly done. What remains is one change on the other site and one claim that
 should not be made here until it is verified there.
 
-- [x] **Link to anagrimoire.com** from the header or footer. In the footer, on every page, from `src/site-footer.js`.
+- [x] **Link to anagrimoire.com** from the header or footer. In the footer, on every page, from `ui/site-footer.js`.
 - [x] **Lead with the shared privacy stance.** The About page's *Elsewhere* section does this rather than offering a bare link: "it works without an account, and nothing you type into a solver leaves your device."
 - [x] **Describe the account model accurately — the two sites differ here.** Anagrimoire has optional accounts, used for syncing (stats, streaks, boards) across devices; everything works without signing in. This project has no accounts and, per the owner, **should stay that way**. About uses "works without an account", which is the true shared claim; "no accounts" would have been false of anagrimoire. The distinction matters again in Epic 8e.
 - [x] **Reciprocal link** from anagrimoire — done on the other site (confirmed 2026-08-12). The pair now reads as one family: each links the other, and both say the same true thing about staying client-side.

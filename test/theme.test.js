@@ -1,8 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { resolveTheme, THEMES, THEME_KEY, resolveFontScale, FONT_SCALES, FONT_SCALE_KEY } from '../src/theme.js'
-import { PALETTE_KEY, PALETTE_VALUES, DEFAULT_PALETTE, resolvePalette } from '../src/palettes.js'
+import { resolveTheme, THEMES, THEME_KEY, resolveFontScale, FONT_SCALES, FONT_SCALE_KEY } from '../ui/theme.js'
+import { PALETTE_KEY, PALETTE_VALUES, DEFAULT_PALETTE, resolvePalette } from '../ui/palettes.js'
 import { PAGE_FILES } from './helpers/pages.js'
 
 // theme.js is importable here only because nothing runs at module scope -- the
@@ -63,7 +63,7 @@ test('the font-scale contract matches the inline head snippet', () => {
 test('every page pre-paints the same palette list as the manifest', () => {
   // The pre-paint script cannot import anything -- it is inline, blocking and
   // non-module -- so it repeats the palette names. That duplication is the
-  // whole risk: add a palette to src/palettes.js and, without this, the new
+  // whole risk: add a palette to ui/palettes.js and, without this, the new
   // theme would apply only after first paint, flashing the default first on
   // every page load. Five pages, so five chances to update four of them.
   assert.equal(PALETTE_KEY, 'global.palette')

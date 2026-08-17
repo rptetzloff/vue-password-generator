@@ -112,7 +112,7 @@ export const setFontScale = (value) => {
 }
 
 // Palette is a second axis, independent of light/dark. Every palette is
-// defined for both themes, so the two compose freely. See src/palettes.js for
+// defined for both themes, so the two compose freely. See ui/palettes.js for
 // what a palette is allowed to change and why.
 
 export const getPalette = () => {

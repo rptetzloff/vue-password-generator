@@ -5,7 +5,7 @@
 // Legal, Roadmap), a Links menu (GitHub, Anagrimoire), and the settings gear.
 // Nine flat items measured 401px wide on a 375px phone; two submenus buy the
 // room back without dropping anything. Everything still renders from the one
-// PAGES list in src/site-nav.js.
+// PAGES list in ui/site-nav.js.
 //
 // Nothing runs at import time -- call mountSiteFooter() explicitly.
 

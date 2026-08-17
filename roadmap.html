@@ -18,7 +18,7 @@
     <script>
       /* Set the theme before first paint so dark-mode users never see a white
          flash. Deliberately inline and non-module: a module script is deferred
-         and would run after the page has already rendered. src/theme.js takes
+         and would run after the page has already rendered. ui/theme.js takes
          over for changes made at runtime. */
       try {
         var c = JSON.parse(localStorage.getItem('global.theme'));
@@ -31,11 +31,11 @@
         if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
       } catch (e) {}
     </script>
-    <link rel="stylesheet" href="/src/tokens.css" />
-    <link rel="stylesheet" href="/src/site-header.css" />
-    <link rel="stylesheet" href="/src/site-footer.css" />
-    <link rel="stylesheet" href="/src/settings-panel.css" />
-    <link rel="stylesheet" href="/src/prose-page.css" />
+    <link rel="stylesheet" href="/ui/tokens.css" />
+    <link rel="stylesheet" href="/ui/site-header.css" />
+    <link rel="stylesheet" href="/ui/site-footer.css" />
+    <link rel="stylesheet" href="/ui/settings-panel.css" />
+    <link rel="stylesheet" href="/ui/prose-page.css" />
     <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
     <style>
       /* Wider than About and Legal: the roadmap has tables. */
@@ -159,9 +159,9 @@
     <div data-site-footer></div>
 
     <script type="module">
-      import { initTheme } from '/src/theme.js'
-      import { mountSiteHeader } from '/src/site-header.js'
-      import { mountSiteFooter } from '/src/site-footer.js'
+      import { initTheme } from '/ui/theme.js'
+      import { mountSiteHeader } from '/ui/site-header.js'
+      import { mountSiteFooter } from '/ui/site-footer.js'
       import { renderMarkdown } from '/src/markdown.js'
       initTheme()
       mountSiteHeader(document.querySelector('[data-site-header]'))

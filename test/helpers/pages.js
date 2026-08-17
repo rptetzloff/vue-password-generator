@@ -1,4 +1,4 @@
-import { PAGES } from '../../src/site-nav.js'
+import { PAGES } from '../../ui/site-nav.js'
 
 /**
  * Every page file, derived from the nav manifest rather than listed by hand.

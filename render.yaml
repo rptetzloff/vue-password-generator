@@ -119,7 +119,7 @@ services:
       # one.
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-dyBu1aISuiapW/D0B+MOaUi6eJ9+lL9+rNRgY7+dwAU=' 'sha256-D7pO4R68hLL5gxelrQQLuK0W0lqTaWq0ZcS2IGYeMl4=' 'sha256-EnokG1Ge72acG6K9uT6UQQ6QDbg/Z39S608pC4o2ARc=' 'sha256-JkG5uX2Mhs+bZE5mNn5rqZTEqNmLrcaGKckQZBtSlro=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
+        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-9ssLCxYzf2/pWTR3Cjh2Dn6eDfnFr4fh3iL0zFTvEPE=' 'sha256-EaVGUkNxl9fsZyICvVTMXT93Xw6/rRpzf5S/Vsk4JXU=' 'sha256-UGIfeEDlb19wnrGgWFjTSCAyuJOE4VixfAzsMd+pLU4=' 'sha256-gi6ClKL4dQ+RAbe2OoVZu7VecMXhYd0IyO0JDfO8cD0=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
 
       # Caching for the vendored third-party assets. Since v2.7.1 these are
       # served from this domain rather than a CDN, so their bytes are ours --

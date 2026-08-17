@@ -28,7 +28,7 @@ const sourceFiles = () => {
       else if (/\.(js|css|html|json|md|yaml|yml)$/.test(name.name)) out.push(rel)
     }
   }
-  for (const dir of ['src/', 'core/', 'test/', 'data/']) walk(dir)
+  for (const dir of ['src/', 'core/', 'ui/', 'test/', 'data/']) walk(dir)
   for (const name of fs.readdirSync(ROOT)) {
     if (/\.(html|json|md|yaml|yml)$/.test(name)) out.push(name)
   }
@@ -178,7 +178,9 @@ test('nothing shadows a browser global that gets used bare', () => {
   }
   walk('src/')
   walk('core/')
+  walk('ui/')
   assert.ok(files.some((f) => f.startsWith('core/')), 'core/ must be covered')
+  assert.ok(files.some((f) => f.startsWith('ui/')), 'ui/ must be covered')
 
   for (const f of files) {
     const text = fs.readFileSync(new URL(f, root), 'utf8')
@@ -271,4 +273,29 @@ test('core/ names no browser API', () => {
   assert.deepEqual(offenders, [],
     'core/ must stay portable; move the side effect to src/ and inject the '
     + `result:\n${offenders.join('\n')}`)
+})
+
+test('ui/ does not import from src/', () => {
+  // The layering that makes the split possible. ui/ is the chrome both halves
+  // will need -- the header, the footer, the nav, the theme and the tokens --
+  // so it may reach down into core/ and sideways within itself, and never up
+  // into an app.
+  //
+  // Nothing enforces this on its own. A stray `import { something } from
+  // '../src/vault-store.js'` in site-footer.js would work perfectly in the
+  // browser today and quietly make the marketing site depend on the vault,
+  // which is discovered when site/ is assembled and the import 404s.
+  const root = new URL('../', import.meta.url)
+  const offenders = []
+  for (const e of fs.readdirSync(new URL('ui/', root), { withFileTypes: true })) {
+    if (!e.isFile() || !e.name.endsWith('.js')) continue
+    const text = fs.readFileSync(new URL(`ui/${e.name}`, root), 'utf8')
+    for (const m of text.matchAll(/from\s+'([^']+)'/g)) {
+      if (/(^|\/)\.\.\/src\//.test(m[1]) || m[1].startsWith('/src/')) {
+        offenders.push(`  ui/${e.name} imports ${m[1]}`)
+      }
+    }
+  }
+  assert.deepEqual(offenders, [],
+    `ui/ is shared chrome and must not depend on an app:\n${offenders.join('\n')}`)
 })
