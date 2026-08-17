@@ -56,6 +56,15 @@ When a decision is overturned, mark the old one and say what changed. Do not
 quietly edit it away. The trail is why the conclusion is trustworthy — a
 document that only ever agreed with itself is not evidence of anything.
 
+**A rule holds until something concrete makes it fail, not from the moment it
+looks likely to.** Anticipating a reversal is how a rule gets weakened by an
+argument nobody has actually had — the softening arrives first, the forcing
+case never does, and what is left is a rule that no longer says anything. Some
+of these will probably not survive the security work; a memory-hard KDF likely
+means a WebAssembly blob, and no reading of "the deployed source is the source
+you can read" survives that intact. Until the trade is on the table with its
+costs measured, the rule is the rule.
+
 ## State the limit of the claim
 
 Say what a thing does *not* do, in the same breath. "At most N bits", not "N
