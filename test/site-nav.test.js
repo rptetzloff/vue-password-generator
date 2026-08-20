@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
-import { isCurrentPage, PAGES } from '../ui/site-nav.js'
+import { isCurrentPage, isCurrentEntry, hrefFor, pageFor, PAGES } from '../ui/site-nav.js'
 
 import { PAGE_FILES } from './helpers/pages.js'
 
@@ -96,4 +96,71 @@ test('the floating bar is the only navigation, and it carries everything', () =>
 
   // One name for the one destination list, now that there is one list.
   assert.equal(PAGES.find((p) => p.href === '/').label, 'Generator')
+})
+
+// -- two origins, before there are two origins --------------------------------
+//
+// Recorded and exercised now so that splitting the deployments is a config
+// change rather than an edit to every consumer. With ORIGINS empty the whole
+// mechanism is a no-op, which is what the "unchanged" assertions below pin.
+
+test('every page is assigned to a host, and the split matches the decision', () => {
+  for (const p of PAGES) {
+    assert.ok(p.host === 'site' || p.host === 'app',
+      `${p.href} has no host; it would silently default to site when the split lands`)
+  }
+  const on = (host) => PAGES.filter((p) => p.host === host).map((p) => p.href).sort()
+  assert.deepEqual(on('app'), ['/', '/vault.html'],
+    'the generator and the vault go to app.wordlock.net')
+  assert.deepEqual(on('site'),
+    ['/about.html', '/changelog.html', '/docs.html', '/legal.html', '/roadmap.html'],
+    'the prose pages stay on wordlock.net')
+})
+
+test('with one origin, every link is exactly what it is today', () => {
+  // The safety property. Tagging hosts must not change a single href until
+  // ORIGINS is filled in, or this lands as a silent behaviour change.
+  for (const p of PAGES) {
+    assert.equal(hrefFor(p, null), p.href, 'no current host means no rewriting')
+    assert.equal(hrefFor(p, p.host), p.href, 'same host stays relative')
+    assert.equal(hrefFor(p, p.host === 'app' ? 'site' : 'app', { site: '', app: '' }), p.href,
+      'a different host with no origin configured still stays relative')
+  }
+})
+
+test('a cross-host link becomes absolute once the origins are known', () => {
+  // Root-relative would resolve against the wrong deployment and 404, which is
+  // the failure this exists to prevent.
+  const origins = { site: 'https://wordlock.net', app: 'https://app.wordlock.net' }
+  const vault = PAGES.find((p) => p.href === '/vault.html')
+  const legal = PAGES.find((p) => p.href === '/legal.html')
+
+  assert.equal(hrefFor(vault, 'site', origins), 'https://app.wordlock.net/vault.html')
+  assert.equal(hrefFor(legal, 'app', origins), 'https://wordlock.net/legal.html')
+  assert.equal(hrefFor(vault, 'app', origins), '/vault.html', 'same host stays relative')
+  assert.equal(hrefFor(legal, 'site', origins), '/legal.html')
+})
+
+test('/ names two different pages once the hosts separate', () => {
+  // The reason path alone stops being enough: the generator is / on the app,
+  // and the marketing home page will be / on the site.
+  const generator = PAGES.find((p) => p.href === '/')
+  assert.equal(isCurrentEntry(generator, '/', 'app'), true)
+  assert.equal(isCurrentEntry(generator, '/', 'site'), false,
+    'the app root must not light up while reading the site root')
+  // And with one origin the host is ignored, which is today.
+  assert.equal(isCurrentEntry(generator, '/', null), true)
+})
+
+test('pageFor still resolves the current page, with or without a host', () => {
+  assert.equal(pageFor('/vault.html').label, 'Vault')
+  assert.equal(pageFor('/vault.html', 'app').label, 'Vault')
+  assert.equal(pageFor('/vault.html', 'site'), null, 'wrong host, not this page')
+  assert.equal(pageFor('/legal.html', 'site').label, 'Legal')
+})
+
+test('hrefFor tolerates rubbish rather than emitting a broken link', () => {
+  assert.equal(hrefFor(null), '')
+  assert.equal(hrefFor({}), '')
+  assert.equal(hrefFor({ href: 42 }), '')
 })

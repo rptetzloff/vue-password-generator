@@ -9,7 +9,7 @@
 //
 // Nothing runs at import time -- call mountSiteFooter() explicitly.
 
-import { PAGES, isCurrentPage } from './site-nav.js'
+import { PAGES, isCurrentPage, isCurrentEntry, hrefFor } from './site-nav.js'
 import { mountSettingsPanel } from './settings-panel.js'
 
 export const GITHUB_URL = 'https://github.com/rptetzloff/wordlock'
@@ -111,7 +111,13 @@ const barMenu = (label, icon, items, { current = false } = {}) => {
  * how the app contributes its History, Bit hints and Clear clipboard rows
  * without this module knowing about them.
  */
-export const mountSiteFooter = (container, { pathname, settings = {} } = {}) => {
+/**
+ * `currentHost` is 'site' or 'app' once the two deployments are separate, and
+ * null while they share an origin -- which is today, and which makes every
+ * link relative and every host comparison a no-op. Passing it is how the split
+ * arrives here: no other line in this file needs to change.
+ */
+export const mountSiteFooter = (container, { pathname, settings = {}, currentHost = null } = {}) => {
   if (!container) return null
   const here = pathname || (typeof location !== 'undefined' ? location.pathname : '/')
 
@@ -121,9 +127,11 @@ export const mountSiteFooter = (container, { pathname, settings = {} } = {}) => 
 
   const aboutItems = []
   for (const page of PAGES) {
-    const link = barLink(page.href, page.label,
+    // hrefFor rather than page.href: identical today, since no ORIGINS are
+    // set, and the one line that has to change when the two hosts separate.
+    const link = barLink(hrefFor(page, currentHost), page.label,
       `<span class="mdi ${page.icon}" aria-hidden="true"></span>`,
-      { current: isCurrentPage(page.href, here), item: ABOUT_GROUP.includes(page.href) })
+      { current: isCurrentEntry(page, here, currentHost), item: ABOUT_GROUP.includes(page.href) })
     if (ABOUT_GROUP.includes(page.href)) aboutItems.push(link)
     else footer.appendChild(link)
   }

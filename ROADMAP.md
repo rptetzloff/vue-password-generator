@@ -658,6 +658,30 @@ wordlock/
   seven pages, recomputed and written into `render.yaml` in one pass rather
   than chased one failure at a time.
 
+- [x] **The nav knows about two origins before there are two origins.**
+  `site-nav.js` was one list of root-relative hrefs, and `isCurrentPage`
+  compared pathnames alone. Both break at the split: a root-relative link
+  resolves against whichever deployment the reader is on, and `/` stops naming
+  one page — it is the generator on the app and the marketing home page on the
+  site.
+
+  Every entry now carries `host`, `hrefFor()` returns an absolute URL only when
+  the target is on the other host *and* an origin is known for it, and
+  `isCurrentEntry()` compares host as well as path. `ORIGINS` is empty, so all
+  of that is inert: same relative links, same page marked current, 764 tests
+  unchanged. Verified in a browser rather than assumed — the footer emits the
+  same nine hrefs and About still lights up on About.
+
+  Built now for the same reason as the handoff: it is independent of the tree
+  move, testable without either deployment existing, and it turns the split
+  into filling in two strings rather than editing every consumer. The footer is
+  already wired through it, so the mechanism is exercised rather than dormant.
+
+  A test asserts every page has a host and that the grouping matches the
+  decision — generator and vault on app, the five prose pages on site. Without
+  it a new page defaults to `site` silently, which is the wrong default for
+  anything that belongs to the app.
+
 - [ ] **One repository, and the reason is version skew rather than taste.**
   Every surface depends on `core`, and a mismatch between `core` and one client
   is the bug that cannot be debugged: a vault sealed by one envelope version and
