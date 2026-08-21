@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WordLock — passwords that never leave your browser</title>
+    <script>
+      /* Set the theme before first paint so dark-mode users never see a white
+         flash. Deliberately inline and non-module: a module script is deferred
+         and would run after the page has already rendered. ui/theme.js takes
+         over for changes made at runtime. */
+      try {
+        var c = JSON.parse(localStorage.getItem('global.theme'));
+        if (c !== 'light' && c !== 'dark') c = 'system';
+        var dark = c === 'dark' || (c === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var fs = JSON.parse(localStorage.getItem('global.fontScale'));
+        if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
+        var pal = JSON.parse(localStorage.getItem('global.palette'));
+        if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/ui/tokens.css" />
+    <link rel="stylesheet" href="/ui/site-header.css" />
+    <link rel="stylesheet" href="/ui/site-footer.css" />
+    <link rel="stylesheet" href="/ui/settings-panel.css" />
+    <link rel="stylesheet" href="/ui/prose-page.css" />
+    <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
+    <style>
+      :root { --footer-pad: 1.5rem; --page-max: 760px; }
+
+      /* Every colour through a token, per the house rule -- a literal here
+         would be invisible to the contrast tests, which read tokens.css. */
+      .lede { font-size: 1.15rem; color: var(--text); }
+      .prose-card a.cta {
+        display: inline-block;
+        background: var(--primary);
+        color: var(--on-primary);
+        padding: 0.6rem 1.1rem;
+        border-radius: var(--radius);
+        text-decoration: none;
+        font-weight: 600;
+        margin-right: 0.75rem;
+        /* 24px is the WCAG 2.2 target-size floor the rest of the site holds to. */
+        min-height: var(--control-min, 24px);
+      }
+      .prose-card a.cta:hover { background: var(--primary-dark); color: var(--on-primary); }
+    </style>
+  </head>
+  <body>
+    <div data-site-header></div>
+
+    <main class="page">
+      <article class="prose-card">
+        <h2>Passwords that never leave your browser</h2>
+        <p class="lede">
+          Seven ways to build one &mdash; from random characters to phrases you can actually
+          remember &mdash; and a vault to keep them in, encrypted with a passphrase only you know.
+        </p>
+        <p class="lede">
+          <strong>No account. No server. Nothing to sign in to.</strong>
+        </p>
+        <p>
+          <a class="cta" href="/">Generate a password</a>
+          <a href="/docs.html">or read how it works</a>
+        </p>
+
+        <h2>Seven ways to make one</h2>
+        <p>
+          Random characters when you want them, and words when you have to type the thing by
+          hand or read it off a screen to someone. Simple, Advanced, Words, Passphrase,
+          Wireless, Mad&nbsp;Lib and Numbers &mdash; each with its own controls, and each
+          showing the strength of what it just made, in bits.
+        </p>
+        <p>
+          The number is the claim, so it is the thing most carefully checked. Options that add
+          nothing say so: the leet toggle is a fixed public mapping and buys 0&nbsp;bits, eight of
+          the ten capitalisation modes are deterministic and buy 0&nbsp;bits. A generator that
+          flattered its own output would be worse than none.
+        </p>
+
+        <h2>A vault, if you want one</h2>
+        <p>
+          A generator on its own is a moment-tool: you take a password and leave, and the
+          clipboard timer erases the only copy thirty seconds later. The
+          <a href="/vault.html">vault</a> keeps what you make, sealed with AES-256-GCM under a key
+          derived from your passphrase. It is a single encrypted envelope &mdash; no index, no
+          plaintext list of what you have, and nothing searchable outside the ciphertext.
+        </p>
+        <p>
+          It locks itself when you stop using it. It can hand you a recovery key &mdash; sixteen
+          words, shown once &mdash; so that forgetting a passphrase is survivable. And there is
+          still nothing to sign in to.
+        </p>
+
+        <h2>Your cloud, not ours</h2>
+        <p>
+          The vault can live as one encrypted file in a folder you already sync &mdash; Dropbox,
+          OneDrive, iCloud&nbsp;Drive. Your own software carries it between your machines, using
+          an account you already have with a company you already chose. We are not in the middle
+          of that and could not be: there is no server here to put there. Your provider stores
+          ciphertext it cannot read.
+        </p>
+        <p>
+          <strong>The limit, in the same breath:</strong> that makes two machines safe in
+          sequence, not in the same instant. A save re-reads the folder and merges before
+          writing, so an edit made elsewhere is not overwritten &mdash; but nothing here can see
+          across your sync client&rsquo;s own conflict handling. It needs the File System Access
+          API, which today means Chromium on desktop; everywhere else the vault stays in browser
+          storage and everything else works.
+        </p>
+
+        <h2>What it costs you</h2>
+        <p>
+          Nothing to buy and nothing to sign up for. The costs are the other kind, and they are
+          the direct consequence of having no account:
+        </p>
+        <ul>
+          <li>
+            <strong>Nobody here can let you back in.</strong> There is no password reset, because
+            there is no account to reset. Lose the passphrase <em>and</em> the recovery key and the
+            vault is gone for good.
+          </li>
+          <li>
+            <strong>Browser storage is not permanent.</strong> Clearing site data, an eviction, or
+            a lost device all destroy a vault that was never exported. Export it somewhere.
+          </li>
+          <li>
+            <strong>Syncing through a folder is desktop Chromium only</strong>, and deliberately
+            not offered on phones &mdash; the permission does not survive a page refresh there.
+          </li>
+        </ul>
+
+        <h2>Read it yourself</h2>
+        <p>
+          Every claim on this page is either checked by a test or written down somewhere with its
+          limit attached. The code is on
+          <a href="https://github.com/rptetzloff/wordlock" target="_blank" rel="noopener">GitHub</a>,
+          unbundled and unminified: what a server sends you is what is committed there. The
+          <a href="/docs.html">documentation</a> explains how the vault is encrypted, the
+          <a href="/about.html">about page</a> explains why it is built this way, and the
+          <a href="/legal.html">legal page</a> is the full privacy statement.
+        </p>
+      </article>
+    </main>
+
+    <div data-site-footer></div>
+    <script type="module">
+      import { initTheme } from '/ui/theme.js'
+      import { mountSiteHeader } from '/ui/site-header.js'
+      import { mountSiteFooter } from '/ui/site-footer.js'
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'))
+      mountSiteFooter(document.querySelector('[data-site-footer]'))
+    </script>
+  </body>
+</html>
