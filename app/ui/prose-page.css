@@ -1,0 +1,122 @@
+/* Layout for the simple text pages (about.html, legal.html).
+ *
+ * docs.html and changelog.html have their own bespoke layouts -- a sidebar and
+ * a release timeline respectively -- so they do not use this. It exists so the
+ * two prose pages do not each grow their own copy of the same card styling.
+ *
+ * Pages set --page-max to choose their column width.
+ */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: var(--font-family);
+  background: var(--page-gradient);
+  min-height: 100vh;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.page {
+  max-width: var(--page-max, 760px);
+  margin: 0 auto;
+  padding: 2.5rem 1.5rem 4rem;
+}
+
+.prose-card {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 2.5rem;
+}
+
+.prose-card h2 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.3;
+  margin-top: 2rem;
+}
+
+.prose-card h2:first-child {
+  margin-top: 0;
+}
+
+.prose-card h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 1.5rem;
+}
+
+.prose-card p {
+  color: var(--text-secondary);
+  margin-top: 0.75rem;
+}
+
+.prose-card ul {
+  margin-top: 0.75rem;
+  padding-left: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.prose-card li {
+  margin-top: 0.35rem;
+}
+
+/* A list item's content is paragraphs, so an item that carries reasoning can
+   hold more than one and keep it inside the item. The first takes the item's
+   own spacing rather than a paragraph's; the rest space themselves apart. */
+.prose-card li > p:first-child,
+.prose-card li > div > p:first-child {
+  margin-top: 0;
+}
+
+.prose-card a {
+  color: var(--primary-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-card a:hover {
+  color: var(--text);
+}
+
+.prose-card code {
+  font-family: Monaco, Menlo, 'Ubuntu Mono', monospace;
+  font-size: 0.875em;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.05rem 0.3rem;
+}
+
+/* Attribution rows on the legal page. */
+.prose-card dl {
+  margin-top: 0.75rem;
+}
+
+.prose-card dt {
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 1rem;
+  font-size: 0.9rem;
+}
+
+.prose-card dd {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin-top: 0.15rem;
+}
+
+.prose-updated {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 560px) {
+  .prose-card { padding: 1.5rem; }
+}

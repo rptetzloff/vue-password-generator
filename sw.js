@@ -21,6 +21,7 @@ const CACHE = 'pwgen-' + VERSION
 const PRECACHE = [
   '/',
   '/index.html',
+  '/home.html',
   '/docs.html',
   '/changelog.html',
   '/about.html',

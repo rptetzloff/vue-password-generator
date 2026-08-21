@@ -18,19 +18,25 @@
 # Two consequences, both learned the hard way in one evening:
 #
 #   1. NEVER pin `branch:` here. See below.
-#   2. Never declare a second service here. Both Blueprints would create both,
-#      and you would get four services -- including a duplicate of production.
-#      Tried it: the review screen offered `wordlock-cl9q` and
-#      `wordlock-dev-cl9q` side by side, which is a duplicate prod service and
-#      a dev service, from a file that names one of each.
+#   2. ~~Never declare a second service here.~~ Never declare a second
+#      service ON THE ENVIRONMENT AXIS. That rule came from naming
+#      `wordlock` and `wordlock-dev` in this file: both Blueprints created
+#      both, and the review screen offered `wordlock-cl9q` and
+#      `wordlock-dev-cl9q` side by side -- a duplicate of production.
 #
-# Everything else in the file is shared on purpose: both deployments get the
-# same headers, the same CSP, the same HSTS. A dev site with a weaker policy
-# cannot tell you whether the policy works.
+#      site and app split a different axis. They are two SURFACES, not two
+#      environments, so both Blueprints legitimately want both entries and
+#      four services is the correct answer:
+#
+#        main Blueprint -> site-<a>, app-<a>  -> wordlock.net, app.wordlock.net
+#        dev  Blueprint -> site-<b>, app-<b>  -> dev.wordlock.net, dev.app.wordlock.net
+#
+#      Anything ENVIRONMENT-specific written here is still imposed on both
+#      deployments, which is what `branch:` did and why it is still banned.
 
 services:
   - type: web
-    name: wordlock
+    name: site
     runtime: static
 
     # NO `branch:` HERE. It was pinned to main earlier today, reasoning that a
@@ -54,7 +60,7 @@ services:
 
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
-    staticPublishPath: ./
+    staticPublishPath: ./site
     headers:
       - path: /*
         name: X-Frame-Options
@@ -119,7 +125,182 @@ services:
       # one.
       - path: /*
         name: Content-Security-Policy
-        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-9ssLCxYzf2/pWTR3Cjh2Dn6eDfnFr4fh3iL0zFTvEPE=' 'sha256-EaVGUkNxl9fsZyICvVTMXT93Xw6/rRpzf5S/Vsk4JXU=' 'sha256-UGIfeEDlb19wnrGgWFjTSCAyuJOE4VixfAzsMd+pLU4=' 'sha256-gi6ClKL4dQ+RAbe2OoVZu7VecMXhYd0IyO0JDfO8cD0=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
+        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-7yZ83kgGuhDmZcvzHbSQrWh2kWiX0qCiG+NFVRVZ3Os=' 'sha256-DiUdl/bSxuigxmZ4zlmHi7PZ/9lyu3agQDuPTNpP3Tg=' 'sha256-EaVGUkNxl9fsZyICvVTMXT93Xw6/rRpzf5S/Vsk4JXU=' 'sha256-KjC9oZKHi4pyhjDms33PMGB9qzHjr4kaAr3jKtwWNq8=' 'sha256-sq7aD+6QKh+pvY7s7mMmZKYHE+qDstyhXCded9Yxluo=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
+
+      # Caching for the vendored third-party assets. Since v2.7.1 these are
+      # served from this domain rather than a CDN, so their bytes are ours --
+      # and the icon webfont alone is 403 KB, by far the heaviest thing a
+      # first-time visitor downloads.
+      #
+      # Deliberately scoped narrowly. Render does not document what happens
+      # when two header rules match the same request, so these paths are kept
+      # non-overlapping rather than relying on a precedence guess. (The /*
+      # rules above set different header names, so they do not collide with
+      # Cache-Control.)
+      #
+      # That warning was right and the rules broke it anyway: /vendor/* also
+      # matched /vendor/mdi/fonts/..., so the font had two rules claiming it.
+      # Measured against production and dev on 2026-08-15, five requests each,
+      # every one a cf-cache-status: MISS so every one a real origin response:
+      # the font came back immutable three times and max-age=86400 twice. The
+      # same file, the same deploy, a different answer per request. Reordering
+      # the rules changed nothing -- dev, with the order reversed, was equally
+      # split. There is no precedence to guess at, so the paths are enumerated
+      # instead and no request matches two rules.
+      #
+      # Anything added under vendor/ therefore needs a line here or it gets no
+      # Cache-Control at all. That is the cost of the approach and it is worth
+      # it: no header is a knowable default, two headers is a coin flip.
+      #
+      # AND THE TRAP THAT MADE THIS TAKE ALL AFTERNOON: Blueprint header sync
+      # is ADDITIVE. Render adds rules you add and updates rules you change,
+      # but deleting one here does NOT delete it from the service. The old
+      # /vendor/* rule stayed live and kept competing with the font rule long
+      # after it left this file, which is why removing the overlap changed
+      # nothing. Deleting a header rule means deleting it here *and* on the
+      # service's Headers page. Verified 2026-08-15: after removing the orphan
+      # by hand, the font returned immutable five times out of five, and the
+      # two LICENSE files -- deliberately uncovered -- fell through to Render's
+      # own max-age=0, s-maxage=300 instead of the phantom 86400.
+      #
+      # Checking this against production needs a cache-busting query, or you
+      # measure Cloudflare rather than Render -- a plain request returns the
+      # edge copy with cf-cache-status: EXPIRED, which is how the first read of
+      # this was wrong in the other direction.
+      #
+      # Nothing is set for /src or the HTML on purpose: those change every
+      # release and carry stable filenames, so they should keep revalidating
+      # and pick up deploys immediately.
+
+      # The font is requested with a ?v=7.4.47 query, so the URL changes when
+      # the font does. That makes it genuinely safe to treat as immutable, and
+      # at 403 KB it is the one asset where a year rather than a day matters.
+      - path: /vendor/mdi/fonts/*
+        name: Cache-Control
+        value: public, max-age=31536000, immutable
+
+      # Vue and the icon stylesheet have stable, unversioned filenames, so they
+      # must NOT be immutable -- an upgrade would strand cached copies for as
+      # long as the max-age. A day, then revalidate. Named individually rather
+      # than as /vendor/*, which would also match the font above.
+      - path: /vendor/mdi/css/*
+        name: Cache-Control
+        value: public, max-age=86400
+      - path: /vendor/vue.runtime.esm-browser.prod.js
+        name: Cache-Control
+        value: public, max-age=86400
+
+      # The word lists. 239 KB raw, 60 KB compressed, and they change about
+      # never -- but they had no rule at all, so they fell through to Render's
+      # max-age=0 and every page load revalidated them. Measured on production
+      # before adding this.
+      #
+      # A day rather than a year, and deliberately not immutable: the filenames
+      # carry no version, so an updated list has to be able to reach people.
+      # Same reasoning as the two rules above, and the same non-overlap
+      # discipline -- /data/* claims nothing that /vendor/* does.
+      #
+      # Worth noting what this is NOT a substitute for. These files are fetched
+      # lazily, only by the generators that need them, and they used to be
+      # fetched repeatedly: four component-local loaders in main.js each did
+      # their own fetch with no cache, so cycling the tabs twice cost nine
+      # requests. That was fixed in the code, where it belonged. A cache header
+      # would have hidden it.
+      - path: /data/*
+        name: Cache-Control
+        value: public, max-age=86400
+
+  - type: web
+    name: app
+    runtime: static
+
+    # NO `branch:` HERE. It was pinned to main earlier today, reasoning that a
+    # dashboard-only deploy branch would break if the default branch were
+    # renamed -- "the more useful half", the commit said. It was the half that
+    # broke dev.
+    #
+    # The dev Blueprint reads THIS FILE from the dev branch and applies
+    # everything in it, so `branch: main` was handed to the dev service too.
+    # dev.wordlock.net silently served main; switching it in the dashboard
+    # worked until the next sync put it back, which is exactly the "why does it
+    # keep switching" that went unexplained for weeks. It came to light as a
+    # 404 on a module committed hours earlier: fourteen commits of work had
+    # never been on the dev site at all.
+    #
+    # With no branch declared, each Blueprint uses the branch it is linked to,
+    # which is the arrangement that worked before the pin was added. The
+    # protection that was wanted -- a rename not silently freezing a deploy --
+    # is real, but it cannot be bought here without breaking the other
+    # deployment. test/render-config.test.js fails if this comes back.
+
+    # No build step: index.html loads src/main.js as a native ES module and the
+    # wordlists are fetched from data/, so the repo is served as-is.
+    staticPublishPath: ./app
+    headers:
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Permissions-Policy
+        value: geolocation=(), microphone=(), camera=()
+
+      # HSTS. The site is HTTPS-only already, but without this a first visit
+      # typed as "wordlock.net" is one plaintext request that can be answered
+      # by something other than us -- and what it would be answering with is
+      # the page someone types a vault passphrase into. Two years, which is
+      # the preload floor, and includeSubDomains because dev.wordlock.net
+      # serves the same application from the same registrable domain.
+      #
+      # Deliberately NOT `preload` yet: submitting to the preload list is
+      # effectively irreversible on browser timescales, and it would commit
+      # every future subdomain of wordlock.net to HTTPS forever. Worth doing,
+      # worth doing on purpose rather than as a line in a security pass.
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=63072000; includeSubDomains
+
+      # Content-Security-Policy. For a vault that never talks to a server, the
+      # directive that earns its keep is connect-src: even if something did run
+      # on this origin, it has nowhere to send what it found. form-action and
+      # img-src close the other two classic exfiltration channels (POST to a
+      # remote endpoint, and a remote image URL with the secret in the path).
+      #
+      # The hashes cover the inline <script> blocks -- the offline registration
+      # and the theme priming that has to run before first paint. They are NOT
+      # hand-maintained: test/csp.test.js recomputes them from the HTML and
+      # fails if this header drifts, because a stale hash here is a blank site.
+      # Hashing is done over LF-normalized content, which is what git stores
+      # and therefore what Render serves; computing them from a CRLF working
+      # tree yields hashes that pass locally and break in production.
+      #
+      # 'unsafe-eval' IS GONE. It was required for as long as components
+      # declared templates as strings: Vue compiled those in the browser
+      # through `new Function`, and without the allowance every page rendered
+      # blank -- measured, not assumed.
+      #
+      # Templates are now compiled ahead of time by tools/build-templates.mjs
+      # and the page ships vue.runtime.esm-browser.prod.js, which has no
+      # compiler in it at all. Nothing on this origin needs to build a function
+      # from a string any more, so the policy no longer says it may.
+      #
+      # It was one allowance blocking three separate things -- this policy, a
+      # Manifest V3 extension, and the sealing work in 9f -- which is why "do
+      # not add a build step for this alone" stopped applying.
+      #
+      # style-src keeps 'unsafe-inline' because CSP hashes do not cover style
+      # attributes and docs.html carries 123 of them. With img-src and
+      # connect-src locked to 'self', the usual CSS-exfiltration trick has no
+      # egress, so this is the cheap half of the trade rather than the costly
+      # one.
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; connect-src 'self'; img-src 'self' data:; font-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'sha256-EaVGUkNxl9fsZyICvVTMXT93Xw6/rRpzf5S/Vsk4JXU=' 'sha256-zO1D4Vm447P7kMLJzPE0qTA+yYPRKOkFNGRzejILZdE='"
 
       # Caching for the vendored third-party assets. Since v2.7.1 these are
       # served from this domain rather than a CDN, so their bytes are ours --

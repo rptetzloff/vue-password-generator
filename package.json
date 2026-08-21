@@ -28,6 +28,7 @@
   "scripts": {
     "dev": "npx --yes serve . --listen 5173",
     "test": "node --test",
-    "check:deploy": "node tools/check-deploy.mjs"
+    "check:deploy": "node tools/check-deploy.mjs",
+    "build": "node tools/build-templates.mjs && node tools/build-publish-roots.mjs"
   }
 }

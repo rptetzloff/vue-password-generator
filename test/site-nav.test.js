@@ -6,8 +6,13 @@ import { isCurrentPage, isCurrentEntry, hrefFor, pageFor, PAGES } from '../ui/si
 import { PAGE_FILES } from './helpers/pages.js'
 
 test('every page in the nav is reachable and unique', () => {
-  const hrefs = PAGES.map(p => p.href)
-  assert.equal(new Set(hrefs).size, hrefs.length, 'duplicate hrefs')
+  // Uniqueness is per (host, href) now, not href alone: '/' is the home page
+  // on the site and the generator on the app, which is the whole reason
+  // isCurrentEntry compares host as well as path.
+  const keys = PAGES.map((p) => `${p.host}${p.href}`)
+  assert.equal(new Set(keys).size, keys.length, 'duplicate host+href')
+  const files = PAGES.map((p) => p.file ?? p.href)
+  assert.equal(new Set(files).size, files.length, 'two entries claim the same file')
   for (const p of PAGES) {
     assert.ok(p.label, 'every entry needs a label')
     assert.ok(p.icon, 'every entry needs an icon')
@@ -95,7 +100,9 @@ test('the floating bar is the only navigation, and it carries everything', () =>
     'the header must not mount a second navigation or gear')
 
   // One name for the one destination list, now that there is one list.
-  assert.equal(PAGES.find((p) => p.href === '/').label, 'Generator')
+  // Two entries answer to '/', so the host has to be part of the question.
+  assert.equal(PAGES.find((p) => p.href === '/' && p.host === 'app').label, 'Generator')
+  assert.equal(PAGES.find((p) => p.href === '/' && p.host === 'site').label, 'Home')
 })
 
 // -- two origins, before there are two origins --------------------------------
@@ -113,8 +120,8 @@ test('every page is assigned to a host, and the split matches the decision', () 
   assert.deepEqual(on('app'), ['/', '/vault.html'],
     'the generator and the vault go to app.wordlock.net')
   assert.deepEqual(on('site'),
-    ['/about.html', '/changelog.html', '/docs.html', '/legal.html', '/roadmap.html'],
-    'the prose pages stay on wordlock.net')
+    ['/', '/about.html', '/changelog.html', '/docs.html', '/legal.html', '/roadmap.html'],
+    'the prose pages and the home page stay on wordlock.net')
 })
 
 test('with one origin, every link is exactly what it is today', () => {
@@ -144,11 +151,18 @@ test('a cross-host link becomes absolute once the origins are known', () => {
 test('/ names two different pages once the hosts separate', () => {
   // The reason path alone stops being enough: the generator is / on the app,
   // and the marketing home page will be / on the site.
-  const generator = PAGES.find((p) => p.href === '/')
+  // find() by href alone returns Home now, which is the point of the test:
+  // two pages answer to '/' and only the host tells them apart.
+  const generator = PAGES.find((p) => p.href === '/' && p.host === 'app')
+  const home = PAGES.find((p) => p.href === '/' && p.host === 'site')
   assert.equal(isCurrentEntry(generator, '/', 'app'), true)
   assert.equal(isCurrentEntry(generator, '/', 'site'), false,
     'the app root must not light up while reading the site root')
   // And with one origin the host is ignored, which is today.
+  assert.equal(isCurrentEntry(home, '/', 'site'), true, 'and the home page lights up on the site')
+  assert.equal(isCurrentEntry(home, '/', 'app'), false)
+  // With one origin the host is ignored, which is today -- and is why both
+  // match, since nothing yet distinguishes them.
   assert.equal(isCurrentEntry(generator, '/', null), true)
 })
 
@@ -156,6 +170,9 @@ test('pageFor still resolves the current page, with or without a host', () => {
   assert.equal(pageFor('/vault.html').label, 'Vault')
   assert.equal(pageFor('/vault.html', 'app').label, 'Vault')
   assert.equal(pageFor('/vault.html', 'site'), null, 'wrong host, not this page')
+  // The pair that shares a path: same '/', different page per host.
+  assert.equal(pageFor('/', 'app').label, 'Generator')
+  assert.equal(pageFor('/', 'site').label, 'Home')
   assert.equal(pageFor('/legal.html', 'site').label, 'Legal')
 })
 

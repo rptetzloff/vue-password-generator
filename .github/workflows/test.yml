@@ -56,5 +56,7 @@ jobs:
       # Belt and braces on the same property, and cheap. If the drift test were
       # ever skipped by accident -- a rename, a bad condition -- this still
       # fails, because it does not depend on the test being reached.
-      - name: Templates match their compiled output
-        run: node tools/build-templates.mjs --check
+      - name: Generated output matches its source
+        run: |
+          node tools/build-templates.mjs --check
+          node tools/build-publish-roots.mjs --check

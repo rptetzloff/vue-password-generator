@@ -9,5 +9,9 @@ import { PAGES } from '../../ui/site-nav.js'
  * unreachable from the site's only navigation, which site-nav.test.js already
  * treats as a bug, so the manifest is the right source of truth.
  */
+// `file` wins where a page's authored name differs from its served path --
+// two pages are served at '/' now, one per host, so deriving the filename
+// from the href alone would name index.html twice and never mention
+// home.html.
 export const PAGE_FILES = PAGES.map((p) =>
-  (p.href === '/' ? 'index.html' : p.href.replace(/^\//, '')))
+  p.file ?? (p.href === '/' ? 'index.html' : p.href.replace(/^\//, '')))

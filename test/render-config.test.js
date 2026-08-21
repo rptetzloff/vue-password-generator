@@ -40,14 +40,25 @@ const services = (() => {
   })
 })()
 
-test('exactly one service is declared', () => {
-  // Two Blueprints each apply this whole file, so a second service here is
-  // created twice -- including a second copy of production. Measured: adding
-  // the dev service produced a review screen offering to create BOTH
-  // `wordlock-cl9q` and `wordlock-dev-cl9q`, from a file naming one of each.
-  assert.equal(services.length, 1,
-    'a second service here is created once per Blueprint, not once')
-  assert.equal(services[0].name, 'wordlock')
+test('one service per surface, and none per environment', () => {
+  // ~~Exactly one service is declared.~~ Reversed, and the distinction is the
+  // point. The old rule came from naming `wordlock` and `wordlock-dev` here:
+  // both Blueprints applied both, and the review screen offered
+  // `wordlock-cl9q` and `wordlock-dev-cl9q` together -- a duplicate of
+  // production, from a file naming one of each.
+  //
+  // That was the ENVIRONMENT axis. site and app are two SURFACES, so both
+  // Blueprints wanting both is correct and four services is the right total:
+  // wordlock.net and app.wordlock.net from main, dev.wordlock.net and
+  // dev.app.wordlock.net from dev.
+  assert.deepEqual(services.map((s) => s.name).sort(), ['app', 'site'])
+
+  // The rule that did not change: nothing here may name an environment, or
+  // both deployments get it. `branch:` is the one that already proved it.
+  for (const s of services) {
+    assert.doesNotMatch(s.name, /dev|prod|staging/i,
+      `service "${s.name}" names an environment; both Blueprints would create it`)
+  }
 })
 
 test('the deploy branch is NOT pinned here', () => {
@@ -66,8 +77,17 @@ test('the deploy branch is NOT pinned here', () => {
     'no service in this file may declare a branch')
 })
 
-test('the site is served as-is, with no build step', () => {
-  assert.equal(services[0].publish, './')
+test('each service publishes its own root, and nothing is built on deploy', () => {
+  // ~~publish is './'.~~ A static service serves exactly one directory, so the
+  // two surfaces need two roots. They are assembled by
+  // tools/build-publish-roots.mjs and COMMITTED, which is what keeps "no build
+  // step" true: Render still runs nothing, it just serves a subdirectory.
+  const paths = services.map((s) => s.publish).sort()
+  assert.deepEqual(paths, ['./app', './site'])
+  for (const s of services) {
+    assert.match(s.publish, /^\.\/(site|app)$/,
+      `${s.name} must publish a generated root, not the repository itself`)
+  }
 })
 
 test('no request matches two header rules of the same name', () => {

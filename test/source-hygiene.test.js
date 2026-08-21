@@ -207,7 +207,10 @@ test('the CC BY-SA wordlist stays outside the MIT tree', () => {
   // licence boundary gets erased by a `git mv`, so the layout is asserted
   // rather than trusted.
   const root = new URL('../', import.meta.url)
-  const MIT_TREES = ['core/', 'src/', 'tools/']
+  // The generated publish roots mirror the source layout, so data/ stays its
+  // own directory inside them too. Stating the rule as "only ever under a
+  // data/ directory" covers the root and both roots with one sentence.
+  const MIT_TREES = ['core/', 'src/', 'tools/', 'ui/']
   const SHARE_ALIKE = ['orchard-street-long.txt']
 
   for (const dir of MIT_TREES) {

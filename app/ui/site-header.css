@@ -1,0 +1,241 @@
+/* The shared site header, used by all five pages including the app.
+ *
+ * Every page once hand-rolled its own version and they had drifted: the link
+ * style was called .header-back on docs and .header-link on changelog despite
+ * identical declarations, only changelog had small-screen overrides, and the
+ * app had a wholly separate header of its own. Unified on .header-nav /
+ * .header-link, rendered from src/site-header.js.
+ *
+ * The chrome is one width on every page. Pages used to set --header-max to
+ * match their own content column, which made the header wrap differently and
+ * condense to a different height on each.
+ */
+
+.site-header {
+  background: var(--header-bg);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--header-hairline);
+  padding: 1.5rem 0;
+  color: white;
+  /* Fixed, not sticky. Sticky keeps the header in the document flow, so
+     shrinking it changed the page height, shifted the content and moved the
+     scroll position -- which fed straight back into the decision to shrink.
+     Out of flow, the size change affects nothing but the header itself. */
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+}
+
+/* Holds open the space the fixed header would have occupied. Sized in
+   site-header.js from the expanded header, so condensing on scroll never
+   reflows the page. Below the small-screen breakpoint the header is condensed
+   permanently, and there the spacer tracks its real height instead -- holding
+   room for an expansion that never comes left a large gap above the content. */
+.site-header-spacer {
+  flex-shrink: 0;
+}
+
+/* Condensed state.
+ *
+ * The header is fixed, so at full height it sits over the reader for the whole
+ * page and takes screen the content needs -- worst on a phone, and worse again
+ * at a raised text size. Once scrolled past the top it shrinks to an icon, the
+ * title and the nav; the subtitle and description are dropped, since they
+ * describe the page rather than help you move around it.
+ *
+ * Applied by site-header.js on scroll, and unconditionally below 640px where
+ * the full header would dominate the viewport from the outset.
+ */
+.site-header.is-condensed {
+  padding: 0.5rem 0;
+}
+
+.site-header.is-condensed .header-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.site-header.is-condensed .header-text h1 {
+  font-size: 0.95rem;
+}
+
+.site-header.is-condensed .header-text p,
+.site-header.is-condensed .header-description {
+  display: none;
+}
+
+.site-header.is-condensed .header-link {
+  padding: 0.35rem 0.55rem;
+  font-size: 0.8rem;
+}
+
+/* Small screens are permanently condensed, but "condensed" was tuned as a
+   scrolled-away desktop band. As the only header a phone ever sees it read
+   like an afterthought, so it gets its presence back: a bigger mark, a
+   bigger name, and the subtitle stays. The spacer resizes itself via the
+   ResizeObserver in site-header.js. */
+@media (max-width: 640px) {
+  .site-header.is-condensed {
+    padding: 0.85rem 0;
+  }
+  /* Mark and text share the row; the long subtitle wraps beside the mark
+     instead of pushing the whole text block underneath it. */
+  .site-header.is-condensed .header-inner {
+    flex-wrap: nowrap;
+  }
+  .site-header.is-condensed .header-text {
+    min-width: 0;
+  }
+  .site-header.is-condensed .header-icon {
+    width: 2.35rem;
+    height: 2.35rem;
+  }
+  .site-header.is-condensed .header-text h1 {
+    font-size: 1.2rem;
+  }
+  .site-header.is-condensed .header-text p {
+    display: block;
+    font-size: 0.76rem;
+  }
+}
+
+/* The size change is deliberately not animated.
+ *
+ * Condensing alters padding, width, height, font-size and the spacing around
+ * the collapsed rows -- every one of them a layout property, on several
+ * elements at once. Transitioning them forces the header to re-lay-out on every
+ * frame, which reads as a stutter rather than a glide, and easing cannot fix
+ * that. An instant change never looks half-finished.
+ *
+ * With nothing animating, the collapsed rows can use display: none again
+ * instead of the max-height machinery an animated version would need.
+ */
+
+/* Below this the nav would wrap to several rows before the header condensed,
+   so drop the link text and keep the icons. aria-label preserves each name. */
+@media (max-width: 560px) {
+  .header-link-text {
+    display: none;
+  }
+  .header-link {
+    padding: 0.4rem 0.55rem;
+  }
+}
+
+/* No prefers-reduced-motion rule here any more: nothing in the header animates
+   position or size. The only remaining transition is a hover color fade on
+   the links, which is not motion. */
+
+.header-inner {
+  /* One width for the site chrome on every page. Pages used to set this to
+     match their own content column -- 1100, 900, 760 -- so the header wrapped
+     differently and condensed to a different height on each one. 75rem is the
+     app container width, in rem so it tracks the text-size setting. */
+  max-width: var(--header-max, 75rem);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  /* Wrap the nav onto its own line rather than overflowing. The icon and nav
+     are both flex-shrink: 0 and the links are nowrap, so without this the row
+     could only grow -- which pushed the whole page into horizontal scroll on
+     narrow screens. */
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.header-icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 10px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+}
+
+/* The mark follows the theme. Its two colors are the brand pair, so the key
+   is guaranteed legible against its own tile in both themes -- the same
+   --primary / --on-primary contrast the buttons rely on.
+   Set by class, not by a var() inside a fill attribute, which is not reliably
+   supported. */
+.header-icon .logo-tile { fill: var(--primary); }
+.header-icon .logo-ink { fill: var(--on-primary); }
+.header-icon .logo-ink-soft { fill: var(--on-primary); fill-opacity: 0.7; }
+.header-icon .logo-outline {
+  fill: none;
+  stroke: var(--on-primary);
+  stroke-opacity: 0.35;
+  stroke-width: 2px;
+}
+
+.header-text h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.header-text p {
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Optional full-width row below the title, for pages that need to say
+   something before the content starts. The app uses it for the privacy
+   notice. flex-basis: 100% makes it take its own line in the wrapping
+   .header-inner rather than squeezing in beside the nav. */
+.header-description {
+  flex-basis: 100%;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--header-hairline);
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: var(--footer-text);
+}
+
+.header-description strong {
+  color: white;
+  font-weight: 600;
+}
+
+.header-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--band-control-border);
+  background: var(--band-control-bg);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.header-link:hover {
+  background: var(--band-control-hover-bg);
+  border-color: var(--band-control-border);
+}
+
+.header-link:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 2px;
+}
+
+/* The page you are on. aria-current carries this for screen readers; this is
+   the visual half. Not color alone -- the border weight changes too, so the
+   state survives a color-vision difference (WCAG 1.4.1). */
+.header-link.is-current {
+  background: var(--band-control-hover-bg);
+  border-color: white;
+  font-weight: 700;
+}
+
+/* Was changelog-only; now applies to both pages. */
+@media (max-width: 640px) {
+  .header-nav { gap: 0.35rem; }
+  .header-link { padding: 0.45rem 0.7rem; font-size: 0.8rem; }
+}

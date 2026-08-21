@@ -1,0 +1,1967 @@
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Design tokens live in tokens.css; the site footer in site-footer.css.
+   Both are linked before this file. */
+
+/* The app footer sits below the content column, unlike the standalone pages. */
+:root { --footer-gap: 2rem; }
+
+body {
+  font-family: var(--font-family);
+  background: var(--page-gradient);
+  min-height: 100vh;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header */
+/* Main content */
+.main {
+  padding: 2rem 0;
+}
+
+/* Tabs */
+/* The generator switcher: a grid of tiles, each carrying an icon, the mode's
+   name, and its one-line description -- the docs intro-tile pattern promoted
+   to the app's main nav, so a mode says what it is before you commit to it.
+   Seven across on a wide screen, four then two as the width comes down; no
+   width ever hides a tab or its description. */
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 0.4rem;
+  margin-bottom: 2rem;
+  box-shadow: var(--shadow);
+  gap: 0.4rem;
+}
+
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.6rem 0.4rem;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: calc(var(--radius) - 2px);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.tab .mdi {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.tab-name {
+  font-weight: 600;
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+
+/* Same color as the name so the description never falls below the tile's own
+   contrast; the size difference does the hierarchy. */
+.tab-desc {
+  font-size: 0.68rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+@media (max-width: 1000px) {
+  .tabs {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Small screens: the tile grid breaks down to a compact icon-and-name bar --
+   full tiles with descriptions were most of a phone screen. The active mode's
+   description moves to the one-line strip below (.tabs-desc), so it stays
+   visible without every tile paying for it. */
+@media (max-width: 640px) {
+  .tabs {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.25rem;
+    padding: 0.3rem;
+    margin-bottom: 0.5rem;
+  }
+  .tab {
+    padding: 0.45rem 0.15rem;
+    gap: 0.15rem;
+  }
+  .tab .mdi {
+    font-size: 1.1rem;
+  }
+  .tab-name {
+    font-size: 0.7rem;
+  }
+  .tab-desc {
+    display: none;
+  }
+}
+
+.tabs-desc {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .tabs-desc {
+    display: block;
+    text-align: center;
+    font-size: 0.78rem;
+    /* --band-text-dim, NOT --text-secondary. This strip is drawn straight onto
+       the page gradient rather than on a card, which is the case the --band-*
+       tokens exist for. --text-secondary is calibrated against --surface, and
+       on the light band it measured 1.28:1 -- invisible, and it shipped that
+       way. The token was already here; this rule simply never reached for it. */
+    color: var(--band-text-dim);
+    margin: 0 0 1.1rem;
+  }
+}
+
+.tab:hover {
+  background: var(--background);
+  color: var(--text);
+}
+
+.tab.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  box-shadow: var(--shadow);
+}
+
+/* Tab content */
+.tab-content {
+  background: var(--surface);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+  /* clip, not hidden: both trim card corners to the container radius, but
+     hidden makes this a scroll container, which silently disables the sticky
+     Generate card. clip clips without capturing sticky descendants. */
+  overflow: clip;
+}
+
+.tab-content > * > .card:last-child {
+  margin-bottom: 0;
+}
+
+/* Form elements */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 2px solid var(--border-strong);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: border-color 0.2s ease;
+  background: var(--surface);
+}
+
+.form-input:focus-visible {
+  /* Was `outline: none` with a 10%-alpha shadow as the only cue, and that
+     shadow was hardcoded to the old primary so it no longer matched the brand
+     or the theme. Keep the ring. */
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--focus-tint);
+}
+
+.form-input:read-only {
+  background: var(--background);
+  cursor: default;
+}
+
+.symbol-chips-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  /* The label and its All/Common/None buttons do not fit side by side at
+     narrow widths once the text size is raised. */
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.symbol-chips-header .form-label {
+  margin-bottom: 0;
+}
+
+.symbol-chips-actions {
+  display: flex;
+  gap: 0.375rem;
+  flex-wrap: wrap;
+}
+
+.chip-action {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.chip-action:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.symbol-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+
+.symbol-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+  user-select: none;
+}
+
+.symbol-chip:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+}
+
+.symbol-chip.active {
+  border-color: var(--primary);
+  background: var(--focus-tint);
+  color: var(--primary);
+}
+
+.leet-chip {
+  width: auto;
+  padding: 0 0.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.01em;
+}
+
+.emoji-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+.emoji-toggle-row .form-label {
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
+.emoji-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 6px;
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  line-height: 1.4;
+}
+
+.emoji-toggle-btn:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.emoji-toggle-btn.active {
+  border-color: var(--primary);
+  background: var(--focus-tint);
+  color: var(--primary);
+}
+
+.emoji-toggle-icon {
+  font-style: normal;
+  line-height: 1;
+}
+
+.emoji-toggle-label {
+  font-variant-numeric: tabular-nums;
+  min-width: 1.8rem;
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.btn-secondary {
+  background: var(--secondary);
+  color: var(--on-primary);
+}
+
+.btn-secondary:hover {
+  background: var(--secondary);
+}
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  box-shadow: var(--shadow);
+  margin-bottom: 1rem;
+}
+
+/* 7d: the Generate card sticks to the viewport bottom while the options above
+   it scroll, so sixty controls never separate the button from your thumb. The
+   password display lives in the same bar -- a floating button whose result
+   appears off-screen would defeat the point. */
+.card-generate {
+  position: sticky;
+  /* Clears the floating bottom nav, which owns the last ~4rem of viewport. */
+  bottom: 4.75rem;
+  z-index: 5;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.card-generate .btn-primary {
+  flex-shrink: 0;
+}
+
+/* The display grows to fill the bar and drops below the button when narrow. */
+.card-generate .password-display {
+  flex: 1 1 16rem;
+  margin: 0;
+}
+
+/* The strength readout takes the bar's second row: meter, bits, tier and the
+   guess-time spread at a glance, with "how?" expanding in place. */
+.card-generate .entropy-panel {
+  flex-basis: 100%;
+}
+
+/* The pin puts the bar back into normal flow for anyone who finds the
+   floating version in the way. relative, not static: it stays in flow (no
+   more sticking) but keeps being the pin button's containing block. */
+.card-generate.bar-unstuck {
+  position: relative;
+  bottom: auto;
+}
+
+.bar-pin {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: var(--control-min);
+  height: var(--control-min);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  border-radius: 6px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.bar-pin:hover {
+  background: var(--overlay-soft);
+  color: var(--text);
+}
+
+/* 7c: rarely-changed groups collapse behind their header. */
+details.card-collapse > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+details.card-collapse > summary::-webkit-details-marker {
+  display: none;
+}
+
+details.card-collapse:not([open]) > summary {
+  margin-bottom: 0;
+}
+
+.collapse-chevron {
+  margin-left: auto;
+  color: var(--text-secondary);
+  transition: transform 0.2s ease;
+}
+
+details[open].card-collapse > summary .collapse-chevron {
+  transform: rotate(180deg);
+}
+
+/* Collapsed is not hidden: the header says when the group is doing something. */
+.collapse-inuse {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--primary);
+  border-radius: 999px;
+  color: var(--primary);
+}
+
+.card-header {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: var(--text);
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Sliders */
+.slider-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* The input is the hit target, and it used to *be* the visible bar: 6px tall,
+   which is what you had to hit before finding the 20px thumb. WCAG 2.2 SC 2.5.8
+   asks for 24x24. The element is --control-min tall and transparent now, with
+   the thin bar drawn by the track pseudo-element inside it, so the target grew
+   four-fold without the design changing. */
+.slider {
+  flex: 1;
+  height: var(--control-min);
+  background: transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Once appearance is none the track has to be drawn explicitly, or the bar
+   disappears along with the native rendering. */
+.slider::-webkit-slider-runnable-track {
+  height: 0.375rem;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.slider::-moz-range-track {
+  height: 0.375rem;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--control-min);
+  height: var(--control-min);
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: grab;
+  box-shadow: var(--shadow);
+  /* WebKit aligns the thumb to the top of the track rather than centring it. */
+  margin-top: calc((0.375rem - var(--control-min)) / 2);
+  transition: box-shadow 0.15s ease;
+}
+
+/* 7b: the handle answers the pointer -- a halo on hover says "grabbable"
+   before you commit, and it widens while dragging. The halo is a shadow, so
+   the thumb's hit target and layout size never change. */
+.slider::-webkit-slider-thumb:hover {
+  box-shadow: var(--shadow), 0 0 0 6px var(--focus-tint);
+}
+
+.slider:active::-webkit-slider-thumb {
+  cursor: grabbing;
+  box-shadow: var(--shadow), 0 0 0 9px var(--focus-tint);
+}
+
+.slider::-moz-range-thumb {
+  width: var(--control-min);
+  height: var(--control-min);
+  border-radius: 50%;
+  background: var(--primary);
+  cursor: grab;
+  border: none;
+  box-shadow: var(--shadow);
+  transition: box-shadow 0.15s ease;
+}
+
+.slider::-moz-range-thumb:hover {
+  box-shadow: var(--shadow), 0 0 0 6px var(--focus-tint);
+}
+
+.slider:active::-moz-range-thumb {
+  cursor: grabbing;
+  box-shadow: var(--shadow), 0 0 0 9px var(--focus-tint);
+}
+
+/* `outline: none` used to sit in .slider above. That selector is (0,1,0) --
+   the same specificity as the global :where(...):focus-visible ring in
+   tokens.css -- and style.css loads second, so it won on source order and the
+   sliders had no focus indicator at all. WCAG 2.4.7.
+   Stated explicitly rather than deleted and left to the global rule, so the
+   next person reaching for `outline: none` on a range input sees why. */
+.slider:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+.slider-value {
+  min-width: 3.75rem;
+  text-align: center;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  padding: 0;
+  font-size: 1rem;
+}
+
+.stepper-btn:hover {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+
+.stepper-btn:active {
+  background: var(--primary-dark);
+  border-color: var(--primary-dark);
+}
+
+.stepper-label {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.stepper-label-text {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  min-width: 3.5rem;
+  text-align: center;
+}
+
+/* Checkboxes and switches */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* WCAG 2.2 SC 2.5.8: was 1.25rem (20px), under the 24px minimum. */
+.checkbox {
+  /* This is a real <input type="checkbox"> that draws its own tick via
+     :checked::after below. Without this the browser keeps drawing the native
+     tick as well, and the two sit on top of each other -- visible as a doubled
+     checkmark. It was there all along; how obvious it looked depended on how
+     the native control happened to render against the fill. */
+  appearance: none;
+  -webkit-appearance: none;
+  width: var(--control-min);
+  height: var(--control-min);
+  border: 2px solid var(--border-strong);
+  border-radius: 4px;
+  cursor: pointer;
+  position: relative;
+  background: var(--surface);
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.checkbox:checked {
+  background: var(--primary);
+  border-color: var(--primary);
+}
+
+.checkbox:checked::after {
+  content: '✓';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--on-primary);
+  font-size: 0.75rem;
+  font-weight: bold;
+}
+
+/* Radio buttons */
+.radio-group {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12.5rem, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.radio-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.radio-item:hover {
+  background: var(--background);
+}
+
+/* Matches .checkbox. Invisible today -- the input is sr-only -- but wrong if it is ever shown. */
+.radio {
+  /* Same reason as .checkbox. This one has no visible symptom today -- the
+     input carries .sr-only and nothing selects off its checked state, so these
+     visual rules are currently unreachable -- but if it is ever unhidden it
+     would arrive with the doubled indicator already in place. */
+  appearance: none;
+  -webkit-appearance: none;
+  width: var(--control-min);
+  height: var(--control-min);
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+  cursor: pointer;
+  position: relative;
+  background: var(--surface);
+}
+
+.radio:checked {
+  border-color: var(--primary);
+}
+
+.radio:checked::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--primary);
+}
+
+/* Password display */
+.password-display {
+  position: relative;
+  margin-bottom: 0;
+  /* Shared by the field and by the controls overlaid on it, so the two cannot
+     drift apart -- see .copy-btn for why that matters once the field wraps. */
+  --pw-pad: 0.75rem;
+  --pw-line: 1.65rem;
+
+  /* The overlay strip, right to left: copy, keep, then the length pill.
+     Each position is derived rather than written out, because they were hand
+     placed and the Keep button (9a) was given right: 2.6rem while the length
+     pill already sat at 2.75rem -- two 2rem-wide controls starting on the same
+     pixel. It read as one corrupt glyph, which is how it was reported. */
+  --pw-edge: 0.5rem;   /* gap from the right edge of the field */
+  --pw-btn: 2rem;      /* width of one overlaid icon button */
+  --pw-slot: 0.1rem;   /* gap between neighbouring overlaid controls */
+}
+
+.password-display .copy-btn { right: var(--pw-edge); }
+.password-display .keep-btn { right: calc(var(--pw-edge) + var(--pw-btn) + var(--pw-slot)); }
+.password-display .length-pill {
+  right: calc(var(--pw-edge) + 2 * (var(--pw-btn) + var(--pw-slot)));
+}
+/* Text must stop before the pill, whose own width varies with the digit count. */
+.password-display .password-input.has-length-pill {
+  padding-right: calc(var(--pw-edge) + 2 * (var(--pw-btn) + var(--pw-slot)) + 2.6rem);
+}
+
+/* This was an <input type="text">, which cannot wrap: a password longer than
+   the box simply scrolled out of sight. It is a readonly div now, so a long
+   result breaks onto as many lines as it needs.
+   role="textbox" with aria-readonly keeps it announced as a read-only field
+   rather than as loose text, and tabindex keeps it reachable and selectable
+   from the keyboard. Copying never read the DOM -- it uses the value
+   directly -- so the copy button is unaffected. */
+.password-input {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 1.1rem;
+  /* A password is read character by character; a little air keeps rn from
+     reading as m and cl from reading as d. */
+  letter-spacing: 0.045em;
+  /* One click selects the whole value -- manual selection of a password
+     almost never wants less, and partial drags kept grabbing fragments. */
+  user-select: all;
+  padding: var(--pw-pad);
+  /* Room for the two overlaid controls, copy and keep. */
+  padding-right: 5.1rem;
+  background: var(--background);
+  border: 2px solid var(--border-strong);
+  line-height: var(--pw-line);
+  /* break-all rather than break-word: a password has no word boundaries worth
+     respecting, and any point in it is a legal place to wrap. */
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  /* Keep the height the input had, so an empty field does not collapse. */
+  min-height: calc(var(--pw-pad) * 2 + var(--pw-line) + 4px);
+  cursor: text;
+}
+
+.password-placeholder {
+  color: var(--text-secondary);
+}
+
+.password-input.has-length-pill {
+  padding-right: 6rem;
+}
+
+.length-pill {
+  position: absolute;
+  right: 2.75rem;
+  top: calc(var(--pw-pad) + var(--pw-line) / 2);
+  transform: translateY(-50%);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary-dark);
+  pointer-events: none;
+  user-select: none;
+  white-space: nowrap;
+  letter-spacing: 0.02em;
+}
+
+/* Centered on the first line, not on the box. These used top: 50%, which was
+   the same thing while the field was always one line tall; now that it wraps,
+   a three-line password would have left the copy button floating in the
+   middle of the block. */
+.copy-btn {
+  position: absolute;
+  right: 0.5rem;
+  top: calc(var(--pw-pad) + var(--pw-line) / 2);
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.copy-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Keep-to-vault (9a). Sits beside copy, inside the output field, because the
+   moment to file a password is the moment it exists -- a vault you have to
+   navigate to and paste into is a notebook nobody opens twice. */
+.keep-wrap {
+  position: static;
+}
+
+/* In the history strip the button anchors its own panel, since there is no
+   output field to hang it from. */
+.keep-wrap.keep-compact {
+  position: relative;
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 0.3rem;
+}
+
+.history-row .history-item {
+  flex: 1;
+  min-width: 0;
+}
+
+.history-keep {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--control-min);
+  min-height: var(--control-min);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.history-keep:hover {
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.history-keep.kept {
+  color: var(--success);
+  border-color: var(--success);
+}
+
+.keep-btn {
+  right: 2.6rem;
+}
+
+.keep-btn.kept {
+  color: var(--success);
+}
+
+.keep-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Anchored to the output field rather than the button, so it cannot hang off
+   the edge of a narrow screen -- and opening UPWARD, because the field lives
+   in a bar docked at the bottom of the viewport: downward put the panel
+   off-screen, measured, exactly as it did for the settings gear. */
+.keep-panel {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 0.4rem);
+  z-index: 20;
+  width: min(20rem, calc(100vw - 2.5rem));
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-lg);
+}
+
+.keep-panel p {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.keep-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 0.6rem;
+}
+
+.keep-field > span {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.keep-field input {
+  padding: 0.45rem 0.6rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--background);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.keep-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.keep-actions .btn {
+  padding: 0.45rem 0.9rem;
+  font-size: 0.875rem;
+}
+
+/* Adopting a generated password as the vault passphrase makes it the single
+   unrecoverable key to everything in the vault, so the instruction to record
+   it is the loudest thing in the panel and the button waits behind a tick. */
+.keep-writedown {
+  border: 2px solid var(--warning);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.7rem;
+  margin-bottom: 0.7rem;
+}
+
+.keep-writedown-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0 0 0.4rem !important;
+  color: var(--warning);
+  font-weight: 700;
+  font-size: 0.85rem !important;
+}
+
+.keep-writedown p {
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.keep-writedown-pw {
+  display: block;
+  margin-top: 0.4rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  letter-spacing: 0.045em;
+  color: var(--text);
+  word-break: break-all;
+  user-select: all;
+}
+
+.keep-ack {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-bottom: 0.7rem;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.keep-ack input {
+  margin-top: 0.15rem;
+  width: var(--control-min);
+  height: var(--control-min);
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+
+.keep-error {
+  margin-bottom: 0.6rem;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--error);
+  border-radius: 6px;
+  color: var(--error);
+  font-size: 0.8rem;
+}
+
+.copy-btn.copied {
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+}
+
+.copy-btn.copied:hover {
+  background: color-mix(in srgb, var(--primary) 18%, transparent);
+  color: var(--primary);
+}
+
+/* Notifications */
+.notification {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  padding: 1rem 1.5rem;
+  border-radius: var(--radius);
+  color: var(--on-status);
+  font-weight: 500;
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  animation: slideIn 0.3s ease;
+}
+
+/* The toast appears and disappears on its own, so it must be announced.
+   role="status" is polite: it will not interrupt what a screen reader is
+   already saying. Tracked as ROADMAP Epic 3. */
+@media (prefers-reduced-motion: reduce) {
+  .notification { animation: none; }
+}
+
+/* The accent, not --success.
+   Status colors deliberately ignore the palette so that a warning or an error
+   stays recognisable, which left this toast cyan on a violet or rose theme.
+   But the only thing that ever raises a "success" here is the copy
+   confirmation -- every other notification is an error -- and confirming the
+   action you just took is not a system status, it is an acknowledgement. So it
+   wears the theme. Errors below keep --error, which is the case the fixed
+   status colors exist for.
+   --on-primary rather than the inherited --on-status: the accent is bright in
+   dark mode, so white on it is unreadable. */
+.notification.success {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.notification.error {
+  background: var(--error);
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Separator chip grid */
+.separator-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.sep-option {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.85rem;
+  border: 2px solid var(--border-strong);
+  border-radius: 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.sep-option:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--focus-tint);
+}
+
+.sep-option.active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+/* 6d: pool size + bits shown inside a category pill; inherits the pill's
+   color in every state so it never falls below the pill's own contrast. */
+.cat-meta {
+  font-size: 0.72rem;
+  margin-left: 0.35rem;
+}
+
+/* With Bit hints off the meta functions return '', and an empty span must
+   not leave its margin behind. */
+.cat-meta:empty {
+  display: none;
+}
+
+/* 6g: the look-alike toggle sits below a grid inside its card. */
+.exclude-ambiguous {
+  margin-top: 0.75rem;
+}
+
+/* 7b: the slider's range, visible at its ends instead of nowhere. */
+.slider-end {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* 7e: regeneration confirms itself with a brief tint on the fresh value. */
+@keyframes password-flash {
+  from { background-color: var(--focus-tint); }
+}
+
+.password-input {
+  animation: password-flash 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .password-input {
+    animation: none;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.custom-sep-row {
+  margin-top: 0.5rem;
+}
+
+.structure-chip span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+/* Mad Lib */
+.madlib-template-preview {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.madlib-template-text {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  word-break: break-word;
+}
+
+.madlib-template-text .slot {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.madlib-preview-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: 8px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.madlib-preview-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  margin-bottom: 0.35rem;
+}
+
+.madlib-preview-phrase {
+  font-size: 1rem;
+  color: var(--text);
+  font-style: italic;
+  word-break: break-word;
+}
+
+/* Prefix / Suffix affix pickers */
+.affix-pair {
+  display: flex;
+  gap: 0;
+}
+
+.affix-block {
+  flex: 1;
+  min-width: 0;
+}
+
+.affix-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-bottom: 0.6rem;
+}
+
+.affix-divider {
+  width: 1px;
+  background: var(--border);
+  margin: 0 1.25rem;
+  flex-shrink: 0;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .container {
+    padding: 0 0.5rem;
+  }
+  
+
+  
+  .radio-group {
+    grid-template-columns: 1fr;
+  }
+  
+  .slider-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .affix-pair {
+    flex-direction: column;
+  }
+
+  .affix-divider {
+    width: 100%;
+    height: 1px;
+    margin: 1rem 0;
+  }
+}
+
+/* ── Slot builder ─────────────────────────────────────── */
+
+.slot-add-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.slot-add-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.slot-add-btn {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid transparent;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.03em;
+}
+
+.slot-add-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.slot-add-btn:not(:disabled):hover { opacity: 0.85; transform: scale(1.04); }
+
+.slot-add-btn.slot-adj { background: var(--badge-blue-bg); color: var(--badge-blue-fg); border-color: var(--badge-blue-fg); }
+.slot-add-btn.slot-adv { background: var(--badge-teal-bg); color: var(--badge-teal-fg); border-color: var(--badge-teal-fg); }
+.slot-add-btn.slot-noun { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border-color: var(--badge-slate-border); }
+.slot-add-btn.slot-verb { background: var(--badge-amber-bg); color: var(--badge-amber-fg); border-color: var(--badge-amber-fg); }
+
+.slot-tray {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+.slot-pill {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: 2px solid transparent;
+  min-width: 5.625rem;
+}
+
+/* Part-of-speech pills.
+ *
+ * These were hardcoded pale backgrounds with no text color, so in dark mode
+ * the inherited light text landed on a light pill: 1.01:1, effectively
+ * invisible, and the worst contrast anywhere in the app. Setting the color
+ * explicitly is the actual fix -- a background is only half a pair.
+ *
+ * They reuse the docs badge tokens rather than defining a fifth set of
+ * category colors: same four hues, already verified in both themes and in
+ * both palettes. */
+.slot-adj  { background: var(--badge-blue-bg);  color: var(--badge-blue-fg);  border-color: var(--badge-blue-fg); }
+.slot-adv  { background: var(--badge-teal-bg);  color: var(--badge-teal-fg);  border-color: var(--badge-teal-fg); }
+.slot-noun { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border-color: var(--badge-slate-border); }
+.slot-verb { background: var(--badge-amber-bg); color: var(--badge-amber-fg); border-color: var(--badge-amber-fg); }
+
+.slot-pill-label {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+}
+
+.slot-pill-actions {
+  display: flex;
+  gap: 2px;
+}
+
+/* WCAG 2.2 SC 2.5.8: these were 1.375rem (22px). They are the most-used
+   controls on Passphrase and Wireless and were the smallest on the page. */
+.slot-arrow,
+.slot-remove {
+  background: var(--overlay-soft);
+  /* Neither set a color, so both fell through to the UA's `buttontext`. That
+     tracks color-scheme and so looked right in both themes by luck, but it is
+     not the theme's color and would not follow a palette. */
+  color: var(--text);
+  border: none;
+  border-radius: 4px;
+  width: var(--control-min);
+  height: var(--control-min);
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.12s;
+  padding: 0;
+  line-height: 1;
+}
+
+/* 0.25 was tuned against the UA's disabled text, which is already translucent;
+   stacking the two left the arrow at roughly 7% alpha. Now that the color is
+   ours, the opacity is the only fade applied. */
+.slot-arrow:disabled { opacity: 0.4; cursor: default; }
+.slot-arrow:not(:disabled):hover,
+.slot-remove:hover { background: var(--overlay-strong); }
+
+.slot-remove { margin-left: auto; color: var(--error); }
+
+/* Slot-pill controls sit on the pill's tint, not on --surface, and the rules
+   above were written for --surface. Two separate problems came out of that.
+
+   The colour: --error on the four tints measured 3.28-4.41:1 across both
+   themes -- all eight combinations failed. Each --badge-*-fg is already
+   verified against its own --badge-*-bg, so inheriting the pill's foreground
+   is correct by construction and stays correct if a tint is ever retuned. The
+   destructive meaning does not depend on red: the glyph is an unambiguous
+   remove affordance and the button carries an aria-label, and a red that
+   cannot be read communicates less than a legible colour that is not red.
+
+   The fill: --overlay-soft/--overlay-strong darken the tint in light and
+   lighten it in dark, so the glyph is not on the tint the badge pair was
+   verified against. At rest that cost light teal its margin (4.26:1); on
+   hover --overlay-strong took light teal to 3.53:1 and dark amber to 4.38:1.
+   So no fill inside a pill, and a currentColor ring for the hover affordance
+   -- a ring sits beside the glyph rather than underneath it, so it cannot
+   move the contrast at all. */
+.slot-pill .slot-arrow,
+.slot-pill .slot-remove {
+  color: inherit;
+  background: none;
+}
+
+.slot-pill .slot-arrow:not(:disabled):hover,
+.slot-pill .slot-remove:hover {
+  background: none;
+  box-shadow: inset 0 0 0 1.5px currentColor;
+}
+
+.slot-cat-select {
+  font-size: 0.75rem;
+  /* Was a translucent white fill with var(--text) on top. In dark mode that put
+     light text on a near-white control, and the browser draws the native option
+     list from these same colors -- so the whole dropdown was unreadable.
+     A solid themed surface fixes the control and the popup together. */
+  border: 1px solid var(--border-strong);
+  border-radius: 5px;
+  padding: 0.2rem 0.3rem;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  width: 100%;
+}
+
+.slot-empty {
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 1rem 0;
+}
+
+/* ── Mad Lib template token preview ──────────────────── */
+
+.madlib-template-preview {
+  margin-top: 0.85rem;
+  padding: 0.6rem 0.75rem;
+  background: var(--background);
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  line-height: 1.8;
+}
+
+.madlib-literal {
+  color: var(--text-secondary);
+  white-space: pre;
+}
+
+.madlib-token {
+  display: inline-block;
+  padding: 0.05rem 0.45rem;
+  border-radius: 5px;
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.6;
+}
+
+.madlib-token.slot-adj { background: var(--badge-blue-bg); color: var(--badge-blue-fg); border: 1px solid var(--badge-blue-fg); }
+.madlib-token.slot-adv { background: var(--badge-teal-bg); color: var(--badge-teal-fg); border: 1px solid var(--badge-teal-fg); }
+.madlib-token.slot-noun { background: var(--badge-slate-bg); color: var(--badge-slate-fg); border: 1px solid var(--badge-slate-border); }
+.madlib-token.slot-verb { background: var(--badge-amber-bg); color: var(--badge-amber-fg); border: 1px solid var(--badge-amber-fg); }
+
+/* ── Word cat label accent dots ──────────────────────── */
+
+.word-cat-label { display: flex; align-items: center; gap: 0.4rem; }
+.word-cat-label::before {
+  content: '';
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.wc-label-adj::before { background: var(--badge-blue-fg); }
+.wc-label-adv::before { background: var(--badge-teal-fg); }
+.wc-label-noun::before { background: var(--badge-slate-fg); }
+.wc-label-verb::before { background: var(--badge-amber-fg); }
+
+.wc-ordinal {
+  font-weight: 400;
+  opacity: 0.6;
+  font-size: 0.78rem;
+}
+
+.word-cat-row + .word-cat-row {
+  margin-top: 0.85rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Header meta row (privacy notice + history control) ─── */
+
+/* ── Word pills (per-word regeneration) ─────────────────── */
+
+.word-pills-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin-bottom: 0.85rem;
+}
+
+.word-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.lock-affixes-btn {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--background);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  font-size: 1rem;
+  margin-top: 1px;
+}
+
+.lock-affixes-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: var(--focus-tint);
+}
+
+.lock-affixes-btn.active {
+  border-color: var(--primary);
+  background: var(--focus-tint);
+  color: var(--primary);
+}
+
+.word-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.6rem 0.35rem 0.75rem;
+  border-radius: 999px;
+  border: 2px solid var(--border-strong);
+  background: var(--background);
+  color: var(--text);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+  user-select: none;
+}
+
+.word-pill:hover {
+  border-color: var(--primary);
+  background: var(--focus-tint);
+  color: var(--primary);
+}
+
+.word-pill:hover .word-pill-icon {
+  opacity: 1;
+  transform: rotate(30deg);
+}
+
+.word-pill-icon {
+  font-size: 0.8rem;
+  opacity: 0.35;
+  transition: opacity 0.15s, transform 0.25s;
+}
+
+/* Slot-type color accents on passphrase word pills */
+.word-pill-adj { border-color: var(--badge-blue-fg); background: var(--badge-blue-bg); color: var(--badge-blue-fg); }
+.word-pill-adj:hover { border-color: var(--badge-blue-fg); background: var(--badge-blue-bg); }
+.word-pill-adv { border-color: var(--badge-teal-fg); background: var(--badge-teal-bg); color: var(--badge-teal-fg); }
+.word-pill-adv:hover { border-color: var(--badge-teal-fg); background: var(--badge-teal-bg); }
+.word-pill-noun { border-color: var(--badge-slate-border); background: var(--badge-slate-bg); color: var(--badge-slate-fg); }
+.word-pill-noun:hover { border-color: var(--badge-slate-fg); background: var(--badge-slate-bg); }
+.word-pill-verb { border-color: var(--badge-amber-fg); background: var(--badge-amber-bg); color: var(--badge-amber-fg); }
+.word-pill-verb:hover { border-color: var(--badge-amber-fg); background: var(--badge-amber-bg); }
+
+/* ── History strip ──────────────────────────────────────── */
+
+.history-strip {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.history-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+  margin-bottom: 0.5rem;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.history-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  /* 7e: rests looking like the button it is, not like inert text. */
+  border: 1px solid var(--border);
+  background: var(--background);
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.history-item:hover {
+  background: var(--background);
+  border-color: var(--primary);
+  color: var(--text);
+}
+
+.history-item-active {
+  background: var(--focus-tint);
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+.history-item-warn {
+  border-color: var(--warning);
+  color: var(--warning);
+}
+
+.history-warn-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: var(--warning);
+  color: var(--on-status);
+  font-size: 0.5625rem;
+  font-weight: 700;
+  margin-left: 4px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+/* ── Site footer ────────────────────────────────────────── */
+
+/* Alliteration toggle */
+.alliteration-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.alliteration-toggle:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.alliteration-toggle.active {
+  background: var(--primary);
+  color: var(--on-primary);
+  border-color: var(--primary);
+}
+
+.alliteration-letter {
+  font-weight: 700;
+  font-size: 0.9rem;
+  background: var(--overlay-strong);
+  border-radius: 4px;
+  padding: 0 0.3rem;
+  min-width: 1.4em;
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+/* The entropy readout under each password field (ROADMAP 6a/6b).
+   A <details>: the closed summary is the one number that matters, the open
+   state is the per-draw breakdown in which zero-bit options say so out loud. */
+.entropy-panel {
+  margin-top: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+}
+
+.entropy-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  cursor: pointer;
+  padding: 0.2rem 0.3rem;
+  border-radius: 4px;
+}
+
+/* The scenario spread, always visible: 480 guesses a day is a different world
+   from 10^11 a second, and that contrast should not hide behind "how?". */
+.entropy-range {
+  flex-basis: 100%;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.entropy-range strong {
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.entropy-total {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+/* The delta and the warning are separate statements, so they are drawn as
+   separate chips -- run together as bare text, "33.1 bits +10.3 low" read as
+   one garbled number. */
+.entropy-delta,
+.entropy-warn {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.entropy-delta.is-up { color: var(--accent-ok); }
+.entropy-delta.is-down { color: var(--warning); }
+
+.entropy-warn { color: var(--warning); }
+
+.entropy-low .entropy-total { color: var(--warning); }
+
+.entropy-how {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.entropy-parts {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.entropy-parts li {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.ep-bits {
+  min-width: 3.2em;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+/* Zero-bit rows recede but stay legible: they are the 6b message. */
+.ep-zero .ep-bits,
+.ep-zero .ep-label { opacity: 0.75; }
+
+.ep-note {
+  font-style: italic;
+}
+
+/* 6c/6e/6f: comparison anchors, bits-per-character and guess times, shown at
+   the foot of the opened breakdown. */
+.entropy-extras {
+  margin-top: 0.4rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--background);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.entropy-extra-line {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.entropy-crack-title {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+  margin-top: 0.15rem;
+}
+
+.entropy-crack-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.crack-time {
+  color: var(--text);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* The guess rate, inline where the scenario is named -- 480/day vs 10^11/sec
+   is the whole point, and a hover-only note undersold it. */
+.crack-rate {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.45rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+
+/* Stored strength beside each history entry. Entries saved before v2.17.0
+   have no figure and simply show none. */
+.history-item {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.history-pw {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-bits {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The active row lays --focus-tint over the card, which lifts the backdrop out
+   from under --text-secondary: 4.00:1 in dark, just under the line. The token
+   was verified against --surface, and this row is no longer --surface. */
+.history-item-active .history-bits { color: var(--text); }
+
+/* The strength meter. Color is never the only signal -- the tier word sits
+   beside the bar, the bits are stated, and width alone separates good from
+   strong. Every color is a status token, so the meter follows the palette and
+   stays legible under Mono, where the tokens become distinct grays. */
+.entropy-meter {
+  width: 5rem;
+  height: 0.4rem;
+  border-radius: 999px;
+  /* --background, not --border: the fill must clear 3:1 against the track
+     (1.4.11), and --error on --border measured 2.74:1 in dark sky. A test in
+     contrast.test.js pins this across every palette. */
+  background: var(--background);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.entropy-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.entropy-meter.meter-weak   .entropy-meter-fill { background: var(--error); }
+.entropy-meter.meter-fair   .entropy-meter-fill { background: var(--warning); }
+.entropy-meter.meter-good   .entropy-meter-fill { background: var(--success); }
+.entropy-meter.meter-strong .entropy-meter-fill { background: var(--success); }
+
+.entropy-tier {
+  font-weight: 600;
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+.entropy-tier.meter-weak   { color: var(--error); }
+.entropy-tier.meter-fair   { color: var(--warning); }
+.entropy-tier.meter-good   { color: var(--success); }
+.entropy-tier.meter-strong { color: var(--success); }
+
+/* "Your vault entry is waiting", shown on the generator when you arrived from
+   a half-finished entry. On the page band, so it takes band colours -- see the
+   --band-* note in tokens.css. */
+.vault-return {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: -0.25rem 0 1rem;
+  font-size: 0.85rem;
+  color: var(--band-text-dim);
+}
+
+.vault-return a {
+  color: var(--band-text);
+  font-weight: 600;
+}

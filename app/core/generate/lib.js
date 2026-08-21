@@ -1,0 +1,231 @@
+// Pure generation helpers -- no Vue, no DOM, no localStorage.
+//
+// Split out of main.js so it can be imported by test/ under `node --test`.
+// main.js itself cannot be imported: it ends in createApp(App).mount(), which
+// needs a DOM. Browsers load this as a plain ES module, so there is still no
+// build step.
+
+export const SPECIAL_CHARS = '!#$%&*+-/:;=?@^_|~'
+export const DIGITS = '0123456789'
+
+// Uniform random integer in [0, max), drawn from the CSPRNG.
+// Rejection sampling discards the ragged tail above the largest multiple of
+// `max` that fits in a uint32, so every value is equally likely. Plain
+// `getRandomValues(...) % max` would skew toward low values.
+export const randInt = (max) => {
+  if (max <= 1) return 0
+  const buf = new Uint32Array(1)
+  const limit = Math.floor(0x100000000 / max) * max
+  let x
+  do {
+    crypto.getRandomValues(buf)
+    x = buf[0]
+  } while (x >= limit)
+  return x % max
+}
+
+export const randPick = (arr) => arr[randInt(arr.length)]
+
+export const randBool = () => randInt(2) === 1
+
+export const randChar = (str) => str.charAt(randInt(str.length))
+
+// 6g: the tight look-alike set -- l/I/1/| and O/0 read alike in enough fonts
+// to misfire when a password is read off one screen and typed on another.
+// Exclusion filters the RANDOM pools only; literals and custom text are the
+// user's explicit choice and pass through untouched.
+export const AMBIGUOUS_CHARS = 'lI1|O0'
+export const stripAmbiguous = (str) => [...str].filter((c) => !AMBIGUOUS_CHARS.includes(c)).join('')
+
+export const resolveToken = (value, custom, excludeAmbiguous = false) => {
+  const SYMS = excludeAmbiguous ? stripAmbiguous(SPECIAL_CHARS) : SPECIAL_CHARS
+  const NUMS = excludeAmbiguous ? stripAmbiguous(DIGITS) : DIGITS
+  switch (value) {
+    case 'r1sym':  return randChar(SYMS)
+    case 'r2sym':  return randChar(SYMS) + randChar(SYMS)
+    case 'r1num':  return randChar(NUMS)
+    case 'r2num':  return randChar(NUMS) + randChar(NUMS)
+    case 'r2s2n':  return randChar(SYMS) + randChar(SYMS) + randChar(NUMS) + randChar(NUMS)
+    case 'r2n2s':  return randChar(NUMS) + randChar(NUMS) + randChar(SYMS) + randChar(SYMS)
+    case 'r1s1n':  return randChar(SYMS) + randChar(NUMS)
+    case 'r1n1s':  return randChar(NUMS) + randChar(SYMS)
+    case 'custom': return custom
+    default:
+      // Per-gap separators resolve to one draw here so any caller that treats
+      // them as a plain token still gets a sane value; the real per-gap
+      // behavior lives in joinPerGap.
+      if (isPerGapSeparator(value)) return resolveToken(PER_GAP_SEPARATORS[value], custom, excludeAmbiguous)
+      return value  // literal: '', ' ', '-', '_', '.', '$', etc.
+  }
+}
+
+// A per-gap separator redraws its token at every join point instead of caching
+// one draw for the whole password, so every gap carries its own entropy.
+export const PER_GAP_SEPARATORS = { 'r1sym-gap': 'r1sym', 'r1num-gap': 'r1num' }
+
+export const isPerGapSeparator = (value) => Object.hasOwn(PER_GAP_SEPARATORS, value)
+
+export const joinPerGap = (words, mode, excludeAmbiguous = false) =>
+  words.reduce((acc, w, i) => (i === 0 ? w : acc + resolveToken(PER_GAP_SEPARATORS[mode], '', excludeAmbiguous) + w), '')
+
+export const SEPARATOR_OPTIONS = [
+  { value: '',       label: 'None' },
+  { value: ' ',      label: 'Space' },
+  { value: '-',      label: 'Hyphen  -' },
+  { value: '_',      label: 'Underscore  _' },
+  { value: '.',      label: 'Period  .' },
+  { value: '$',      label: 'Dollar  $' },
+  { value: 'r1sym',  label: '1 Random Symbol' },
+  { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1sym-gap', label: 'New Symbol Each Gap' },
+  { value: 'r1num',  label: '1 Random Number' },
+  { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1num-gap', label: 'New Number Each Gap' },
+  { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',  label: '2 Numbers + 2 Symbols' },
+  { value: 'custom', label: 'Custom...' },
+]
+
+export const AFFIX_OPTIONS = [
+  { value: '',       label: 'None' },
+  { value: 'r1sym',  label: '1 Random Symbol' },
+  { value: 'r2sym',  label: '2 Random Symbols' },
+  { value: 'r1num',  label: '1 Random Number' },
+  { value: 'r2num',  label: '2 Random Numbers' },
+  { value: 'r1s1n',  label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',  label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',  label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',  label: '2 Numbers + 2 Symbols' },
+  { value: 'custom', label: 'Custom...' },
+]
+
+export const SUFFIX_OPTIONS = [
+  { value: '',              label: 'None' },
+  { value: 'r1sym',         label: '1 Random Symbol' },
+  { value: 'r2sym',         label: '2 Random Symbols' },
+  { value: 'r1num',         label: '1 Random Number' },
+  { value: 'r2num',         label: '2 Random Numbers' },
+  { value: 'r1s1n',         label: '1 Symbol + 1 Number' },
+  { value: 'r1n1s',         label: '1 Number + 1 Symbol' },
+  { value: 'r2s2n',         label: '2 Symbols + 2 Numbers' },
+  { value: 'r2n2s',         label: '2 Numbers + 2 Symbols' },
+  { value: 'mirror',        label: 'Mirror Prefix' },
+  { value: 'mirror-newdig', label: 'Mirror Prefix (new digits)' },
+  { value: 'custom',        label: 'Custom...' },
+]
+
+// Resolves suffix token; 'mirror' and 'mirror-newdig' require the already-resolved prefix string.
+export const resolveSuffixToken = (value, custom, resolvedPrefix, excludeAmbiguous = false) => {
+  if (value === 'mirror') {
+    return resolvedPrefix.split('').reverse().join('')
+  }
+  if (value === 'mirror-newdig') {
+    // Keep same symbol characters but replace each digit with a fresh random digit
+    const NUMS = excludeAmbiguous ? stripAmbiguous(DIGITS) : DIGITS
+    return resolvedPrefix
+      .split('')
+      .reverse()
+      .map(c => DIGITS.includes(c) ? randChar(NUMS) : c)
+      .join('')
+  }
+  return resolveToken(value, custom, excludeAmbiguous)
+}
+
+export const applyCapitalization = (word, mode, index = 0, total = 1) => {
+  switch (mode) {
+    case 'title':        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+    case 'none':         return word.toLowerCase()
+    case 'upper':        return word.toUpperCase()
+    case 'random':       return word.split('').map(c => randBool() ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'char-alt':     return word.split('').map((c, i) => i % 2 === 0 ? c.toUpperCase() : c.toLowerCase()).join('')
+    case 'last-upper':   return word.slice(0, -1).toLowerCase() + word.slice(-1).toUpperCase()
+    case 'first-only':   return index === 0 ? word.toUpperCase() : word.toLowerCase()
+    case 'last-only':    return index === total - 1 ? word.toUpperCase() : word.toLowerCase()
+    case 'word-alt':     return index % 2 === 0 ? word.toUpperCase() : word.toLowerCase()
+    case 'word-random':  return randBool() ? word.toUpperCase() : word.toLowerCase()
+    default:             return word
+  }
+}
+
+export const LEET_MAP = [
+  { char: 'a', sub: '@',  label: 'a → @'  },
+  { char: 'e', sub: '3',  label: 'e → 3'  },
+  { char: 'i', sub: '1',  label: 'i → 1'  },
+  { char: 'o', sub: '0',  label: 'o → 0'  },
+  { char: 's', sub: '$',  label: 's → $'  },
+  { char: 't', sub: '+',  label: 't → +'  },
+  { char: 'l', sub: '!',  label: 'l → !'  },
+  { char: 'b', sub: '8',  label: 'b → 8'  },
+  { char: 'g', sub: '9',  label: 'g → 9'  },
+  { char: 'z', sub: '2',  label: 'z → 2'  },
+]
+
+export const EMOJI_POOLS = {
+  // noun categories
+  Animals:   ['🐶','🐱','🦊','🐻','🐼','🦁','🐯','🦓','🐘','🦒','🐬','🦅','🦋','🐊','🦔','🦦','🐺','🦉','🐙','🦑','🦜','🐸','🦘','🦛','🐆','🐍','🦎','🦚','🐇','🦫'],
+  Vehicles:  ['🚗','🏎️','🚕','🚙','🚌','🚑','🚒','🚓','🚚','🛻','🏍️','🛵','🚲','✈️','🚀','🚁','⛵','🛥️','🚢','🚂','🚜'],
+  Food:      ['🍕','🍔','🌮','🍣','🍜','🍛','🍰','🧁','🍩','🍫','🍭','🍇','🍎','🍊','🍋','🍓','🫐','🥑','🥦','🥕','🍄','🧇','🥞','🍱'],
+  Places:    ['🏔️','🏝️','🏜️','🌋','🏙️','🌆','🏕️','🏯','🗼','🗽','🏛️','⛩️','🌉','🌌','🏟️','🌃','🏖️','🌄'],
+  Nature:    ['🌲','🌿','🍀','🌸','🌺','🌻','🌊','🌈','⛰️','🌙','⭐','☀️','❄️','🌪️','🍁','🌾','🪸','🌵','🌴','🍂','💧','🔥'],
+  Tech:      ['💻','📱','🖥️','⌨️','🖱️','🔭','🔬','💡','🔋','📡','🤖','⚙️','🛠️','🔌','💾','📺','🎮','🕹️'],
+  Jobs:      ['🧑‍⚕️','👩‍💻','👨‍🍳','👩‍🏫','👨‍🔧','👩‍🎨','👨‍🚀','👩‍⚖️','🧑‍🌾','👨‍🎤','🧑‍🚒','👩‍🔬','🧑‍✈️','👩‍🏭'],
+  // adj categories
+  Colors:    ['🔴','🟠','🟡','🟢','🔵','🟣','⚫','⚪','🟤','🌈'],
+  Size:      ['🔬','📏','🏔️','🌌','🐘','🌱','🦠','🗿'],
+  Texture:   ['🧊','🪨','🪵','🌊','💎','🧈','🫧','🕸️'],
+  Mood:      ['😊','😢','😡','🤩','😌','😤','🥳','😔','😎','🤗','😴','😱'],
+  Weather:   ['☀️','🌧️','❄️','⛈️','🌫️','🌪️','🌈','⛅','🌤️','🌊','🌬️','⚡'],
+  Time:      ['⏰','🌅','🌙','🌃','🌄','🕛','⌛','📅','🌠','🌒'],
+  // adv categories
+  Manner:    ['💨','🏃','🐢','🎯','💫','✨','🌀','⚡','🦅','🐌'],
+  Intensity: ['🔥','❄️','⚡','💥','🌊','🌪️','✨','💤','🔊','🤫'],
+  Place:     ['🏠','🌍','🏔️','🌊','🏙️','🌌','🌿','⬆️','🌏','🗺️'],
+  // verb categories
+  Movement:  ['🏃','🚀','💨','🌀','⬆️','🔄','🏊','🦅','🛹','🏇'],
+  Action:    ['⚒️','🎯','💪','✂️','🔨','🖊️','🎨','⚡','🧩','🎸'],
+  Cognition: ['🧠','💡','🤔','📚','🔍','💭','🎓','👁️','🌀','✏️'],
+  // Words mode (no category) + fallback
+  default:   ['🌟','✨','💫','🔥','❄️','🌊','⚡','🎯','🎪','🎨','🎭','🎲','🌈','🦋','🌺','🍀','🎸','🎺','🌙','⭐'],
+}
+
+export const pickEmoji = (category) => {
+  const pool = EMOJI_POOLS[category] || EMOJI_POOLS.default
+  return randPick(pool)
+}
+
+export const applyLeet = (str, activeSubs) => {
+  if (!activeSubs || activeSubs.size === 0) return str
+  return str.split('').map(c => {
+    const entry = LEET_MAP.find(m => m.char === c.toLowerCase())
+    if (entry && activeSubs.has(entry.char)) {
+      return c === c.toUpperCase() ? entry.sub.toUpperCase?.() ?? entry.sub : entry.sub
+    }
+    return c
+  }).join('')
+}
+
+// Each generator stores its password history under a "<generator>.history" key.
+// Settings keys never use that suffix, so matching on it finds every history
+// store without a hand-maintained list that a new generator could be left out
+// of -- which would silently reintroduce the bug this exists to prevent.
+export const isHistoryKey = (key) =>
+  typeof key === 'string' && key.endsWith('.history')
+
+export const historyKeysIn = (keys) => keys.filter(isHistoryKey)
+
+// History entries were plain strings until v2.17.0; they are { pw, bits }
+// now, so a recalled password can show the strength it actually had instead
+// of whatever the panel last displayed. Anything unrecognisable is dropped
+// rather than guessed at.
+export const normalizeHistoryEntry = (e) => {
+  if (typeof e === 'string') return { pw: e, bits: null }
+  if (e && typeof e.pw === 'string') {
+    return { pw: e.pw, bits: Number.isFinite(e.bits) ? e.bits : null }
+  }
+  return null
+}
+
+export const normalizeHistory = (list) =>
+  Array.isArray(list) ? list.map(normalizeHistoryEntry).filter(Boolean) : []
