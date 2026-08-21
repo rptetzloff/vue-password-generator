@@ -767,8 +767,31 @@ wordlock/
 
   So: no sign-in, no account prompt and no upgrade path on the generator or
   anywhere in the local vault, with the sync path the only surface permitted
-  to ask — asserted by a test rather than intended. Cheap now, and impossible
-  to retrofit honestly once something has shipped that breaks it.
+  to ask.
+
+  ~~Asserted by a test rather than intended. Cheap now.~~ **Half of it already
+  exists, and the half that does not cannot be written yet.** Attempted, and
+  stopped.
+
+  `connect-src 'self'` is the structural guarantee and `test/csp.test.js`
+  already asserts it: the app cannot reach an auth server on another origin, so
+  no sign-in that talks to anybody is possible today whatever the UI says. That
+  is stronger than anything written on top of it.
+
+  The keyword scan that would cover the rest — flagging "sign in", "log in",
+  "create account" across the app surfaces — fires four times on the existing
+  code before it protects anything. `placeholder="Email or sign-in name"` on
+  the username field; "one login routinely covers several hosts"; "a second
+  login, a PIN"; and an attack-rate scenario in the entropy panel. Every one is
+  the *user's* stored credential, which is what a password manager is made of.
+  The vocabulary cannot separate the two, and the browser-globals check was
+  narrowed once for precisely this reason: a rule that cries wolf gets deleted,
+  and then it protects nothing.
+
+  What is genuinely uncovered is a *same-origin* auth endpoint, which cannot
+  exist until the API does. So it belongs with 11c's route list, where the
+  surface is declared and "no auth route outside the sync path" is a statement
+  about something real rather than a grep for a word.
 
 - [x] **`core/` extraction ships first and alone.** It is valuable even if no
   other surface is ever built, it is mostly `git mv`, and it is the prerequisite
