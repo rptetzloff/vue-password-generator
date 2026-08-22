@@ -15,6 +15,7 @@ import { PAGE_FILES } from './helpers/pages.js'
 // with the header asserted to match.
 
 const ROOT = new URL('../', import.meta.url)
+const PAGES_ON_DISK = fs.readdirSync(ROOT).filter((f) => f.endsWith('.html'))
 const RENDER_YAML = fs.readFileSync(new URL('render.yaml', ROOT), 'utf8')
 
 /** The CSP header value as deployed. */
@@ -39,7 +40,13 @@ const directive = (name) => {
  */
 const inlineScriptHashes = () => {
   const found = new Map()
-  for (const page of PAGE_FILES) {
+  // EVERY html file at the root, not just the nav manifest. vault-moved.html
+  // is not a nav destination -- it is where an old bookmark lands -- so it was
+  // invisible to a loop over PAGE_FILES, and its inline module script shipped
+  // without a hash. The page loaded, the script was blocked, and the suite was
+  // green. A CSP check that only looks at pages someone remembered to list is
+  // not checking the CSP.
+  for (const page of PAGES_ON_DISK) {
     const src = fs.readFileSync(new URL(page, ROOT), 'utf8').replace(/\r\n/g, '\n')
     const re = /<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g
     for (let m = re.exec(src); m; m = re.exec(src)) {
