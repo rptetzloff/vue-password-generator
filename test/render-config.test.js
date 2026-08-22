@@ -36,7 +36,11 @@ const services = (() => {
     const headers = [...body.matchAll(
       /^ {6}- path:\s*(\S+)\s*\n\s+name:\s*(\S+)\s*\n\s+value:\s*(.+)$/gm,
     )].map((m) => ({ path: m[1], name: m[2], value: m[3].trim().replace(/^"|"$/g, '') }))
-    return { name: field('name'), branch: field('branch'), publish: field('staticPublishPath'), headers }
+    const domains = [...body.matchAll(/^ {6}- (\S+\.\S+)$/gm)].map((m) => m[1])
+    return {
+      name: field('name'), branch: field('branch'), publish: field('staticPublishPath'),
+      autoDeploy: field('autoDeployTrigger'), domains, headers,
+    }
   })
 })()
 
@@ -166,4 +170,42 @@ test('HSTS is long, covers subdomains, and does not claim preload', () => {
   assert.ok(Number(/max-age=(\d+)/.exec(hsts.value)[1]) >= 31536000)
   assert.match(hsts.value, /includeSubDomains/)
   assert.ok(!/preload/.test(hsts.value), 'preload is a separate, near-irreversible decision')
+})
+
+
+test('each service names the domain it answers for, and they agree', () => {
+  // Taken from Render's own export of the running services. Until now the
+  // host-to-service mapping lived only in the dashboard, which is the same
+  // opacity that produced the -cl9q confusion: `site-dev-bumy` says nothing
+  // about which name the public reaches it by.
+  //
+  // The suffix is still the Blueprint's, not the service's, so the stem here
+  // stays `site-dev`. Writing `site-dev-bumy` because that is what the
+  // dashboard shows is how you get `site-dev-bumy-bumy`.
+  const want = {
+    'site-dev': 'dev.wordlock.net',
+    'app-dev': 'dev.app.wordlock.net',
+  }
+  for (const s of services) {
+    // Suffix first. Checked after the domain lookup it could never fire: an
+    // unrecognised name makes want[name] undefined, so the deepEqual failed
+    // on [undefined] and this message was unreachable. An assertion that
+    // cannot report its own case is not an assertion.
+    assert.ok(!/-bumy|-cl9q/.test(s.name),
+      `${s.name} has adopted a Blueprint suffix; the name here is a stem`)
+    assert.ok(want[s.name], `${s.name} is not a service this test knows about`)
+    assert.deepEqual(s.domains, [want[s.name]],
+      `${s.name} should answer for ${want[s.name]}`)
+  }
+
+  // dev. prefixes the production hostname, which is the naming ui/site-nav.js
+  // derives its cross-host links from. If these two ever disagree, every link
+  // between the deployments points somewhere that does not exist.
+  const site = services.find((s) => s.name === 'site-dev')
+  const app = services.find((s) => s.name === 'app-dev')
+  assert.equal(app.domains[0], site.domains[0].replace(/^dev\./, 'dev.app.'),
+    'the app host must be the site host with app. inserted after dev.')
+
+  // Explicit rather than implied, so a dashboard change reads as drift.
+  for (const s of services) assert.equal(s.autoDeploy, 'commit')
 })

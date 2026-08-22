@@ -40,6 +40,20 @@ services:
   - type: web
     name: site-dev
     branch: dev
+
+    # The domain lives here rather than only in the dashboard, which is the
+    # last piece of this topology that was invisible in the repository.
+    # Taken from Render's own export of the running service, so it is what
+    # is actually attached rather than what was intended.
+    #
+    # UNKNOWN, and it matters more for production than here: whether domain
+    # sync is additive like the header sync, or authoritative. If it is
+    # authoritative, a wrong entry detaches a live domain. Being wrong about
+    # that on dev costs a dev site; the same mistake on wordlock.net does
+    # not. That is the order these are being done in.
+    domains:
+      - dev.wordlock.net
+
     runtime: static
 
     # ~~NO `branch:` HERE.~~ REVERSED, and the reason the old rule existed is
@@ -69,6 +83,7 @@ services:
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
     staticPublishPath: ./site
+    autoDeployTrigger: commit
     headers:
       - path: /*
         name: X-Frame-Options
@@ -221,6 +236,20 @@ services:
   - type: web
     name: app-dev
     branch: dev
+
+    # The domain lives here rather than only in the dashboard, which is the
+    # last piece of this topology that was invisible in the repository.
+    # Taken from Render's own export of the running service, so it is what
+    # is actually attached rather than what was intended.
+    #
+    # UNKNOWN, and it matters more for production than here: whether domain
+    # sync is additive like the header sync, or authoritative. If it is
+    # authoritative, a wrong entry detaches a live domain. Being wrong about
+    # that on dev costs a dev site; the same mistake on wordlock.net does
+    # not. That is the order these are being done in.
+    domains:
+      - dev.app.wordlock.net
+
     runtime: static
 
     # ~~NO `branch:` HERE.~~ REVERSED, and the reason the old rule existed is
@@ -250,6 +279,7 @@ services:
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
     staticPublishPath: ./app
+    autoDeployTrigger: commit
     headers:
       - path: /*
         name: X-Frame-Options
