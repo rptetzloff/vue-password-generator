@@ -18,45 +18,53 @@
 # Two consequences, both learned the hard way in one evening:
 #
 #   1. NEVER pin `branch:` here. See below.
-#   2. ~~Never declare a second service here.~~ Never declare a second
-#      service ON THE ENVIRONMENT AXIS. That rule came from naming
-#      `wordlock` and `wordlock-dev` in this file: both Blueprints created
-#      both, and the review screen offered `wordlock-cl9q` and
-#      `wordlock-dev-cl9q` side by side -- a duplicate of production.
+#   2. ~~Never declare a second service here.~~ ~~Never declare a second
+#      service on the environment axis.~~ Declare EVERY service, and pin
+#      each one to its branch.
 #
-#      site and app split a different axis. They are two SURFACES, not two
-#      environments, so both Blueprints legitimately want both entries and
-#      four services is the correct answer:
+#      Both earlier rules were about one entry being applied to two
+#      deployments -- first a duplicated production service, then a branch
+#      pin imposed where it did not belong. Naming all of them ends that: a
+#      service here describes exactly one deployment, and the topology is
+#      readable in the repository instead of only in the dashboard, which is
+#      where the -cl9q confusion lived.
 #
-#        main Blueprint -> site-<a>, app-<a>  -> wordlock.net, app.wordlock.net
-#        dev  Blueprint -> site-<b>, app-<b>  -> dev.wordlock.net, dev.app.wordlock.net
+#      THIS REQUIRES EXACTLY ONE BLUEPRINT. Two Blueprints each apply the
+#      whole file, so with four services declared you would get eight.
 #
-#      Anything ENVIRONMENT-specific written here is still imposed on both
-#      deployments, which is what `branch:` did and why it is still banned.
+#      Only the dev pair is declared today, deliberately. The shape gets
+#      proved on the deployment that exists to be broken; site and app on
+#      main are added when production is ready to move.
 
 services:
   - type: web
-    name: site
+    name: site-dev
+    branch: dev
     runtime: static
 
-    # NO `branch:` HERE. It was pinned to main earlier today, reasoning that a
-    # dashboard-only deploy branch would break if the default branch were
-    # renamed -- "the more useful half", the commit said. It was the half that
-    # broke dev.
+    # ~~NO `branch:` HERE.~~ REVERSED, and the reason the old rule existed is
+    # the reason it no longer applies.
     #
-    # The dev Blueprint reads THIS FILE from the dev branch and applies
-    # everything in it, so `branch: main` was handed to the dev service too.
-    # dev.wordlock.net silently served main; switching it in the dashboard
-    # worked until the next sync put it back, which is exactly the "why does it
-    # keep switching" that went unexplained for weeks. It came to light as a
-    # 404 on a module committed hours earlier: fourteen commits of work had
-    # never been on the dev site at all.
+    # It was pinned to main once. The dev Blueprint reads THIS FILE from the
+    # dev branch and applied everything in it, so `branch: main` was handed to
+    # the dev service too. dev.wordlock.net silently served main; switching it
+    # in the dashboard worked until the next sync put it back, which is the
+    # "why does it keep switching" that went unexplained for weeks. It surfaced
+    # as a 404 on a module committed hours earlier: fourteen commits of work
+    # had never been on the dev site at all.
     #
-    # With no branch declared, each Blueprint uses the branch it is linked to,
-    # which is the arrangement that worked before the pin was added. The
-    # protection that was wanted -- a rename not silently freezing a deploy --
-    # is real, but it cannot be bought here without breaking the other
-    # deployment. test/render-config.test.js fails if this comes back.
+    # That was ONE service imposed on TWO deployments, where any pin was wrong
+    # for whichever deployment it did not describe. Each deployment is its own
+    # entry now, so a pin describes exactly one thing and the ambiguity it
+    # used to create is what it now removes.
+    #
+    # Without a pin the branch comes from the Blueprint's link -- invisible in
+    # the repository, which is how the same confusion reached the service
+    # NAMES as well. Render's docs say an omitted branch means the repo's
+    # DEFAULT branch, which contradicts what was measured here; if that were
+    # true, removing the pin would have left dev on main and the bug would
+    # have persisted. It did not. Pinning removes the need to know which of
+    # those is right.
 
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.
@@ -211,27 +219,33 @@ services:
         value: public, max-age=86400
 
   - type: web
-    name: app
+    name: app-dev
+    branch: dev
     runtime: static
 
-    # NO `branch:` HERE. It was pinned to main earlier today, reasoning that a
-    # dashboard-only deploy branch would break if the default branch were
-    # renamed -- "the more useful half", the commit said. It was the half that
-    # broke dev.
+    # ~~NO `branch:` HERE.~~ REVERSED, and the reason the old rule existed is
+    # the reason it no longer applies.
     #
-    # The dev Blueprint reads THIS FILE from the dev branch and applies
-    # everything in it, so `branch: main` was handed to the dev service too.
-    # dev.wordlock.net silently served main; switching it in the dashboard
-    # worked until the next sync put it back, which is exactly the "why does it
-    # keep switching" that went unexplained for weeks. It came to light as a
-    # 404 on a module committed hours earlier: fourteen commits of work had
-    # never been on the dev site at all.
+    # It was pinned to main once. The dev Blueprint reads THIS FILE from the
+    # dev branch and applied everything in it, so `branch: main` was handed to
+    # the dev service too. dev.wordlock.net silently served main; switching it
+    # in the dashboard worked until the next sync put it back, which is the
+    # "why does it keep switching" that went unexplained for weeks. It surfaced
+    # as a 404 on a module committed hours earlier: fourteen commits of work
+    # had never been on the dev site at all.
     #
-    # With no branch declared, each Blueprint uses the branch it is linked to,
-    # which is the arrangement that worked before the pin was added. The
-    # protection that was wanted -- a rename not silently freezing a deploy --
-    # is real, but it cannot be bought here without breaking the other
-    # deployment. test/render-config.test.js fails if this comes back.
+    # That was ONE service imposed on TWO deployments, where any pin was wrong
+    # for whichever deployment it did not describe. Each deployment is its own
+    # entry now, so a pin describes exactly one thing and the ambiguity it
+    # used to create is what it now removes.
+    #
+    # Without a pin the branch comes from the Blueprint's link -- invisible in
+    # the repository, which is how the same confusion reached the service
+    # NAMES as well. Render's docs say an omitted branch means the repo's
+    # DEFAULT branch, which contradicts what was measured here; if that were
+    # true, removing the pin would have left dev on main and the bug would
+    # have persisted. It did not. Pinning removes the need to know which of
+    # those is right.
 
     # No build step: index.html loads src/main.js as a native ES module and the
     # wordlists are fetched from data/, so the repo is served as-is.

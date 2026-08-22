@@ -40,41 +40,70 @@ const services = (() => {
   })
 })()
 
-test('one service per surface, and none per environment', () => {
-  // ~~Exactly one service is declared.~~ Reversed, and the distinction is the
-  // point. The old rule came from naming `wordlock` and `wordlock-dev` here:
-  // both Blueprints applied both, and the review screen offered
-  // `wordlock-cl9q` and `wordlock-dev-cl9q` together -- a duplicate of
-  // production, from a file naming one of each.
+test('every deployment is declared, named and pinned', () => {
+  // ~~Exactly one service is declared.~~ ~~One per surface, none per
+  // environment.~~ Reversed twice, and both earlier rules had the same
+  // cause: one entry in this file being applied to two deployments.
   //
-  // That was the ENVIRONMENT axis. site and app are two SURFACES, so both
-  // Blueprints wanting both is correct and four services is the right total:
-  // wordlock.net and app.wordlock.net from main, dev.wordlock.net and
-  // dev.app.wordlock.net from dev.
-  assert.deepEqual(services.map((s) => s.name).sort(), ['app', 'site'])
+  // First `wordlock` and `wordlock-dev` produced a review screen offering
+  // `wordlock-cl9q` and `wordlock-dev-cl9q` -- a duplicate of production.
+  // Then a `branch:` pin was imposed on the deployment it did not describe.
+  // Naming every deployment separately ends both: an entry here describes
+  // exactly one thing.
+  //
+  // Only the dev pair exists today, on purpose. The shape is proved on the
+  // deployment that exists to be broken; production is added when it is
+  // ready to move.
+  assert.deepEqual(services.map((s) => s.name).sort(), ['app-dev', 'site-dev'])
 
-  // The rule that did not change: nothing here may name an environment, or
-  // both deployments get it. `branch:` is the one that already proved it.
+  // Every service pins its branch. This is the rule that replaced 'never
+  // pin', and it only works because each entry is now its own deployment.
   for (const s of services) {
-    assert.doesNotMatch(s.name, /dev|prod|staging/i,
-      `service "${s.name}" names an environment; both Blueprints would create it`)
+    assert.ok(s.branch, `service "${s.name}" does not pin a branch`)
   }
+
+  // A name and its branch must agree, or the dashboard says one thing and
+  // the file another -- which is the whole failure being designed out.
+  for (const s of services) {
+    const wantsDev = s.name.endsWith('-dev')
+    assert.equal(s.branch === 'dev', wantsDev,
+      `"${s.name}" is pinned to ${s.branch}, which its name does not describe`)
+  }
+
+  const names = services.map((s) => s.name)
+  assert.equal(new Set(names).size, names.length, 'two services share a name')
 })
 
-test('the deploy branch is NOT pinned here', () => {
-  // The regression this test exists for, and it was self-inflicted. `branch:
-  // main` was added so that renaming the default branch could not silently
-  // freeze production. But the dev Blueprint reads this same file and applies
-  // it too, so dev.wordlock.net was handed main -- it served the wrong branch
-  // for weeks, switching it in the dashboard worked only until the next sync,
-  // and it surfaced as a 404 on a module committed hours earlier.
+test('every service pins a branch, and one Blueprint applies them all', () => {
+  // ~~The deploy branch is NOT pinned here.~~ Reversed. The regression that
+  // rule came from was real: `branch: main` was added so a default-branch
+  // rename could not silently freeze production, and because the dev
+  // Blueprint reads this same file, dev.wordlock.net was handed main. It
+  // served the wrong branch for weeks -- the dashboard fix lasted until the
+  // next sync -- and surfaced as a 404 on a module committed hours earlier.
   //
-  // With no branch declared, each Blueprint deploys the branch it is linked
-  // to. The protection originally wanted is real and cannot be bought here.
-  assert.equal(services[0].branch, null,
-    'pinning a branch here imposes it on every Blueprint that reads this file')
-  assert.ok(!/^\s*branch:/m.test(CODE),
-    'no service in this file may declare a branch')
+  // That was ONE service imposed on TWO deployments, where any pin was wrong
+  // for whichever one it did not describe. Each is its own entry now, so a
+  // pin describes exactly one deployment and removes the ambiguity it used
+  // to create.
+  //
+  // Render's docs say an omitted branch means the repo's DEFAULT branch,
+  // which contradicts what was measured here -- if it were true, removing
+  // the pin would have left dev on main and the bug would have persisted.
+  // It did not. Pinning means not having to know which is right.
+  assert.ok(services.length > 0, 'no services parsed; the regex shape moved')
+  for (const s of services) {
+    assert.match(s.branch ?? '', /^(main|dev)$/,
+      `"${s.name}" must pin main or dev explicitly, not rely on inference`)
+  }
+
+  // THE CONSTRAINT THAT MAKES THIS SAFE, and it lives outside this file: two
+  // Blueprints each apply the whole thing, so N services declared here
+  // become 2N created. Naming every deployment is only correct with exactly
+  // one Blueprint linked. Nothing in the repository can assert that, so it
+  // is written down where the next person will be editing.
+  assert.ok(/EXACTLY ONE BLUEPRINT/.test(RENDER_YAML),
+    'the one-Blueprint requirement must stay stated in render.yaml')
 })
 
 test('each service publishes its own root, and nothing is built on deploy', () => {
