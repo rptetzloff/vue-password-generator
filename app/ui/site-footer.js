@@ -9,7 +9,7 @@
 //
 // Nothing runs at import time -- call mountSiteFooter() explicitly.
 
-import { PAGES, isCurrentPage, isCurrentEntry, hrefFor } from './site-nav.js'
+import { PAGES, isCurrentPage, isCurrentEntry, hrefFor, hostFromLocation } from './site-nav.js'
 import { mountSettingsPanel } from './settings-panel.js'
 
 export const GITHUB_URL = 'https://github.com/rptetzloff/wordlock'
@@ -117,7 +117,15 @@ const barMenu = (label, icon, items, { current = false } = {}) => {
  * link relative and every host comparison a no-op. Passing it is how the split
  * arrives here: no other line in this file needs to change.
  */
-export const mountSiteFooter = (container, { pathname, settings = {}, currentHost = null } = {}) => {
+export const mountSiteFooter = (container, { pathname, settings = {}, currentHost } = {}) => {
+  // Derived here rather than passed by each of the nine callers. Adding the
+  // parameter and defaulting it to null left every page rendering relative
+  // cross-host links: on the site, "Generator" pointed at the home page.
+  // A default that quietly means "pretend there is one origin" is the wrong
+  // default once there are two.
+  if (currentHost === undefined) {
+    currentHost = typeof location !== 'undefined' ? hostFromLocation(location.hostname) : null
+  }
   if (!container) return null
   const here = pathname || (typeof location !== 'undefined' ? location.pathname : '/')
 

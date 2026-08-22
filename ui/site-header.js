@@ -10,7 +10,7 @@
 //
 // Nothing runs at import time -- call mountSiteHeader() explicitly.
 
-import { pageFor } from './site-nav.js'
+import { pageFor, hostFromLocation } from './site-nav.js'
 import { createLogo } from './logo.js'
 
 export const SITE_TITLE = 'WordLock'
@@ -29,7 +29,10 @@ export const SITE_TITLE = 'WordLock'
 export const mountSiteHeader = (container, { pathname = location.pathname, description = null } = {}) => {
   if (!container) return null
 
-  const page = pageFor(pathname)
+  // With the host, or '/' matches whichever entry comes first -- Home -- and
+  // the generator wears the home page's subtitle.
+  const host = typeof location !== 'undefined' ? hostFromLocation(location.hostname) : null
+  const page = pageFor(pathname, host)
 
   const header = document.createElement('header')
   header.className = 'site-header'
