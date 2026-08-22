@@ -7,7 +7,9 @@
 // possible way to move house.
 //
 // So the old origin serves a page that hands its own storage over, once, to a
-// parent frame on the new one. Two things make this safe enough to do at all:
+// window it opens on the new one. ~~To a parent frame on the new one.~~ That
+// was the plan and the CSP forbids it -- see READY at the bottom for why the
+// direction reversed. Two things make this safe enough to do at all:
 //
 //   1. The vault is ONE sealed envelope in ONE IndexedDB record, so this is a
 //      single JSON blob rather than a schema migration.
@@ -134,4 +136,36 @@ export const applyHandoff = async ({ settings = {}, envelope = null }, { store, 
     vault = true
   }
   return { settings: written, vault }
+}
+
+/**
+ * The kind field on the readiness signal the receiving window sends first.
+ *
+ * ~~The app iframes the old origin and pulls.~~ It cannot: the site sends
+ * `frame-ancestors 'none'`, and carving an exception for one page would put
+ * two Content-Security-Policy rules on one request -- the coin flip this
+ * project measured on /vendor/* and banned.
+ *
+ * So the direction is reversed. The OLD origin opens the new one with
+ * window.open and pushes, which frame-ancestors does not govern, so no header
+ * changes at all. It is also the more honest behaviour: a password manager
+ * quietly moving a vault between origins on page load is a worse thing to do
+ * than a button that says what it is about to do.
+ *
+ * The opened window signals when it is listening, because there is no way to
+ * know from outside when a page has finished loading its modules. Push-then-
+ * hope loses the message if it arrives first.
+ */
+export const READY = 'wordlock-handoff-ready'
+
+/**
+ * Is this the opened window telling us it is ready to receive?
+ *
+ * Same exactness as isHandoff, for the same reason and in the other direction:
+ * whoever answers this gets handed a vault.
+ */
+export const isReadySignal = (event, expectedOrigin) => {
+  if (!event || event.origin !== expectedOrigin) return false
+  const d = event.data
+  return !!d && typeof d === 'object' && d.kind === READY
 }

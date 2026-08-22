@@ -80,7 +80,16 @@ test('the two roots hold what they should and nothing of the other', () => {
   for (const p of ['about.html', 'changelog.html', 'docs.html', 'legal.html', 'roadmap.html']) {
     assert.ok(site.has(p), `${p} belongs on the site host`)
   }
-  assert.ok(!site.has('vault.html'), 'the vault does not belong on the marketing host')
+  // ~~The site has no vault.html.~~ It has one now, and it is not the vault:
+  // vault-moved.html is renamed into that slot so a bookmark to the old
+  // address answers with the migration instead of a 404. The distinction is
+  // worth asserting, because a page called vault.html on the marketing host
+  // is exactly the thing that would otherwise look like a mistake.
+  assert.ok(site.has('vault.html'), 'the old bookmark must land somewhere useful')
+  const moved = site.get('vault.html').toString('utf8')
+  assert.match(moved, /The vault has moved/, 'site/vault.html must be the migration page')
+  assert.ok(!moved.includes('vault-app.js'), 'site/vault.html must not be the vault app')
+  assert.ok(!site.has('vault-moved.html'), 'it is renamed on the way in, not copied twice')
 
   // The home page is authored as home.html because index.html is the
   // generator; it becomes index.html only inside site/.

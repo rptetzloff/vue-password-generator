@@ -31,7 +31,9 @@ import { estimatePassphrase } from '../core/generate/passphrase-strength.js'
 import { initTheme } from '../ui/theme.js'
 import { mountSiteHeader } from '../ui/site-header.js'
 import { mountSiteFooter } from '../ui/site-footer.js'
-import { linkAcrossHosts } from '../ui/site-nav.js'
+import { linkAcrossHosts, originsFromLocation } from '../ui/site-nav.js'
+import { READY, isHandoff, shouldAccept, applyHandoff } from './origin-handoff.js'
+import { indexedDbStorage } from './vault-idb.js'
 
 const App = {
   setup () {
@@ -1526,3 +1528,37 @@ mountSiteFooter(document.querySelector('[data-site-footer]'), {
 // the site and the app share one origin.
 linkAcrossHosts()
 createApp(App).mount('#vault-app')
+
+
+// Receiving a vault from the origin this app moved away from (ROADMAP 11).
+//
+// The old address opens this page and pushes; see src/origin-handoff.js for
+// why the direction is that way round rather than an iframe. Nothing here runs
+// unless a window actually opened us, so an ordinary visit pays nothing.
+{
+  const siteOrigin = originsFromLocation(location.hostname, location.protocol).site
+  if (window.opener && siteOrigin) {
+    addEventListener('message', async (e) => {
+      if (!isHandoff(e, siteOrigin) || e.source !== window.opener) return
+
+      // Never over the top of a vault already here. Someone who created one
+      // at this address before the old one handed over has made a choice, and
+      // replacing it with an older copy is the worst thing this code could do.
+      const existing = await indexedDbStorage.load().catch(() => null)
+      if (!shouldAccept({ alreadyMigrated: false, hasLocalVault: !!existing })) return
+
+      await applyHandoff(e.data, {
+        store: localStorage,
+        saveEnvelope: (env) => indexedDbStorage.save(env),
+      })
+      // Reload rather than patch the running app: the store read its state at
+      // startup and there is no path that expects a vault to appear underneath
+      // it. A reload is the honest way to pick up what just arrived.
+      location.reload()
+    })
+
+    // Only now, with the listener attached. Signalling earlier invites the
+    // push to arrive before anything is listening for it.
+    window.opener.postMessage({ kind: READY }, siteOrigin)
+  }
+}

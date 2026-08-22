@@ -41,8 +41,11 @@ const abs = (p) => new URL(p, ROOT)
 export const ROOTS = {
   site: {
     host: 'wordlock.net',
-    pages: [['home.html', 'index.html'], ['about.html'], ['changelog.html'],
-      ['docs.html'], ['legal.html'], ['roadmap.html']],
+    // vault-moved.html becomes vault.html HERE, which is where a bookmark
+    // to the old vault lands after the move. Answering that URL with the
+    // migration is better than answering it with a 404.
+    pages: [['home.html', 'index.html'], ['vault-moved.html', 'vault.html'],
+      ['about.html'], ['changelog.html'], ['docs.html'], ['legal.html'], ['roadmap.html']],
     trees: ['ui', 'vendor/mdi', 'src/assets'],
     // roadmap.html fetches ROADMAP.md and renders it with markdown.js.
     //
@@ -52,7 +55,9 @@ export const ROOTS = {
     // attribution that depends on a second deployment being up is not much of
     // an attribution. The self-containment test found them.
     files: ['favicon.ico', 'manifest.webmanifest', 'ROADMAP.md', 'src/markdown.js',
-      'vendor/vue.LICENSE', 'data/orchard-street-long.txt'],
+      'vendor/vue.LICENSE', 'data/orchard-street-long.txt',
+      // vault.html reads the old vault out of this origin's IndexedDB.
+      'src/origin-handoff.js', 'src/vault-idb.js'],
   },
   app: {
     host: 'app.wordlock.net',

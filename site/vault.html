@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/src/assets/password_generator_icon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#035f91" />
+    <script>
+      // App mode (8b): cache-first offline via sw.js. Skipped in dev, where a
+      // service worker would fight the dev server's module reloading.
+      if ('serviceWorker' in navigator && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') {
+        addEventListener('load', () => navigator.serviceWorker.register('/sw.js'))
+      }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>The vault has moved — WordLock</title>
+    <script>
+      /* Set the theme before first paint so dark-mode users never see a white
+         flash. Deliberately inline and non-module: a module script is deferred
+         and would run after the page has already rendered. ui/theme.js takes
+         over for changes made at runtime. */
+      try {
+        var c = JSON.parse(localStorage.getItem('global.theme'));
+        if (c !== 'light' && c !== 'dark') c = 'system';
+        var dark = c === 'dark' || (c === 'system' && matchMedia('(prefers-color-scheme: dark)').matches);
+        document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+        var fs = JSON.parse(localStorage.getItem('global.fontScale'));
+        if ([112, 125, 150].indexOf(fs) !== -1) document.documentElement.style.fontSize = fs + '%';
+        var pal = JSON.parse(localStorage.getItem('global.palette'));
+        if (['blue','indigo','violet','fuchsia','rose','emerald','teal','slate','mono'].indexOf(pal) !== -1) document.documentElement.setAttribute('data-palette', pal);
+      } catch (e) {}
+    </script>
+    <link rel="stylesheet" href="/ui/tokens.css" />
+    <link rel="stylesheet" href="/ui/site-header.css" />
+    <link rel="stylesheet" href="/ui/site-footer.css" />
+    <link rel="stylesheet" href="/ui/settings-panel.css" />
+    <link rel="stylesheet" href="/ui/prose-page.css" />
+    <link rel="stylesheet" href="/vendor/mdi/css/materialdesignicons.min.css" />
+    <style>
+      :root { --footer-pad: 1.5rem; --page-max: 760px; }
+    </style>
+  </head>
+  <body>
+    <div data-site-header></div>
+
+
+    <main class="page">
+      <article class="prose-card">
+        <h2>The vault has moved</h2>
+        <p>
+          It lives at <strong>app.wordlock.net</strong> now, alongside the generator. This page
+          is where your old bookmark lands.
+        </p>
+
+        <div data-state="found" hidden>
+          <p>
+            <strong>There is a vault stored here.</strong> This site saved it before the move,
+            and the app cannot reach it &mdash; browsers keep storage separate per address,
+            which is the same rule that stops any other site reading it.
+          </p>
+          <p>
+            Moving it opens the app in a new tab and hands the encrypted file across. It stays
+            encrypted the whole way: your passphrase is not involved and does not travel, so you
+            will unlock it there exactly as you do here.
+          </p>
+          <p>
+            <a class="cta" href="#" data-act="move">Move my vault to the app</a>
+            <a href="/" data-host="app">or just open the app</a>
+          </p>
+          <p><small>
+            Nothing here is deleted by this. If it goes wrong the vault is still on this page,
+            and you can try again.
+          </small></p>
+        </div>
+
+        <div data-state="empty" hidden>
+          <p>No vault is stored in this browser under this address, so there is nothing to carry over.</p>
+          <p><a class="cta" href="/" data-host="app">Open the app</a></p>
+        </div>
+
+        <div data-state="sent" hidden>
+          <p><strong>Sent.</strong> The app should be open in a new tab with your vault in it.</p>
+          <p><small>
+            Still nothing deleted here. Once you have unlocked it at the new address and are
+            satisfied it is all there, you can clear this site&rsquo;s data from your browser
+            settings.
+          </small></p>
+        </div>
+
+        <div data-state="blocked" hidden>
+          <p>
+            <strong>The new tab did not open</strong>, which is usually a popup blocker. Allow
+            popups here and try again &mdash; the transfer needs a window to hand the vault to.
+          </p>
+          <p><a class="cta" href="#" data-act="move">Try again</a></p>
+        </div>
+      </article>
+    </main>
+
+    <div data-site-footer></div>
+    <script type="module">
+      import { initTheme } from '/ui/theme.js'
+      import { mountSiteHeader } from '/ui/site-header.js'
+      import { mountSiteFooter } from '/ui/site-footer.js'
+      import { linkAcrossHosts, originsFromLocation } from '/ui/site-nav.js'
+      import { collectSettings, isReadySignal } from '/src/origin-handoff.js'
+      import { indexedDbStorage } from '/src/vault-idb.js'
+
+      initTheme()
+      mountSiteHeader(document.querySelector('[data-site-header]'))
+      mountSiteFooter(document.querySelector('[data-site-footer]'))
+      linkAcrossHosts()
+
+      const show = (name) => {
+        for (const el of document.querySelectorAll('[data-state]')) el.hidden = el.dataset.state !== name
+      }
+
+      const appOrigin = originsFromLocation(location.hostname, location.protocol).app
+      const envelope = await indexedDbStorage.load().catch(() => null)
+      const settings = collectSettings(localStorage)
+      show(envelope ? 'found' : 'empty')
+
+      // The opened window says when it is listening. Posting first and hoping
+      // loses the message whenever the app is slower to load than we are to
+      // send, which is most of the time on a cold cache.
+      let target = null
+      addEventListener('message', (e) => {
+        if (!isReadySignal(e, appOrigin) || e.source !== target) return
+        target.postMessage({ kind: 'wordlock-handoff', settings, envelope }, appOrigin)
+        show('sent')
+      })
+
+      for (const a of document.querySelectorAll('[data-act=move]')) {
+        a.addEventListener('click', (e) => {
+          e.preventDefault()
+          // A user gesture, so the popup is allowed. Opening without one is
+          // what gets blocked -- and is also why this is a button rather than
+          // something that happens quietly on load.
+          target = open(appOrigin + '/vault.html', '_blank')
+          if (!target) show('blocked')
+        })
+      }
+    </script>
+  </body>
+</html>
