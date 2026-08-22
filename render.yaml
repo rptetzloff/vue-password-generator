@@ -209,9 +209,12 @@ services:
       - path: /vendor/mdi/css/*
         name: Cache-Control
         value: public, max-age=86400
-      - path: /vendor/vue.runtime.esm-browser.prod.js
-        name: Cache-Control
-        value: public, max-age=86400
+      # ~~A Cache-Control for vue.runtime.~~ Removed from THIS service: the
+      # site loads no Vue, so the file is not in site/ and the rule applied to
+      # nothing. Dead config, inherited from duplicating the app's block, and
+      # invisible to render-config.test.js -- which checks that rules do not
+      # overlap, not that they match anything. check-deploy found it by asking
+      # the running service and getting a 404 where a header was expected.
 
       # The word lists. 239 KB raw, 60 KB compressed, and they change about
       # never -- but they had no rule at all, so they fell through to Render's

@@ -41,9 +41,33 @@ const YAML = fs.readFileSync(new URL('render.yaml', ROOT), 'utf8')
 /** Lines outside comments, so a rule discussed in prose does not read as set. */
 const CODE = YAML.split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n')
 
-const declaredHeaders = [...CODE.matchAll(
-  /^ {6}- path:\s*(\S+)\s*\n\s+name:\s*(\S+)\s*\n\s+value:\s*(.+)$/gm,
-)].map((m) => ({ path: m[1], name: m[2].toLowerCase(), value: m[3].trim().replace(/^"|"$/g, '') }))
+/**
+ * Headers per SERVICE, not per file.
+ *
+ * ~~One flat list.~~ That was fine with one service and produced forty
+ * findings with two: every path matched a rule from each, so everything
+ * reported "2 declared rules — precedence is undefined", and the app's
+ * vendor/vue rule was checked against the site, where that file does not
+ * exist. The tool was wrong, not the deployment.
+ *
+ * Which service to check is answerable now only because `domains:` moved into
+ * render.yaml. Before that, the mapping from a hostname to a service lived in
+ * the dashboard and nothing here could read it.
+ */
+const SERVICES = CODE.split(/^ {2}- type:\s*web\s*$/m).slice(1).map((body) => ({
+  name: (/^ {4}name:\s*(.+)$/m.exec(body) || [])[1]?.trim(),
+  branch: (/^ {4}branch:\s*(.+)$/m.exec(body) || [])[1]?.trim(),
+  publish: (/^ {4}staticPublishPath:\s*(.+)$/m.exec(body) || [])[1]?.trim(),
+  domains: [...body.matchAll(/^ {6}- (\S+\.\S+)$/gm)].map((m) => m[1]),
+  headers: [...body.matchAll(
+    /^ {6}- path:\s*(\S+)\s*\n\s+name:\s*(\S+)\s*\n\s+value:\s*(.+)$/gm,
+  )].map((m) => ({ path: m[1], name: m[2].toLowerCase(), value: m[3].trim().replace(/^"|"$/g, '') })),
+}))
+
+const serviceFor = (url) => {
+  const { hostname } = new URL(url)
+  return SERVICES.find((s) => s.domains.includes(hostname)) || null
+}
 
 /**
  * Which branch feeds which host, because the comparison is only meaningful
@@ -55,7 +79,8 @@ const declaredHeaders = [...CODE.matchAll(
  * drift. The first run said exactly that about the CSP hashes and it read as
  * alarming until the branch was accounted for.
  */
-const FED_BY = { 'https://wordlock.net': 'main', 'https://dev.wordlock.net': 'dev' }
+// ~~A hardcoded host-to-branch map.~~ The services declare both now, so the
+// targets are every domain of every service pinned to this branch.
 
 const branch = (() => {
   try {
@@ -67,7 +92,8 @@ const branch = (() => {
 const hosts = process.argv.slice(2).filter((a) => a.startsWith('http'))
 const TARGETS = hosts.length
   ? hosts
-  : Object.keys(FED_BY).filter((h) => branch === null || FED_BY[h] === branch)
+  : SERVICES.filter((s) => branch === null || s.branch === branch)
+    .flatMap((s) => s.domains.map((d) => `https://${d}`))
 
 if (!TARGETS.length) {
   console.log(`no host is fed by "${branch}" — nothing to check from here.`)
@@ -84,8 +110,12 @@ if (!TARGETS.length) {
  * A checker whose failure mode is a wall of false positives is worse than no
  * checker, because the real one in the middle of it goes unread.
  */
-const sampleFor = (path) => {
+const sampleFor = (svc, path) => {
   if (!path.endsWith('/*')) return path
+  // Inside this SERVICE'S publish root. Looking in the repository instead
+  // asked the site for /vendor/vue.runtime..., which only the app has -- it
+  // 404s there, Render skips headers on a 404, and every rule read as missing.
+  const root = (svc.publish || '.').replace(/^\.\//, '')
   const dir = path.slice(1, -2)
   // `/*` has no directory to sample. Left unguarded it made an empty path,
   // which resolved against the filesystem ROOT rather than the repository and
@@ -93,7 +123,7 @@ const sampleFor = (path) => {
   // web server. Every URL a checker requests should be one it can explain.
   if (!dir) return '/index.html'
   try {
-    const entries = fs.readdirSync(new URL(dir + '/', ROOT), { withFileTypes: true })
+    const entries = fs.readdirSync(new URL(`${root}/${dir}/`, ROOT), { withFileTypes: true })
     const file = entries.find((e) => e.isFile())
     if (file) return `/${dir}/${file.name}`
   } catch { /* fall through */ }
@@ -108,7 +138,7 @@ const sampleFor = (path) => {
  * gave a different answer per request. So more than one match here is itself
  * the finding.
  */
-const matching = (path, name) => declaredHeaders.filter((h) =>
+const matching = (svc, path, name) => svc.headers.filter((h) =>
   h.name === name && (h.path.endsWith('/*') ? path.startsWith(h.path.slice(0, -1)) : h.path === path))
 
 const bust = (url) => url + (url.includes('?') ? '&' : '?') + 'cachebust=' + process.pid + Date.now()
@@ -124,6 +154,8 @@ const findings = []
 const note = (host, msg) => findings.push(`  ${host}\n    ${msg}`)
 
 for (const host of TARGETS) {
+  const svc = serviceFor(host)
+  if (!svc) { note(host, 'no service in render.yaml declares this domain'); continue }
   let root
   try {
     root = await fetchHeaders(host + '/')
@@ -134,7 +166,7 @@ for (const host of TARGETS) {
   if (root.status !== 200) note(host, `GET / returned ${root.status}`)
 
   // 1. Every declared header must actually arrive, with the declared value.
-  const paths = [...new Set(declaredHeaders.map((h) => sampleFor(h.path)))]
+  const paths = [...new Set(svc.headers.map((h) => sampleFor(svc, h.path)))]
   for (const path of paths) {
     let res
     try {
@@ -144,8 +176,8 @@ for (const host of TARGETS) {
       continue
     }
     // A probe path under /* may legitimately 404; the headers still apply.
-    for (const name of new Set(declaredHeaders.map((h) => h.name))) {
-      const rules = matching(path, name)
+    for (const name of new Set(svc.headers.map((h) => h.name))) {
+      const rules = matching(svc, path, name)
       if (rules.length > 1) {
         note(host, `${path}: ${rules.length} declared rules set ${name} — precedence is undefined`)
       }
@@ -166,7 +198,7 @@ for (const host of TARGETS) {
     let res
     try { res = await fetchHeaders(host + probe) } catch { continue }
     const cc = res.headers.get('cache-control')
-    if (cc && !matching(probe, 'cache-control').length && !/max-age=0/.test(cc)) {
+    if (cc && !matching(svc, probe, 'cache-control').length && !/max-age=0/.test(cc)) {
       note(host, `${probe}: served Cache-Control "${cc}" which render.yaml does not declare — `
         + 'a rule deleted from the file stays live on the service')
     }
@@ -184,4 +216,5 @@ if (findings.length) {
   console.error(`\ndeployment drift (${label}):\n\n${findings.join('\n\n')}\n`)
   process.exit(1)
 }
-console.log(`no drift: ${declaredHeaders.length} declared header rules match what ${label} serves`)
+const ruleCount = SERVICES.reduce((n, x) => n + x.headers.length, 0)
+console.log(`no drift: ${ruleCount} declared header rules match what ${label} serves`)
